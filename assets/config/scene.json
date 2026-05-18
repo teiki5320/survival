@@ -1,11 +1,11 @@
 {
   "background": "assets/background/wagon.png",
-  "aspectRatio": [2, 3],
+  "aspectRatio": [19.5, 9],
   "slots": [
-    { "id": "slot_bed",   "x": 0.50, "y": 0.78, "width": 0.55, "height": 0.18 },
-    { "id": "slot_lamp",  "x": 0.20, "y": 0.55, "width": 0.18, "height": 0.22 },
-    { "id": "slot_plant", "x": 0.82, "y": 0.62, "width": 0.18, "height": 0.22 },
-    { "id": "slot_plaid", "x": 0.50, "y": 0.86, "width": 0.30, "height": 0.10 }
+    { "id": "slot_bed",   "x": 0.78, "y": 0.70, "width": 0.28, "height": 0.40 },
+    { "id": "slot_lamp",  "x": 0.15, "y": 0.55, "width": 0.08, "height": 0.30 },
+    { "id": "slot_plant", "x": 0.50, "y": 0.72, "width": 0.08, "height": 0.30 },
+    { "id": "slot_plaid", "x": 0.78, "y": 0.55, "width": 0.20, "height": 0.10 }
   ],
   "objects": [
     {
