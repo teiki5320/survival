@@ -40,6 +40,10 @@ if [ -n "${CI_BUILD_NUMBER:-}" ]; then
   fi
 fi
 
-echo "==> pod install"
-cd ios
-pod install
+if [ -f "ios/Podfile" ]; then
+  echo "==> pod install"
+  cd ios
+  pod install
+else
+  echo "==> no ios/Podfile (no native plugins), skipping pod install"
+fi
