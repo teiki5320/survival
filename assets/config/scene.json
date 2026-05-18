@@ -17,7 +17,7 @@
       "label": "Lit",
       "slot": "slot_bed",
       "asset": "assets/objects/bed.png",
-      "animation": "breathing"
+      "animation": "none"
     },
     {
       "id": "lamp",
