@@ -256,6 +256,7 @@ class SceneConfig {
     required this.objects,
     required this.characters,
     required this.windowArea,
+    required this.windowCornerRadius,
   });
 
   factory SceneConfig.fromJson(Map<String, dynamic> json) {
@@ -319,6 +320,7 @@ class SceneConfig {
 
     Rect parsedWindowArea =
         const Rect.fromLTWH(0.41, 0.20, 0.18, 0.35);
+    double parsedCornerRadius = 0.0;
     final rawWindow = json['windowArea'] as Map<String, dynamic>?;
     if (rawWindow != null) {
       parsedWindowArea = Rect.fromLTWH(
@@ -327,6 +329,8 @@ class SceneConfig {
         (rawWindow['width'] as num).toDouble(),
         (rawWindow['height'] as num).toDouble(),
       );
+      parsedCornerRadius =
+          (rawWindow['cornerRadius'] as num?)?.toDouble() ?? 0.0;
     }
 
     return SceneConfig(
@@ -338,6 +342,7 @@ class SceneConfig {
       objects: objects,
       characters: characters,
       windowArea: parsedWindowArea,
+      windowCornerRadius: parsedCornerRadius,
     );
   }
 
@@ -362,6 +367,11 @@ class SceneConfig {
   /// Rear-window glass area in normalized 0..1 coordinates, used by the
   /// parallax overlay to know where to draw scrolling silhouettes.
   final Rect windowArea;
+
+  /// Corner radius applied to the rear-window area, normalized to the
+  /// wagon's smaller side. Use a small value (e.g. 0.015–0.025) to round
+  /// the corners just enough to match the real window curve.
+  final double windowCornerRadius;
 
   String? landscapeFor(WagonTime time) => landscapes[time];
 

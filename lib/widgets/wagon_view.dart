@@ -89,12 +89,15 @@ class WagonView extends StatelessWidget {
 
   Widget _landscapeInWindow(SceneState state, double w, double h) {
     final rect = state.effectiveWindowArea;
+    final radiusPx = config.windowCornerRadius * (w < h ? w : h);
+    final radius = BorderRadius.circular(radiusPx);
     return Positioned(
       left: rect.left * w,
       top: rect.top * h,
       width: rect.width * w,
       height: rect.height * h,
-      child: ClipRect(
+      child: ClipRRect(
+        borderRadius: radius,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 600),
           child: ScrollingLandscape(
