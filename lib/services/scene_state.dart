@@ -27,6 +27,7 @@ class SceneState extends ChangeNotifier {
   final Map<String, Timer> _actionTimers = {};
 
   bool _rocking = true;
+  bool _parallax = true;
 
   // Time of day
   WagonTime get time => _time;
@@ -37,6 +38,14 @@ class SceneState extends ChangeNotifier {
   void setRocking(bool rocking) {
     if (_rocking == rocking) return;
     _rocking = rocking;
+    notifyListeners();
+  }
+
+  // Window parallax
+  bool get isParallax => _parallax;
+  void setParallax(bool parallax) {
+    if (_parallax == parallax) return;
+    _parallax = parallax;
     notifyListeners();
   }
 

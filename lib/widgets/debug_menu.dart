@@ -41,6 +41,7 @@ class DebugObjectsSheet extends StatelessWidget {
               const Divider(height: 1),
               _ambianceRow(),
               _rockingRow(),
+              _parallaxRow(),
               const Divider(height: 1),
               Flexible(
                 child: ListView(
@@ -120,6 +121,25 @@ class DebugObjectsSheet extends StatelessWidget {
           Switch(
             value: state.isRocking,
             onChanged: state.setRocking,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _parallaxRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.landscape_outlined, size: 18),
+          const SizedBox(width: 8),
+          const Text('Paysage qui défile',
+              style: TextStyle(fontWeight: FontWeight.w500)),
+          const Spacer(),
+          Switch(
+            value: state.isParallax,
+            onChanged: state.setParallax,
           ),
         ],
       ),
