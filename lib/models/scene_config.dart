@@ -39,11 +39,11 @@ WagonTime _parseTime(String? raw) {
   }
 }
 
-/// A named anchor on the wagon image where a single object can be placed.
+/// A named anchor on the wagon image where a single asset can be placed.
 ///
 /// Coordinates are normalized to the wagon's bounding box (0..1). [x] and [y]
 /// describe the slot's center; [width] and [height] describe the rendered
-/// object's size relative to the wagon.
+/// asset's size relative to the wagon.
 class SlotConfig {
   const SlotConfig({
     required this.id,
@@ -96,6 +96,60 @@ class WagonObject {
   final WagonAnimation animation;
 }
 
+/// One frame of a character: an asset rendered at a specific slot in the
+/// wagon. Cycling the active pose makes the character "move" between spots.
+class CharacterPose {
+  const CharacterPose({
+    required this.id,
+    required this.label,
+    required this.asset,
+    required this.slotId,
+  });
+
+  factory CharacterPose.fromJson(Map<String, dynamic> json) {
+    return CharacterPose(
+      id: json['id'] as String,
+      label: (json['label'] as String?) ?? json['id'] as String,
+      asset: json['asset'] as String,
+      slotId: json['slot'] as String,
+    );
+  }
+
+  final String id;
+  final String label;
+  final String asset;
+  final String slotId;
+}
+
+class CharacterConfig {
+  const CharacterConfig({
+    required this.id,
+    required this.label,
+    required this.cycleSeconds,
+    required this.poses,
+  });
+
+  factory CharacterConfig.fromJson(Map<String, dynamic> json) {
+    final poses = (json['poses'] as List<dynamic>)
+        .map((p) => CharacterPose.fromJson(p as Map<String, dynamic>))
+        .toList(growable: false);
+    if (poses.isEmpty) {
+      throw FormatException('Character "${json['id']}" must define at least one pose.');
+    }
+    return CharacterConfig(
+      id: json['id'] as String,
+      label: (json['label'] as String?) ?? json['id'] as String,
+      cycleSeconds: (json['cycleSeconds'] as num?)?.toInt() ?? 8,
+      poses: poses,
+    );
+  }
+
+  final String id;
+  final String label;
+  final int cycleSeconds;
+  final List<CharacterPose> poses;
+}
+
 class SceneConfig {
   SceneConfig({
     required this.backgrounds,
@@ -103,6 +157,7 @@ class SceneConfig {
     required this.aspectRatio,
     required this.slots,
     required this.objects,
+    required this.characters,
   });
 
   factory SceneConfig.fromJson(Map<String, dynamic> json) {
@@ -118,12 +173,24 @@ class SceneConfig {
     final objects = (json['objects'] as List<dynamic>)
         .map((o) => WagonObject.fromJson(o as Map<String, dynamic>))
         .toList(growable: false);
-
     for (final o in objects) {
       if (!slotsById.containsKey(o.slotId)) {
         throw FormatException(
           'Object "${o.id}" references unknown slot "${o.slotId}".',
         );
+      }
+    }
+
+    final characters = ((json['characters'] as List<dynamic>?) ?? const [])
+        .map((c) => CharacterConfig.fromJson(c as Map<String, dynamic>))
+        .toList(growable: false);
+    for (final char in characters) {
+      for (final pose in char.poses) {
+        if (!slotsById.containsKey(pose.slotId)) {
+          throw FormatException(
+            'Character "${char.id}" pose "${pose.id}" references unknown slot "${pose.slotId}".',
+          );
+        }
       }
     }
 
@@ -150,6 +217,7 @@ class SceneConfig {
       aspectRatio: w / h,
       slots: slotsById,
       objects: objects,
+      characters: characters,
     );
   }
 
@@ -164,8 +232,10 @@ class SceneConfig {
   final double aspectRatio;
   final Map<String, SlotConfig> slots;
   final List<WagonObject> objects;
+  final List<CharacterConfig> characters;
 
   String backgroundFor(WagonTime time) => backgrounds[time]!;
 
   SlotConfig slotFor(WagonObject object) => slots[object.slotId]!;
+  SlotConfig slotForPose(CharacterPose pose) => slots[pose.slotId]!;
 }

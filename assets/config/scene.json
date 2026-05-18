@@ -9,7 +9,14 @@
     { "id": "slot_bed",   "x": 0.50, "y": 0.78, "width": 0.42, "height": 0.36 },
     { "id": "slot_lamp",  "x": 0.36, "y": 0.43, "width": 0.05, "height": 0.10 },
     { "id": "slot_plant", "x": 0.92, "y": 0.30, "width": 0.10, "height": 0.35 },
-    { "id": "slot_plaid", "x": 0.50, "y": 0.72, "width": 0.30, "height": 0.10 }
+    { "id": "slot_plaid", "x": 0.50, "y": 0.72, "width": 0.30, "height": 0.10 },
+
+    { "id": "char_standing_idle",    "x": 0.50, "y": 0.65, "width": 0.18, "height": 0.55 },
+    { "id": "char_standing_turned",  "x": 0.33, "y": 0.65, "width": 0.18, "height": 0.55 },
+    { "id": "char_standing_stretch", "x": 0.67, "y": 0.65, "width": 0.18, "height": 0.55 },
+    { "id": "char_sitting_cross",    "x": 0.50, "y": 0.62, "width": 0.20, "height": 0.34 },
+    { "id": "char_sitting_hugged",   "x": 0.30, "y": 0.80, "width": 0.16, "height": 0.32 },
+    { "id": "char_sitting_side",     "x": 0.70, "y": 0.84, "width": 0.18, "height": 0.30 }
   ],
   "objects": [
     {
@@ -39,6 +46,51 @@
       "slot": "slot_plaid",
       "asset": "assets/objects/plaid.png",
       "animation": "none"
+    }
+  ],
+  "characters": [
+    {
+      "id": "lone_inhabitant",
+      "label": "Habitante",
+      "cycleSeconds": 7,
+      "poses": [
+        {
+          "id": "standing_idle",
+          "label": "Debout repos",
+          "asset": "assets/characters/standing_idle.png",
+          "slot": "char_standing_idle"
+        },
+        {
+          "id": "standing_turned",
+          "label": "Tourne vers fenêtre",
+          "asset": "assets/characters/standing_turned.png",
+          "slot": "char_standing_turned"
+        },
+        {
+          "id": "standing_stretch",
+          "label": "S'étire",
+          "asset": "assets/characters/standing_stretch.png",
+          "slot": "char_standing_stretch"
+        },
+        {
+          "id": "sitting_cross",
+          "label": "Assise sur le lit",
+          "asset": "assets/characters/sitting_cross.png",
+          "slot": "char_sitting_cross"
+        },
+        {
+          "id": "sitting_hugged",
+          "label": "Blottie au sol",
+          "asset": "assets/characters/sitting_hugged.png",
+          "slot": "char_sitting_hugged"
+        },
+        {
+          "id": "sitting_side",
+          "label": "Au sol côté droit",
+          "asset": "assets/characters/sitting_side.png",
+          "slot": "char_sitting_side"
+        }
+      ]
     }
   ]
 }

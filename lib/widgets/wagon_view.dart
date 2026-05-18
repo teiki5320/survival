@@ -4,13 +4,8 @@ import '../models/scene_config.dart';
 import '../services/scene_state.dart';
 import 'animated_object.dart';
 
-/// Renders the wagon background and all currently visible objects on top.
-///
-/// Layout strategy: the view fixes its own aspect ratio to the configured
-/// wagon ratio (default 16:9 landscape) so positions stay correct on any
-/// device. Slot coordinates are normalized (0..1) and converted to pixels
-/// against the wagon's box at build time. The background swaps between day
-/// and night variants based on [SceneState.time].
+/// Renders the wagon background, all visible objects, and any visible
+/// characters at their current pose position.
 class WagonView extends StatelessWidget {
   const WagonView({
     super.key,
@@ -51,6 +46,9 @@ class WagonView extends StatelessWidget {
                     for (final object in config.objects)
                       if (state.isVisible(object.id))
                         _positionedObject(object, w, h),
+                    for (final char in config.characters)
+                      if (state.isCharacterVisible(char.id))
+                        _positionedCharacter(char, w, h),
                   ],
                 );
               },
@@ -63,23 +61,59 @@ class WagonView extends StatelessWidget {
 
   Widget _positionedObject(WagonObject object, double w, double h) {
     final slot = config.slotFor(object);
+    return _slotPositioned(
+      slot,
+      w,
+      h,
+      key: ValueKey('obj_${object.id}'),
+      child: AnimatedObject(
+        animation: object.animation,
+        child: Image.asset(object.asset, fit: BoxFit.contain),
+      ),
+    );
+  }
+
+  Widget _positionedCharacter(CharacterConfig char, double w, double h) {
+    final pose = state.currentPose(char);
+    final slot = config.slotForPose(pose);
+    // AnimatedSwitcher with a fade keyed on pose id gives a soft cross-fade
+    // when the pose changes (auto-cycle or manual pick).
+    return _slotPositioned(
+      slot,
+      w,
+      h,
+      key: ValueKey('char_${char.id}_slot_${slot.id}'),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: Image.asset(
+          pose.asset,
+          key: ValueKey('char_${char.id}_pose_${pose.id}'),
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+
+  Widget _slotPositioned(
+    SlotConfig slot,
+    double w,
+    double h, {
+    required Key key,
+    required Widget child,
+  }) {
     final width = slot.width * w;
     final height = slot.height * h;
     final left = slot.x * w - width / 2;
     final top = slot.y * h - height / 2;
     return Positioned(
-      key: ValueKey('obj_${object.id}'),
+      key: key,
       left: left,
       top: top,
       width: width,
       height: height,
-      child: AnimatedObject(
-        animation: object.animation,
-        child: Image.asset(
-          object.asset,
-          fit: BoxFit.contain,
-        ),
-      ),
+      child: child,
     );
   }
 }
