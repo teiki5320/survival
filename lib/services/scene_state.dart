@@ -5,8 +5,9 @@ import 'package:flutter/foundation.dart';
 import '../models/scene_config.dart';
 
 /// Tracks scene runtime state: which objects are visible, which day/night
-/// background is active, and for each character which pose is currently
-/// rendered (with optional auto-cycling).
+/// background is active, and for each character which pose / action is
+/// currently active (with auto-cycling between idle poses or scripted
+/// action sequences).
 class SceneState extends ChangeNotifier {
   SceneState(this.config) : _time = config.defaultTime;
 
@@ -19,6 +20,11 @@ class SceneState extends ChangeNotifier {
   final Map<String, int> _characterPoseIndex = {};
   final Map<String, int?> _characterManualPose = {};
   final Map<String, Timer> _characterTimers = {};
+
+  // Action playback state.
+  final Map<String, CharacterAction> _activeActions = {};
+  final Map<String, int> _activeActionFrame = {};
+  final Map<String, Timer> _actionTimers = {};
 
   bool _rocking = true;
 
@@ -58,7 +64,8 @@ class SceneState extends ChangeNotifier {
     _visible.clear();
     if (_visibleCharacters.isNotEmpty) {
       for (final id in _visibleCharacters.toList()) {
-        _stopTimer(id);
+        _stopCycleTimer(id);
+        _stopAction(id);
       }
       _visibleCharacters.clear();
       changed = true;
@@ -69,49 +76,126 @@ class SceneState extends ChangeNotifier {
   // Characters
   bool isCharacterVisible(String id) => _visibleCharacters.contains(id);
 
-  /// Whether the user has pinned the character to a specific pose
-  /// (auto-cycle disabled).
   bool isPoseManuallyPinned(String charId) =>
       _characterManualPose[charId] != null;
 
-  /// Index of the pose currently being rendered for the given character —
-  /// manual pin if any, otherwise the auto-cycle position.
   int currentPoseIndex(String charId) =>
       _characterManualPose[charId] ?? _characterPoseIndex[charId] ?? 0;
 
+  /// Pose currently being rendered for the character: the active action
+  /// frame's pose if an action is playing, the manual pin if any, otherwise
+  /// the auto-cycle's current pose.
   CharacterPose currentPose(CharacterConfig char) {
+    final action = _activeActions[char.id];
+    if (action != null) {
+      final frameIndex = _activeActionFrame[char.id] ?? 0;
+      final poseId = action.frames[frameIndex].poseId;
+      return char.poseById(poseId);
+    }
     final index = currentPoseIndex(char.id) % char.poses.length;
     return char.poses[index];
   }
+
+  bool isActionPlaying(String charId) => _activeActions.containsKey(charId);
+  CharacterAction? activeAction(String charId) => _activeActions[charId];
+  int activeActionFrame(String charId) => _activeActionFrame[charId] ?? 0;
 
   void setCharacterVisible(String id, bool visible) {
     if (visible) {
       if (!_visibleCharacters.add(id)) return;
       _characterPoseIndex.putIfAbsent(id, () => 0);
-      _startTimer(id);
+      _startCycleTimer(id);
     } else {
       if (!_visibleCharacters.remove(id)) return;
-      _stopTimer(id);
+      _stopCycleTimer(id);
+      _stopAction(id);
     }
     notifyListeners();
   }
 
-  /// Pin the character to a specific pose (auto-cycle off), or pass null to
-  /// resume auto-cycling.
+  /// Pin the character to a specific pose (auto-cycle and any active action
+  /// are interrupted), or pass null to resume auto-cycling.
   void setManualPose(String charId, int? poseIndex) {
+    _stopAction(charId);
     _characterManualPose[charId] = poseIndex;
     if (poseIndex != null) {
       _characterPoseIndex[charId] = poseIndex;
-      _stopTimer(charId);
+      _stopCycleTimer(charId);
     } else if (_visibleCharacters.contains(charId)) {
-      _startTimer(charId);
+      _startCycleTimer(charId);
     }
     notifyListeners();
   }
 
-  void _startTimer(String charId) {
-    _stopTimer(charId);
+  void playAction(String charId, String actionId) {
+    if (!_visibleCharacters.contains(charId)) {
+      setCharacterVisible(charId, true);
+    }
+    final char = config.characters.firstWhere((c) => c.id == charId);
+    final action = char.actions.firstWhere((a) => a.id == actionId);
+    _characterManualPose.remove(charId);
+    _stopCycleTimer(charId);
+    _stopActionTimer(charId);
+    _activeActions[charId] = action;
+    _activeActionFrame[charId] = 0;
+    _scheduleNextActionFrame(charId);
+    notifyListeners();
+  }
+
+  void stopAction(String charId) {
+    if (!_activeActions.containsKey(charId)) return;
+    final char = config.characters.firstWhere((c) => c.id == charId);
+    final lastFrame = _activeActionFrame[charId] ?? 0;
+    final lastPoseId = _activeActions[charId]!.frames[lastFrame].poseId;
+    _stopAction(charId);
+    // Snap the auto-cycle index to whichever pose she finished on so the
+    // resume doesn't feel like a hard cut back.
+    final resumeIndex =
+        char.poses.indexWhere((p) => p.id == lastPoseId).clamp(0, char.poses.length - 1);
+    _characterPoseIndex[charId] = resumeIndex;
+    if (_visibleCharacters.contains(charId) &&
+        _characterManualPose[charId] == null) {
+      _startCycleTimer(charId);
+    }
+    notifyListeners();
+  }
+
+  void _scheduleNextActionFrame(String charId) {
+    final action = _activeActions[charId];
+    if (action == null) return;
+    final index = _activeActionFrame[charId] ?? 0;
+    final frame = action.frames[index];
+    _actionTimers[charId] = Timer(Duration(milliseconds: frame.durationMs), () {
+      final next = index + 1;
+      if (next < action.frames.length) {
+        _activeActionFrame[charId] = next;
+        _scheduleNextActionFrame(charId);
+        notifyListeners();
+      } else if (action.loop) {
+        _activeActionFrame[charId] = 0;
+        _scheduleNextActionFrame(charId);
+        notifyListeners();
+      } else {
+        // Natural end: stop the action and resume cycling.
+        stopAction(charId);
+      }
+    });
+  }
+
+  void _stopAction(String charId) {
+    _activeActions.remove(charId);
+    _activeActionFrame.remove(charId);
+    _stopActionTimer(charId);
+  }
+
+  void _stopActionTimer(String charId) {
+    _actionTimers.remove(charId)?.cancel();
+  }
+
+  void _startCycleTimer(String charId) {
+    _stopCycleTimer(charId);
     if (_characterManualPose[charId] != null) return;
+    if (_activeActions.containsKey(charId)) return;
     final char = config.characters.firstWhere((c) => c.id == charId);
     _characterTimers[charId] = Timer.periodic(
       Duration(seconds: char.cycleSeconds),
@@ -123,7 +207,7 @@ class SceneState extends ChangeNotifier {
     );
   }
 
-  void _stopTimer(String charId) {
+  void _stopCycleTimer(String charId) {
     _characterTimers.remove(charId)?.cancel();
   }
 
@@ -132,7 +216,11 @@ class SceneState extends ChangeNotifier {
     for (final timer in _characterTimers.values) {
       timer.cancel();
     }
+    for (final timer in _actionTimers.values) {
+      timer.cancel();
+    }
     _characterTimers.clear();
+    _actionTimers.clear();
     super.dispose();
   }
 }

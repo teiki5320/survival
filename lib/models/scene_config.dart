@@ -121,12 +121,62 @@ class CharacterPose {
   final String slotId;
 }
 
+/// One step of a scripted action: hold a specific pose for [durationMs] ms,
+/// then move on to the next frame. The slide between frames is handled by
+/// CharacterDisplay so each frame just declares which pose to stop at.
+class ActionFrame {
+  const ActionFrame({required this.poseId, required this.durationMs});
+
+  factory ActionFrame.fromJson(Map<String, dynamic> json) {
+    return ActionFrame(
+      poseId: json['poseId'] as String,
+      durationMs: (json['durationMs'] as num).toInt(),
+    );
+  }
+
+  final String poseId;
+  final int durationMs;
+}
+
+/// A named scripted sequence of poses — "go look outside", "wake up and
+/// stretch", etc. Actions interrupt the auto-cycle and resume it when done
+/// (unless [loop] is true).
+class CharacterAction {
+  const CharacterAction({
+    required this.id,
+    required this.label,
+    required this.frames,
+    required this.loop,
+  });
+
+  factory CharacterAction.fromJson(Map<String, dynamic> json) {
+    final frames = (json['frames'] as List<dynamic>)
+        .map((f) => ActionFrame.fromJson(f as Map<String, dynamic>))
+        .toList(growable: false);
+    if (frames.isEmpty) {
+      throw FormatException('Action "${json['id']}" must declare at least one frame.');
+    }
+    return CharacterAction(
+      id: json['id'] as String,
+      label: (json['label'] as String?) ?? json['id'] as String,
+      frames: frames,
+      loop: (json['loop'] as bool?) ?? false,
+    );
+  }
+
+  final String id;
+  final String label;
+  final List<ActionFrame> frames;
+  final bool loop;
+}
+
 class CharacterConfig {
   const CharacterConfig({
     required this.id,
     required this.label,
     required this.cycleSeconds,
     required this.poses,
+    required this.actions,
   });
 
   factory CharacterConfig.fromJson(Map<String, dynamic> json) {
@@ -136,11 +186,27 @@ class CharacterConfig {
     if (poses.isEmpty) {
       throw FormatException('Character "${json['id']}" must define at least one pose.');
     }
+    final poseIds = {for (final p in poses) p.id};
+
+    final actions = ((json['actions'] as List<dynamic>?) ?? const [])
+        .map((a) => CharacterAction.fromJson(a as Map<String, dynamic>))
+        .toList(growable: false);
+    for (final action in actions) {
+      for (final frame in action.frames) {
+        if (!poseIds.contains(frame.poseId)) {
+          throw FormatException(
+            'Action "${action.id}" references unknown pose "${frame.poseId}".',
+          );
+        }
+      }
+    }
+
     return CharacterConfig(
       id: json['id'] as String,
       label: (json['label'] as String?) ?? json['id'] as String,
       cycleSeconds: (json['cycleSeconds'] as num?)?.toInt() ?? 8,
       poses: poses,
+      actions: actions,
     );
   }
 
@@ -148,6 +214,10 @@ class CharacterConfig {
   final String label;
   final int cycleSeconds;
   final List<CharacterPose> poses;
+  final List<CharacterAction> actions;
+
+  CharacterPose poseById(String poseId) =>
+      poses.firstWhere((p) => p.id == poseId);
 }
 
 class SceneConfig {

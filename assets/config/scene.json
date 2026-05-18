@@ -90,6 +90,69 @@
           "asset": "assets/characters/sitting_side.png",
           "slot": "char_sitting_side"
         }
+      ],
+      "actions": [
+        {
+          "id": "look_outside",
+          "label": "Regarder dehors",
+          "frames": [
+            { "poseId": "standing_idle",    "durationMs": 1800 },
+            { "poseId": "standing_turned",  "durationMs": 5000 },
+            { "poseId": "standing_idle",    "durationMs": 1500 }
+          ]
+        },
+        {
+          "id": "wake_up",
+          "label": "Se réveiller",
+          "frames": [
+            { "poseId": "sitting_cross",    "durationMs": 1800 },
+            { "poseId": "standing_idle",    "durationMs": 1500 },
+            { "poseId": "standing_stretch", "durationMs": 3000 },
+            { "poseId": "standing_idle",    "durationMs": 1500 }
+          ]
+        },
+        {
+          "id": "go_to_bed",
+          "label": "Aller au lit",
+          "frames": [
+            { "poseId": "standing_stretch", "durationMs": 1500 },
+            { "poseId": "standing_idle",    "durationMs": 1500 },
+            { "poseId": "sitting_cross",    "durationMs": 4000 }
+          ]
+        },
+        {
+          "id": "pace",
+          "label": "Faire les cent pas",
+          "frames": [
+            { "poseId": "standing_idle",    "durationMs": 1200 },
+            { "poseId": "standing_turned",  "durationMs": 1200 },
+            { "poseId": "standing_stretch", "durationMs": 1200 },
+            { "poseId": "standing_idle",    "durationMs": 1200 },
+            { "poseId": "standing_turned",  "durationMs": 1200 },
+            { "poseId": "standing_idle",    "durationMs": 1500 }
+          ]
+        },
+        {
+          "id": "curl_up",
+          "label": "Se blottir",
+          "frames": [
+            { "poseId": "standing_idle",    "durationMs": 1500 },
+            { "poseId": "sitting_hugged",   "durationMs": 5000 }
+          ]
+        },
+        {
+          "id": "wagon_tour",
+          "label": "Tour du wagon",
+          "frames": [
+            { "poseId": "sitting_cross",    "durationMs": 1500 },
+            { "poseId": "standing_idle",    "durationMs": 1500 },
+            { "poseId": "standing_turned",  "durationMs": 2000 },
+            { "poseId": "standing_idle",    "durationMs": 1500 },
+            { "poseId": "standing_stretch", "durationMs": 1500 },
+            { "poseId": "standing_idle",    "durationMs": 1500 },
+            { "poseId": "sitting_side",     "durationMs": 3500 }
+          ]
+        }
       ]
     }
   ]
