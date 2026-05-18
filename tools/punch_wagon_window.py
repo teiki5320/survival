@@ -25,9 +25,9 @@ BG_DIR = ROOT / "assets" / "background"
 
 # Inset and feather amount in pixels — relative to the cut rectangle.
 # Inset shrinks the hole slightly inward so we don't bite into the frame.
-INSET_PX = 6
-FEATHER_PX = 14
-CORNER_RADIUS_PX = 28
+INSET_PX = 8
+FEATHER_PX = 6
+CORNER_RADIUS_PX = 22
 
 
 def punch_window(image_path: Path, rect_normalized: dict[str, float]) -> None:
