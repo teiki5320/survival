@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/scene_config.dart';
 import '../services/scene_state.dart';
 import 'animated_object.dart';
+import 'train_rocking.dart';
 
 /// Renders the wagon background, all visible objects, and any visible
 /// characters at their current pose position.
@@ -27,31 +28,36 @@ class WagonView extends StatelessWidget {
           builder: (context, constraints) {
             final w = constraints.maxWidth;
             final h = constraints.maxHeight;
-            return AnimatedBuilder(
-              animation: state,
-              builder: (context, _) {
-                return Stack(
-                  clipBehavior: Clip.hardEdge,
-                  children: [
-                    Positioned.fill(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 600),
-                        child: Image.asset(
-                          config.backgroundFor(state.time),
-                          key: ValueKey(state.time),
-                          fit: BoxFit.cover,
+            return ClipRect(
+              child: AnimatedBuilder(
+                animation: state,
+                builder: (context, _) {
+                  return TrainRocking(
+                    enabled: state.isRocking,
+                    child: Stack(
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        Positioned.fill(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 600),
+                            child: Image.asset(
+                              config.backgroundFor(state.time),
+                              key: ValueKey(state.time),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
                         ),
-                      ),
+                        for (final object in config.objects)
+                          if (state.isVisible(object.id))
+                            _positionedObject(object, w, h),
+                        for (final char in config.characters)
+                          if (state.isCharacterVisible(char.id))
+                            _positionedCharacter(char, w, h),
+                      ],
                     ),
-                    for (final object in config.objects)
-                      if (state.isVisible(object.id))
-                        _positionedObject(object, w, h),
-                    for (final char in config.characters)
-                      if (state.isCharacterVisible(char.id))
-                        _positionedCharacter(char, w, h),
-                  ],
-                );
-              },
+                  );
+                },
+              ),
             );
           },
         ),
