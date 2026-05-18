@@ -1,8 +1,12 @@
 import 'dart:async';
+import 'dart:ui' show Rect;
 
 import 'package:flutter/foundation.dart';
 
 import '../models/scene_config.dart';
+
+/// Identifier for one corner of the window editor.
+enum WindowCorner { topLeft, topRight, bottomLeft, bottomRight }
 
 /// Tracks scene runtime state: which objects are visible, which day/night
 /// background is active, and for each character which pose / action is
@@ -28,6 +32,8 @@ class SceneState extends ChangeNotifier {
 
   bool _rocking = true;
   bool _parallax = true;
+  bool _editingWindow = false;
+  Rect? _windowAreaOverride;
 
   // Time of day
   WagonTime get time => _time;
@@ -46,6 +52,55 @@ class SceneState extends ChangeNotifier {
   void setParallax(bool parallax) {
     if (_parallax == parallax) return;
     _parallax = parallax;
+    notifyListeners();
+  }
+
+  // Window area — overridable at runtime via the corner editor.
+  /// Window rectangle currently in use. Either the runtime override (set by
+  /// dragging corners) or the one declared in scene.json.
+  Rect get effectiveWindowArea => _windowAreaOverride ?? config.windowArea;
+
+  bool get isEditingWindow => _editingWindow;
+  void setEditingWindow(bool editing) {
+    if (_editingWindow == editing) return;
+    _editingWindow = editing;
+    if (editing) _windowAreaOverride ??= config.windowArea;
+    notifyListeners();
+  }
+
+  /// Reset the override to whatever scene.json declares.
+  void resetWindowArea() {
+    if (_windowAreaOverride == null) return;
+    _windowAreaOverride = null;
+    notifyListeners();
+  }
+
+  /// Drag one corner by a normalized delta (relative to the wagon box).
+  /// Width and height are clamped to a minimum of 5% so the rect can't
+  /// collapse, and coordinates are clamped to [0, 1].
+  void dragWindowCorner(WindowCorner corner, double dxNorm, double dyNorm) {
+    final rect = effectiveWindowArea;
+    double left = rect.left;
+    double top = rect.top;
+    double right = rect.right;
+    double bottom = rect.bottom;
+
+    switch (corner) {
+      case WindowCorner.topLeft:
+        left = (left + dxNorm).clamp(0.0, right - 0.05);
+        top = (top + dyNorm).clamp(0.0, bottom - 0.05);
+      case WindowCorner.topRight:
+        right = (right + dxNorm).clamp(left + 0.05, 1.0);
+        top = (top + dyNorm).clamp(0.0, bottom - 0.05);
+      case WindowCorner.bottomLeft:
+        left = (left + dxNorm).clamp(0.0, right - 0.05);
+        bottom = (bottom + dyNorm).clamp(top + 0.05, 1.0);
+      case WindowCorner.bottomRight:
+        right = (right + dxNorm).clamp(left + 0.05, 1.0);
+        bottom = (bottom + dyNorm).clamp(top + 0.05, 1.0);
+    }
+
+    _windowAreaOverride = Rect.fromLTRB(left, top, right, bottom);
     notifyListeners();
   }
 

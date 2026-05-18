@@ -42,6 +42,7 @@ class DebugObjectsSheet extends StatelessWidget {
               _ambianceRow(),
               _rockingRow(),
               _parallaxRow(),
+              _windowEditorRow(context),
               const Divider(height: 1),
               Flexible(
                 child: ListView(
@@ -140,6 +141,42 @@ class DebugObjectsSheet extends StatelessWidget {
           Switch(
             value: state.isParallax,
             onChanged: state.setParallax,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _windowEditorRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.crop_outlined, size: 18),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Éditer la zone fenêtre',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          if (state.isEditingWindow)
+            TextButton.icon(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: state.resetWindowArea,
+              icon: const Icon(Icons.restore, size: 16),
+              label: const Text('Reset'),
+            ),
+          Switch(
+            value: state.isEditingWindow,
+            onChanged: (v) {
+              state.setEditingWindow(v);
+              if (v) Navigator.of(context).pop(); // close sheet to free the canvas
+            },
           ),
         ],
       ),

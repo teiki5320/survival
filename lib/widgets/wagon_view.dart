@@ -6,6 +6,7 @@ import 'animated_object.dart';
 import 'character_display.dart';
 import 'scrolling_landscape.dart';
 import 'train_rocking.dart';
+import 'window_corner_editor.dart';
 
 /// Renders the wagon background, all visible objects, and any visible
 /// characters at their current pose position.
@@ -66,6 +67,14 @@ class WagonView extends StatelessWidget {
                         for (final char in config.characters)
                           if (state.isCharacterVisible(char.id))
                             _positionedCharacter(char, w, h),
+                        if (state.isEditingWindow)
+                          Positioned.fill(
+                            child: WindowCornerEditor(
+                              state: state,
+                              boxWidth: w,
+                              boxHeight: h,
+                            ),
+                          ),
                       ],
                     ),
                   );
@@ -79,7 +88,7 @@ class WagonView extends StatelessWidget {
   }
 
   Widget _landscapeInWindow(SceneState state, double w, double h) {
-    final rect = config.windowArea;
+    final rect = state.effectiveWindowArea;
     return Positioned(
       left: rect.left * w,
       top: rect.top * h,
