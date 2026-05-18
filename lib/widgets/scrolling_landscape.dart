@@ -13,8 +13,8 @@ class ScrollingLandscape extends StatefulWidget {
   const ScrollingLandscape({
     super.key,
     required this.assetPath,
-    this.cycleSeconds = 32,
-    this.landscapeAspect = 4096.0 / 1000.0,
+    this.cycleSeconds = 18,
+    this.landscapeAspect = 16.0 / 9.0,
     this.enabled = true,
   });
 
@@ -23,8 +23,9 @@ class ScrollingLandscape extends StatefulWidget {
   /// Seconds for one full scroll cycle (one image-width worth of travel).
   final int cycleSeconds;
 
-  /// Width / height of the landscape source image. The placeholders are
-  /// 4096×1000; override if you ship a different ratio.
+  /// Width / height of the landscape source image. OpenArt caps at 16:9 so
+  /// that's the default; if you ship a wider panorama, override this with
+  /// its true aspect.
   final double landscapeAspect;
 
   /// Pauses the scroll while keeping the landscape visible. Useful when the
