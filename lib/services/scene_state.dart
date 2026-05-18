@@ -82,6 +82,31 @@ class SceneState extends ChangeNotifier {
     if (changed) notifyListeners();
   }
 
+  /// Player tapped an object in the wagon. If the object has an interaction
+  /// defined, route it to the first available character: a pose interaction
+  /// pins the character to that pose, an action interaction plays the
+  /// scripted sequence. The character is auto-shown if hidden so the tap
+  /// always produces a visible response.
+  void interactWith(WagonObject object) {
+    final interaction = object.interaction;
+    if (interaction == null) return;
+    if (config.characters.isEmpty) return;
+    final char = config.characters.first;
+
+    if (!isCharacterVisible(char.id)) {
+      setCharacterVisible(char.id, true);
+    }
+
+    switch (interaction.kind) {
+      case InteractionKind.action:
+        playAction(char.id, interaction.target);
+      case InteractionKind.pose:
+        final poseIndex =
+            char.poses.indexWhere((p) => p.id == interaction.target);
+        if (poseIndex >= 0) setManualPose(char.id, poseIndex);
+    }
+  }
+
   // Characters
   bool isCharacterVisible(String id) => _visibleCharacters.contains(id);
 

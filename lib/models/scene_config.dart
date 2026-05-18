@@ -71,6 +71,26 @@ class SlotConfig {
   final double height;
 }
 
+/// What happens when the player taps a wagon object: either snap the
+/// character into a specific pose, or kick off a scripted action.
+enum InteractionKind { pose, action }
+
+class ObjectInteraction {
+  const ObjectInteraction({required this.kind, required this.target});
+
+  factory ObjectInteraction.fromJson(Map<String, dynamic> json) {
+    final raw = (json['kind'] as String?) ?? 'pose';
+    final kind = raw == 'action' ? InteractionKind.action : InteractionKind.pose;
+    return ObjectInteraction(
+      kind: kind,
+      target: json['target'] as String,
+    );
+  }
+
+  final InteractionKind kind;
+  final String target;
+}
+
 class WagonObject {
   const WagonObject({
     required this.id,
@@ -78,15 +98,19 @@ class WagonObject {
     required this.slotId,
     required this.asset,
     required this.animation,
+    required this.interaction,
   });
 
   factory WagonObject.fromJson(Map<String, dynamic> json) {
+    final rawInteraction = json['interaction'] as Map<String, dynamic>?;
     return WagonObject(
       id: json['id'] as String,
       label: (json['label'] as String?) ?? json['id'] as String,
       slotId: json['slot'] as String,
       asset: json['asset'] as String,
       animation: _parseAnimation(json['animation'] as String?),
+      interaction:
+          rawInteraction == null ? null : ObjectInteraction.fromJson(rawInteraction),
     );
   }
 
@@ -95,6 +119,7 @@ class WagonObject {
   final String slotId;
   final String asset;
   final WagonAnimation animation;
+  final ObjectInteraction? interaction;
 }
 
 /// One frame of a character: an asset rendered at a specific slot in the
