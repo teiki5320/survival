@@ -20,9 +20,19 @@ class SceneState extends ChangeNotifier {
   final Map<String, int?> _characterManualPose = {};
   final Map<String, Timer> _characterTimers = {};
 
+  bool _rocking = true;
+
   // Time of day
   WagonTime get time => _time;
   bool get isNight => _time == WagonTime.night;
+
+  // Train rocking
+  bool get isRocking => _rocking;
+  void setRocking(bool rocking) {
+    if (_rocking == rocking) return;
+    _rocking = rocking;
+    notifyListeners();
+  }
 
   void setTime(WagonTime time) {
     if (_time == time) return;

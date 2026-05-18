@@ -40,6 +40,7 @@ class DebugObjectsSheet extends StatelessWidget {
               _headerRow(),
               const Divider(height: 1),
               _ambianceRow(),
+              _rockingRow(),
               const Divider(height: 1),
               Flexible(
                 child: ListView(
@@ -100,6 +101,25 @@ class DebugObjectsSheet extends StatelessWidget {
             onPressed: state.hideAll,
             icon: const Icon(Icons.visibility_off_outlined),
             label: const Text('Tout masquer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rockingRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.train_outlined, size: 18),
+          const SizedBox(width: 8),
+          const Text('Roulis du train',
+              style: TextStyle(fontWeight: FontWeight.w500)),
+          const Spacer(),
+          Switch(
+            value: state.isRocking,
+            onChanged: state.setRocking,
           ),
         ],
       ),
