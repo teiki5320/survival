@@ -166,6 +166,8 @@ class _CharacterTile extends StatelessWidget {
     final visible = state.isCharacterVisible(char.id);
     final manualPinned = state.isPoseManuallyPinned(char.id);
     final currentIndex = state.currentPoseIndex(char.id);
+    final playing = state.isActionPlaying(char.id);
+    final activeAction = state.activeAction(char.id);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -175,32 +177,96 @@ class _CharacterTile extends StatelessWidget {
           onChanged: (v) => state.setCharacterVisible(char.id, v),
           title: Text(char.label),
           subtitle: Text(
-            '${char.poses.length} poses • cycle ${char.cycleSeconds}s',
+            '${char.poses.length} poses • ${char.actions.length} actions • '
+            'cycle ${char.cycleSeconds}s',
             style: const TextStyle(fontSize: 12),
           ),
         ),
-        if (visible)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                FilterChip(
-                  label: const Text('Auto'),
-                  avatar: const Icon(Icons.refresh, size: 16),
-                  selected: !manualPinned,
-                  onSelected: (_) => state.setManualPose(char.id, null),
-                ),
-                for (var i = 0; i < char.poses.length; i++)
-                  FilterChip(
-                    label: Text(char.poses[i].label),
-                    selected: manualPinned && currentIndex == i,
-                    onSelected: (_) => state.setManualPose(char.id, i),
+        if (visible) ...[
+          if (char.actions.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('Actions',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                      if (playing) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.withOpacity(0.25),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'En cours : ${activeAction?.label ?? ''}',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 28),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          onPressed: () => state.stopAction(char.id),
+                          icon: const Icon(Icons.stop_circle_outlined, size: 16),
+                          label: const Text('Stop'),
+                        ),
+                      ],
+                    ],
                   ),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final action in char.actions)
+                        ActionChip(
+                          label: Text(action.label),
+                          avatar: const Icon(Icons.play_arrow, size: 16),
+                          onPressed: () => state.playAction(char.id, action.id),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Poses',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    FilterChip(
+                      label: const Text('Auto'),
+                      avatar: const Icon(Icons.refresh, size: 16),
+                      selected: !manualPinned && !playing,
+                      onSelected: (_) => state.setManualPose(char.id, null),
+                    ),
+                    for (var i = 0; i < char.poses.length; i++)
+                      FilterChip(
+                        label: Text(char.poses[i].label),
+                        selected: manualPinned && currentIndex == i,
+                        onSelected: (_) => state.setManualPose(char.id, i),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
+        ],
       ],
     );
   }
