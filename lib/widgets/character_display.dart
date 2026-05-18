@@ -1,11 +1,20 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../models/scene_config.dart';
 
-/// Renders a character at its current pose's slot, smoothly sliding between
-/// slots when the pose changes (so cycling looks like "she walked over"
-/// rather than "she teleported"). Adds a soft warm halo at both endpoints
-/// of the transition to anchor the eye.
+/// Renders a character at its current pose's slot. When the pose changes,
+/// the character does NOT visibly walk between positions — instead:
+///
+///   1. She fades out at the old slot (first ~25% of the transition).
+///   2. A warm halo travels in a soft arc from the old slot to the new slot,
+///      brightest at the midpoint.
+///   3. She fades back in at the new slot (last ~25% of the transition).
+///
+/// The effect reads as "her presence moves" rather than "she walks there",
+/// which is more mystical and avoids the awkwardness of seeing a static
+/// pose slide across the floor.
 class CharacterDisplay extends StatefulWidget {
   const CharacterDisplay({
     super.key,
@@ -14,7 +23,7 @@ class CharacterDisplay extends StatefulWidget {
     required this.resolveSlot,
     required this.boxWidth,
     required this.boxHeight,
-    this.transitionDuration = const Duration(milliseconds: 1400),
+    this.transitionDuration = const Duration(milliseconds: 1800),
     this.haloColor = const Color(0xFFFFD79A),
   });
 
@@ -43,7 +52,7 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     _transition = AnimationController(
       vsync: this,
       duration: widget.transitionDuration,
-      value: 1.0, // start "fully arrived" at the current pose
+      value: 1.0, // start "fully arrived"
     );
   }
 
@@ -77,78 +86,125 @@ class _CharacterDisplayState extends State<CharacterDisplay>
     return AnimatedBuilder(
       animation: _transition,
       builder: (context, _) {
-        final t = Curves.easeInOutCubic.transform(_transition.value);
+        final t = _transition.value;
+        final isTransitioning = _fromPose != null && t < 1.0;
 
-        // Position lerp: from the previous slot's pixel center to the new
-        // slot's pixel center.
-        final fromX = (fromSlot ?? toSlot).x * widget.boxWidth;
-        final fromY = (fromSlot ?? toSlot).y * widget.boxHeight;
-        final toX = toSlot.x * widget.boxWidth;
-        final toY = toSlot.y * widget.boxHeight;
-        final cx = fromX + (toX - fromX) * t;
-        final cy = fromY + (toY - fromY) * t;
+        // Phase split: 0..0.25 = fade out at A, 0.25..0.75 = halo travels,
+        // 0.75..1.0 = fade in at B.
+        const fadeOutEnd = 0.25;
+        const fadeInStart = 0.75;
 
-        // Size lerp: poses can have very different bounding boxes (standing
-        // vs sitting); animate width/height too so the silhouette feels
-        // continuous as she moves and changes pose.
-        final fromW = (fromSlot ?? toSlot).width * widget.boxWidth;
-        final fromH = (fromSlot ?? toSlot).height * widget.boxHeight;
-        final toW = toSlot.width * widget.boxWidth;
-        final toH = toSlot.height * widget.boxHeight;
-        final w = fromW + (toW - fromW) * t;
-        final h = fromH + (toH - fromH) * t;
+        final fromOpacity = isTransitioning && t < fadeOutEnd
+            ? 1.0 - (t / fadeOutEnd)
+            : 0.0;
+        final toOpacity = isTransitioning
+            ? (t < fadeInStart
+                ? 0.0
+                : ((t - fadeInStart) / (1.0 - fadeInStart)).clamp(0.0, 1.0))
+            : 1.0;
 
-        // Halo intensity: peaks at midpoint of the transition, almost zero
-        // at rest. Two halos — one fading out at origin, one fading in at
-        // destination — visually trace the path.
-        final inTransition =
-            _fromPose != null && _transition.value > 0 && _transition.value < 1;
-        final haloPulse = inTransition
-            ? (1 - (2 * _transition.value - 1).abs())
+        // Pixel coordinates of both endpoints.
+        final boxW = widget.boxWidth;
+        final boxH = widget.boxHeight;
+        final fromX = (fromSlot ?? toSlot).x * boxW;
+        final fromY = (fromSlot ?? toSlot).y * boxH;
+        final toX = toSlot.x * boxW;
+        final toY = toSlot.y * boxH;
+
+        // Halo position: lerp with eased curve and a slight upward arc so
+        // her "spirit" lifts off the floor briefly while crossing.
+        final tEase = Curves.easeInOut.transform(t);
+        final cx = fromX + (toX - fromX) * tEase;
+        final straightY = fromY + (toY - fromY) * tEase;
+        // Arc height in pixels relative to the travel distance.
+        final dist = math.sqrt(
+          math.pow(toX - fromX, 2).toDouble() +
+              math.pow(toY - fromY, 2).toDouble(),
+        );
+        final arcLift = math.sin(tEase * math.pi) * dist * 0.10;
+        final cy = straightY - arcLift;
+
+        // Halo intensity: sin curve, peaks at the midpoint.
+        final haloPulse = isTransitioning ? math.sin(t * math.pi) : 0.0;
+        final haloSize = isTransitioning
+            ? _haloSizeFor(fromSlot ?? toSlot, toSlot, t, boxW, boxH)
             : 0.0;
 
         return Stack(
           children: [
-            if (inTransition && fromSlot != null) ...[
-              _halo(
-                cx: fromX,
-                cy: fromY,
-                size: (fromW + fromH) * 0.55,
-                opacity: 0.45 * (1 - _transition.value),
-              ),
-              _halo(
-                cx: toX,
-                cy: toY,
-                size: (toW + toH) * 0.55,
-                opacity: 0.45 * _transition.value,
-              ),
-              _halo(
-                cx: cx,
-                cy: cy,
-                size: (w + h) * 0.45,
-                opacity: 0.55 * haloPulse,
-              ),
+            if (isTransitioning) ...[
+              _halo(cx, cy, haloSize, 0.65 * haloPulse),
+              // Smaller secondary glow ahead of the main halo, for the
+              // "shooting star" feel.
+              if (t > 0.15 && t < 0.85)
+                _halo(
+                  cx + (toX - fromX) * 0.08,
+                  cy + (toY - fromY) * 0.08 - arcLift * 0.5,
+                  haloSize * 0.55,
+                  0.35 * haloPulse,
+                ),
             ],
-            Positioned(
-              left: cx - w / 2,
-              top: cy - h / 2,
-              width: w,
-              height: h,
-              child: _CrossfadingPose(pose: _toPose),
-            ),
+            // Character at OLD position, fading out.
+            if (fromSlot != null && fromOpacity > 0)
+              _positionedPose(
+                pose: _fromPose!,
+                slot: fromSlot,
+                opacity: fromOpacity,
+              ),
+            // Character at NEW position, fading in (or fully visible at rest).
+            if (toOpacity > 0)
+              _positionedPose(
+                pose: _toPose,
+                slot: toSlot,
+                opacity: toOpacity,
+              ),
           ],
         );
       },
     );
   }
 
-  Widget _halo({
-    required double cx,
-    required double cy,
-    required double size,
+  double _haloSizeFor(
+    SlotConfig fromSlot,
+    SlotConfig toSlot,
+    double t,
+    double boxW,
+    double boxH,
+  ) {
+    // Halo grows to match the larger of the two pose bounding boxes at the
+    // midpoint, then shrinks back.
+    final fromDiag = fromSlot.width * boxW + fromSlot.height * boxH;
+    final toDiag = toSlot.width * boxW + toSlot.height * boxH;
+    final maxDiag = math.max(fromDiag, toDiag);
+    final base = maxDiag * 0.45;
+    // Larger at midpoint.
+    final scale = 0.7 + 0.6 * math.sin(t * math.pi);
+    return base * scale;
+  }
+
+  Widget _positionedPose({
+    required CharacterPose pose,
+    required SlotConfig slot,
     required double opacity,
   }) {
-    if (opacity <= 0.001) return const SizedBox.shrink();
+    final width = slot.width * widget.boxWidth;
+    final height = slot.height * widget.boxHeight;
+    final left = slot.x * widget.boxWidth - width / 2;
+    final top = slot.y * widget.boxHeight - height / 2;
+    return Positioned(
+      left: left,
+      top: top,
+      width: width,
+      height: height,
+      child: Opacity(
+        opacity: opacity,
+        child: Image.asset(pose.asset, fit: BoxFit.contain),
+      ),
+    );
+  }
+
+  Widget _halo(double cx, double cy, double size, double opacity) {
+    if (opacity <= 0.001 || size <= 0) return const SizedBox.shrink();
     return Positioned(
       left: cx - size / 2,
       top: cy - size / 2,
@@ -162,8 +218,8 @@ class _CharacterDisplayState extends State<CharacterDisplay>
               shape: BoxShape.circle,
               gradient: RadialGradient(
                 colors: [
-                  widget.haloColor.withOpacity(0.55),
-                  widget.haloColor.withOpacity(0.15),
+                  widget.haloColor.withOpacity(0.65),
+                  widget.haloColor.withOpacity(0.20),
                   widget.haloColor.withOpacity(0.0),
                 ],
                 stops: const [0.0, 0.45, 1.0],
@@ -171,28 +227,6 @@ class _CharacterDisplayState extends State<CharacterDisplay>
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Soft cross-fade between successive pose images at the SAME size, so the
-/// silhouette changes are continuous and we don't get a hard image swap.
-class _CrossfadingPose extends StatelessWidget {
-  const _CrossfadingPose({required this.pose});
-
-  final CharacterPose pose;
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 700),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      child: Image.asset(
-        pose.asset,
-        key: ValueKey(pose.id),
-        fit: BoxFit.contain,
       ),
     );
   }
