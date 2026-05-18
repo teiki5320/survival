@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show Rect;
 
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -228,6 +229,7 @@ class SceneConfig {
     required this.slots,
     required this.objects,
     required this.characters,
+    required this.windowArea,
   });
 
   factory SceneConfig.fromJson(Map<String, dynamic> json) {
@@ -281,6 +283,18 @@ class SceneConfig {
       );
     }
 
+    Rect parsedWindowArea =
+        const Rect.fromLTWH(0.41, 0.20, 0.18, 0.35);
+    final rawWindow = json['windowArea'] as Map<String, dynamic>?;
+    if (rawWindow != null) {
+      parsedWindowArea = Rect.fromLTWH(
+        (rawWindow['x'] as num).toDouble(),
+        (rawWindow['y'] as num).toDouble(),
+        (rawWindow['width'] as num).toDouble(),
+        (rawWindow['height'] as num).toDouble(),
+      );
+    }
+
     return SceneConfig(
       backgrounds: backgrounds,
       defaultTime: _parseTime(json['defaultTimeOfDay'] as String?),
@@ -288,6 +302,7 @@ class SceneConfig {
       slots: slotsById,
       objects: objects,
       characters: characters,
+      windowArea: parsedWindowArea,
     );
   }
 
@@ -303,6 +318,10 @@ class SceneConfig {
   final Map<String, SlotConfig> slots;
   final List<WagonObject> objects;
   final List<CharacterConfig> characters;
+
+  /// Rear-window glass area in normalized 0..1 coordinates, used by the
+  /// parallax overlay to know where to draw scrolling silhouettes.
+  final Rect windowArea;
 
   String backgroundFor(WagonTime time) => backgrounds[time]!;
 

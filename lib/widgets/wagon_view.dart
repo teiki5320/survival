@@ -5,6 +5,7 @@ import '../services/scene_state.dart';
 import 'animated_object.dart';
 import 'character_display.dart';
 import 'train_rocking.dart';
+import 'window_parallax.dart';
 
 /// Renders the wagon background, all visible objects, and any visible
 /// characters at their current pose position.
@@ -47,6 +48,10 @@ class WagonView extends StatelessWidget {
                               fit: BoxFit.cover,
                             ),
                           ),
+                        ),
+                        WindowParallax(
+                          windowRect: config.windowArea,
+                          enabled: state.isParallax,
                         ),
                         for (final object in config.objects)
                           if (state.isVisible(object.id))
