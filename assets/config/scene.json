@@ -3,6 +3,10 @@
     "day": "assets/background/wagon_day.png",
     "night": "assets/background/wagon_night.png"
   },
+  "landscapes": {
+    "day": "assets/background/landscape_day.png",
+    "night": "assets/background/landscape_night.png"
+  },
   "defaultTimeOfDay": "day",
   "aspectRatio": [16, 9],
   "windowArea": { "x": 0.41, "y": 0.20, "width": 0.18, "height": 0.35 },

@@ -224,6 +224,7 @@ class CharacterConfig {
 class SceneConfig {
   SceneConfig({
     required this.backgrounds,
+    required this.landscapes,
     required this.defaultTime,
     required this.aspectRatio,
     required this.slots,
@@ -283,6 +284,14 @@ class SceneConfig {
       );
     }
 
+    final rawLandscapes = json['landscapes'] as Map<String, dynamic>?;
+    final landscapes = <WagonTime, String>{};
+    if (rawLandscapes != null) {
+      for (final entry in rawLandscapes.entries) {
+        landscapes[_parseTime(entry.key)] = entry.value as String;
+      }
+    }
+
     Rect parsedWindowArea =
         const Rect.fromLTWH(0.41, 0.20, 0.18, 0.35);
     final rawWindow = json['windowArea'] as Map<String, dynamic>?;
@@ -297,6 +306,7 @@ class SceneConfig {
 
     return SceneConfig(
       backgrounds: backgrounds,
+      landscapes: landscapes,
       defaultTime: _parseTime(json['defaultTimeOfDay'] as String?),
       aspectRatio: w / h,
       slots: slotsById,
@@ -313,6 +323,11 @@ class SceneConfig {
   }
 
   final Map<WagonTime, String> backgrounds;
+
+  /// Optional scrolling landscape per time-of-day, rendered behind the
+  /// wagon's cut-out rear window. Empty map disables the landscape layer.
+  final Map<WagonTime, String> landscapes;
+
   final WagonTime defaultTime;
   final double aspectRatio;
   final Map<String, SlotConfig> slots;
@@ -322,6 +337,8 @@ class SceneConfig {
   /// Rear-window glass area in normalized 0..1 coordinates, used by the
   /// parallax overlay to know where to draw scrolling silhouettes.
   final Rect windowArea;
+
+  String? landscapeFor(WagonTime time) => landscapes[time];
 
   String backgroundFor(WagonTime time) => backgrounds[time]!;
 
