@@ -39,21 +39,9 @@ class WagonView extends StatelessWidget {
                     child: Stack(
                       clipBehavior: Clip.hardEdge,
                       children: [
-                        // 1. Scrolling landscape (behind everything, only
-                        //    visible through the wagon's cut-out window).
-                        if (config.landscapeFor(state.time) != null)
-                          Positioned.fill(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 600),
-                              child: ScrollingLandscape(
-                                key: ValueKey('land_${state.time}'),
-                                assetPath: config.landscapeFor(state.time)!,
-                                enabled: state.isParallax,
-                              ),
-                            ),
-                          ),
-                        // 2. Wagon foreground (with transparent window so
-                        //    the landscape shows through).
+                        // 1. Wagon background — kept intact (no cut). The
+                        //    original window content is hidden by the
+                        //    landscape overlay below at the windowArea.
                         Positioned.fill(
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 600),
@@ -64,6 +52,14 @@ class WagonView extends StatelessWidget {
                             ),
                           ),
                         ),
+                        // 2. Scrolling landscape, positioned precisely
+                        //    inside the wagon's window rectangle. Sitting
+                        //    on top of the wagon means we never bleed onto
+                        //    the wagon's frame — adjusting fit is just a
+                        //    matter of tuning windowArea in scene.json,
+                        //    no cut script to re-run.
+                        if (config.landscapeFor(state.time) != null)
+                          _landscapeInWindow(state, w, h),
                         for (final object in config.objects)
                           if (state.isVisible(object.id))
                             _positionedObject(object, w, h),
@@ -77,6 +73,26 @@ class WagonView extends StatelessWidget {
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+
+  Widget _landscapeInWindow(SceneState state, double w, double h) {
+    final rect = config.windowArea;
+    return Positioned(
+      left: rect.left * w,
+      top: rect.top * h,
+      width: rect.width * w,
+      height: rect.height * h,
+      child: ClipRect(
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 600),
+          child: ScrollingLandscape(
+            key: ValueKey('land_${state.time}'),
+            assetPath: config.landscapeFor(state.time)!,
+            enabled: state.isParallax,
+          ),
         ),
       ),
     );
