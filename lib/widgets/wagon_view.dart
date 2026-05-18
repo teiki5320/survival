@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/scene_config.dart';
 import '../services/scene_state.dart';
 import 'animated_object.dart';
+import 'character_display.dart';
 import 'train_rocking.dart';
 
 /// Renders the wagon background, all visible objects, and any visible
@@ -80,24 +81,14 @@ class WagonView extends StatelessWidget {
   }
 
   Widget _positionedCharacter(CharacterConfig char, double w, double h) {
-    final pose = state.currentPose(char);
-    final slot = config.slotForPose(pose);
-    // AnimatedSwitcher with a fade keyed on pose id gives a soft cross-fade
-    // when the pose changes (auto-cycle or manual pick).
-    return _slotPositioned(
-      slot,
-      w,
-      h,
-      key: ValueKey('char_${char.id}_slot_${slot.id}'),
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
-        switchInCurve: Curves.easeOut,
-        switchOutCurve: Curves.easeIn,
-        child: Image.asset(
-          pose.asset,
-          key: ValueKey('char_${char.id}_pose_${pose.id}'),
-          fit: BoxFit.contain,
-        ),
+    return Positioned.fill(
+      key: ValueKey('char_${char.id}'),
+      child: CharacterDisplay(
+        character: char,
+        currentPose: state.currentPose(char),
+        resolveSlot: config.slotForPose,
+        boxWidth: w,
+        boxHeight: h,
       ),
     );
   }
