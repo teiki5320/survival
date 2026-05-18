@@ -1,7 +1,7 @@
 name: train_cosy
 description: "Cosy train wagon interior — visual base for a narrative game."
 publish_to: "none"
-version: 0.5.1+1
+version: 0.5.2+1
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
