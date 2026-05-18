@@ -84,15 +84,24 @@ class WagonView extends StatelessWidget {
 
   Widget _positionedObject(WagonObject object, double w, double h) {
     final slot = config.slotFor(object);
+    final image = Image.asset(object.asset, fit: BoxFit.contain);
+    final animated = AnimatedObject(
+      animation: object.animation,
+      child: image,
+    );
+    final child = object.interaction == null
+        ? animated
+        : GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => state.interactWith(object),
+            child: animated,
+          );
     return _slotPositioned(
       slot,
       w,
       h,
       key: ValueKey('obj_${object.id}'),
-      child: AnimatedObject(
-        animation: object.animation,
-        child: Image.asset(object.asset, fit: BoxFit.contain),
-      ),
+      child: child,
     );
   }
 

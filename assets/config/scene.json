@@ -29,28 +29,32 @@
       "label": "Lit",
       "slot": "slot_bed",
       "asset": "assets/objects/bed.png",
-      "animation": "none"
+      "animation": "none",
+      "interaction": { "kind": "action", "target": "go_to_bed" }
     },
     {
       "id": "lamp",
       "label": "Lampe",
       "slot": "slot_lamp",
       "asset": "assets/objects/lamp.png",
-      "animation": "flickering"
+      "animation": "flickering",
+      "interaction": { "kind": "pose", "target": "standing_turned" }
     },
     {
       "id": "plant",
       "label": "Plante",
       "slot": "slot_plant",
       "asset": "assets/objects/plant.png",
-      "animation": "swaying"
+      "animation": "swaying",
+      "interaction": { "kind": "pose", "target": "sitting_hugged" }
     },
     {
       "id": "plaid",
       "label": "Plaid",
       "slot": "slot_plaid",
       "asset": "assets/objects/plaid.png",
-      "animation": "none"
+      "animation": "none",
+      "interaction": { "kind": "action", "target": "curl_up" }
     }
   ],
   "characters": [
