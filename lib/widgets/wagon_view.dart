@@ -7,9 +7,10 @@ import 'animated_object.dart';
 /// Renders the wagon background and all currently visible objects on top.
 ///
 /// Layout strategy: the view fixes its own aspect ratio to the configured
-/// wagon ratio (default 2:3 portrait) so positions stay correct on any
+/// wagon ratio (default 16:9 landscape) so positions stay correct on any
 /// device. Slot coordinates are normalized (0..1) and converted to pixels
-/// against the wagon's box at build time.
+/// against the wagon's box at build time. The background swaps between day
+/// and night variants based on [SceneState.time].
 class WagonView extends StatelessWidget {
   const WagonView({
     super.key,
@@ -31,28 +32,28 @@ class WagonView extends StatelessWidget {
           builder: (context, constraints) {
             final w = constraints.maxWidth;
             final h = constraints.maxHeight;
-            return Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    config.background,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                AnimatedBuilder(
-                  animation: state,
-                  builder: (context, _) {
-                    return Stack(
-                      children: [
-                        for (final object in config.objects)
-                          if (state.isVisible(object.id))
-                            _positionedObject(object, w, h),
-                      ],
-                    );
-                  },
-                ),
-              ],
+            return AnimatedBuilder(
+              animation: state,
+              builder: (context, _) {
+                return Stack(
+                  clipBehavior: Clip.hardEdge,
+                  children: [
+                    Positioned.fill(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 600),
+                        child: Image.asset(
+                          config.backgroundFor(state.time),
+                          key: ValueKey(state.time),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    for (final object in config.objects)
+                      if (state.isVisible(object.id))
+                        _positionedObject(object, w, h),
+                  ],
+                );
+              },
             );
           },
         ),

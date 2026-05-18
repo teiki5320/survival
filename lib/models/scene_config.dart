@@ -5,6 +5,10 @@ import 'package:flutter/services.dart' show rootBundle;
 /// How an object should subtly animate while visible.
 enum WagonAnimation { none, breathing, flickering, swaying }
 
+/// Time-of-day variants the wagon background can render. Day and night are
+/// loaded from distinct asset paths; SceneState toggles between them.
+enum WagonTime { day, night }
+
 WagonAnimation _parseAnimation(String? raw) {
   switch (raw) {
     case 'breathing':
@@ -19,6 +23,19 @@ WagonAnimation _parseAnimation(String? raw) {
       return WagonAnimation.none;
     default:
       throw FormatException('Unknown animation type: $raw');
+  }
+}
+
+WagonTime _parseTime(String? raw) {
+  switch (raw) {
+    case 'night':
+      return WagonTime.night;
+    case null:
+    case '':
+    case 'day':
+      return WagonTime.day;
+    default:
+      throw FormatException('Unknown time of day: $raw');
   }
 }
 
@@ -81,7 +98,8 @@ class WagonObject {
 
 class SceneConfig {
   SceneConfig({
-    required this.background,
+    required this.backgrounds,
+    required this.defaultTime,
     required this.aspectRatio,
     required this.slots,
     required this.objects,
@@ -89,8 +107,8 @@ class SceneConfig {
 
   factory SceneConfig.fromJson(Map<String, dynamic> json) {
     final ratio = json['aspectRatio'] as List<dynamic>?;
-    final w = ratio != null && ratio.length == 2 ? (ratio[0] as num).toDouble() : 2.0;
-    final h = ratio != null && ratio.length == 2 ? (ratio[1] as num).toDouble() : 3.0;
+    final w = ratio != null && ratio.length == 2 ? (ratio[0] as num).toDouble() : 16.0;
+    final h = ratio != null && ratio.length == 2 ? (ratio[1] as num).toDouble() : 9.0;
 
     final slots = (json['slots'] as List<dynamic>)
         .map((s) => SlotConfig.fromJson(s as Map<String, dynamic>))
@@ -109,8 +127,26 @@ class SceneConfig {
       }
     }
 
+    final rawBackgrounds = json['backgrounds'] as Map<String, dynamic>?;
+    if (rawBackgrounds == null) {
+      throw const FormatException(
+        'scene.json must define a "backgrounds" map with "day" and "night" keys.',
+      );
+    }
+    final backgrounds = <WagonTime, String>{};
+    for (final entry in rawBackgrounds.entries) {
+      backgrounds[_parseTime(entry.key)] = entry.value as String;
+    }
+    if (!backgrounds.containsKey(WagonTime.day) ||
+        !backgrounds.containsKey(WagonTime.night)) {
+      throw const FormatException(
+        'scene.json backgrounds must define both "day" and "night".',
+      );
+    }
+
     return SceneConfig(
-      background: json['background'] as String,
+      backgrounds: backgrounds,
+      defaultTime: _parseTime(json['defaultTimeOfDay'] as String?),
       aspectRatio: w / h,
       slots: slotsById,
       objects: objects,
@@ -123,10 +159,13 @@ class SceneConfig {
     return SceneConfig.fromJson(decoded);
   }
 
-  final String background;
+  final Map<WagonTime, String> backgrounds;
+  final WagonTime defaultTime;
   final double aspectRatio;
   final Map<String, SlotConfig> slots;
   final List<WagonObject> objects;
+
+  String backgroundFor(WagonTime time) => backgrounds[time]!;
 
   SlotConfig slotFor(WagonObject object) => slots[object.slotId]!;
 }
