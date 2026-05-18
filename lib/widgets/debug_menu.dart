@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../models/scene_config.dart';
 import '../services/scene_state.dart';
 
-/// A bottom sheet with one checkbox per object so the scene can be composed
-/// at runtime without a game system behind it.
+/// A bottom sheet with a day/night toggle and one checkbox per object so the
+/// scene can be composed at runtime without a game system behind it.
 class DebugObjectsSheet extends StatelessWidget {
   const DebugObjectsSheet({
     super.key,
@@ -42,7 +42,7 @@ class DebugObjectsSheet extends StatelessWidget {
                 child: Row(
                   children: [
                     const Text(
-                      'Debug — objets',
+                      'Debug',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -53,6 +53,35 @@ class DebugObjectsSheet extends StatelessWidget {
                       onPressed: state.hideAll,
                       icon: const Icon(Icons.visibility_off_outlined),
                       label: const Text('Tout masquer'),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Row(
+                  children: [
+                    const Text(
+                      'Ambiance',
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    const Spacer(),
+                    SegmentedButton<WagonTime>(
+                      segments: const [
+                        ButtonSegment(
+                          value: WagonTime.day,
+                          label: Text('Jour'),
+                          icon: Icon(Icons.wb_sunny_outlined),
+                        ),
+                        ButtonSegment(
+                          value: WagonTime.night,
+                          label: Text('Nuit'),
+                          icon: Icon(Icons.nightlight_outlined),
+                        ),
+                      ],
+                      selected: {state.time},
+                      onSelectionChanged: (s) => state.setTime(s.first),
                     ),
                   ],
                 ),
