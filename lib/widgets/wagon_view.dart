@@ -4,8 +4,8 @@ import '../models/scene_config.dart';
 import '../services/scene_state.dart';
 import 'animated_object.dart';
 import 'character_display.dart';
+import 'scrolling_landscape.dart';
 import 'train_rocking.dart';
-import 'window_parallax.dart';
 
 /// Renders the wagon background, all visible objects, and any visible
 /// characters at their current pose position.
@@ -39,6 +39,21 @@ class WagonView extends StatelessWidget {
                     child: Stack(
                       clipBehavior: Clip.hardEdge,
                       children: [
+                        // 1. Scrolling landscape (behind everything, only
+                        //    visible through the wagon's cut-out window).
+                        if (config.landscapeFor(state.time) != null)
+                          Positioned.fill(
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 600),
+                              child: ScrollingLandscape(
+                                key: ValueKey('land_${state.time}'),
+                                assetPath: config.landscapeFor(state.time)!,
+                                enabled: state.isParallax,
+                              ),
+                            ),
+                          ),
+                        // 2. Wagon foreground (with transparent window so
+                        //    the landscape shows through).
                         Positioned.fill(
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 600),
@@ -48,10 +63,6 @@ class WagonView extends StatelessWidget {
                               fit: BoxFit.cover,
                             ),
                           ),
-                        ),
-                        WindowParallax(
-                          windowRect: config.windowArea,
-                          enabled: state.isParallax,
                         ),
                         for (final object in config.objects)
                           if (state.isVisible(object.id))
