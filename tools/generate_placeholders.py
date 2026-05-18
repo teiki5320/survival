@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BG_DIR = ROOT / "assets" / "background"
 OBJ_DIR = ROOT / "assets" / "objects"
 
-WAGON_SIZE = (1000, 1500)  # 2:3 portrait
+WAGON_SIZE = (1950, 900)  # 19.5:9 landscape
 OBJECT_SIZE = (400, 400)
 
 
@@ -34,47 +34,48 @@ def make_wagon_background() -> None:
     img = Image.new("RGBA", WAGON_SIZE, (40, 32, 28, 255))
     draw = ImageDraw.Draw(img)
 
-    # Floor
-    floor_top = int(WAGON_SIZE[1] * 0.72)
+    # Floor takes the bottom third of a landscape wagon
+    floor_top = int(WAGON_SIZE[1] * 0.66)
     draw.rectangle(
         [(0, floor_top), (WAGON_SIZE[0], WAGON_SIZE[1])],
         fill=(90, 60, 40, 255),
     )
-    # Floor planks
-    for x in range(0, WAGON_SIZE[0], 80):
+    # Floor planks (vertical lines)
+    for x in range(0, WAGON_SIZE[0], 90):
         draw.line(
             [(x, floor_top), (x, WAGON_SIZE[1])],
             fill=(60, 40, 28, 255),
             width=2,
         )
 
-    # Back wall window
-    win_top = int(WAGON_SIZE[1] * 0.15)
-    win_bot = int(WAGON_SIZE[1] * 0.55)
-    win_left = int(WAGON_SIZE[0] * 0.15)
-    win_right = int(WAGON_SIZE[0] * 0.85)
+    # Long horizontal window across the back wall
+    win_top = int(WAGON_SIZE[1] * 0.18)
+    win_bot = int(WAGON_SIZE[1] * 0.58)
+    win_left = int(WAGON_SIZE[0] * 0.10)
+    win_right = int(WAGON_SIZE[0] * 0.90)
     draw.rectangle(
         [(win_left, win_top), (win_right, win_bot)],
         fill=(120, 150, 180, 255),
         outline=(30, 25, 20, 255),
         width=6,
     )
-    # Window cross
-    mid_x = (win_left + win_right) // 2
+    # Window panes — 4 vertical mullions for a long landscape window
     mid_y = (win_top + win_bot) // 2
-    draw.line([(mid_x, win_top), (mid_x, win_bot)], fill=(30, 25, 20, 255), width=6)
     draw.line([(win_left, mid_y), (win_right, mid_y)], fill=(30, 25, 20, 255), width=6)
+    for i in range(1, 4):
+        x = win_left + (win_right - win_left) * i // 4
+        draw.line([(x, win_top), (x, win_bot)], fill=(30, 25, 20, 255), width=6)
 
-    # Side wall hint
+    # Wall / floor seam
     draw.line(
         [(0, floor_top), (WAGON_SIZE[0], floor_top)],
         fill=(20, 15, 12, 255),
         width=4,
     )
 
-    font = _load_font(36)
+    font = _load_font(28)
     draw.text(
-        (WAGON_SIZE[0] // 2, WAGON_SIZE[1] - 60),
+        (WAGON_SIZE[0] // 2, WAGON_SIZE[1] - 40),
         "PLACEHOLDER WAGON",
         font=font,
         fill=(220, 220, 220, 200),
