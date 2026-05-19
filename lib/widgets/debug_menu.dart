@@ -42,6 +42,7 @@ class DebugObjectsSheet extends StatelessWidget {
               _ambianceRow(),
               _rockingRow(),
               _parallaxRow(),
+              _crackRow(),
               _windowEditorRow(context),
               const Divider(height: 1),
               Flexible(
@@ -141,6 +142,58 @@ class DebugObjectsSheet extends StatelessWidget {
           Switch(
             value: state.isParallax,
             onChanged: state.setParallax,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _crackRow() {
+    final hasCracks = state.windowCrack != null;
+    final intensity = state.windowCrack?.intensity ?? 0.0;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.broken_image_outlined, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              hasCracks
+                  ? 'Fissures (intensité ${(intensity * 100).toInt()}%)'
+                  : 'Fissures de la vitre',
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          if (hasCracks)
+            TextButton(
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 28),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              onPressed: state.clearCracks,
+              child: const Text('Effacer'),
+            ),
+          TextButton.icon(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: const Size(0, 28),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () {
+              final newIntensity =
+                  hasCracks ? (intensity + 0.2).clamp(0.0, 1.0) : 0.5;
+              // Slight randomization of impact point each call.
+              final px = 0.35 + (newIntensity * 0.4);
+              final py = 0.35 + (newIntensity * 0.2);
+              state.crackWindow(
+                impactPoint: Offset(px, py),
+                intensity: newIntensity,
+              );
+            },
+            icon: const Icon(Icons.add, size: 16),
+            label: Text(hasCracks ? 'Plus' : 'Fissurer'),
           ),
         ],
       ),

@@ -4,6 +4,7 @@ import '../models/scene_config.dart';
 import '../services/scene_state.dart';
 import 'animated_object.dart';
 import 'character_display.dart';
+import 'cracked_glass.dart';
 import 'scrolling_landscape.dart';
 import 'train_rocking.dart';
 import 'window_corner_editor.dart';
@@ -91,6 +92,7 @@ class WagonView extends StatelessWidget {
     final rect = state.effectiveWindowArea;
     final radiusPx = config.windowCornerRadius * (w < h ? w : h);
     final radius = BorderRadius.circular(radiusPx);
+    final crack = state.windowCrack;
     return Positioned(
       left: rect.left * w,
       top: rect.top * h,
@@ -98,13 +100,19 @@ class WagonView extends StatelessWidget {
       height: rect.height * h,
       child: ClipRRect(
         borderRadius: radius,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 600),
-          child: ScrollingLandscape(
-            key: ValueKey('land_${state.time}'),
-            assetPath: config.landscapeFor(state.time)!,
-            enabled: state.isParallax,
-          ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              child: ScrollingLandscape(
+                key: ValueKey('land_${state.time}'),
+                assetPath: config.landscapeFor(state.time)!,
+                enabled: state.isParallax,
+              ),
+            ),
+            if (crack != null) CrackedGlass(state: crack),
+          ],
         ),
       ),
     );

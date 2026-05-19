@@ -1,9 +1,10 @@
 import 'dart:async';
-import 'dart:ui' show Rect;
+import 'dart:ui' show Offset, Rect;
 
 import 'package:flutter/foundation.dart';
 
 import '../models/scene_config.dart';
+import '../widgets/cracked_glass.dart';
 
 /// Identifier for one corner of the window editor.
 enum WindowCorner { topLeft, topRight, bottomLeft, bottomRight }
@@ -34,6 +35,8 @@ class SceneState extends ChangeNotifier {
   bool _parallax = true;
   bool _editingWindow = false;
   Rect? _windowAreaOverride;
+  CrackState? _windowCrack;
+  int _nextCrackSeed = 1;
 
   // Time of day
   WagonTime get time => _time;
@@ -72,6 +75,31 @@ class SceneState extends ChangeNotifier {
   void resetWindowArea() {
     if (_windowAreaOverride == null) return;
     _windowAreaOverride = null;
+    notifyListeners();
+  }
+
+  // Cracked rear window.
+  CrackState? get windowCrack => _windowCrack;
+
+  /// Add or amplify cracks on the rear window. If [impactPoint] is null,
+  /// uses the previous impact point or the center of the window. Each
+  /// call bumps the seed so the reveal animation replays.
+  void crackWindow({Offset? impactPoint, double intensity = 0.7}) {
+    final point = impactPoint ??
+        _windowCrack?.impactPoint ??
+        const Offset(0.5, 0.45);
+    _windowCrack = CrackState(
+      intensity: intensity.clamp(0.0, 1.0),
+      impactPoint: point,
+      seed: _nextCrackSeed++,
+    );
+    notifyListeners();
+  }
+
+  /// Wipe all cracks on the rear window.
+  void clearCracks() {
+    if (_windowCrack == null) return;
+    _windowCrack = null;
     notifyListeners();
   }
 
