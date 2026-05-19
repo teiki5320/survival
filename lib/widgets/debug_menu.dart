@@ -51,6 +51,7 @@ class DebugObjectsSheet extends StatelessWidget {
               _rainRow(),
               _crackRow(),
               _windowEditorRow(context),
+              _slotEditorRow(context),
               if (audio != null) ...[
                 const Divider(height: 1),
                 _audioRows(),
@@ -314,6 +315,31 @@ class DebugObjectsSheet extends StatelessWidget {
             },
             icon: const Icon(Icons.add, size: 16),
             label: Text(hasCracks ? 'Plus' : 'Fissurer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _slotEditorRow(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.open_with, size: 18),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'Placer les objets (slots)',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Switch(
+            value: state.isSlotEditorActive,
+            onChanged: (v) {
+              state.setSlotEditorActive(v);
+              if (v) Navigator.of(context).pop();
+            },
           ),
         ],
       ),

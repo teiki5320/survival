@@ -7,6 +7,7 @@ import 'character_display.dart';
 import 'cracked_glass.dart';
 import 'dust_particles.dart';
 import 'scrolling_landscape.dart';
+import 'slot_editor.dart';
 import 'train_rocking.dart';
 import 'window_corner_editor.dart';
 import 'window_rain.dart';
@@ -84,6 +85,15 @@ class WagonView extends StatelessWidget {
                               boxHeight: h,
                             ),
                           ),
+                        if (state.isSlotEditorActive)
+                          Positioned.fill(
+                            child: SlotEditor(
+                              state: state,
+                              config: config,
+                              boxWidth: w,
+                              boxHeight: h,
+                            ),
+                          ),
                       ],
                     ),
                   );
@@ -128,7 +138,7 @@ class WagonView extends StatelessWidget {
   }
 
   Widget _positionedObject(WagonObject object, double w, double h) {
-    final slot = config.slotFor(object);
+    final slot = state.getEffectiveSlotConfig(object.slotId);
     final image = Image.asset(object.asset, fit: BoxFit.contain);
     final animated = AnimatedObject(
       animation: object.animation,
@@ -156,7 +166,7 @@ class WagonView extends StatelessWidget {
       child: CharacterDisplay(
         character: char,
         currentPose: state.currentPose(char),
-        resolveSlot: config.slotForPose,
+        resolveSlot: (pose) => state.getEffectiveSlotConfig(pose.slotId),
         boxWidth: w,
         boxHeight: h,
       ),
