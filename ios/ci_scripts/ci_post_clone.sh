@@ -4,8 +4,9 @@
 #
 # Xcode Cloud runs xcodebuild against ios/Runner.xcworkspace but has no Flutter
 # tooling on the runner. This script installs Flutter, resolves Dart packages,
-# installs CocoaPods, and pins the iOS build number to CI_BUILD_NUMBER so each
-# archive uploads to App Store Connect without "duplicate version" rejections.
+# wires plugin integration into the iOS project, and pins the iOS build number
+# to CI_BUILD_NUMBER so each archive uploads to App Store Connect without
+# "duplicate version" rejections.
 
 set -eu
 set -x
@@ -27,11 +28,11 @@ flutter precache --ios
 echo "==> flutter pub get"
 flutter pub get
 
-# Generate ios/Podfile, plugin symlinks, .flutter-plugins-dependencies,
-# and ios/Flutter/Generated.xcconfig. Without this, plugin pods (e.g.
-# audioplayers_darwin) are never registered and `pod install` either
-# gets skipped or installs nothing — the archive then fails with
-# "Module 'xxx_darwin' not found" in GeneratedPluginRegistrant.m.
+# Wire plugin integration into the iOS project (Swift Package Manager on
+# recent Flutter scaffolds, CocoaPods on older ones) and generate
+# ios/Flutter/Generated.xcconfig. Without this step, GeneratedPluginRegistrant.m
+# references plugin modules that are never attached to the Xcode project, and
+# the archive fails with "Module 'xxx_darwin' not found".
 echo "==> flutter build ios --config-only"
 flutter build ios --config-only --no-codesign
 
@@ -48,6 +49,13 @@ if [ -n "${CI_BUILD_NUMBER:-}" ]; then
   fi
 fi
 
-echo "==> pod install"
-cd ios
-pod install
+# This project uses Swift Package Manager for Flutter plugins, so no Podfile
+# is generated. Only run `pod install` if a Podfile actually exists — useful
+# if a future plugin forces a CocoaPods fallback.
+if [ -f "ios/Podfile" ]; then
+  echo "==> pod install"
+  cd ios
+  pod install
+else
+  echo "==> no ios/Podfile (Swift Package Manager integration), skipping pod install"
+fi
