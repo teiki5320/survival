@@ -5,9 +5,11 @@ import '../services/scene_state.dart';
 import 'animated_object.dart';
 import 'character_display.dart';
 import 'cracked_glass.dart';
+import 'dust_particles.dart';
 import 'scrolling_landscape.dart';
 import 'train_rocking.dart';
 import 'window_corner_editor.dart';
+import 'window_rain.dart';
 
 /// Renders the wagon background, all visible objects, and any visible
 /// characters at their current pose position.
@@ -68,6 +70,12 @@ class WagonView extends StatelessWidget {
                         for (final char in config.characters)
                           if (state.isCharacterVisible(char.id))
                             _positionedCharacter(char, w, h),
+                        // Atmosphere: dust motes drifting on top of
+                        // everything except UI editors.
+                        if (state.isDustEnabled)
+                          Positioned.fill(
+                            child: DustParticles(enabled: state.isDustEnabled),
+                          ),
                         if (state.isEditingWindow)
                           Positioned.fill(
                             child: WindowCornerEditor(
@@ -111,6 +119,7 @@ class WagonView extends StatelessWidget {
                 enabled: state.isParallax,
               ),
             ),
+            if (state.isRainEnabled) WindowRain(enabled: state.isRainEnabled),
             if (crack != null) CrackedGlass(state: crack),
           ],
         ),

@@ -37,6 +37,8 @@ class SceneState extends ChangeNotifier {
   Rect? _windowAreaOverride;
   CrackState? _windowCrack;
   int _nextCrackSeed = 1;
+  bool _dust = true;
+  bool _rain = false;
 
   // Time of day
   WagonTime get time => _time;
@@ -55,6 +57,22 @@ class SceneState extends ChangeNotifier {
   void setParallax(bool parallax) {
     if (_parallax == parallax) return;
     _parallax = parallax;
+    notifyListeners();
+  }
+
+  // Dust particles drifting through the wagon.
+  bool get isDustEnabled => _dust;
+  void setDustEnabled(bool v) {
+    if (_dust == v) return;
+    _dust = v;
+    notifyListeners();
+  }
+
+  // Rain on the window glass.
+  bool get isRainEnabled => _rain;
+  void setRainEnabled(bool v) {
+    if (_rain == v) return;
+    _rain = v;
     notifyListeners();
   }
 
