@@ -42,6 +42,8 @@ class DebugObjectsSheet extends StatelessWidget {
               _ambianceRow(),
               _rockingRow(),
               _parallaxRow(),
+              _dustRow(),
+              _rainRow(),
               _crackRow(),
               _windowEditorRow(context),
               const Divider(height: 1),
@@ -142,6 +144,44 @@ class DebugObjectsSheet extends StatelessWidget {
           Switch(
             value: state.isParallax,
             onChanged: state.setParallax,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dustRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.blur_on_outlined, size: 18),
+          const SizedBox(width: 8),
+          const Text('Poussière dans l\'air',
+              style: TextStyle(fontWeight: FontWeight.w500)),
+          const Spacer(),
+          Switch(
+            value: state.isDustEnabled,
+            onChanged: state.setDustEnabled,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rainRow() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Row(
+        children: [
+          const Icon(Icons.water_drop_outlined, size: 18),
+          const SizedBox(width: 8),
+          const Text('Pluie sur la vitre',
+              style: TextStyle(fontWeight: FontWeight.w500)),
+          const Spacer(),
+          Switch(
+            value: state.isRainEnabled,
+            onChanged: state.setRainEnabled,
           ),
         ],
       ),
