@@ -11,19 +11,19 @@
   "aspectRatio": [16, 9],
   "windowArea": { "x": 0.393, "y": 0.316, "width": 0.216, "height": 0.282, "cornerRadius": 0.018 },
   "slots": [
-    { "id": "slot_bed",    "x": 0.50, "y": 0.78, "width": 0.42, "height": 0.36 },
-    { "id": "slot_lamp",   "x": 0.36, "y": 0.43, "width": 0.05, "height": 0.10 },
+    { "id": "slot_bed",    "x": 0.50, "y": 0.76, "width": 0.50, "height": 0.40 },
+    { "id": "slot_lamp",   "x": 0.34, "y": 0.88, "width": 0.05, "height": 0.10 },
     { "id": "slot_plant",  "x": 0.92, "y": 0.30, "width": 0.10, "height": 0.35 },
-    { "id": "slot_plaid",  "x": 0.50, "y": 0.72, "width": 0.30, "height": 0.10 },
-    { "id": "slot_stove",  "x": 0.18, "y": 0.78, "width": 0.13, "height": 0.28 },
-    { "id": "slot_garden", "x": 0.80, "y": 0.85, "width": 0.22, "height": 0.16 },
+    { "id": "slot_plaid",  "x": 0.50, "y": 0.68, "width": 0.40, "height": 0.14 },
+    { "id": "slot_stove",  "x": 0.16, "y": 0.80, "width": 0.18, "height": 0.32 },
+    { "id": "slot_garden", "x": 0.84, "y": 0.85, "width": 0.30, "height": 0.22 },
 
-    { "id": "char_standing_idle",    "x": 0.50, "y": 0.72, "width": 0.12, "height": 0.42 },
-    { "id": "char_standing_turned",  "x": 0.34, "y": 0.72, "width": 0.12, "height": 0.42 },
-    { "id": "char_standing_stretch", "x": 0.66, "y": 0.72, "width": 0.12, "height": 0.42 },
-    { "id": "char_sitting_cross",    "x": 0.50, "y": 0.66, "width": 0.13, "height": 0.24 },
-    { "id": "char_sitting_hugged",   "x": 0.30, "y": 0.82, "width": 0.11, "height": 0.22 },
-    { "id": "char_sitting_side",     "x": 0.70, "y": 0.82, "width": 0.13, "height": 0.22 }
+    { "id": "char_standing_idle",    "x": 0.50, "y": 0.62, "width": 0.18, "height": 0.62 },
+    { "id": "char_standing_turned",  "x": 0.32, "y": 0.62, "width": 0.18, "height": 0.62 },
+    { "id": "char_standing_stretch", "x": 0.68, "y": 0.62, "width": 0.18, "height": 0.62 },
+    { "id": "char_sitting_cross",    "x": 0.50, "y": 0.60, "width": 0.22, "height": 0.34 },
+    { "id": "char_sitting_hugged",   "x": 0.26, "y": 0.80, "width": 0.16, "height": 0.30 },
+    { "id": "char_sitting_side",     "x": 0.74, "y": 0.80, "width": 0.18, "height": 0.30 }
   ],
   "objects": [
     {

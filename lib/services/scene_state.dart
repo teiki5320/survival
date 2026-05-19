@@ -44,6 +44,14 @@ class SceneState extends ChangeNotifier {
   bool _dust = true;
   bool _rain = false;
 
+  // Generic slot editor — drag the 4 corners of any slot from the scene
+  // config to fine-tune its position and size live. Overrides are kept
+  // per slot id; the canonical values still live in scene.json (this is
+  // a developer aid, not a persistence layer).
+  bool _slotEditorActive = false;
+  String? _editingSlotId;
+  final Map<String, Rect> _slotOverrides = {};
+
   // Time of day
   WagonTime get time => _time;
   bool get isNight => _time == WagonTime.night;
@@ -77,6 +85,119 @@ class SceneState extends ChangeNotifier {
   void setRainEnabled(bool v) {
     if (_rain == v) return;
     _rain = v;
+    notifyListeners();
+  }
+
+  // ---- Generic slot editor -----------------------------------------------
+
+  bool get isSlotEditorActive => _slotEditorActive;
+  String? get editingSlotId => _editingSlotId;
+
+  void setSlotEditorActive(bool v) {
+    if (_slotEditorActive == v) return;
+    _slotEditorActive = v;
+    if (v && _editingSlotId == null && config.slots.isNotEmpty) {
+      _editingSlotId = config.slots.keys.first;
+    }
+    notifyListeners();
+  }
+
+  void setEditingSlot(String? id) {
+    if (_editingSlotId == id) return;
+    _editingSlotId = id;
+    notifyListeners();
+  }
+
+  /// Effective Rect for a slot — runtime override if any, else converted
+  /// from the canonical SlotConfig (which stores center + size, not LTRB).
+  Rect getEffectiveSlotRect(String slotId) {
+    final override = _slotOverrides[slotId];
+    if (override != null) return override;
+    final slot = config.slots[slotId];
+    if (slot == null) return Rect.zero;
+    return Rect.fromLTRB(
+      slot.x - slot.width / 2,
+      slot.y - slot.height / 2,
+      slot.x + slot.width / 2,
+      slot.y + slot.height / 2,
+    );
+  }
+
+  /// Same as the canonical [SlotConfig] but reflecting any live override.
+  /// Used everywhere rendering needs a slot — when no override is set, the
+  /// original config is returned, so visuals match scene.json by default.
+  SlotConfig getEffectiveSlotConfig(String slotId) {
+    final override = _slotOverrides[slotId];
+    if (override == null) {
+      return config.slots[slotId] ??
+          SlotConfig(
+            id: slotId,
+            x: 0.5,
+            y: 0.5,
+            width: 0.1,
+            height: 0.1,
+          );
+    }
+    return SlotConfig(
+      id: slotId,
+      x: (override.left + override.right) / 2,
+      y: (override.top + override.bottom) / 2,
+      width: override.width,
+      height: override.height,
+    );
+  }
+
+  void dragSlotCorner(
+    String slotId,
+    WindowCorner corner,
+    double dxNorm,
+    double dyNorm,
+  ) {
+    final rect = getEffectiveSlotRect(slotId);
+    double left = rect.left;
+    double top = rect.top;
+    double right = rect.right;
+    double bottom = rect.bottom;
+    const minSize = 0.03;
+    switch (corner) {
+      case WindowCorner.topLeft:
+        left = (left + dxNorm).clamp(0.0, right - minSize);
+        top = (top + dyNorm).clamp(0.0, bottom - minSize);
+      case WindowCorner.topRight:
+        right = (right + dxNorm).clamp(left + minSize, 1.0);
+        top = (top + dyNorm).clamp(0.0, bottom - minSize);
+      case WindowCorner.bottomLeft:
+        left = (left + dxNorm).clamp(0.0, right - minSize);
+        bottom = (bottom + dyNorm).clamp(top + minSize, 1.0);
+      case WindowCorner.bottomRight:
+        right = (right + dxNorm).clamp(left + minSize, 1.0);
+        bottom = (bottom + dyNorm).clamp(top + minSize, 1.0);
+    }
+    _slotOverrides[slotId] = Rect.fromLTRB(left, top, right, bottom);
+    notifyListeners();
+  }
+
+  /// Translate the whole slot rectangle without resizing — handy for
+  /// repositioning an object once its size is right.
+  void translateSlot(String slotId, double dxNorm, double dyNorm) {
+    final rect = getEffectiveSlotRect(slotId);
+    double dx = dxNorm;
+    double dy = dyNorm;
+    if (rect.left + dx < 0) dx = -rect.left;
+    if (rect.right + dx > 1) dx = 1 - rect.right;
+    if (rect.top + dy < 0) dy = -rect.top;
+    if (rect.bottom + dy > 1) dy = 1 - rect.bottom;
+    _slotOverrides[slotId] = rect.shift(Offset(dx, dy));
+    notifyListeners();
+  }
+
+  void resetSlot(String slotId) {
+    if (_slotOverrides.remove(slotId) != null) notifyListeners();
+  }
+
+  void resetAllSlotOverrides() {
+    if (_slotOverrides.isEmpty) return;
+    _slotOverrides.clear();
     notifyListeners();
   }
 
