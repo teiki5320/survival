@@ -11,10 +11,12 @@
   "aspectRatio": [16, 9],
   "windowArea": { "x": 0.393, "y": 0.316, "width": 0.216, "height": 0.282, "cornerRadius": 0.018 },
   "slots": [
-    { "id": "slot_bed",   "x": 0.50, "y": 0.78, "width": 0.42, "height": 0.36 },
-    { "id": "slot_lamp",  "x": 0.36, "y": 0.43, "width": 0.05, "height": 0.10 },
-    { "id": "slot_plant", "x": 0.92, "y": 0.30, "width": 0.10, "height": 0.35 },
-    { "id": "slot_plaid", "x": 0.50, "y": 0.72, "width": 0.30, "height": 0.10 },
+    { "id": "slot_bed",    "x": 0.50, "y": 0.78, "width": 0.42, "height": 0.36 },
+    { "id": "slot_lamp",   "x": 0.36, "y": 0.43, "width": 0.05, "height": 0.10 },
+    { "id": "slot_plant",  "x": 0.92, "y": 0.30, "width": 0.10, "height": 0.35 },
+    { "id": "slot_plaid",  "x": 0.50, "y": 0.72, "width": 0.30, "height": 0.10 },
+    { "id": "slot_stove",  "x": 0.18, "y": 0.78, "width": 0.13, "height": 0.28 },
+    { "id": "slot_garden", "x": 0.80, "y": 0.85, "width": 0.22, "height": 0.16 },
 
     { "id": "char_standing_idle",    "x": 0.50, "y": 0.72, "width": 0.12, "height": 0.42 },
     { "id": "char_standing_turned",  "x": 0.34, "y": 0.72, "width": 0.12, "height": 0.42 },
@@ -55,6 +57,22 @@
       "asset": "assets/objects/plaid.png",
       "animation": "none",
       "interaction": { "kind": "action", "target": "curl_up" }
+    },
+    {
+      "id": "stove",
+      "label": "Poêle à bois",
+      "slot": "slot_stove",
+      "asset": "assets/objects/stove.png",
+      "animation": "flickering",
+      "interaction": { "kind": "pose", "target": "sitting_hugged" }
+    },
+    {
+      "id": "garden",
+      "label": "Jardin hydroponique",
+      "slot": "slot_garden",
+      "asset": "assets/objects/garden.png",
+      "animation": "none",
+      "interaction": { "kind": "pose", "target": "sitting_side" }
     }
   ],
   "characters": [
