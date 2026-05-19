@@ -27,6 +27,14 @@ flutter precache --ios
 echo "==> flutter pub get"
 flutter pub get
 
+# Generate ios/Podfile, plugin symlinks, .flutter-plugins-dependencies,
+# and ios/Flutter/Generated.xcconfig. Without this, plugin pods (e.g.
+# audioplayers_darwin) are never registered and `pod install` either
+# gets skipped or installs nothing — the archive then fails with
+# "Module 'xxx_darwin' not found" in GeneratedPluginRegistrant.m.
+echo "==> flutter build ios --config-only"
+flutter build ios --config-only --no-codesign
+
 # Pin the iOS CFBundleVersion to Xcode Cloud's auto-incrementing build number.
 # Flutter's Info.plist references $(FLUTTER_BUILD_NUMBER), which is resolved
 # from ios/Flutter/Generated.xcconfig at archive time.
@@ -40,10 +48,6 @@ if [ -n "${CI_BUILD_NUMBER:-}" ]; then
   fi
 fi
 
-if [ -f "ios/Podfile" ]; then
-  echo "==> pod install"
-  cd ios
-  pod install
-else
-  echo "==> no ios/Podfile (no native plugins), skipping pod install"
-fi
+echo "==> pod install"
+cd ios
+pod install
