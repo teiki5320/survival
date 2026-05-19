@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/scene_config.dart';
+import '../services/audio_service.dart';
 import '../services/scene_state.dart';
 
 /// A bottom sheet to drive the scene at runtime: day/night, characters with
@@ -10,21 +11,25 @@ class DebugObjectsSheet extends StatelessWidget {
     super.key,
     required this.config,
     required this.state,
+    this.audio,
   });
 
   final SceneConfig config;
   final SceneState state;
+  final AudioService? audio;
 
   static Future<void> show(
     BuildContext context, {
     required SceneConfig config,
     required SceneState state,
+    AudioService? audio,
   }) {
     return showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (_) => DebugObjectsSheet(config: config, state: state),
+      builder: (_) =>
+          DebugObjectsSheet(config: config, state: state, audio: audio),
     );
   }
 
@@ -46,6 +51,10 @@ class DebugObjectsSheet extends StatelessWidget {
               _rainRow(),
               _crackRow(),
               _windowEditorRow(context),
+              if (audio != null) ...[
+                const Divider(height: 1),
+                _audioRows(),
+              ],
               const Divider(height: 1),
               Flexible(
                 child: ListView(
@@ -144,6 +153,77 @@ class DebugObjectsSheet extends StatelessWidget {
           Switch(
             value: state.isParallax,
             onChanged: state.setParallax,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _audioRows() {
+    final a = audio!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Row(
+            children: [
+              const Icon(Icons.speaker_outlined, size: 18),
+              const SizedBox(width: 8),
+              const Text('Audio',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              const Spacer(),
+              Text(
+                'fichiers dans assets/audio/',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.white.withOpacity(0.45),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _audioToggleRow(
+          icon: Icons.train_outlined,
+          label: 'Ambiance train',
+          enabled: a.isAmbientEnabled,
+          onChanged: a.setAmbientEnabled,
+        ),
+        _audioToggleRow(
+          icon: Icons.music_note_outlined,
+          label: 'Musique',
+          enabled: a.isMusicEnabled,
+          onChanged: a.setMusicEnabled,
+        ),
+        _audioToggleRow(
+          icon: Icons.graphic_eq_outlined,
+          label: 'Sons d\'interaction',
+          enabled: a.isSfxEnabled,
+          onChanged: a.setSfxEnabled,
+        ),
+      ],
+    );
+  }
+
+  Widget _audioToggleRow({
+    required IconData icon,
+    required String label,
+    required bool enabled,
+    required Future<void> Function(bool) onChanged,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child:
+                Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          ),
+          Switch(
+            value: enabled,
+            onChanged: (v) => onChanged(v),
           ),
         ],
       ),

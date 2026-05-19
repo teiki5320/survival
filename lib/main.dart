@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'models/scene_config.dart';
+import 'services/audio_service.dart';
 import 'services/scene_state.dart';
 import 'widgets/debug_menu.dart';
 import 'widgets/wagon_view.dart';
@@ -43,6 +44,7 @@ class WagonScreen extends StatefulWidget {
 class _WagonScreenState extends State<WagonScreen> {
   late Future<SceneConfig> _configFuture;
   SceneState? _state;
+  final AudioService _audio = AudioService();
 
   @override
   void initState() {
@@ -53,6 +55,7 @@ class _WagonScreenState extends State<WagonScreen> {
   @override
   void dispose() {
     _state?.dispose();
+    _audio.dispose();
     super.dispose();
   }
 
@@ -78,7 +81,9 @@ class _WagonScreenState extends State<WagonScreen> {
             );
           }
           final config = snapshot.data!;
-          final state = _state ??= SceneState(config);
+          final state = _state ??= SceneState(config, audio: _audio);
+          // Boot ambient + music once the config is loaded.
+          _audio.start(state.time);
 
           return Stack(
             children: [
@@ -94,6 +99,7 @@ class _WagonScreenState extends State<WagonScreen> {
                       context,
                       config: config,
                       state: state,
+                      audio: _audio,
                     ),
                     child: const Icon(Icons.tune),
                   ),

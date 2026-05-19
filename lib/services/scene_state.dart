@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/scene_config.dart';
 import '../widgets/cracked_glass.dart';
+import 'audio_service.dart';
 
 /// Identifier for one corner of the window editor.
 enum WindowCorner { topLeft, topRight, bottomLeft, bottomRight }
@@ -14,9 +15,12 @@ enum WindowCorner { topLeft, topRight, bottomLeft, bottomRight }
 /// currently active (with auto-cycling between idle poses or scripted
 /// action sequences).
 class SceneState extends ChangeNotifier {
-  SceneState(this.config) : _time = config.defaultTime;
+  SceneState(this.config, {AudioService? audio})
+      : _audio = audio,
+        _time = config.defaultTime;
 
   final SceneConfig config;
+  final AudioService? _audio;
 
   final Set<String> _visible = <String>{};
   WagonTime _time;
@@ -153,6 +157,7 @@ class SceneState extends ChangeNotifier {
   void setTime(WagonTime time) {
     if (_time == time) return;
     _time = time;
+    _audio?.playMusicFor(time);
     notifyListeners();
   }
 
@@ -193,6 +198,8 @@ class SceneState extends ChangeNotifier {
     if (interaction == null) return;
     if (config.characters.isEmpty) return;
     final char = config.characters.first;
+
+    _audio?.playSfxForObject(object.id);
 
     if (!isCharacterVisible(char.id)) {
       setCharacterVisible(char.id, true);
