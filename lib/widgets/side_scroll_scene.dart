@@ -69,10 +69,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
   late final AnimationController _smoke;
   late final AnimationController _sky;
 
-  // Heroine state. Position is normalised to the scene width.
+  // Heroine state. Position is normalised to the scene width. X bounds
+  // keep her on the wagon's parquet floor — left of 0.25 is the
+  // locomotive / coupling, right of 0.82 is the closed back-door area.
   static const int _heroFrameCount = 49;
-  static const double _heroXMin = 0.12;
-  static const double _heroXMax = 0.88;
+  static const double _heroXMin = 0.25;
+  static const double _heroXMax = 0.82;
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
@@ -376,15 +378,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         ),
                       ),
                       // 4. Rails strip — extracted from the wagon's own
-                      //    bottom band before any keying, so sleepers +
-                      //    ballast + the small rails section under the
-                      //    locomotive are all continuous. Scrolled at the
-                      //    same tempo as the close-parallax foreground.
+                      //    bottom band before any keying. Pulled tight
+                      //    (y=89..92%) so the wheels stay in the wagon
+                      //    image above and only rails + sleepers +
+                      //    ballast scroll.
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: h * 0.83,
-                        height: h * 0.09,
+                        top: h * 0.89,
+                        height: h * 0.03,
                         child: IgnorePointer(
                           child: _nightTint(
                             _ParallaxLayer(
