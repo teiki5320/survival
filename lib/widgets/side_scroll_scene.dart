@@ -145,6 +145,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/wagon_swept.png',
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
+      'assets/background/wagon_rails.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -363,12 +364,35 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // 3. Wagon — fixed in the centre, picked from the
                       //    progression stage (dirty → swept → windowed →
                       //    clean). Night ColorFilter tints all four the
-                      //    same way.
+                      //    same way. The rails band at y=83..92% has
+                      //    been keyed to alpha=0 on every variant — the
+                      //    parallax strip below carries that band.
                       Positioned.fill(
                         child: _nightTint(
                           Image.asset(
                             _wagonAssetFor(widget.wagonStage),
                             fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      // 4. Rails strip — extracted from the wagon's own
+                      //    bottom band before any keying, so sleepers +
+                      //    ballast + the small rails section under the
+                      //    locomotive are all continuous. Scrolled at the
+                      //    same tempo as the close-parallax foreground.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.83,
+                        height: h * 0.09,
+                        child: IgnorePointer(
+                          child: _nightTint(
+                            _ParallaxLayer(
+                              controller: _foreground,
+                              asset: 'assets/background/wagon_rails.png',
+                              fit: BoxFit.fill,
+                              alignment: Alignment.center,
+                            ),
                           ),
                         ),
                       ),
