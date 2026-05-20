@@ -40,6 +40,7 @@ class WagonScreen extends StatefulWidget {
 class _WagonScreenState extends State<WagonScreen> {
   bool _cleaned = true;
   bool _running = true;
+  bool _night = false;
 
   @override
   Widget build(BuildContext context) {
@@ -51,6 +52,7 @@ class _WagonScreenState extends State<WagonScreen> {
             child: SideScrollScene(
               cleaned: _cleaned,
               running: _running,
+              night: _night,
             ),
           ),
           Positioned(
@@ -61,6 +63,13 @@ class _WagonScreenState extends State<WagonScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  FloatingActionButton.small(
+                    heroTag: 'toggle_night',
+                    tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
+                    onPressed: () => setState(() => _night = !_night),
+                    child: Icon(_night ? Icons.wb_sunny : Icons.nightlight_round),
+                  ),
+                  const SizedBox(height: 12),
                   FloatingActionButton.small(
                     heroTag: 'toggle_clean',
                     tooltip: _cleaned ? 'Salir le wagon' : 'Nettoyer le wagon',

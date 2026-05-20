@@ -22,6 +22,7 @@ class SideScrollScene extends StatefulWidget {
     super.key,
     this.cleaned = false,
     this.running = true,
+    this.night = false,
   });
 
   /// `true` shows the cleaned wagon; `false` the dirty initial-discovery state.
@@ -30,6 +31,11 @@ class SideScrollScene extends StatefulWidget {
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
   final bool running;
+
+  /// `true` swaps in the night sky + horizon assets and applies a cool
+  /// blue tint over the wagon and heroine so the whole scene reads as
+  /// nighttime.
+  final bool night;
 
   @override
   State<SideScrollScene> createState() => _SideScrollSceneState();
@@ -165,7 +171,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // 1. Sky — drifting clouds, visible motion.
                       _ParallaxLayer(
                         controller: _sky,
-                        asset: 'assets/background/sky.png',
+                        asset: widget.night
+                            ? 'assets/background/sky_night.png'
+                            : 'assets/background/sky.png',
                         fit: BoxFit.cover,
                       ),
                       // 2. Horizon — distant ruins. Sits behind the wagon
@@ -179,7 +187,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         height: h * 0.42,
                         child: _ParallaxLayer(
                           controller: _horizon,
-                          asset: 'assets/background/horizon_a.png',
+                          asset: widget.night
+                              ? 'assets/background/horizon_night.png'
+                              : 'assets/background/horizon_a.png',
                           fit: BoxFit.fitWidth,
                           alignment: Alignment.topCenter,
                         ),
@@ -199,13 +209,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       ),
                       // 3. Wagon — fixed in the centre, with keyed-out
                       //    window panes letting the horizon parallax show
-                      //    through.
+                      //    through. Tinted cool-blue at night.
                       Positioned.fill(
-                        child: Image.asset(
-                          widget.cleaned
-                              ? 'assets/background/wagon_clean.png'
-                              : 'assets/background/wagon_dirty.png',
-                          fit: BoxFit.contain,
+                        child: _nightTint(
+                          Image.asset(
+                            widget.cleaned
+                                ? 'assets/background/wagon_clean.png'
+                                : 'assets/background/wagon_dirty.png',
+                            fit: BoxFit.contain,
+                          ),
                         ),
                       ),
                       // 4. Heroine — walks on the wagon floor, behind the
@@ -223,11 +235,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         bottom: 0,
                         height: h * 0.08,
                         child: IgnorePointer(
-                          child: _ParallaxLayer(
-                            controller: _foreground,
-                            asset: 'assets/background/foreground.png',
-                            fit: BoxFit.fitWidth,
-                            alignment: Alignment.bottomCenter,
+                          child: _nightTint(
+                            _ParallaxLayer(
+                              controller: _foreground,
+                              asset: 'assets/background/foreground.png',
+                              fit: BoxFit.fitWidth,
+                              alignment: Alignment.bottomCenter,
+                            ),
                           ),
                         ),
                       ),
@@ -288,14 +302,29 @@ class _SideScrollSceneState extends State<SideScrollScene>
       width: heroWidth,
       height: heroHeight,
       child: IgnorePointer(
-        child: Transform(
-          alignment: Alignment.center,
-          transform: isMirrored
-              ? (Matrix4.identity()..scale(-1.0, 1.0, 1.0))
-              : Matrix4.identity(),
-          child: Image.asset(asset, fit: BoxFit.contain),
+        child: _nightTint(
+          Transform(
+            alignment: Alignment.center,
+            transform: isMirrored
+                ? (Matrix4.identity()..scale(-1.0, 1.0, 1.0))
+                : Matrix4.identity(),
+            child: Image.asset(asset, fit: BoxFit.contain),
+          ),
         ),
       ),
+    );
+  }
+
+  /// Multiplies a child by a cool blue-grey when [widget.night] is on, so
+  /// daylit assets read as nighttime without needing redrawn variants.
+  Widget _nightTint(Widget child) {
+    if (!widget.night) return child;
+    return ColorFiltered(
+      colorFilter: const ColorFilter.mode(
+        Color(0xFF4A5C82),
+        BlendMode.modulate,
+      ),
+      child: child,
     );
   }
 }
