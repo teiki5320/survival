@@ -22,6 +22,29 @@ echo "==> Installing Flutter $FLUTTER_VERSION"
 git clone --depth 1 --branch "$FLUTTER_VERSION" \
   https://github.com/flutter/flutter.git "$FLUTTER_INSTALL_DIR"
 export PATH="$FLUTTER_INSTALL_DIR/bin:$PATH"
+
+# Patch native_assets_host.dart to recognise arm64e (introduced by Xcode 26.5
+# SDK prebuilt-modules). Without it, install_code_assets fails with
+# "Unknown architecture in otool output: arm64e".
+NATIVE_HOST="$FLUTTER_INSTALL_DIR/packages/flutter_tools/lib/src/isolated/native_assets/macos/native_assets_host.dart"
+if [ -f "$NATIVE_HOST" ]; then
+  python3 - <<PYEOF
+path = "$NATIVE_HOST"
+with open(path) as f:
+    src = f.read()
+if "'arm64e'" not in src:
+    src = src.replace(
+        "'arm64': Architecture.arm64,",
+        "'arm64': Architecture.arm64,\n    'arm64e': Architecture.arm64,",
+    )
+    with open(path, "w") as f:
+        f.write(src)
+    print("==> Patched native_assets_host.dart to accept arm64e")
+else:
+    print("==> native_assets_host.dart already patched")
+PYEOF
+fi
+
 flutter --version
 
 cd "$CI_PRIMARY_REPOSITORY_PATH"
