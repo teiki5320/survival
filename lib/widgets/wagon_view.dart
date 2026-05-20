@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import '../models/scene_config.dart';
 import '../services/scene_state.dart';
 import 'animated_object.dart';
-import 'character_display.dart';
+import 'character_walker.dart';
 import 'cracked_glass.dart';
+import 'dpad.dart';
 import 'dust_particles.dart';
 import 'scrolling_landscape.dart';
 import 'slot_editor.dart';
@@ -12,9 +13,10 @@ import 'train_rocking.dart';
 import 'window_corner_editor.dart';
 import 'window_rain.dart';
 
-/// Renders the wagon background, all visible objects, and any visible
-/// characters at their current pose position.
-class WagonView extends StatelessWidget {
+/// Renders the wagon background, all visible objects, and the heroine —
+/// who is now player-controlled via a D-pad overlay in the HUD rather
+/// than auto-cycling through scripted poses.
+class WagonView extends StatefulWidget {
   const WagonView({
     super.key,
     required this.config,
@@ -23,6 +25,16 @@ class WagonView extends StatelessWidget {
 
   final SceneConfig config;
   final SceneState state;
+
+  @override
+  State<WagonView> createState() => _WagonViewState();
+}
+
+class _WagonViewState extends State<WagonView> {
+  WalkDir _dir = WalkDir.none;
+
+  SceneConfig get config => widget.config;
+  SceneState get state => widget.state;
 
   @override
   Widget build(BuildContext context) {
@@ -68,15 +80,32 @@ class WagonView extends StatelessWidget {
                         for (final object in config.objects)
                           if (state.isVisible(object.id))
                             _positionedObject(object, w, h),
-                        for (final char in config.characters)
-                          if (state.isCharacterVisible(char.id))
-                            _positionedCharacter(char, w, h),
+                        // Player-controlled heroine. Renders a single
+                        // walker no matter how many characters the scene
+                        // config declares — for now there's only the
+                        // lone inhabitant.
+                        CharacterWalker(
+                          boxWidth: w,
+                          boxHeight: h,
+                          direction: _dir,
+                        ),
                         // Atmosphere: dust motes drifting on top of
                         // everything except UI editors.
                         if (state.isDustEnabled)
                           Positioned.fill(
                             child: DustParticles(enabled: state.isDustEnabled),
                           ),
+                        // D-pad HUD anchored bottom-left so it sits inside
+                        // the wagon's safe area without overlapping the
+                        // existing debug FAB at bottom-right.
+                        Positioned(
+                          left: 16,
+                          bottom: 16,
+                          child: Dpad(
+                            diameter: 0.22 * (w < h ? w : h),
+                            onChanged: (d) => setState(() => _dir = d),
+                          ),
+                        ),
                         if (state.isEditingWindow)
                           Positioned.fill(
                             child: WindowCornerEditor(
@@ -157,19 +186,6 @@ class WagonView extends StatelessWidget {
       h,
       key: ValueKey('obj_${object.id}'),
       child: child,
-    );
-  }
-
-  Widget _positionedCharacter(CharacterConfig char, double w, double h) {
-    return Positioned.fill(
-      key: ValueKey('char_${char.id}'),
-      child: CharacterDisplay(
-        character: char,
-        currentPose: state.currentPose(char),
-        resolveSlot: (pose) => state.getEffectiveSlotConfig(pose.slotId),
-        boxWidth: w,
-        boxHeight: h,
-      ),
     );
   }
 
