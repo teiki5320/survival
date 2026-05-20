@@ -15,7 +15,7 @@ set -x
 # (released 2026-05-15) regressed `install_code_assets` with "Unknown architecture
 # in otool output: arm64e" during xcodebuild archive. Bump this tag once
 # upstream is fixed.
-FLUTTER_VERSION="3.43.0"
+FLUTTER_VERSION="3.41.9"
 FLUTTER_INSTALL_DIR="$HOME/flutter"
 
 echo "==> Installing Flutter $FLUTTER_VERSION"
