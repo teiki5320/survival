@@ -352,49 +352,69 @@ class _ParallaxLayer extends StatelessWidget {
   }
 }
 
-/// Soft dark smoke trail rising from the locomotive (off-frame at the left)
-/// and drifting back across the top of the wagon. Each puff is rendered as
-/// three concentric circles (dark core → faint halo) so it reads as smoke
-/// rather than a hard disc.
+/// Soft dark smoke trail rising from the locomotive (off-frame at the
+/// left) and drifting back across the top of the wagon. Each puff is a
+/// cluster of 3 overlapping radial-gradient blobs (so the silhouette is
+/// irregular, not a clean circle), drawn with a colour that lerps from
+/// near-black at the source to dusty grey as the puff ages.
 class _SmokePainter extends CustomPainter {
   _SmokePainter(this.t, {required this.running});
   final double t;
   final bool running;
 
-  static const int _count = 10;
+  static const int _count = 12;
+  static const int _subPuffs = 3;
   static final math.Random _rng = math.Random(11);
   static final List<double> _phase = List.generate(_count, (_) => _rng.nextDouble());
   static final List<double> _vertJitter = List.generate(_count, (_) => _rng.nextDouble() * 2 - 1);
-  static final List<double> _sizeJitter = List.generate(_count, (_) => 0.7 + _rng.nextDouble() * 0.6);
+  static final List<double> _sizeJitter = List.generate(_count, (_) => 0.75 + _rng.nextDouble() * 0.55);
+  // Sub-puff angles + distances baked once per particle so the silhouette is stable per particle.
+  static final List<double> _subAng = List.generate(_count * _subPuffs, (_) => _rng.nextDouble() * math.pi * 2);
+  static final List<double> _subDist = List.generate(_count * _subPuffs, (_) => 0.3 + _rng.nextDouble() * 0.5);
+
+  static const Color _young = Color(0xFF1B1410);
+  static const Color _old = Color(0xFF6F665C);
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Smokestack sits roughly at x=-2% (just off-frame) and y=12% (top of
-    // the locomotive). Smoke drifts up-right across the wagon roof.
-    final originX = -size.width * 0.02;
-    final originY = size.height * 0.12;
+    // Smokestack at the top of the off-frame locomotive.
+    final originX = -size.width * 0.015;
+    final originY = size.height * 0.10;
 
     for (int i = 0; i < _count; i++) {
       final life = (t + _phase[i]) % 1.0;
+      // Trail path: drifts up-right, slows in Y as the puff ages.
       final x = originX + life * size.width * 0.95;
-      final y = originY - life * size.height * 0.08 + _vertJitter[i] * 8;
-      // Fade in over the first 8%, fade out from 55% onward.
-      final alpha = life < 0.08
-          ? life / 0.08
+      final y = originY - math.pow(life, 0.7).toDouble() * size.height * 0.10 +
+          _vertJitter[i] * 10;
+      // Fade in fast, fade out gradually.
+      final alpha = life < 0.06
+          ? life / 0.06
           : (life > 0.55 ? (1.0 - (life - 0.55) / 0.45) : 1.0);
       final clamped = alpha.clamp(0.0, 1.0);
-      final baseRadius = (10 + life * 36) * _sizeJitter[i];
-      // Three concentric layers: dark core, mid halo, faint outer.
-      const core = Color(0xFF2A211B);
-      _drawPuff(canvas, Offset(x, y), baseRadius * 0.55, core, 0.45 * clamped);
-      _drawPuff(canvas, Offset(x, y), baseRadius * 0.85, core, 0.22 * clamped);
-      _drawPuff(canvas, Offset(x, y), baseRadius * 1.20, core, 0.10 * clamped);
-    }
-  }
+      final baseRadius = (10 + life * 40) * _sizeJitter[i];
+      // Puff colour darker at source, lighter as it dissipates.
+      final puffColor = Color.lerp(_young, _old, life)!;
 
-  void _drawPuff(Canvas canvas, Offset c, double r, Color color, double alpha) {
-    final paint = Paint()..color = color.withOpacity(alpha);
-    canvas.drawCircle(c, r, paint);
+      for (int s = 0; s < _subPuffs; s++) {
+        final ang = _subAng[i * _subPuffs + s];
+        final dist = _subDist[i * _subPuffs + s] * baseRadius;
+        final cx = x + math.cos(ang) * dist;
+        final cy = y + math.sin(ang) * dist * 0.6; // squash vertically — smoke spreads laterally
+        final r = baseRadius * (0.85 + (s * 0.10));
+        final rect = Rect.fromCircle(center: Offset(cx, cy), radius: r);
+        final shader = RadialGradient(
+          colors: [
+            puffColor.withOpacity(0.55 * clamped),
+            puffColor.withOpacity(0.18 * clamped),
+            puffColor.withOpacity(0.0),
+          ],
+          stops: const [0.0, 0.55, 1.0],
+        ).createShader(rect);
+        final paint = Paint()..shader = shader;
+        canvas.drawCircle(Offset(cx, cy), r, paint);
+      }
+    }
   }
 
   @override
