@@ -223,25 +223,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // 4. Heroine — walks on the wagon floor, behind the
                       //    moving rails strip so she sits INSIDE the wagon.
                       _buildHeroine(w, h),
-                      // 5. Foreground rails — strip pasted IN FRONT of the
-                      //    wagon at the bottom of the frame. The wagon's
-                      //    baked-in rails+ballast (bottom 12%) have been
-                      //    keyed to transparent, so this strip is what the
-                      //    viewer sees scrolling underneath. The underframe
-                      //    metal and wheels above stay visible (they move
-                      //    with the wagon, the rails move past it).
+                      // 5. Wagon rails strip — the bottom 7% of the wagon
+                      //    image (railway sleepers + ballast) extracted into
+                      //    its own asset and scrolled horizontally as a
+                      //    parallax layer. The wagon image's matching band
+                      //    has been cut to transparent so we never draw the
+                      //    rails twice. Visually 100% consistent with the
+                      //    wagon since the strip IS the wagon's own rails.
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        height: h * 0.12,
+                        height: h * 0.07,
                         child: IgnorePointer(
                           child: _nightTint(
                             _ParallaxLayer(
                               controller: _foreground,
-                              asset: 'assets/background/foreground.png',
-                              fit: BoxFit.fitWidth,
-                              alignment: Alignment.bottomCenter,
+                              asset: 'assets/background/wagon_rails.png',
+                              fit: BoxFit.fill,
+                              alignment: Alignment.center,
                             ),
                           ),
                         ),
