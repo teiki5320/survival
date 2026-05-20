@@ -13,7 +13,6 @@
   "slots": [
     { "id": "slot_bed",    "x": 0.50, "y": 0.76, "width": 0.50, "height": 0.40 },
     { "id": "slot_lamp",   "x": 0.612, "y": 0.748, "width": 0.116, "height": 0.188 },
-    { "id": "slot_plant",  "x": 0.92, "y": 0.30, "width": 0.10, "height": 0.35 },
     { "id": "slot_plaid",  "x": 0.544, "y": 0.766, "width": 0.081, "height": 0.075 },
     { "id": "slot_stove",  "x": 0.340, "y": 0.716, "width": 0.206, "height": 0.379 },
     { "id": "slot_garden", "x": 0.783, "y": 0.688, "width": 0.124, "height": 0.524 },
@@ -41,14 +40,6 @@
       "asset": "assets/objects/lamp.png",
       "animation": "flickering",
       "interaction": { "kind": "pose", "target": "standing_turned" }
-    },
-    {
-      "id": "plant",
-      "label": "Plante",
-      "slot": "slot_plant",
-      "asset": "assets/objects/plant.png",
-      "animation": "swaying",
-      "interaction": { "kind": "pose", "target": "sitting_hugged" }
     },
     {
       "id": "plaid",
