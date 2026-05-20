@@ -148,6 +148,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
       'assets/background/wagon_rails.png',
+      'assets/background/wheel.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -365,14 +366,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       ),
                       // 3. Rails strip — scrolls BEHIND the wagon, at
                       //    y=83..92%. The wagon image's same band is
-                      //    keyed transparent everywhere EXCEPT inside
-                      //    two narrow vertical rects covering the
-                      //    wheels — so the wheels (static, in the wagon
-                      //    layer above) block the strip wherever they
-                      //    are, and the rest of the strip (rails +
-                      //    sleepers + ballast + the bit under the loco)
-                      //    is visible through the transparent gaps,
-                      //    scrolling.
+                      //    keyed transparent everywhere (no wheel
+                      //    preservation), so the strip is visible across
+                      //    the whole band.
                       Positioned(
                         left: 0,
                         right: 0,
@@ -389,6 +385,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 3b. Wheel — static X position, spins in place at
+                      //     the same tempo as the rails strip (≈6
+                      //     rotations per cycle so the rolling speed
+                      //     matches the apparent ground motion).
+                      _buildWheel(w, h),
                       // 4. Wagon — fixed in the centre, picked from the
                       //    progression stage (dirty → swept → windowed →
                       //    clean). Night ColorFilter tints all four the
@@ -555,6 +556,39 @@ class _SideScrollSceneState extends State<SideScrollScene>
         BlendMode.modulate,
       ),
       child: child,
+    );
+  }
+
+  /// Static-position spinning wheel rendered between the rails strip
+  /// (behind) and the wagon (in front of it but no overlap, the wagon's
+  /// underframe sits above the wheel). Rotation period is tuned so the
+  /// rolling speed reads as matching the apparent ground motion.
+  Widget _buildWheel(double w, double h) {
+    // Wheel position + size in the wagon image: cx=22.2%W, cy=89%H,
+    // radius 38px in a 1376x768 image → 5.52% of frame width.
+    final size = w * (76 / 1376);
+    final left = w * 0.222 - size / 2;
+    final top = h * 0.89 - size / 2;
+    // ~6 full turns per scroll cycle: circumference π·d ≈ 17.3% of w,
+    // strip moves w per cycle, so w / 0.173w ≈ 5.78 turns.
+    const turnsPerCycle = 5.78;
+    return Positioned(
+      left: left,
+      top: top,
+      width: size,
+      height: size,
+      child: IgnorePointer(
+        child: _nightTint(
+          AnimatedBuilder(
+            animation: _foreground,
+            builder: (_, child) => Transform.rotate(
+              angle: _foreground.value * turnsPerCycle * 2 * math.pi,
+              child: child,
+            ),
+            child: Image.asset('assets/background/wheel.png', fit: BoxFit.contain),
+          ),
+        ),
+      ),
     );
   }
 }
