@@ -197,51 +197,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 3. Foreground — fast scroll. Sits BELOW the wagon
-                      //    floor only, so it never occludes the heroine
-                      //    inside the wagon. A dark band painted just above
-                      //    its top edge sells the wagon's ground shadow,
-                      //    scrolling at the same speed.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: h * 0.22,
-                        child: IgnorePointer(
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              _ParallaxLayer(
-                                controller: _foreground,
-                                asset: 'assets/background/foreground.png',
-                                fit: BoxFit.fitWidth,
-                                alignment: Alignment.bottomCenter,
-                              ),
-                              // Wagon ground shadow — dark elongated band that
-                              //   sits where the wagon meets the ground.
-                              Positioned(
-                                left: 0,
-                                right: 0,
-                                top: 0,
-                                height: h * 0.05,
-                                child: const DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        Color(0x55000000),
-                                        Color(0x00000000),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      // 4. Wagon — fixed in the centre, with keyed-out
+                      // 3. Wagon — fixed in the centre, with keyed-out
                       //    window panes letting the horizon parallax show
                       //    through.
                       Positioned.fill(
@@ -252,9 +208,29 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           fit: BoxFit.contain,
                         ),
                       ),
-                      // 5. Heroine — walks on the wagon floor, on top of
-                      //    everything so she is never occluded.
+                      // 4. Heroine — walks on the wagon floor, behind the
+                      //    moving rails strip so she sits INSIDE the wagon.
                       _buildHeroine(w, h),
+                      // 5. Foreground rails — narrow strip pasted IN FRONT
+                      //    of the wagon's baked-in rails at the very bottom
+                      //    of the frame, so the ground reads as actually
+                      //    moving. The strip is sized to cover only the
+                      //    rails area of the wagon image (bottom ~7%) so
+                      //    the wheels and underframe stay visible above.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: h * 0.08,
+                        child: IgnorePointer(
+                          child: _ParallaxLayer(
+                            controller: _foreground,
+                            asset: 'assets/background/foreground.png',
+                            fit: BoxFit.fitWidth,
+                            alignment: Alignment.bottomCenter,
+                          ),
+                        ),
+                      ),
                       // 6. Locomotive smoke — drifts over the top of the wagon.
                       Positioned.fill(
                         child: IgnorePointer(
@@ -293,11 +269,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildHeroine(double w, double h) {
-    // Heroine sits on the wagon's interior floor. Tweak these constants if
-    // the wagon asset changes. Sprite native aspect is 163x375 ≈ 0.435.
-    final heroHeight = h * 0.46;
+    // Heroine stands inside the wagon, on the parquet floor. Tweak if the
+    // wagon asset changes. Sprite native aspect is 163x375 ≈ 0.435.
+    final heroHeight = h * 0.36;
     final heroWidth = heroHeight * (163 / 375);
-    final feetY = h * 0.86; // wagon's interior floor level
+    // Floor visible through the open side spans roughly y=0.62..0.82.
+    // Anchor her feet a touch above the front edge so she reads as inside.
+    final feetY = h * 0.79;
     final left = _heroX * w - heroWidth / 2;
     final top = feetY - heroHeight;
 
