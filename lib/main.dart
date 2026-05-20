@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'models/scene_config.dart';
-import 'services/audio_service.dart';
-import 'services/scene_state.dart';
-import 'widgets/debug_menu.dart';
-import 'widgets/wagon_view.dart';
+import 'widgets/side_scroll_scene.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,72 +38,47 @@ class WagonScreen extends StatefulWidget {
 }
 
 class _WagonScreenState extends State<WagonScreen> {
-  late Future<SceneConfig> _configFuture;
-  SceneState? _state;
-  final AudioService _audio = AudioService();
-
-  @override
-  void initState() {
-    super.initState();
-    _configFuture = SceneConfig.load('assets/config/scene.json');
-  }
-
-  @override
-  void dispose() {
-    _state?.dispose();
-    _audio.dispose();
-    super.dispose();
-  }
+  bool _cleaned = true;
+  bool _running = true;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: FutureBuilder<SceneConfig>(
-        future: _configFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'Impossible de charger la scène:\n${snapshot.error}',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-          final config = snapshot.data!;
-          final state = _state ??= SceneState(config, audio: _audio);
-          // Boot ambient + music once the config is loaded.
-          _audio.start(state.time);
-
-          return Stack(
-            children: [
-              Positioned.fill(child: WagonView(config: config, state: state)),
-              Positioned(
-                right: 16,
-                bottom: 16,
-                child: SafeArea(
-                  child: FloatingActionButton(
-                    heroTag: 'debug_fab',
-                    tooltip: 'Debug — objets',
-                    onPressed: () => DebugObjectsSheet.show(
-                      context,
-                      config: config,
-                      state: state,
-                      audio: _audio,
-                    ),
-                    child: const Icon(Icons.tune),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: SideScrollScene(
+              cleaned: _cleaned,
+              running: _running,
+            ),
+          ),
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  FloatingActionButton.small(
+                    heroTag: 'toggle_clean',
+                    tooltip: _cleaned ? 'Salir le wagon' : 'Nettoyer le wagon',
+                    onPressed: () => setState(() => _cleaned = !_cleaned),
+                    child: Icon(_cleaned ? Icons.cleaning_services : Icons.water_drop),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.small(
+                    heroTag: 'toggle_run',
+                    tooltip: _running ? 'Arrêter le train' : 'Démarrer le train',
+                    onPressed: () => setState(() => _running = !_running),
+                    child: Icon(_running ? Icons.pause : Icons.play_arrow),
+                  ),
+                ],
               ),
-            ],
-          );
-        },
+            ),
+          ),
+        ],
       ),
     );
   }

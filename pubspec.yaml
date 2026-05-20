@@ -1,7 +1,7 @@
 name: train_cosy
-description: "Cosy train wagon interior — visual base for a narrative game."
+description: "Side-scroller train, cosy post-apocalyptic narrative game."
 publish_to: "none"
-version: 0.10.0+1
+version: 0.11.0+1
 
 environment:
   sdk: ">=3.3.0 <4.0.0"
@@ -11,7 +11,6 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -21,8 +20,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/config/scene.json
     - assets/background/
     - assets/objects/
     - assets/characters/
-    - assets/audio/
