@@ -223,17 +223,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // 4. Heroine — walks on the wagon floor, behind the
                       //    moving rails strip so she sits INSIDE the wagon.
                       _buildHeroine(w, h),
-                      // 5. Foreground rails — narrow strip pasted IN FRONT
-                      //    of the wagon's baked-in rails at the very bottom
-                      //    of the frame, so the ground reads as actually
-                      //    moving. The strip is sized to cover only the
-                      //    rails area of the wagon image (bottom ~7%) so
-                      //    the wheels and underframe stay visible above.
+                      // 5. Foreground rails — strip pasted IN FRONT of the
+                      //    wagon at the bottom of the frame. The wagon's
+                      //    baked-in rails+ballast (bottom 12%) have been
+                      //    keyed to transparent, so this strip is what the
+                      //    viewer sees scrolling underneath. The underframe
+                      //    metal and wheels above stay visible (they move
+                      //    with the wagon, the rails move past it).
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        height: h * 0.08,
+                        height: h * 0.12,
                         child: IgnorePointer(
                           child: _nightTint(
                             _ParallaxLayer(
