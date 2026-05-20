@@ -38,7 +38,7 @@
       "label": "Lampe",
       "slot": "slot_lamp",
       "asset": "assets/objects/lamp.png",
-      "animation": "flickering",
+      "animation": "lampGlow",
       "interaction": { "kind": "pose", "target": "standing_turned" }
     },
     {
@@ -54,7 +54,7 @@
       "label": "Poêle à bois",
       "slot": "slot_stove",
       "asset": "assets/objects/stove.png",
-      "animation": "flickering",
+      "animation": "fireGlow",
       "interaction": { "kind": "pose", "target": "sitting_hugged" }
     },
     {
@@ -62,7 +62,7 @@
       "label": "Jardin hydroponique",
       "slot": "slot_garden",
       "asset": "assets/objects/garden.png",
-      "animation": "none",
+      "animation": "bubbling",
       "interaction": { "kind": "pose", "target": "sitting_side" }
     }
   ],

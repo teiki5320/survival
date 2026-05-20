@@ -4,7 +4,15 @@ import 'dart:ui' show Rect;
 import 'package:flutter/services.dart' show rootBundle;
 
 /// How an object should subtly animate while visible.
-enum WagonAnimation { none, breathing, flickering, swaying }
+enum WagonAnimation {
+  none,
+  breathing,
+  flickering,
+  swaying,
+  fireGlow,
+  lampGlow,
+  bubbling,
+}
 
 /// Time-of-day variants the wagon background can render. Day and night are
 /// loaded from distinct asset paths; SceneState toggles between them.
@@ -18,6 +26,14 @@ WagonAnimation _parseAnimation(String? raw) {
       return WagonAnimation.flickering;
     case 'swaying':
       return WagonAnimation.swaying;
+    case 'fireGlow':
+    case 'fire_glow':
+      return WagonAnimation.fireGlow;
+    case 'lampGlow':
+    case 'lamp_glow':
+      return WagonAnimation.lampGlow;
+    case 'bubbling':
+      return WagonAnimation.bubbling;
     case null:
     case '':
     case 'none':
