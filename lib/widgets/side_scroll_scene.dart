@@ -54,7 +54,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static const double _heroXMin = 0.12;
   static const double _heroXMax = 0.88;
   static const double _heroSpeed = 0.18; // normalised units / second
-  static const int _heroFrameMs = 50;
+  static const int _walkFrameMs = 50;
+  static const int _idleFrameMs = 80;
   // The source sprite sheet walks toward the right; mirroring produces
   // the left-facing variant. Flip this if a future sheet faces left.
   static const bool _naturallyFacesRight = true;
@@ -63,9 +64,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   double _heroX = 0.5;
   double? _heroTarget;
   bool _heroFacingRight = true;
-  int _heroFrame = 0;
+  int _walkFrame = 0;
+  int _idleFrame = 0;
   Duration _lastTick = Duration.zero;
-  int _frameAccumMs = 0;
+  int _walkAccumMs = 0;
+  int _idleAccumMs = 0;
 
   @override
   void initState() {
@@ -88,11 +91,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
     super.didChangeDependencies();
     if (_precached) return;
     _precached = true;
-    // Decode and cache every walk frame + the background variants before
-    // the user can interact. Without this, the first walk cycle stutters
-    // for ~3s while Flutter lazily decodes the 49 sprite PNGs.
+    // Decode and cache every walk + idle + sleep frame plus the background
+    // variants before the user can interact. Without this, the first cycle
+    // of any animation stutters while Flutter lazily decodes the PNGs.
     for (int i = 1; i <= _heroFrameCount; i++) {
       precacheImage(AssetImage('assets/characters/walk_right_$i.png'), context);
+      precacheImage(AssetImage('assets/characters/idle_right_$i.png'), context);
+      precacheImage(AssetImage('assets/characters/sleep_right_$i.png'), context);
     }
     for (final asset in const [
       'assets/background/sky.png',
@@ -141,17 +146,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void _onHeroTick(Duration elapsed) {
     final dtMicros = (elapsed - _lastTick).inMicroseconds;
     _lastTick = elapsed;
-    final target = _heroTarget;
-    if (target == null) return;
-
+    if (dtMicros <= 0) return;
     final dt = dtMicros / 1e6;
+    final dtMs = (dt * 1000).round();
+    final target = _heroTarget;
+
+    if (target == null) {
+      // Idle: advance the idle cycle so she breathes / shifts weight even
+      // when standing still.
+      setState(() {
+        _idleAccumMs += dtMs;
+        while (_idleAccumMs >= _idleFrameMs) {
+          _idleAccumMs -= _idleFrameMs;
+          _idleFrame = (_idleFrame + 1) % _heroFrameCount;
+        }
+      });
+      return;
+    }
+
     final delta = target - _heroX;
     final step = _heroSpeed * dt;
     if (delta.abs() <= step) {
       setState(() {
         _heroX = target;
         _heroTarget = null;
-        _heroFrame = 0;
+        _walkFrame = 0;
+        _walkAccumMs = 0;
       });
       return;
     }
@@ -161,10 +181,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     setState(() {
       _heroX += step * dir;
       _heroFacingRight = newFacingRight;
-      _frameAccumMs += (dt * 1000).round();
-      while (_frameAccumMs >= _heroFrameMs) {
-        _frameAccumMs -= _heroFrameMs;
-        _heroFrame = (_heroFrame + 1) % _heroFrameCount;
+      _walkAccumMs += dtMs;
+      while (_walkAccumMs >= _walkFrameMs) {
+        _walkAccumMs -= _walkFrameMs;
+        _walkFrame = (_walkFrame + 1) % _heroFrameCount;
       }
     });
   }
@@ -311,16 +331,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   Widget _buildHeroine(double w, double h) {
     // Heroine stands inside the wagon, on the parquet floor. Tweak if the
-    // wagon asset changes. Sprite native aspect is 163x375 ≈ 0.435.
+    // wagon asset changes. Walk sprite aspect is 163/375, idle is 91/372.
+    final isMoving = _heroTarget != null;
     final heroHeight = h * 0.36;
-    final heroWidth = heroHeight * (163 / 375);
+    final spriteAspect = isMoving ? (163 / 375) : (91 / 372);
+    final heroWidth = heroHeight * spriteAspect;
     // Floor visible through the open side spans roughly y=0.62..0.82.
     // Anchor her feet a touch above the front edge so she reads as inside.
     final feetY = h * 0.79;
     final left = _heroX * w - heroWidth / 2;
     final top = feetY - heroHeight;
 
-    final asset = 'assets/characters/walk_right_${_heroFrame + 1}.png';
+    final frame = isMoving ? _walkFrame : _idleFrame;
+    final prefix = isMoving ? 'walk_right' : 'idle_right';
+    final asset = 'assets/characters/${prefix}_${frame + 1}.png';
     final isMirrored = _heroFacingRight != _naturallyFacesRight;
 
     return Positioned(
