@@ -363,26 +363,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 3. Wagon — fixed in the centre, picked from the
-                      //    progression stage (dirty → swept → windowed →
-                      //    clean). Night ColorFilter tints all four the
-                      //    same way. The rails band at y=83..92% has
-                      //    been keyed to alpha=0 on every variant — the
-                      //    parallax strip below carries that band.
-                      Positioned.fill(
-                        child: _nightTint(
-                          Image.asset(
-                            _wagonAssetFor(widget.wagonStage),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                      // 4. Rails strip — extracted from the wagon's own
-                      //    bottom band (y=83..92%). Wheel-shaped holes
-                      //    cut into the strip reveal the static wheels
-                      //    preserved on the wagon layer behind, so
-                      //    sleepers + ballast + rails + the bit under
-                      //    the locomotive all scroll around the wheels.
+                      // 3. Rails strip — scrolls BEHIND the wagon, at
+                      //    y=83..92%. The wagon image's same band is
+                      //    keyed transparent everywhere EXCEPT inside
+                      //    two narrow vertical rects covering the
+                      //    wheels — so the wheels (static, in the wagon
+                      //    layer above) block the strip wherever they
+                      //    are, and the rest of the strip (rails +
+                      //    sleepers + ballast + the bit under the loco)
+                      //    is visible through the transparent gaps,
+                      //    scrolling.
                       Positioned(
                         left: 0,
                         right: 0,
@@ -399,7 +389,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 4. Heroine — walks on the wagon floor.
+                      // 4. Wagon — fixed in the centre, picked from the
+                      //    progression stage (dirty → swept → windowed →
+                      //    clean). Night ColorFilter tints all four the
+                      //    same way.
+                      Positioned.fill(
+                        child: _nightTint(
+                          Image.asset(
+                            _wagonAssetFor(widget.wagonStage),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                      // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
                       // 5. Locomotive smoke — drifts over the top of the wagon.
                       Positioned.fill(
