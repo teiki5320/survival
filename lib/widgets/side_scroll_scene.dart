@@ -385,11 +385,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 3b. Wheel — static X position, spins in place at
-                      //     the same tempo as the rails strip (≈6
-                      //     rotations per cycle so the rolling speed
-                      //     matches the apparent ground motion).
-                      _buildWheel(w, h),
                       // 4. Wagon — fixed in the centre, picked from the
                       //    progression stage (dirty → swept → windowed →
                       //    clean). Night ColorFilter tints all four the
