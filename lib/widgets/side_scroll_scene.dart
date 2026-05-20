@@ -56,6 +56,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
+  static const int _sleepFrameMs = 110;
   // The source sprite sheet walks toward the right; mirroring produces
   // the left-facing variant. Flip this if a future sheet faces left.
   static const bool _naturallyFacesRight = true;
@@ -64,11 +65,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
   double _heroX = 0.5;
   double? _heroTarget;
   bool _heroFacingRight = true;
+  // She starts the game asleep on the floor; first tap wakes her and
+  // sends her walking toward the tapped X.
+  bool _heroSleeping = true;
   int _walkFrame = 0;
   int _idleFrame = 0;
+  int _sleepFrame = 0;
   Duration _lastTick = Duration.zero;
   int _walkAccumMs = 0;
   int _idleAccumMs = 0;
+  int _sleepAccumMs = 0;
 
   @override
   void initState() {
@@ -149,8 +155,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (dtMicros <= 0) return;
     final dt = dtMicros / 1e6;
     final dtMs = (dt * 1000).round();
-    final target = _heroTarget;
 
+    if (_heroSleeping) {
+      setState(() {
+        _sleepAccumMs += dtMs;
+        while (_sleepAccumMs >= _sleepFrameMs) {
+          _sleepAccumMs -= _sleepFrameMs;
+          _sleepFrame = (_sleepFrame + 1) % _heroFrameCount;
+        }
+      });
+      return;
+    }
+
+    final target = _heroTarget;
     if (target == null) {
       // Idle: advance the idle cycle so she breathes / shifts weight even
       // when standing still.
@@ -191,7 +208,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   void _walkTo(double normalizedX) {
     final clamped = normalizedX.clamp(_heroXMin, _heroXMax);
-    setState(() => _heroTarget = clamped);
+    setState(() {
+      // First tap wakes her up; the same tap also queues her next move.
+      _heroSleeping = false;
+      _heroTarget = clamped;
+    });
   }
 
   @override
@@ -330,15 +351,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildHeroine(double w, double h) {
-    // Heroine stands inside the wagon, on the parquet floor. Tweak if the
-    // wagon asset changes. Walk sprite aspect is 163/375, idle is 91/372.
+    // Wagon's interior floor sits roughly here.
+    final feetY = h * 0.79;
+
+    if (_heroSleeping) {
+      // Lying on the floor. Sprite is wide-horizontal (366x103 ≈ 3.55:1).
+      // Body length matches her standing height; the sprite's bottom edge
+      // sits on the parquet so she really lies on the floor, not above it.
+      final bodyLen = h * 0.36;
+      final bodyThick = bodyLen / (366 / 103);
+      final asset = 'assets/characters/sleep_right_${_sleepFrame + 1}.png';
+      return Positioned(
+        left: _heroX * w - bodyLen / 2,
+        top: feetY - bodyThick,
+        width: bodyLen,
+        height: bodyThick,
+        child: IgnorePointer(
+          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+        ),
+      );
+    }
+
+    // Standing / walking. Walk sprite aspect 163/375, idle aspect 91/372.
     final isMoving = _heroTarget != null;
     final heroHeight = h * 0.36;
     final spriteAspect = isMoving ? (163 / 375) : (91 / 372);
     final heroWidth = heroHeight * spriteAspect;
-    // Floor visible through the open side spans roughly y=0.62..0.82.
-    // Anchor her feet a touch above the front edge so she reads as inside.
-    final feetY = h * 0.79;
     final left = _heroX * w - heroWidth / 2;
     final top = feetY - heroHeight;
 
