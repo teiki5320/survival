@@ -378,15 +378,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         ),
                       ),
                       // 4. Rails strip — extracted from the wagon's own
-                      //    bottom band before any keying. Pulled tight
-                      //    (y=89..92%) so the wheels stay in the wagon
-                      //    image above and only rails + sleepers +
-                      //    ballast scroll.
+                      //    bottom band (y=83..92%). Wheel-shaped holes
+                      //    cut into the strip reveal the static wheels
+                      //    preserved on the wagon layer behind, so
+                      //    sleepers + ballast + rails + the bit under
+                      //    the locomotive all scroll around the wheels.
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: h * 0.89,
-                        height: h * 0.03,
+                        top: h * 0.83,
+                        height: h * 0.09,
                         child: IgnorePointer(
                           child: _nightTint(
                             _ParallaxLayer(
