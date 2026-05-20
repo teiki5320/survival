@@ -81,6 +81,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _heroTicker = createTicker(_onHeroTick)..start();
   }
 
+  bool _precached = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_precached) return;
+    _precached = true;
+    // Decode and cache every walk frame + the background variants before
+    // the user can interact. Without this, the first walk cycle stutters
+    // for ~3s while Flutter lazily decodes the 49 sprite PNGs.
+    for (int i = 1; i <= _heroFrameCount; i++) {
+      precacheImage(AssetImage('assets/characters/walk_right_$i.png'), context);
+    }
+    for (final asset in const [
+      'assets/background/sky.png',
+      'assets/background/sky_night.png',
+      'assets/background/horizon_a.png',
+      'assets/background/horizon_night.png',
+      'assets/background/wagon_clean.png',
+      'assets/background/wagon_dirty.png',
+      'assets/background/wagon_rails.png',
+    ]) {
+      precacheImage(AssetImage(asset), context);
+    }
+  }
+
   @override
   void didUpdateWidget(covariant SideScrollScene oldWidget) {
     super.didUpdateWidget(oldWidget);
