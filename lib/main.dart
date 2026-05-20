@@ -42,6 +42,9 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _running = true;
   bool _night = false;
   bool _dancing = false;
+  // Bumped each time the user taps "se coucher". The scene observes
+  // the change and plays the lie-down sequence once per increment.
+  int _lieDownToken = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +58,7 @@ class _WagonScreenState extends State<WagonScreen> {
               running: _running,
               night: _night,
               dancing: _dancing,
+              lieDownToken: _lieDownToken,
               onUserInteract: () {
                 if (_dancing) setState(() => _dancing = false);
               },
@@ -68,6 +72,13 @@ class _WagonScreenState extends State<WagonScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  FloatingActionButton.small(
+                    heroTag: 'lie_down',
+                    tooltip: 'Se coucher',
+                    onPressed: () => setState(() => _lieDownToken++),
+                    child: const Icon(Icons.bed),
+                  ),
+                  const SizedBox(height: 12),
                   FloatingActionButton.small(
                     heroTag: 'toggle_dance',
                     tooltip: _dancing ? 'Arrêter de danser' : 'Danser',
