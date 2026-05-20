@@ -25,25 +25,47 @@ export PATH="$FLUTTER_INSTALL_DIR/bin:$PATH"
 
 # Patch native_assets_host.dart to recognise arm64e (introduced by Xcode 26.5
 # SDK prebuilt-modules). Without it, install_code_assets fails with
-# "Unknown architecture in otool output: arm64e".
+# "Unknown architecture in otool output: arm64e". The bug exists in all
+# Flutter versions from at least 3.41.x through master (checked 2026-05-20).
 NATIVE_HOST="$FLUTTER_INSTALL_DIR/packages/flutter_tools/lib/src/isolated/native_assets/macos/native_assets_host.dart"
-if [ -f "$NATIVE_HOST" ]; then
-  python3 - <<PYEOF
-path = "$NATIVE_HOST"
+if [ ! -f "$NATIVE_HOST" ]; then
+  echo "ERROR: $NATIVE_HOST does not exist; arm64e patch cannot be applied" >&2
+  exit 1
+fi
+
+echo "==> Patching $NATIVE_HOST"
+python3 - "$NATIVE_HOST" <<'PYEOF'
+import sys
+path = sys.argv[1]
 with open(path) as f:
     src = f.read()
-if "'arm64e'" not in src:
-    src = src.replace(
-        "'arm64': Architecture.arm64,",
-        "'arm64': Architecture.arm64,\n    'arm64e': Architecture.arm64,",
-    )
+needle = "'arm64': Architecture.arm64,"
+replacement = "'arm64': Architecture.arm64,\n    'arm64e': Architecture.arm64,"
+if "'arm64e'" in src:
+    print("arm64e already present, no patch needed")
+elif needle in src:
+    src = src.replace(needle, replacement, 1)
     with open(path, "w") as f:
         f.write(src)
-    print("==> Patched native_assets_host.dart to accept arm64e")
+    print("Patched arm64e into outputArchitectures map")
 else:
-    print("==> native_assets_host.dart already patched")
+    sys.exit(f"FAILED to find needle '{needle}' in {path}")
 PYEOF
+
+# Sanity-check the patch actually landed
+if ! grep -q "'arm64e': Architecture.arm64" "$NATIVE_HOST"; then
+  echo "ERROR: arm64e patch did not apply" >&2
+  sed -n '265,295p' "$NATIVE_HOST" >&2
+  exit 1
 fi
+echo "==> Patch verified in source"
+
+# Force the flutter tool snapshot to be re-compiled with our patched source.
+# Flutter caches the JIT snapshot under bin/cache and only rebuilds when the
+# stamp file disagrees; deleting the stamp guarantees a rebuild on the next
+# `flutter` invocation.
+rm -f "$FLUTTER_INSTALL_DIR/bin/cache/flutter_tools.snapshot" \
+      "$FLUTTER_INSTALL_DIR/bin/cache/flutter_tools.stamp"
 
 flutter --version
 
