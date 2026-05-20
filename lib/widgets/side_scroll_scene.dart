@@ -442,19 +442,23 @@ class _ParallaxLayer extends StatelessWidget {
         return LayoutBuilder(
           builder: (context, constraints) {
             final w = constraints.maxWidth;
-            final dx = -controller.value * w;
+            // Scroll RIGHT — the locomotive sits on the left of the frame
+            // so the train travels leftward, and the world appears to
+            // slide rightward past it. One copy enters from the left edge,
+            // the other exits at the right.
+            final dx = controller.value * w;
             return ClipRect(
               child: Stack(
                 children: [
                   Positioned(
-                    left: dx,
+                    left: dx - w,
                     top: 0,
                     bottom: 0,
                     width: w,
                     child: Image.asset(asset, fit: fit, alignment: alignment),
                   ),
                   Positioned(
-                    left: dx + w,
+                    left: dx,
                     top: 0,
                     bottom: 0,
                     width: w,
@@ -606,9 +610,11 @@ class _SpeedLinesPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.18);
     for (int i = 0; i < _count; i++) {
       final life = (t + _phase[i]) % 1.0;
-      // Streaks travel right → left across the frame.
-      final endX = size.width * (1.0 - life * 1.4);
-      final startX = endX + size.width * _len[i];
+      // Streaks travel left → right across the frame (world rushes past
+      // the leftward-moving train). Each streak is a trail with its tail
+      // lagging behind.
+      final startX = size.width * (life * 1.4 - 0.4);
+      final endX = startX - size.width * _len[i];
       final y = size.height * _yFrac[i];
       final alpha = life < 0.15
           ? life / 0.15
