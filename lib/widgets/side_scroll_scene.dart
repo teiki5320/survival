@@ -23,6 +23,8 @@ class SideScrollScene extends StatefulWidget {
     this.cleaned = false,
     this.running = true,
     this.night = false,
+    this.dancing = false,
+    this.onUserInteract,
   });
 
   /// `true` shows the cleaned wagon; `false` the dirty initial-discovery state.
@@ -37,6 +39,14 @@ class SideScrollScene extends StatefulWidget {
   /// nighttime.
   final bool night;
 
+  /// `true` puts the heroine in the dance loop (overrides idle / walk).
+  /// Tapping the wagon floor cancels it and queues a walk to the tap.
+  final bool dancing;
+
+  /// Fired the first time the user taps the wagon floor, so the parent
+  /// can drop any "she's dancing" state it was holding.
+  final VoidCallback? onUserInteract;
+
   @override
   State<SideScrollScene> createState() => _SideScrollSceneState();
 }
@@ -49,32 +59,47 @@ class _SideScrollSceneState extends State<SideScrollScene>
   late final AnimationController _smoke;
   late final AnimationController _sky;
 
-  // Heroine state. Position is normalised to the scene width.
+  // Heroine state. Position is normalised to the scene size.
   static const int _heroFrameCount = 49;
   static const double _heroXMin = 0.12;
   static const double _heroXMax = 0.88;
+  // Y bounds the heroine to the wagon's visible parquet (back wall →
+  // front edge). Tapping outside snaps to this range.
+  static const double _heroYMin = 0.66;
+  static const double _heroYMax = 0.82;
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
   static const int _sleepFrameMs = 110;
-  // The source sprite sheet walks toward the right; mirroring produces
-  // the left-facing variant. Flip this if a future sheet faces left.
-  static const bool _naturallyFacesRight = true;
+  static const int _danceFrameMs = 55;
+
+  // Walk-direction sprite aspects (raw sprite width / height). Mirrored
+  // directions reuse their base aspect (left → right, nw → ne, sw → se).
+  static const Map<String, double> _walkAspect = {
+    'right': 166 / 381,
+    'down': 149 / 387,
+    'up': 189 / 375,
+    'ne': 167 / 387,
+    'se': 196 / 390,
+  };
 
   late final Ticker _heroTicker;
-  double _heroX = 0.5;
-  double? _heroTarget;
-  bool _heroFacingRight = true;
-  // She starts the game asleep on the floor; first tap wakes her and
-  // sends her walking toward the tapped X.
+  Offset _heroPos = const Offset(0.5, 0.79);
+  Offset? _heroTarget;
+  // Last facing direction picked from the movement vector. One of:
+  // right, left, up, down, ne, nw, se, sw.
+  String _heroDir = 'right';
   bool _heroSleeping = true;
+  bool _heroDancing = false;
   int _walkFrame = 0;
   int _idleFrame = 0;
   int _sleepFrame = 0;
+  int _danceFrame = 0;
   Duration _lastTick = Duration.zero;
   int _walkAccumMs = 0;
   int _idleAccumMs = 0;
   int _sleepAccumMs = 0;
+  int _danceAccumMs = 0;
 
   @override
   void initState() {
@@ -84,7 +109,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // (28s), foreground as the close ground rushing by (5s).
     _sky = AnimationController(vsync: this, duration: const Duration(seconds: 30))..repeat();
     _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 28))..repeat();
-    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
+    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
@@ -97,13 +122,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
     super.didChangeDependencies();
     if (_precached) return;
     _precached = true;
-    // Decode and cache every walk + idle + sleep frame plus the background
-    // variants before the user can interact. Without this, the first cycle
-    // of any animation stutters while Flutter lazily decodes the PNGs.
-    for (int i = 1; i <= _heroFrameCount; i++) {
-      precacheImage(AssetImage('assets/characters/walk_right_$i.png'), context);
-      precacheImage(AssetImage('assets/characters/idle_right_$i.png'), context);
-      precacheImage(AssetImage('assets/characters/sleep_right_$i.png'), context);
+    // Decode and cache every animation frame plus the background variants
+    // before the user can interact. Without this, the first cycle of any
+    // animation stutters while Flutter lazily decodes the PNGs.
+    const animations = [
+      'walk_right', 'walk_down', 'walk_up', 'walk_ne', 'walk_se',
+      'idle_right', 'sleep_right', 'dance', 'pickup',
+    ];
+    for (final anim in animations) {
+      for (int i = 1; i <= _heroFrameCount; i++) {
+        precacheImage(AssetImage('assets/characters/${anim}_$i.png'), context);
+      }
     }
     for (final asset in const [
       'assets/background/sky.png',
@@ -123,6 +152,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.running != widget.running) {
       _applyRunning();
+    }
+    if (oldWidget.dancing != widget.dancing) {
+      setState(() {
+        _heroDancing = widget.dancing;
+        if (_heroDancing) {
+          _heroSleeping = false;
+          _heroTarget = null;
+          _danceFrame = 0;
+          _danceAccumMs = 0;
+        }
+      });
     }
   }
 
@@ -167,10 +207,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
 
+    if (_heroDancing) {
+      setState(() {
+        _danceAccumMs += dtMs;
+        while (_danceAccumMs >= _danceFrameMs) {
+          _danceAccumMs -= _danceFrameMs;
+          _danceFrame = (_danceFrame + 1) % _heroFrameCount;
+        }
+      });
+      return;
+    }
+
     final target = _heroTarget;
     if (target == null) {
-      // Idle: advance the idle cycle so she breathes / shifts weight even
-      // when standing still.
       setState(() {
         _idleAccumMs += dtMs;
         while (_idleAccumMs >= _idleFrameMs) {
@@ -181,11 +230,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
 
-    final delta = target - _heroX;
+    final delta = target - _heroPos;
+    final dist = delta.distance;
     final step = _heroSpeed * dt;
-    if (delta.abs() <= step) {
+    if (dist <= step) {
       setState(() {
-        _heroX = target;
+        _heroPos = target;
         _heroTarget = null;
         _walkFrame = 0;
         _walkAccumMs = 0;
@@ -193,11 +243,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
 
-    final dir = delta > 0 ? 1.0 : -1.0;
-    final newFacingRight = dir > 0;
+    final unit = delta / dist;
+    final newDir = _directionFromVector(unit);
     setState(() {
-      _heroX += step * dir;
-      _heroFacingRight = newFacingRight;
+      _heroPos = _heroPos + unit * step;
+      _heroDir = newDir;
       _walkAccumMs += dtMs;
       while (_walkAccumMs >= _walkFrameMs) {
         _walkAccumMs -= _walkFrameMs;
@@ -206,14 +256,48 @@ class _SideScrollSceneState extends State<SideScrollScene>
     });
   }
 
-  void _walkTo(double normalizedX) {
-    final clamped = normalizedX.clamp(_heroXMin, _heroXMax);
-    setState(() {
-      // First tap wakes her up; the same tap also queues her next move.
-      _heroSleeping = false;
-      _heroTarget = clamped;
-    });
+  /// Quantise a unit movement vector into one of 8 compass directions.
+  /// Flutter's y axis grows downward, so dy > 0 is toward the camera
+  /// ("down" / south) and dy < 0 is away ("up" / north).
+  String _directionFromVector(Offset v) {
+    final ang = math.atan2(v.dy, v.dx); // -π..π
+    final octant = ((ang / (math.pi / 4)).round() + 8) % 8;
+    return switch (octant) {
+      0 => 'right',
+      1 => 'se',
+      2 => 'down',
+      3 => 'sw',
+      4 => 'left',
+      5 => 'nw',
+      6 => 'up',
+      _ => 'ne',
+    };
   }
+
+  bool _isMirrored(String dir) =>
+      dir == 'left' || dir == 'nw' || dir == 'sw';
+
+  String _baseDir(String dir) => switch (dir) {
+        'left' => 'right',
+        'nw' => 'ne',
+        'sw' => 'se',
+        _ => dir,
+      };
+
+  void _walkTo(double normalizedX, double normalizedY) {
+    final tx = normalizedX.clamp(_heroXMin, _heroXMax);
+    final ty = normalizedY.clamp(_heroYMin, _heroYMax);
+    setState(() {
+      // First tap wakes her and stops the dance.
+      _heroSleeping = false;
+      _heroDancing = false;
+      _heroTarget = Offset(tx, ty);
+    });
+    // Let the parent drop its own "dancing" toggle so the prop doesn't
+    // come back next frame and override us.
+    widget.onUserInteract?.call();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +313,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
             return ClipRect(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
-                onTapDown: (d) => _walkTo(d.localPosition.dx / w),
+                onTapDown: (d) => _walkTo(
+                  d.localPosition.dx / w,
+                  d.localPosition.dy / h,
+                ),
                 child: TrainRocking(
                   enabled: widget.running,
                   child: Stack(
@@ -290,18 +377,22 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // 4. Heroine — walks on the wagon floor, behind the
                       //    moving rails strip so she sits INSIDE the wagon.
                       _buildHeroine(w, h),
-                      // 5. Wagon rails strip — the bottom 7% of the wagon
-                      //    image (railway sleepers + ballast) extracted into
-                      //    its own asset and scrolled horizontally as a
-                      //    parallax layer. The wagon image's matching band
-                      //    has been cut to transparent so we never draw the
-                      //    rails twice. Visually 100% consistent with the
-                      //    wagon since the strip IS the wagon's own rails.
+                      // 5. Wagon rails strip — extracted from the wagon's
+                      //    own bottom 14% (rails + ballast pixels only;
+                      //    dark underframe pixels were keyed to alpha=0),
+                      //    so when scrolled in front of the wagon at
+                      //    y=86..100% it covers:
+                      //      • the bottom 7% (wagon fully transparent)
+                      //      • the underframe band where back-rail gaps
+                      //        were keyed out (strip's rails punch
+                      //        through those gaps, underframe metal of
+                      //        the wagon shows through the strip's
+                      //        transparent gaps).
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        height: h * 0.07,
+                        height: h * 0.14,
                         child: IgnorePointer(
                           child: _nightTint(
                             _ParallaxLayer(
@@ -351,19 +442,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildHeroine(double w, double h) {
-    // Wagon's interior floor sits roughly here.
-    final feetY = h * 0.79;
+    // The heroine's anchor Y on the wagon floor. When walking it follows
+    // her target Y so she can move into the depth of the wagon; otherwise
+    // she stays at her current position.
+    final anchorY = _heroPos.dy * h;
+    final anchorX = _heroPos.dx * w;
 
     if (_heroSleeping) {
-      // Lying on the floor. Sprite is wide-horizontal (366x103 ≈ 3.55:1).
-      // Body length matches her standing height; the sprite's bottom edge
-      // sits on the parquet so she really lies on the floor, not above it.
+      // Lying on the floor. Sleep sprite is 366x103 ≈ 3.55:1.
       final bodyLen = h * 0.36;
       final bodyThick = bodyLen / (366 / 103);
       final asset = 'assets/characters/sleep_right_${_sleepFrame + 1}.png';
       return Positioned(
-        left: _heroX * w - bodyLen / 2,
-        top: feetY - bodyThick,
+        left: anchorX - bodyLen / 2,
+        top: anchorY - bodyThick,
         width: bodyLen,
         height: bodyThick,
         child: IgnorePointer(
@@ -372,29 +464,54 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
 
-    // Standing / walking. Walk sprite aspect 163/375, idle aspect 91/372.
+    if (_heroDancing) {
+      // Dance sprite is 264x425 ≈ 0.62 — wider than walk because arms
+      // are up.
+      final heroHeight = h * 0.36;
+      final heroWidth = heroHeight * (264 / 425);
+      final asset = 'assets/characters/dance_${_danceFrame + 1}.png';
+      return Positioned(
+        left: anchorX - heroWidth / 2,
+        top: anchorY - heroHeight,
+        width: heroWidth,
+        height: heroHeight,
+        child: IgnorePointer(
+          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+        ),
+      );
+    }
+
+    // Standing / walking. Walk sheet depends on current direction; idle
+    // sheet is single-direction (right-facing or mirrored to face left).
     final isMoving = _heroTarget != null;
     final heroHeight = h * 0.36;
-    final spriteAspect = isMoving ? (163 / 375) : (91 / 372);
+    final String asset;
+    final double spriteAspect;
+    bool mirror = false;
+    if (isMoving) {
+      final base = _baseDir(_heroDir);
+      spriteAspect = _walkAspect[base] ?? (166 / 381);
+      asset = 'assets/characters/walk_${base}_${_walkFrame + 1}.png';
+      mirror = _isMirrored(_heroDir);
+    } else {
+      spriteAspect = 91 / 372;
+      asset = 'assets/characters/idle_right_${_idleFrame + 1}.png';
+      // Idle has only the right-facing sheet — mirror if she last walked
+      // toward the left half (left / nw / sw).
+      mirror = _isMirrored(_heroDir);
+    }
+
     final heroWidth = heroHeight * spriteAspect;
-    final left = _heroX * w - heroWidth / 2;
-    final top = feetY - heroHeight;
-
-    final frame = isMoving ? _walkFrame : _idleFrame;
-    final prefix = isMoving ? 'walk_right' : 'idle_right';
-    final asset = 'assets/characters/${prefix}_${frame + 1}.png';
-    final isMirrored = _heroFacingRight != _naturallyFacesRight;
-
     return Positioned(
-      left: left,
-      top: top,
+      left: anchorX - heroWidth / 2,
+      top: anchorY - heroHeight,
       width: heroWidth,
       height: heroHeight,
       child: IgnorePointer(
         child: _nightTint(
           Transform(
             alignment: Alignment.center,
-            transform: isMirrored
+            transform: mirror
                 ? (Matrix4.identity()..scale(-1.0, 1.0, 1.0))
                 : Matrix4.identity(),
             child: Image.asset(asset, fit: BoxFit.contain),

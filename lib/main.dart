@@ -41,6 +41,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _cleaned = true;
   bool _running = true;
   bool _night = false;
+  bool _dancing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +54,10 @@ class _WagonScreenState extends State<WagonScreen> {
               cleaned: _cleaned,
               running: _running,
               night: _night,
+              dancing: _dancing,
+              onUserInteract: () {
+                if (_dancing) setState(() => _dancing = false);
+              },
             ),
           ),
           Positioned(
@@ -63,6 +68,13 @@ class _WagonScreenState extends State<WagonScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  FloatingActionButton.small(
+                    heroTag: 'toggle_dance',
+                    tooltip: _dancing ? 'Arrêter de danser' : 'Danser',
+                    onPressed: () => setState(() => _dancing = !_dancing),
+                    child: Icon(_dancing ? Icons.stop : Icons.celebration),
+                  ),
+                  const SizedBox(height: 12),
                   FloatingActionButton.small(
                     heroTag: 'toggle_night',
                     tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
