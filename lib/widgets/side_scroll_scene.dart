@@ -45,10 +45,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Heroine state. Position is normalised to the scene width.
   static const int _heroFrameCount = 49;
-  static const double _heroXMin = 0.08;
-  static const double _heroXMax = 0.92;
-  static const double _heroSpeed = 0.22; // normalised units / second
-  static const int _heroFrameMs = 55;
+  static const double _heroXMin = 0.12;
+  static const double _heroXMax = 0.88;
+  static const double _heroSpeed = 0.18; // normalised units / second
+  static const int _heroFrameMs = 50;
   // The source sprite sheet walks toward the right; mirroring produces
   // the left-facing variant. Flip this if a future sheet faces left.
   static const bool _naturallyFacesRight = true;
@@ -64,9 +64,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
   @override
   void initState() {
     super.initState();
-    _sky = AnimationController(vsync: this, duration: const Duration(seconds: 120))..repeat();
-    _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 45))..repeat();
-    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 7))..repeat();
+    // Cycle durations tuned so motion is perceptible: sky reads as
+    // slow drifting clouds (30s), horizon as a distant moving landscape
+    // (28s), foreground as the close ground rushing by (5s).
+    _sky = AnimationController(vsync: this, duration: const Duration(seconds: 30))..repeat();
+    _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 28))..repeat();
+    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
@@ -159,14 +162,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Sky — barely-perceptible horizontal drift.
+                      // 1. Sky — drifting clouds, visible motion.
                       _ParallaxLayer(
                         controller: _sky,
                         asset: 'assets/background/sky.png',
                         fit: BoxFit.cover,
                       ),
-                      // 2. Horizon — slow scroll. Anchored to upper half.
-                      Positioned.fill(
+                      // 2. Horizon — distant ruins. Sits behind the wagon
+                      //    and is visible through the now-keyed window panes.
+                      //    Anchored vertically so its skyline reads in the
+                      //    wagon's window band (~y=0.30..0.55).
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.18,
+                        height: h * 0.42,
                         child: _ParallaxLayer(
                           controller: _horizon,
                           asset: 'assets/background/horizon_a.png',
@@ -174,23 +184,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           alignment: Alignment.topCenter,
                         ),
                       ),
-                      // 3. Wagon — fixed in the centre.
-                      Positioned.fill(
-                        child: Image.asset(
-                          widget.cleaned
-                              ? 'assets/background/wagon_clean.png'
-                              : 'assets/background/wagon_dirty.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      // 4. Heroine — walks on the wagon floor.
-                      _buildHeroine(w, h),
-                      // 5. Foreground — fastest scroll, anchored to the bottom.
+                      // 3. Foreground — fast scroll. Sits BELOW the wagon
+                      //    floor only, so it never occludes the heroine
+                      //    inside the wagon.
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        height: h * 0.40,
+                        height: h * 0.22,
                         child: IgnorePointer(
                           child: _ParallaxLayer(
                             controller: _foreground,
@@ -200,6 +201,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 4. Wagon — fixed in the centre, with keyed-out
+                      //    window panes letting the horizon parallax show
+                      //    through.
+                      Positioned.fill(
+                        child: Image.asset(
+                          widget.cleaned
+                              ? 'assets/background/wagon_clean.png'
+                              : 'assets/background/wagon_dirty.png',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      // 5. Heroine — walks on the wagon floor, on top of
+                      //    everything so she is never occluded.
+                      _buildHeroine(w, h),
                       // 6. Locomotive smoke — drifts over the top of the wagon.
                       Positioned.fill(
                         child: IgnorePointer(
@@ -224,10 +239,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   Widget _buildHeroine(double w, double h) {
     // Heroine sits on the wagon's interior floor. Tweak these constants if
-    // the wagon asset changes.
-    final heroHeight = h * 0.34;
-    final heroWidth = heroHeight * 0.50;
-    final feetY = h * 0.78; // floor inside the wagon
+    // the wagon asset changes. Sprite native aspect is 163x375 ≈ 0.435.
+    final heroHeight = h * 0.46;
+    final heroWidth = heroHeight * (163 / 375);
+    final feetY = h * 0.86; // wagon's interior floor level
     final left = _heroX * w - heroWidth / 2;
     final top = feetY - heroHeight;
 
