@@ -67,15 +67,38 @@ echo "==> Patch verified in source"
 rm -f "$FLUTTER_INSTALL_DIR/bin/cache/flutter_tools.snapshot" \
       "$FLUTTER_INSTALL_DIR/bin/cache/flutter_tools.stamp"
 
-flutter --version
+# `flutter --version` triggers the first-time Dart SDK download from
+# storage.googleapis.com. Xcode Cloud workers occasionally hit transient DNS
+# failures resolving that host; Flutter's internal retries only span ~15 s,
+# which is too short. Wrap the call with a generous outer retry so a brief
+# DNS hiccup doesn't fail the whole build.
+retry_flutter() {
+  attempt=1
+  max_attempts=4
+  while [ "$attempt" -le "$max_attempts" ]; do
+    if "$@"; then
+      return 0
+    fi
+    if [ "$attempt" -eq "$max_attempts" ]; then
+      echo "ERROR: '$*' failed after $max_attempts attempts" >&2
+      return 1
+    fi
+    backoff=$((30 * attempt))
+    echo "==> '$*' failed (attempt $attempt/$max_attempts), sleeping ${backoff}s before retry" >&2
+    sleep "$backoff"
+    attempt=$((attempt + 1))
+  done
+}
+
+retry_flutter flutter --version
 
 cd "$CI_PRIMARY_REPOSITORY_PATH"
 
 echo "==> flutter precache --ios"
-flutter precache --ios
+retry_flutter flutter precache --ios
 
 echo "==> flutter pub get"
-flutter pub get
+retry_flutter flutter pub get
 
 # Wire plugin integration into the iOS project (Swift Package Manager on
 # recent Flutter scaffolds, CocoaPods on older ones) and generate
