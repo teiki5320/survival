@@ -12,11 +12,11 @@
   "windowArea": { "x": 0.393, "y": 0.316, "width": 0.216, "height": 0.282, "cornerRadius": 0.018 },
   "slots": [
     { "id": "slot_bed",    "x": 0.50, "y": 0.76, "width": 0.50, "height": 0.40 },
-    { "id": "slot_lamp",   "x": 0.34, "y": 0.88, "width": 0.05, "height": 0.10 },
+    { "id": "slot_lamp",   "x": 0.612, "y": 0.748, "width": 0.116, "height": 0.188 },
     { "id": "slot_plant",  "x": 0.92, "y": 0.30, "width": 0.10, "height": 0.35 },
-    { "id": "slot_plaid",  "x": 0.50, "y": 0.68, "width": 0.40, "height": 0.14 },
-    { "id": "slot_stove",  "x": 0.339, "y": 0.795, "width": 0.10, "height": 0.18 },
-    { "id": "slot_garden", "x": 0.87,  "y": 0.55,  "width": 0.20, "height": 0.50 },
+    { "id": "slot_plaid",  "x": 0.544, "y": 0.766, "width": 0.081, "height": 0.075 },
+    { "id": "slot_stove",  "x": 0.340, "y": 0.716, "width": 0.206, "height": 0.379 },
+    { "id": "slot_garden", "x": 0.783, "y": 0.688, "width": 0.124, "height": 0.524 },
 
     { "id": "char_standing_idle",    "x": 0.50, "y": 0.62, "width": 0.18, "height": 0.62 },
     { "id": "char_standing_turned",  "x": 0.32, "y": 0.62, "width": 0.18, "height": 0.62 },
