@@ -137,8 +137,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/sky_night.png',
       'assets/background/horizon_a.png',
       'assets/background/horizon_night.png',
-      'assets/background/wagon_clean.png',
-      'assets/background/wagon_dirty.png',
+      'assets/background/wagon.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -354,15 +353,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 3. Wagon — fixed in the centre, with keyed-out
-                      //    window panes letting the horizon parallax show
-                      //    through. Tinted cool-blue at night.
+                      // 3. Wagon — fixed in the centre. Single image for
+                      //    now; will branch on `cleaned` again once the
+                      //    clean variant lands.
                       Positioned.fill(
                         child: _nightTint(
                           Image.asset(
-                            widget.cleaned
-                                ? 'assets/background/wagon_clean.png'
-                                : 'assets/background/wagon_dirty.png',
+                            'assets/background/wagon.png',
                             fit: BoxFit.contain,
                           ),
                         ),
