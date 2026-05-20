@@ -38,13 +38,15 @@ class WagonScreen extends StatefulWidget {
 }
 
 class _WagonScreenState extends State<WagonScreen> {
-  bool _cleaned = true;
+  // Wagon restoration progression: 0 dirty → 1 swept → 2 windowed → 3 clean.
+  // Cycles on tap of the "nettoyer" FAB; will be driven by gameplay later.
+  int _wagonStage = 0;
   bool _running = true;
   bool _night = false;
   bool _dancing = false;
-  // Bumped each time the user taps "se coucher". The scene observes
-  // the change and plays the lie-down sequence once per increment.
   int _lieDownToken = 0;
+
+  static const _stageLabels = ['Sale', 'Sol nettoyé', 'Vitres remises', 'Tout propre'];
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +56,7 @@ class _WagonScreenState extends State<WagonScreen> {
         children: [
           Positioned.fill(
             child: SideScrollScene(
-              cleaned: _cleaned,
+              wagonStage: _wagonStage,
               running: _running,
               night: _night,
               dancing: _dancing,
@@ -94,10 +96,10 @@ class _WagonScreenState extends State<WagonScreen> {
                   ),
                   const SizedBox(height: 12),
                   FloatingActionButton.small(
-                    heroTag: 'toggle_clean',
-                    tooltip: _cleaned ? 'Salir le wagon' : 'Nettoyer le wagon',
-                    onPressed: () => setState(() => _cleaned = !_cleaned),
-                    child: Icon(_cleaned ? Icons.cleaning_services : Icons.water_drop),
+                    heroTag: 'cycle_wagon_stage',
+                    tooltip: 'Wagon: ${_stageLabels[_wagonStage]}',
+                    onPressed: () => setState(() => _wagonStage = (_wagonStage + 1) % 4),
+                    child: const Icon(Icons.cleaning_services),
                   ),
                   const SizedBox(height: 12),
                   FloatingActionButton.small(

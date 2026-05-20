@@ -20,7 +20,7 @@ import 'train_rocking.dart';
 class SideScrollScene extends StatefulWidget {
   const SideScrollScene({
     super.key,
-    this.cleaned = false,
+    this.wagonStage = 0,
     this.running = true,
     this.night = false,
     this.dancing = false,
@@ -28,8 +28,12 @@ class SideScrollScene extends StatefulWidget {
     this.onUserInteract,
   });
 
-  /// `true` shows the cleaned wagon; `false` the dirty initial-discovery state.
-  final bool cleaned;
+  /// Wagon visual progression, 0..3:
+  ///   0 — dirty (initial discovery: trash, broken windows, scratches)
+  ///   1 — swept (floor cleaned; walls + windows still wrecked)
+  ///   2 — windowed (floor cleaned + windows put back; walls still rusty)
+  ///   3 — clean (fully restored)
+  final int wagonStage;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -137,7 +141,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/sky_night.png',
       'assets/background/horizon_a.png',
       'assets/background/horizon_night.png',
-      'assets/background/wagon.png',
+      'assets/background/wagon_dirty.png',
+      'assets/background/wagon_swept.png',
+      'assets/background/wagon_windowed.png',
+      'assets/background/wagon_clean.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -353,13 +360,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 3. Wagon — fixed in the centre. Single image for
-                      //    now; will branch on `cleaned` again once the
-                      //    clean variant lands.
+                      // 3. Wagon — fixed in the centre, picked from the
+                      //    progression stage (dirty → swept → windowed →
+                      //    clean). Night ColorFilter tints all four the
+                      //    same way.
                       Positioned.fill(
                         child: _nightTint(
                           Image.asset(
-                            'assets/background/wagon.png',
+                            _wagonAssetFor(widget.wagonStage),
                             fit: BoxFit.contain,
                           ),
                         ),
@@ -495,6 +503,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ),
       ),
     );
+  }
+
+  String _wagonAssetFor(int stage) {
+    const assets = [
+      'assets/background/wagon_dirty.png',
+      'assets/background/wagon_swept.png',
+      'assets/background/wagon_windowed.png',
+      'assets/background/wagon_clean.png',
+    ];
+    final i = stage.clamp(0, assets.length - 1);
+    return assets[i];
   }
 
   /// Multiplies a child by a cool blue-grey when [widget.night] is on, so
