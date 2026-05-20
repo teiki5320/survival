@@ -184,20 +184,60 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           alignment: Alignment.topCenter,
                         ),
                       ),
+                      // 2b. Birds — occasional silhouettes drifting through
+                      //    the upper sky band. Sits in front of the horizon
+                      //    so they read as nearer than the ruins.
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: AnimatedBuilder(
+                            animation: _sky,
+                            builder: (_, __) => CustomPaint(
+                              painter: _BirdsPainter(_sky.value),
+                            ),
+                          ),
+                        ),
+                      ),
                       // 3. Foreground — fast scroll. Sits BELOW the wagon
                       //    floor only, so it never occludes the heroine
-                      //    inside the wagon.
+                      //    inside the wagon. A dark band painted just above
+                      //    its top edge sells the wagon's ground shadow,
+                      //    scrolling at the same speed.
                       Positioned(
                         left: 0,
                         right: 0,
                         bottom: 0,
                         height: h * 0.22,
                         child: IgnorePointer(
-                          child: _ParallaxLayer(
-                            controller: _foreground,
-                            asset: 'assets/background/foreground.png',
-                            fit: BoxFit.fitWidth,
-                            alignment: Alignment.bottomCenter,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              _ParallaxLayer(
+                                controller: _foreground,
+                                asset: 'assets/background/foreground.png',
+                                fit: BoxFit.fitWidth,
+                                alignment: Alignment.bottomCenter,
+                              ),
+                              // Wagon ground shadow — dark elongated band that
+                              //   sits where the wagon meets the ground.
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                top: 0,
+                                height: h * 0.05,
+                                child: const DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        Color(0x55000000),
+                                        Color(0x00000000),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -226,6 +266,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 7. Speed lines — subtle motion blur streaks at the
+                      //    upper and lower edges, visible only when running.
+                      //    Driven off the foreground controller so they
+                      //    pulse at the same tempo as the close parallax.
+                      if (widget.running)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: AnimatedBuilder(
+                              animation: _foreground,
+                              builder: (_, __) => CustomPaint(
+                                painter: _SpeedLinesPainter(_foreground.value),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -320,13 +375,15 @@ class _ParallaxLayer extends StatelessWidget {
 }
 
 /// Soft dark smoke trail rising from the locomotive (off-frame at the left)
-/// and drifting back across the top of the wagon.
+/// and drifting back across the top of the wagon. Each puff is rendered as
+/// three concentric circles (dark core → faint halo) so it reads as smoke
+/// rather than a hard disc.
 class _SmokePainter extends CustomPainter {
   _SmokePainter(this.t, {required this.running});
   final double t;
   final bool running;
 
-  static const int _count = 8;
+  static const int _count = 10;
   static final math.Random _rng = math.Random(11);
   static final List<double> _phase = List.generate(_count, (_) => _rng.nextDouble());
   static final List<double> _vertJitter = List.generate(_count, (_) => _rng.nextDouble() * 2 - 1);
@@ -334,24 +391,117 @@ class _SmokePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint();
-    final originX = -size.width * 0.05;
-    final originY = size.height * 0.20;
+    // Smokestack sits roughly at x=-2% (just off-frame) and y=12% (top of
+    // the locomotive). Smoke drifts up-right across the wagon roof.
+    final originX = -size.width * 0.02;
+    final originY = size.height * 0.12;
+
     for (int i = 0; i < _count; i++) {
       final life = (t + _phase[i]) % 1.0;
-      final x = originX + life * size.width * 0.85;
-      final y = originY - life * size.height * 0.10 + _vertJitter[i] * 6;
-      final alpha = life < 0.10
-          ? life / 0.10
-          : (life > 0.60 ? (1.0 - (life - 0.60) / 0.40) : 1.0);
+      final x = originX + life * size.width * 0.95;
+      final y = originY - life * size.height * 0.08 + _vertJitter[i] * 8;
+      // Fade in over the first 8%, fade out from 55% onward.
+      final alpha = life < 0.08
+          ? life / 0.08
+          : (life > 0.55 ? (1.0 - (life - 0.55) / 0.45) : 1.0);
       final clamped = alpha.clamp(0.0, 1.0);
-      final radius = (12 + life * 28) * _sizeJitter[i];
-      paint.color = const Color(0xFF3A2E26).withOpacity(0.45 * clamped);
-      canvas.drawCircle(Offset(x, y), radius, paint);
+      final baseRadius = (10 + life * 36) * _sizeJitter[i];
+      // Three concentric layers: dark core, mid halo, faint outer.
+      const core = Color(0xFF2A211B);
+      _drawPuff(canvas, Offset(x, y), baseRadius * 0.55, core, 0.45 * clamped);
+      _drawPuff(canvas, Offset(x, y), baseRadius * 0.85, core, 0.22 * clamped);
+      _drawPuff(canvas, Offset(x, y), baseRadius * 1.20, core, 0.10 * clamped);
     }
+  }
+
+  void _drawPuff(Canvas canvas, Offset c, double r, Color color, double alpha) {
+    final paint = Paint()..color = color.withOpacity(alpha);
+    canvas.drawCircle(c, r, paint);
   }
 
   @override
   bool shouldRepaint(covariant _SmokePainter old) =>
       old.t != t || old.running != running;
+}
+
+/// Distant birds drifting across the sky band. Three flocks spaced along
+/// the cycle so there is almost always one visible. Each flock is a small
+/// V of three chevrons.
+class _BirdsPainter extends CustomPainter {
+  _BirdsPainter(this.t);
+  final double t;
+
+  static const int _flocks = 3;
+  static final math.Random _rng = math.Random(23);
+  static final List<double> _phase = List.generate(_flocks, (_) => _rng.nextDouble());
+  static final List<double> _yFrac = List.generate(_flocks, (_) => 0.08 + _rng.nextDouble() * 0.18);
+  static final List<double> _scale = List.generate(_flocks, (_) => 0.7 + _rng.nextDouble() * 0.6);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2
+      ..color = const Color(0xFF20262C).withOpacity(0.55);
+    for (int i = 0; i < _flocks; i++) {
+      final life = (t + _phase[i]) % 1.0;
+      // Birds drift left → right faster than the sky.
+      final x = -size.width * 0.10 + life * size.width * 1.20;
+      final y = size.height * _yFrac[i];
+      final s = 6.0 * _scale[i];
+      for (int b = 0; b < 3; b++) {
+        final bx = x + b * (s * 2.8) + math.sin(life * math.pi * 2 + b) * 1.5;
+        final by = y + math.sin(life * math.pi * 4 + b * 0.7) * 1.0;
+        final path = Path()
+          ..moveTo(bx - s, by + s * 0.3)
+          ..lineTo(bx, by)
+          ..lineTo(bx + s, by + s * 0.3);
+        canvas.drawPath(path, paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BirdsPainter old) => old.t != t;
+}
+
+/// Thin horizontal motion-blur streaks along the top and bottom edges to
+/// reinforce the sense of speed. Streaks fade in/out and shift on every
+/// pass so they don't read as a repeating pattern.
+class _SpeedLinesPainter extends CustomPainter {
+  _SpeedLinesPainter(this.t);
+  final double t;
+
+  static const int _count = 9;
+  static final math.Random _rng = math.Random(91);
+  static final List<double> _yFrac = List.generate(_count, (_) {
+    // Streaks cluster at upper and lower edges only.
+    final r = _rng.nextDouble();
+    return r < 0.5 ? r * 0.18 : 0.82 + r * 0.16;
+  });
+  static final List<double> _phase = List.generate(_count, (_) => _rng.nextDouble());
+  static final List<double> _len = List.generate(_count, (_) => 0.10 + _rng.nextDouble() * 0.18);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..color = Colors.white.withOpacity(0.18);
+    for (int i = 0; i < _count; i++) {
+      final life = (t + _phase[i]) % 1.0;
+      // Streaks travel right → left across the frame.
+      final endX = size.width * (1.0 - life * 1.4);
+      final startX = endX + size.width * _len[i];
+      final y = size.height * _yFrac[i];
+      final alpha = life < 0.15
+          ? life / 0.15
+          : (life > 0.70 ? (1.0 - (life - 0.70) / 0.30) : 1.0);
+      paint.color = Colors.white.withOpacity(0.18 * alpha.clamp(0.0, 1.0));
+      canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpeedLinesPainter old) => old.t != t;
 }
