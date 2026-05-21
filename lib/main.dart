@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'services/audio_service.dart';
 import 'widgets/locomotive_scene.dart';
+import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
 
 Future<void> main() async {
@@ -49,6 +50,7 @@ class _WagonScreenState extends State<WagonScreen> {
   int _lieDownToken = 0;
 
   bool _inLocomotive = false;
+  bool _onMap = false;
   bool _bedAdjust = false;
   // Mirror of the heroine's X position, updated by the scene. Used to
   // enable the door action button only when she's at the left edge.
@@ -109,15 +111,20 @@ class _WagonScreenState extends State<WagonScreen> {
       backgroundColor: Colors.black,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 600),
-        child: _inLocomotive
-            ? LocomotiveScene(
-                key: const ValueKey('locomotive'),
-                night: _night,
-                logsThrown: _logsThrown,
-                onThrowLog: () => setState(() => _logsThrown++),
-                onReturn: _exitLocomotive,
+        child: _onMap
+            ? MapScreen(
+                key: const ValueKey('map'),
+                onClose: () => setState(() => _onMap = false),
               )
-            : _buildWagon(key: const ValueKey('wagon')),
+            : _inLocomotive
+                ? LocomotiveScene(
+                    key: const ValueKey('locomotive'),
+                    night: _night,
+                    logsThrown: _logsThrown,
+                    onThrowLog: () => setState(() => _logsThrown++),
+                    onReturn: _exitLocomotive,
+                  )
+                : _buildWagon(key: const ValueKey('wagon')),
       ),
     );
   }
@@ -153,6 +160,15 @@ class _WagonScreenState extends State<WagonScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                FloatingActionButton.small(
+                  heroTag: 'open_map',
+                  tooltip: 'Ouvrir la carte',
+                  backgroundColor: const Color(0xFF8B6F4E),
+                  foregroundColor: Colors.white,
+                  onPressed: () => setState(() => _onMap = true),
+                  child: const Icon(Icons.map),
+                ),
+                const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'bed_adjust',
                   tooltip: _bedAdjust ? 'Valider la position du lit' : 'Régler le lit',
