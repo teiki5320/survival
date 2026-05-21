@@ -28,6 +28,7 @@ class SideScrollScene extends StatefulWidget {
     this.lieDownToken = 0,
     this.onUserInteract,
     this.onHeroXChanged,
+    this.bedAdjust = false,
   });
 
   /// Wagon visual progression, 0..3:
@@ -68,6 +69,11 @@ class SideScrollScene extends StatefulWidget {
   /// can compare against it to know when she's at the door.
   static const double heroXMin = 0.20;
 
+  /// When `true` the bed becomes draggable + resizable, and a HUD shows
+  /// its current normalised position + width so the values can be copied
+  /// back into the defaults below.
+  final bool bedAdjust;
+
   @override
   State<SideScrollScene> createState() => _SideScrollSceneState();
 }
@@ -92,6 +98,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static const int _sleepFrameMs = 110;
   static const int _danceFrameMs = 55;
   static const int _lieDownFrameMs = 60;
+
+  // Bed object placement (normalised to scene size, mutable so the
+  // adjustment mode can drag + resize it live). Defaults put it on
+  // the parquet floor at the left side of the wagon — final values
+  // will be baked back here once dialled in.
+  double _bedLeft = 0.05;
+  double _bedTop = 0.55;
+  double _bedWidth = 0.28;
 
   // Horizon parallax cycles through these in sequence with a slow
   // cross-fade so the train passes through varied scenery instead of
@@ -175,7 +189,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/horizon_b.png',
       'assets/background/horizon_c.png',
       'assets/background/horizon_night.png',
-      'assets/background/foreground_band.png',
       'assets/background/wagon_dirty.png',
       'assets/background/wagon_swept.png',
       'assets/background/wagon_windowed.png',
@@ -373,13 +386,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //    Cycles through 3 variants (urban / wooded / industrial)
                       //    every ~45s with a 2s cross-fade so the train passes
                       //    through varied scenery instead of looping one image.
-                      //    Anchored so its skyline reads in the wagon's window
-                      //    band (~y=0.30..0.55).
+                      //    Stretched down past the wagon body so the bottom
+                      //    of the source (meadow + ground) fills any gaps
+                      //    around the coupling chains under the wagon.
                       Positioned(
                         left: 0,
                         right: 0,
                         top: h * 0.18,
-                        height: h * 0.42,
+                        bottom: 0,
                         child: AnimatedSwitcher(
                           duration: _horizonCrossFade,
                           child: _ParallaxLayer(
@@ -429,27 +443,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 3b. Foreground vegetation band — close-camera grass
-                      //     + wildflowers + debris scrolling at the same fast
-                      //     parallax tempo as the rails. Anchored bottom so
-                      //     the soft alpha fade at the top of the source
-                      //     blends into the rails band above.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        height: h * 0.13,
-                        child: IgnorePointer(
-                          child: _nightTint(
-                            _ParallaxLayer(
-                              controller: _foreground,
-                              asset: 'assets/background/foreground_band.png',
-                              fit: BoxFit.cover,
-                              alignment: Alignment.bottomCenter,
-                            ),
-                          ),
-                        ),
-                      ),
                       // 4. Wagon — fixed in the centre, picked from the
                       //    progression stage (dirty → swept → windowed →
                       //    clean). Night ColorFilter tints all four the
@@ -462,23 +455,110 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 4b. Bed — placed at the top-left of the wagon
-                      //     interior. Sized so the heroine's lying-down
-                      //     sprite (sleep_right) reads as resting on it.
-                      //     The sleep sprite is 366x103 in a 1376x768
-                      //     source; rendered at 28 % of screen width,
-                      //     the bed's mattress matches that footprint.
+                      // 4b. Bed — placed at floor level on the left of
+                      //     the wagon interior. Position + size are
+                      //     normalised state so the in-app adjustment
+                      //     mode can drag + resize them live; final
+                      //     values get baked back into the defaults.
                       Positioned(
-                        left: w * 0.04,
-                        top: h * 0.32,
-                        width: w * 0.28,
-                        child: _nightTint(
-                          Image.asset(
-                            'assets/objects/bed.png',
-                            fit: BoxFit.contain,
+                        left: w * _bedLeft,
+                        top: h * _bedTop,
+                        width: w * _bedWidth,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onPanUpdate: widget.bedAdjust
+                              ? (d) => setState(() {
+                                    _bedLeft = (_bedLeft + d.delta.dx / w)
+                                        .clamp(0.0, 1.0 - _bedWidth);
+                                    _bedTop = (_bedTop + d.delta.dy / h)
+                                        .clamp(0.0, 0.95);
+                                  })
+                              : null,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              _nightTint(
+                                Image.asset(
+                                  'assets/objects/bed.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              if (widget.bedAdjust) ...[
+                                // Dashed outline around the bed's
+                                // hitbox so the drag target is visible.
+                                Positioned.fill(
+                                  child: IgnorePointer(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: const Color(0xFFFFB347),
+                                          width: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Bottom-right resize handle: drag to
+                                // grow / shrink the bed by changing
+                                // its normalised width. Aspect ratio
+                                // stays locked (Image.asset contains).
+                                Positioned(
+                                  right: -16,
+                                  bottom: -16,
+                                  child: GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onPanUpdate: (d) => setState(() {
+                                      _bedWidth = (_bedWidth + d.delta.dx / w)
+                                          .clamp(0.05, 0.80);
+                                    }),
+                                    child: Container(
+                                      width: 32,
+                                      height: 32,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFFB85522),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.open_in_full,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
+                      // Bed-adjust HUD: live readout of the values so
+                      // they can be copied into the defaults above.
+                      if (widget.bedAdjust)
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          child: SafeArea(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'left: ${_bedLeft.toStringAsFixed(3)}\n'
+                                'top:  ${_bedTop.toStringAsFixed(3)}\n'
+                                'width:${_bedWidth.toStringAsFixed(3)}',
+                                style: const TextStyle(
+                                  color: Color(0xFFFFD9A0),
+                                  fontSize: 14,
+                                  fontFamily: 'Courier',
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
                       // 5. Locomotive smoke — drifts over the top of the wagon.

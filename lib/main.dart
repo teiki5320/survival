@@ -48,6 +48,7 @@ class _WagonScreenState extends State<WagonScreen> {
   int _lieDownToken = 0;
 
   bool _inLocomotive = false;
+  bool _bedAdjust = false;
   // Mirror of the heroine's X position, updated by the scene. Used to
   // enable the door action button only when she's at the left edge.
   double _heroX = 0.5;
@@ -82,6 +83,7 @@ class _WagonScreenState extends State<WagonScreen> {
             night: _night,
             dancing: _dancing,
             lieDownToken: _lieDownToken,
+            bedAdjust: _bedAdjust,
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },
@@ -100,6 +102,15 @@ class _WagonScreenState extends State<WagonScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                FloatingActionButton.small(
+                  heroTag: 'bed_adjust',
+                  tooltip: _bedAdjust ? 'Valider la position du lit' : 'Régler le lit',
+                  backgroundColor: _bedAdjust ? const Color(0xFFB85522) : null,
+                  foregroundColor: _bedAdjust ? Colors.white : null,
+                  onPressed: () => setState(() => _bedAdjust = !_bedAdjust),
+                  child: Icon(_bedAdjust ? Icons.check : Icons.tune),
+                ),
+                const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'door_action',
                   tooltip: _atLeftDoor
