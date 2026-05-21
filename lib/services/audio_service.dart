@@ -95,12 +95,21 @@ class AudioService {
 
   /// One-shot SFX with a transient player. Volume and pitch optional.
   Future<void> playSfx(String name, {double volume = 0.8}) async {
-    await _safe(() async {
-      final p = AudioPlayer();
+    if (!_enabled) return;
+    final p = AudioPlayer();
+    // Wire the auto-dispose listener FIRST so a play() throw still
+    // hits a finally that disposes the player — no leak.
+    p.onPlayerComplete.first.then((_) => p.dispose());
+    try {
       await p.setVolume(volume);
       await p.play(AssetSource('audio/sfx_$name.mp3'));
-      p.onPlayerComplete.first.then((_) => p.dispose());
-    });
+    } catch (e) {
+      await p.dispose();
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('[audio] sfx $name failed: $e');
+      }
+    }
   }
 
   Future<void> stopAll() async {

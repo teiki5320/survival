@@ -52,6 +52,10 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inLocomotive = false;
   bool _onMap = false;
   bool _bedAdjust = false;
+  // True while the wagon scene is playing the door_push animation,
+  // before the cross-fade to the locomotive. Disables the door FAB so
+  // the player can't spam-tap and restart the animation halfway.
+  bool _doorPushing = false;
   // Bumped on door-action tap; the wagon scene plays door_push and
   // calls back when done, at which point we cross-fade to locomotive.
   int _doorPushToken = 0;
@@ -83,15 +87,20 @@ class _WagonScreenState extends State<WagonScreen> {
   }
 
   void _enterLocomotive() {
-    // Trigger door_push in the wagon scene first — the actual
-    // transition happens in _onDoorPushDone when the anim completes.
-    setState(() => _doorPushToken++);
+    if (_doorPushing) return;
+    setState(() {
+      _doorPushing = true;
+      _doorPushToken++;
+    });
     _audio.playSfx('door_open');
   }
 
   void _onDoorPushDone() {
     if (!mounted) return;
-    setState(() => _inLocomotive = true);
+    setState(() {
+      _doorPushing = false;
+      _inLocomotive = true;
+    });
     _audio.startFire();
   }
 
@@ -192,14 +201,18 @@ class _WagonScreenState extends State<WagonScreen> {
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'door_action',
-                  tooltip: _atLeftDoor
-                      ? 'Entrer dans la locomotive'
-                      : 'Va à la porte (bord gauche)',
-                  backgroundColor: _atLeftDoor
+                  tooltip: _doorPushing
+                      ? 'Elle ouvre la porte…'
+                      : _atLeftDoor
+                          ? 'Entrer dans la locomotive'
+                          : 'Va à la porte (bord gauche)',
+                  backgroundColor: _atLeftDoor && !_doorPushing
                       ? const Color(0xFFB85522)
                       : Colors.grey.shade800,
-                  foregroundColor: _atLeftDoor ? Colors.white : Colors.grey.shade500,
-                  onPressed: _atLeftDoor ? _enterLocomotive : null,
+                  foregroundColor:
+                      _atLeftDoor && !_doorPushing ? Colors.white : Colors.grey.shade500,
+                  onPressed:
+                      _atLeftDoor && !_doorPushing ? _enterLocomotive : null,
                   child: const Icon(Icons.meeting_room),
                 ),
                 const SizedBox(height: 12),

@@ -70,8 +70,12 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   int _actionFrame = 0;
   int _actionAccumMs = 0;
   static const int _actionFrameMs = 55;
+
+  // Layout anchors (normalised to scene size). _fireboxX is also the
+  // centre of the warm-hands proximity zone — used by both _fireProximity
+  // and the scripted walk target so the two stay in sync.
   static const double _woodpileX = 0.70;
-  static const double _fireboxX = 0.32;
+  static const double _fireboxX = 0.30;
 
   // Brief shake offset applied to the whole scene right after a log
   // thuds into the firebox. Decays to zero over ~400 ms.
@@ -209,12 +213,11 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     setState(() => _heroTarget = normalizedX.clamp(_heroXMin, _heroXMax));
   }
 
-  /// 0..1 — how close the heroine is to the firebox (x=0.21). Drives
-  /// the warm halo so it brightens as she steps up to the fire.
+  /// 0..1 — how close the heroine is to the firebox. Drives the warm
+  /// halo so it brightens as she steps up to the fire.
   double _fireProximity() {
-    const fireboxX = 0.24;
     const range = 0.18;
-    final d = (_heroX - fireboxX).abs();
+    final d = (_heroX - _fireboxX).abs();
     if (d >= range) return 0.0;
     return 1.0 - d / range;
   }

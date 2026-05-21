@@ -142,7 +142,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // She has only two facing options: the walk_right sheet, or its
   // horizontal mirror for going left.
   bool _heroFacingRight = true;
-  bool _heroSleeping = true;
+  bool _heroSleeping = false;
   bool _heroDancing = false;
   // Lie-down transition: plays pickup frames in reverse (upright → bent
   // over), then snaps into the sleep loop on the floor.
@@ -1173,9 +1173,9 @@ class _SmokePainter extends CustomPainter {
         final rect = Rect.fromCircle(center: Offset(cx, cy), radius: r);
         final shader = RadialGradient(
           colors: [
-            puffColor.withOpacity(0.55 * clamped),
-            puffColor.withOpacity(0.18 * clamped),
-            puffColor.withOpacity(0.0),
+            puffColor.withValues(alpha: 0.55 * clamped),
+            puffColor.withValues(alpha: 0.18 * clamped),
+            puffColor.withValues(alpha: 0.0),
           ],
           stops: const [0.0, 0.55, 1.0],
         ).createShader(rect);
@@ -1208,7 +1208,7 @@ class _BirdsPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.2
-      ..color = const Color(0xFF20262C).withOpacity(0.55);
+      ..color = const Color(0xFF20262C).withValues(alpha: 0.55);
     for (int i = 0; i < _flocks; i++) {
       final life = (t + _phase[i]) % 1.0;
       // Birds drift left → right faster than the sky.
@@ -1257,7 +1257,7 @@ class _SpeedLinesPainter extends CustomPainter {
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0
-      ..color = Colors.white.withOpacity(0.18);
+      ..color = Colors.white.withValues(alpha: 0.18);
     for (int i = 0; i < _count; i++) {
       final life = (t + _phase[i]) % 1.0;
       // Streaks travel left → right across the frame (world rushes past
@@ -1269,8 +1269,8 @@ class _SpeedLinesPainter extends CustomPainter {
       final alpha = life < 0.15
           ? life / 0.15
           : (life > 0.70 ? (1.0 - (life - 0.70) / 0.30) : 1.0);
-      paint.color = Colors.white.withOpacity(
-        (0.18 * alpha.clamp(0.0, 1.0) * intensity).clamp(0.0, 0.6),
+      paint.color = Colors.white.withValues(
+        alpha: (0.18 * alpha.clamp(0.0, 1.0) * intensity).clamp(0.0, 0.6),
       );
       canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
     }

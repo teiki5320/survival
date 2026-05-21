@@ -79,7 +79,7 @@ class GameState extends ChangeNotifier {
   // --- Locations ---
   // Which world locations the player has unlocked. Maps to IDs from
   // [data/world.dart]. The first one is open by default.
-  Set<String> _unlocked = {'station_abandonnee'};
+  final Set<String> _unlocked = {'station_abandonnee'};
   Set<String> get unlockedLocations => Set.unmodifiable(_unlocked);
 
   void unlockLocation(String id) {
