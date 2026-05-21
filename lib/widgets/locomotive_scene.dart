@@ -263,8 +263,14 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         frame = _walkFrame;
         break;
       case _LocoAction.idle:
-        prefix = isMoving ? 'walk_right' : 'idle_right';
-        frame = isMoving ? _walkFrame : _idleFrame;
+        if (!isMoving && _fireProximity() > 0.5) {
+          // Standing close to the firebox → warm-hands loop.
+          prefix = 'warm_hands';
+          frame = _idleFrame;
+        } else {
+          prefix = isMoving ? 'walk_right' : 'idle_right';
+          frame = isMoving ? _walkFrame : _idleFrame;
+        }
         break;
     }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
@@ -347,6 +353,16 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           x: 0.21,
                           y: 0.68,
                           radius: 0.55,
+                        ),
+                      ),
+                      // Live flames flickering inside the firebox.
+                      Positioned.fill(
+                        child: FireboxFlames(
+                          animation: _sky,
+                          x: 0.21,
+                          y: 0.80,
+                          width: 0.08,
+                          height: 0.10,
                         ),
                       ),
                       _buildHeroine(w, h),

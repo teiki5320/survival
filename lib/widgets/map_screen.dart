@@ -67,7 +67,7 @@ class _MapScreenState extends State<MapScreen> {
               ),
             ),
             // Train icon — fixed home base in the middle-left.
-            const Positioned.fill(
+            Positioned.fill(
               child: IgnorePointer(
                 child: CustomPaint(painter: _TrainPinPainter()),
               ),

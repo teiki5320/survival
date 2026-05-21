@@ -147,6 +147,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   Timer? _thoughtTimer;
   Timer? _thoughtClearTimer;
   int _idleFrame = 0;
+  // Random idle break: after ~15 s standing still the heroine plays a
+  // yawn or stretch sheet once, then returns to idle. Breaks the
+  // monotony without needing any input.
+  int _idleStillMs = 0;
+  String? _idleBreak; // 'yawn' or 'stretch' while playing, null otherwise
+  int _idleBreakFrame = 0;
+  int _idleBreakAccumMs = 0;
+  static const int _idleBreakFrameMs = 65;
+  static const int _idleBreakAfterMs = 15000;
   int _sleepFrame = 0;
   int _danceFrame = 0;
   Duration _lastTick = Duration.zero;
@@ -341,15 +350,50 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     final target = _heroTarget;
     if (target == null) {
+      // Idle break currently playing — advance its frames, snap back
+      // to idle when done.
+      if (_idleBreak != null) {
+        setState(() {
+          _idleBreakAccumMs += dtMs;
+          while (_idleBreakAccumMs >= _idleBreakFrameMs) {
+            _idleBreakAccumMs -= _idleBreakFrameMs;
+            _idleBreakFrame++;
+            if (_idleBreakFrame >= _heroFrameCount) {
+              _idleBreak = null;
+              _idleBreakFrame = 0;
+              _idleStillMs = 0;
+              return;
+            }
+          }
+        });
+        return;
+      }
       setState(() {
         _idleAccumMs += dtMs;
         while (_idleAccumMs >= _idleFrameMs) {
           _idleAccumMs -= _idleFrameMs;
           _idleFrame = (_idleFrame + 1) % _heroFrameCount;
         }
+        _idleStillMs += dtMs;
+        // Pick an idle break when she's been still long enough. Look
+        // at the window if she's near one, otherwise yawn (with a
+        // probability so it doesn't fire like clockwork).
+        if (_idleStillMs >= _idleBreakAfterMs) {
+          _idleStillMs = 0;
+          final nearWindow = _nearWindow();
+          if (nearWindow) {
+            _idleBreak = 'look_window';
+          } else if (math.Random().nextDouble() < 0.6) {
+            _idleBreak = 'yawn';
+          }
+          _idleBreakFrame = 0;
+          _idleBreakAccumMs = 0;
+        }
       });
       return;
     }
+    // Walking — reset the still timer so we don't yawn mid-step.
+    _idleStillMs = 0;
 
     final delta = target - _heroX;
     final step = _heroSpeed * dt;
@@ -719,6 +763,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
+  /// True if the heroine is standing close to one of the wagon's
+  /// three back-wall windows — triggers the look_window idle break.
+  bool _nearWindow() {
+    const windowsX = [0.40, 0.55, 0.70];
+    for (final wx in windowsX) {
+      if ((_heroX - wx).abs() < 0.04) return true;
+    }
+    return false;
+  }
+
   /// 0..1, how close the heroine is to either door — feeds the warm
   /// halo so she gets bathed in firebox / lamp glow when near the
   /// edges.
@@ -802,8 +856,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final spriteAspect = isMoving ? (166 / 381) : (91 / 372);
     final heroWidth = heroHeight * spriteAspect;
 
-    final frame = isMoving ? _walkFrame : _idleFrame;
-    final prefix = isMoving ? 'walk_right' : 'idle_right';
+    int frame;
+    String prefix;
+    if (_idleBreak != null) {
+      prefix = _idleBreak!;
+      frame = _idleBreakFrame;
+    } else if (isMoving) {
+      prefix = 'walk_right';
+      frame = _walkFrame;
+    } else {
+      prefix = 'idle_right';
+      frame = _idleFrame;
+    }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
     return Positioned(

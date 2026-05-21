@@ -717,6 +717,119 @@ class ThoughtBubble extends StatelessWidget {
   }
 }
 
+/// Animated firebox flames — overlapping triangular tongues that rise,
+/// flicker, and shrink. Anchored on the cab's firebox position; the
+/// caller draws this OVER the painted-static fire in the locomotive
+/// sprite to make it look alive.
+class FireboxFlames extends StatelessWidget {
+  const FireboxFlames({
+    super.key,
+    required this.animation,
+    required this.x,
+    required this.y,
+    this.width = 0.10,
+    this.height = 0.07,
+  });
+
+  final Animation<double> animation;
+
+  /// Normalised position of the firebox centre (top-edge inside the
+  /// open door).
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _FlamePainter(
+            t: animation.value,
+            x: x,
+            y: y,
+            w: width,
+            h: height,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlamePainter extends CustomPainter {
+  _FlamePainter({
+    required this.t,
+    required this.x,
+    required this.y,
+    required this.w,
+    required this.h,
+  });
+  final double t;
+  final double x;
+  final double y;
+  final double w;
+  final double h;
+
+  static final _rng = math.Random(47);
+  static final List<double> _phase = List.generate(7, (_) => _rng.nextDouble());
+  static final List<double> _speed = List.generate(7, (_) => 0.7 + _rng.nextDouble() * 0.6);
+  static final List<double> _xOff = List.generate(7, (_) => -0.4 + _rng.nextDouble() * 0.8);
+  static final List<double> _scale = List.generate(7, (_) => 0.6 + _rng.nextDouble() * 0.6);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * x;
+    final cy = size.height * y;
+    final wpx = size.width * w;
+    final hpx = size.height * h;
+
+    for (int i = 0; i < _phase.length; i++) {
+      final wave = math.sin((t * _speed[i] + _phase[i]) * 2 * math.pi);
+      final scale = _scale[i] * (0.85 + 0.15 * wave);
+      final fx = cx + _xOff[i] * wpx * 0.5;
+      final flameH = hpx * scale;
+      final flameW = wpx * 0.45 * scale;
+
+      // Three colour layers stacked outer→inner for a soft fire shape.
+      final layers = [
+        const Color(0x99FF6A20), // outer red-orange
+        const Color(0xCCFFA040), // mid amber
+        const Color(0xFFFFE0A0), // inner cream
+      ];
+      final scales = [1.0, 0.65, 0.32];
+      for (int l = 0; l < layers.length; l++) {
+        final path = Path();
+        path.moveTo(fx - flameW * scales[l] / 2, cy);
+        path.quadraticBezierTo(
+          fx - flameW * scales[l] * 0.25,
+          cy - flameH * scales[l] * 0.45,
+          fx,
+          cy - flameH * scales[l],
+        );
+        path.quadraticBezierTo(
+          fx + flameW * scales[l] * 0.25,
+          cy - flameH * scales[l] * 0.45,
+          fx + flameW * scales[l] / 2,
+          cy,
+        );
+        path.close();
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = layers[l]
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, l == 0 ? 4 : 1),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FlamePainter old) => old.t != t;
+}
+
 class _Dot extends StatelessWidget {
   const _Dot({required this.diameter});
   final double diameter;
