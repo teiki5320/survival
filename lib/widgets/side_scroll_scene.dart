@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -92,6 +93,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static const int _danceFrameMs = 55;
   static const int _lieDownFrameMs = 60;
 
+  // Horizon parallax cycles through these in sequence with a slow
+  // cross-fade so the train passes through varied scenery instead of
+  // staring at the same skyline forever.
+  static const List<String> _horizonAssets = [
+    'assets/background/horizon_a.png',
+    'assets/background/horizon_b.png',
+    'assets/background/horizon_c.png',
+  ];
+  static const Duration _horizonRotatePeriod = Duration(seconds: 45);
+  static const Duration _horizonCrossFade = Duration(seconds: 2);
+  int _horizonIndex = 0;
+  Timer? _horizonRotateTimer;
+
   late final Ticker _heroTicker;
   double _heroX = 0.5;
   double? _heroTarget;
@@ -127,6 +141,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
+    _horizonRotateTimer = Timer.periodic(_horizonRotatePeriod, (_) {
+      if (!mounted) return;
+      setState(() {
+        _horizonIndex = (_horizonIndex + 1) % _horizonAssets.length;
+      });
+    });
   }
 
   bool _precached = false;
@@ -152,7 +172,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/sky.png',
       'assets/background/sky_night.png',
       'assets/background/horizon_a.png',
+      'assets/background/horizon_b.png',
+      'assets/background/horizon_c.png',
       'assets/background/horizon_night.png',
+      'assets/background/foreground_band.png',
       'assets/background/wagon_dirty.png',
       'assets/background/wagon_swept.png',
       'assets/background/wagon_windowed.png',
@@ -209,6 +232,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   @override
   void dispose() {
     _heroTicker.dispose();
+    _horizonRotateTimer?.cancel();
     _sky.dispose();
     _horizon.dispose();
     _foreground.dispose();
@@ -344,22 +368,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             : 'assets/background/sky.png',
                         fit: BoxFit.cover,
                       ),
-                      // 2. Horizon — distant ruins. Sits behind the wagon
-                      //    and is visible through the now-keyed window panes.
-                      //    Anchored vertically so its skyline reads in the
-                      //    wagon's window band (~y=0.30..0.55).
+                      // 2. Horizon — distant ruins reclaimed by vegetation.
+                      //    Cycles through 3 variants (urban / wooded / industrial)
+                      //    every ~45s with a 2s cross-fade so the train passes
+                      //    through varied scenery instead of looping one image.
+                      //    Anchored so its skyline reads in the wagon's window
+                      //    band (~y=0.30..0.55).
                       Positioned(
                         left: 0,
                         right: 0,
                         top: h * 0.18,
                         height: h * 0.42,
-                        child: _ParallaxLayer(
-                          controller: _horizon,
-                          asset: widget.night
-                              ? 'assets/background/horizon_night.png'
-                              : 'assets/background/horizon_a.png',
-                          fit: BoxFit.fitWidth,
-                          alignment: Alignment.topCenter,
+                        child: AnimatedSwitcher(
+                          duration: _horizonCrossFade,
+                          child: _ParallaxLayer(
+                            key: ValueKey(
+                              widget.night
+                                  ? 'horizon_night'
+                                  : _horizonAssets[_horizonIndex],
+                            ),
+                            controller: _horizon,
+                            asset: widget.night
+                                ? 'assets/background/horizon_night.png'
+                                : _horizonAssets[_horizonIndex],
+                            fit: BoxFit.fitWidth,
+                            alignment: Alignment.topCenter,
+                          ),
                         ),
                       ),
                       // 2b. Birds — occasional silhouettes drifting through
@@ -390,6 +424,27 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               asset: 'assets/background/wagon_rails.png',
                               fit: BoxFit.fill,
                               alignment: Alignment.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 3b. Foreground vegetation band — close-camera grass
+                      //     + wildflowers + debris scrolling at the same fast
+                      //     parallax tempo as the rails. Anchored bottom so
+                      //     the soft alpha fade at the top of the source
+                      //     blends into the rails band above.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        height: h * 0.13,
+                        child: IgnorePointer(
+                          child: _nightTint(
+                            _ParallaxLayer(
+                              controller: _foreground,
+                              asset: 'assets/background/foreground_band.png',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.bottomCenter,
                             ),
                           ),
                         ),
