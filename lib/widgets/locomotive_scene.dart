@@ -7,6 +7,14 @@ import '../services/audio_service.dart';
 import 'atmosphere.dart';
 import 'train_rocking.dart';
 
+enum _LocoAction {
+  idle,
+  walkToWoodpile,
+  pickingUp,
+  carryingToFire,
+  throwing,
+}
+
 /// Locomotive cab scene — heroine has walked through the door at the
 /// front of the wagon and is now in the driver's compartment.
 ///
@@ -56,6 +64,15 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   int _idleAccumMs = 0;
   Duration _lastTick = Duration.zero;
 
+  // Scripted log-loading sequence: tap "mettre une bûche" → walk to
+  // woodpile → pickup → carry to firebox → throw → done.
+  _LocoAction _action = _LocoAction.idle;
+  int _actionFrame = 0;
+  int _actionAccumMs = 0;
+  static const int _actionFrameMs = 55;
+  static const double _woodpileX = 0.70;
+  static const double _fireboxX = 0.32;
+
   // Brief shake offset applied to the whole scene right after a log
   // thuds into the firebox. Decays to zero over ~400 ms.
   double _shake = 0;
@@ -89,8 +106,26 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       _shake = (_shake - dt * 2.5).clamp(0.0, 1.0);
     }
 
+    // Drive the scripted log-loading sequence first; falls through to
+    // free-walk + idle below when _action is idle.
+    if (_action == _LocoAction.pickingUp || _action == _LocoAction.throwing) {
+      setState(() {
+        _actionAccumMs += dtMs;
+        while (_actionAccumMs >= _actionFrameMs) {
+          _actionAccumMs -= _actionFrameMs;
+          _actionFrame++;
+          if (_actionFrame >= _heroFrameCount) {
+            _onActionAnimDone();
+            return;
+          }
+        }
+      });
+      return;
+    }
+
     final target = _heroTarget;
     if (target == null) {
+      // Action complete or never started — idle anim.
       setState(() {
         _idleAccumMs += dtMs;
         while (_idleAccumMs >= _idleFrameMs) {
@@ -110,6 +145,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         _walkFrame = 0;
         _walkAccumMs = 0;
       });
+      _onWalkTargetReached();
       return;
     }
     final dir = delta > 0 ? 1.0 : -1.0;
@@ -122,6 +158,51 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         _walkFrame = (_walkFrame + 1) % _heroFrameCount;
       }
     });
+  }
+
+  /// Called when the heroine reaches her current walk target — advances
+  /// the scripted log-loading sequence if one is in progress.
+  void _onWalkTargetReached() {
+    switch (_action) {
+      case _LocoAction.walkToWoodpile:
+        _action = _LocoAction.pickingUp;
+        _actionFrame = 0;
+        _actionAccumMs = 0;
+        AudioService().playSfx('pickup');
+        break;
+      case _LocoAction.carryingToFire:
+        _action = _LocoAction.throwing;
+        _actionFrame = 0;
+        _actionAccumMs = 0;
+        break;
+      default:
+        break;
+    }
+  }
+
+  /// Called when a one-shot pickup or throw animation completes.
+  void _onActionAnimDone() {
+    switch (_action) {
+      case _LocoAction.pickingUp:
+        // Bûche in arms — head to the firebox.
+        _action = _LocoAction.carryingToFire;
+        _actionFrame = 0;
+        _actionAccumMs = 0;
+        _walkFrame = 0;
+        _walkAccumMs = 0;
+        _heroTarget = _fireboxX;
+        break;
+      case _LocoAction.throwing:
+        // Bûche delivered. Counter ticks up, scene shakes, fire whoofs.
+        _action = _LocoAction.idle;
+        _actionFrame = 0;
+        widget.onThrowLog();
+        _shake = 1.0;
+        AudioService().playSfx('log_throw');
+        break;
+      default:
+        break;
+    }
   }
 
   void _walkTo(double normalizedX) {
@@ -139,10 +220,12 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   }
 
   void _throwLog() {
-    setState(() => _shake = 1.0);
-    widget.onThrowLog();
-    _walkTo(_heroXMin + 0.02);
-    AudioService().playSfx('log_throw');
+    // Reject if a sequence is already running.
+    if (_action != _LocoAction.idle) return;
+    setState(() {
+      _action = _LocoAction.walkToWoodpile;
+      _heroTarget = _woodpileX;
+    });
   }
 
   Widget _nightTint(Widget child) {
@@ -159,8 +242,31 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     final heroHeight = h * 0.50;
     final heroWidth = heroHeight * (91 / 372);
     final isMoving = _heroTarget != null;
-    final frame = isMoving ? _walkFrame : _idleFrame;
-    final prefix = isMoving ? 'walk_right' : 'idle_right';
+    String prefix;
+    int frame;
+    switch (_action) {
+      case _LocoAction.pickingUp:
+        prefix = 'pickup';
+        frame = _actionFrame;
+        break;
+      case _LocoAction.throwing:
+        // Reverse the pickup frames so it reads as "stand up + drop".
+        prefix = 'pickup';
+        frame = _heroFrameCount - 1 - _actionFrame;
+        break;
+      case _LocoAction.carryingToFire:
+        prefix = 'carry_walk';
+        frame = _walkFrame;
+        break;
+      case _LocoAction.walkToWoodpile:
+        prefix = 'walk_right';
+        frame = _walkFrame;
+        break;
+      case _LocoAction.idle:
+        prefix = isMoving ? 'walk_right' : 'idle_right';
+        frame = isMoving ? _walkFrame : _idleFrame;
+        break;
+    }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
     final feetY = h * 0.92;
     return Positioned(

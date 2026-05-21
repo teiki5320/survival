@@ -198,8 +198,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // before the user can interact. Without this, the first cycle of any
     // animation stutters while Flutter lazily decodes the PNGs.
     const animations = [
-      'walk_right', 'walk_down', 'walk_up', 'walk_ne', 'walk_se',
-      'idle_right', 'sleep_right', 'dance', 'pickup',
+      'walk_right',
+      'idle_right',
+      'sleep_right',
+      'dance',
+      'pickup',
+      'yawn',
+      'stretch',
+      'look_window',
+      'read',
+      'wake_up',
+      'door_push',
+      'warm_hands',
+      'carry_walk',
     ];
     for (final anim in animations) {
       for (int i = 1; i <= _heroFrameCount; i++) {
