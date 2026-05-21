@@ -478,3 +478,258 @@ class _ZombiePainter extends CustomPainter {
   bool shouldRepaint(_ZombiePainter old) =>
       old.t != t || old.walkY != walkY || old.scale != scale;
 }
+
+/// Quick burst of dust under the heroine's feet whenever she takes a
+/// step. The parent feeds a stepToken (incremented on each foot-down
+/// frame); each token triggers a 400 ms puff that fades out.
+class FootstepDust extends StatefulWidget {
+  const FootstepDust({
+    super.key,
+    required this.heroX,
+    required this.feetY,
+    required this.stepToken,
+    this.enabled = true,
+  });
+
+  final double heroX;
+  final double feetY;
+  final int stepToken;
+  final bool enabled;
+
+  @override
+  State<FootstepDust> createState() => _FootstepDustState();
+}
+
+class _FootstepDustState extends State<FootstepDust>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  double _puffX = 0.5;
+  double _puffY = 0.9;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant FootstepDust old) {
+    super.didUpdateWidget(old);
+    if (widget.enabled && widget.stepToken != old.stepToken) {
+      _puffX = widget.heroX;
+      _puffY = widget.feetY;
+      _ctrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) {
+          if (_ctrl.value == 0) return const SizedBox.shrink();
+          return CustomPaint(
+            painter: _PuffPainter(t: _ctrl.value, x: _puffX, y: _puffY),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PuffPainter extends CustomPainter {
+  _PuffPainter({required this.t, required this.x, required this.y});
+  final double t;
+  final double x;
+  final double y;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * x;
+    final cy = size.height * y;
+    final fade = (1.0 - t).clamp(0.0, 1.0);
+    final r = 6 + t * 18;
+    final paint = Paint()
+      ..shader = RadialGradient(
+        colors: [
+          Color.fromRGBO(190, 165, 130, 0.55 * fade),
+          const Color(0x00000000),
+        ],
+      ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r));
+    canvas.drawCircle(Offset(cx, cy), r, paint);
+  }
+
+  @override
+  bool shouldRepaint(_PuffPainter old) =>
+      old.t != t || old.x != x || old.y != y;
+}
+
+/// Rain drops falling and streaking down the wagon window band.
+/// Drops are confined to a normalised vertical range so they don't
+/// fall across the whole scene — they read as drops *on the glass*.
+class WindowRain extends StatelessWidget {
+  const WindowRain({
+    super.key,
+    required this.animation,
+    this.topY = 0.18,
+    this.bottomY = 0.60,
+    this.density = 30,
+  });
+
+  final Animation<double> animation;
+  final double topY;
+  final double bottomY;
+  final int density;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _RainPainter(
+            animation.value,
+            topY: topY,
+            bottomY: bottomY,
+            count: density,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RainPainter extends CustomPainter {
+  _RainPainter(this.t,
+      {required this.topY, required this.bottomY, required this.count});
+  final double t;
+  final double topY;
+  final double bottomY;
+  final int count;
+
+  static final _rng = math.Random(33);
+  static final List<double> _xn = List.generate(64, (_) => _rng.nextDouble());
+  static final List<double> _phase = List.generate(64, (_) => _rng.nextDouble());
+  static final List<double> _len = List.generate(64, (_) => 8 + _rng.nextDouble() * 12);
+  static final List<double> _speed = List.generate(64, (_) => 0.6 + _rng.nextDouble() * 1.1);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0x88BFD5E8)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    final top = size.height * topY;
+    final bottom = size.height * bottomY;
+    final band = bottom - top;
+    for (int i = 0; i < count; i++) {
+      final ix = i % 64;
+      final life = ((t * _speed[ix]) + _phase[ix]) % 1.0;
+      final x = size.width * _xn[ix];
+      final y = top + life * band;
+      canvas.drawLine(Offset(x, y), Offset(x + 0.5, y + _len[ix]), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RainPainter old) => old.t != t;
+}
+
+/// Small thought-bubble shown above the heroine for a few seconds.
+/// Renders an emoji (☕, 💤, 🌧, etc.) inside a soft white bubble with
+/// the classic three trailing dots.
+class ThoughtBubble extends StatelessWidget {
+  const ThoughtBubble({
+    super.key,
+    required this.heroX,
+    required this.heroTopY,
+    required this.emoji,
+    this.opacity = 1.0,
+  });
+
+  final double heroX;
+
+  /// Normalised Y of the heroine's head — the bubble sits above this.
+  final double heroTopY;
+  final String emoji;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final x = c.maxWidth * heroX;
+          final y = c.maxHeight * heroTopY;
+          return Opacity(
+            opacity: opacity.clamp(0.0, 1.0),
+            child: Stack(
+              children: [
+                // Two trailing dots between heroine head and bubble.
+                Positioned(
+                  left: x - 3,
+                  top: y - 18,
+                  child: _Dot(diameter: 5),
+                ),
+                Positioned(
+                  left: x + 6,
+                  top: y - 30,
+                  child: _Dot(diameter: 7),
+                ),
+                // Bubble.
+                Positioned(
+                  left: x - 22,
+                  top: y - 70,
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.92),
+                      shape: BoxShape.circle,
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x40000000),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _Dot extends StatelessWidget {
+  const _Dot({required this.diameter});
+  final double diameter;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.85),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}

@@ -138,6 +138,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _heroLyingDown = false;
   int _lieDownFrame = _heroFrameCount - 1; // counts down toward 0
   int _walkFrame = 0;
+  // Step counter — bumped each time a foot plants; consumed by the
+  // FootstepDust widget to render a puff burst.
+  int _stepToken = 0;
+  // Occasional thought-bubble emoji shown above the heroine. Picked at
+  // random every ~60 s while idle, cleared after a couple of seconds.
+  String? _thoughtEmoji;
+  Timer? _thoughtTimer;
+  Timer? _thoughtClearTimer;
   int _idleFrame = 0;
   int _sleepFrame = 0;
   int _danceFrame = 0;
@@ -164,6 +172,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
       if (!mounted) return;
       setState(() {
         _horizonIndex = (_horizonIndex + 1) % _horizonAssets.length;
+      });
+    });
+    _thoughtTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+      if (!mounted) return;
+      // 50 % chance to skip — so they don't appear like clockwork.
+      if (math.Random().nextDouble() < 0.5) return;
+      const moods = ['☕', '💭', '🌧', '💤', '🌿', '📖', '🎵'];
+      setState(() => _thoughtEmoji = moods[math.Random().nextInt(moods.length)]);
+      _thoughtClearTimer?.cancel();
+      _thoughtClearTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _thoughtEmoji = null);
       });
     });
   }
@@ -252,6 +271,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void dispose() {
     _heroTicker.dispose();
     _horizonRotateTimer?.cancel();
+    _thoughtTimer?.cancel();
+    _thoughtClearTimer?.cancel();
     _sky.dispose();
     _horizon.dispose();
     _foreground.dispose();
@@ -340,6 +361,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
       while (_walkAccumMs >= _walkFrameMs) {
         _walkAccumMs -= _walkFrameMs;
         _walkFrame = (_walkFrame + 1) % _heroFrameCount;
+        // Roughly every 6 walk frames a foot is planted — kick a dust
+        // puff at the heroine's feet.
+        if (_walkFrame % 6 == 0) _stepToken++;
       }
     });
     widget.onHeroXChanged?.call(_heroX);
@@ -612,6 +636,33 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           intensity: _heroEdgeProximity() * (widget.night ? 1.0 : 0.6),
                         ),
                       ),
+                      // 5c. Footstep dust puff at her feet each plant.
+                      Positioned.fill(
+                        child: FootstepDust(
+                          heroX: _heroX,
+                          feetY: 0.92,
+                          stepToken: _stepToken,
+                          enabled: widget.wagonStage <= 1,
+                        ),
+                      ),
+                      // 5d. Rain on the window band, night only and only
+                      //     while the train is moving — gives "weather".
+                      if (widget.night && widget.running)
+                        Positioned.fill(
+                          child: WindowRain(
+                            animation: _foreground,
+                            density: 24,
+                          ),
+                        ),
+                      // 5e. Random thought bubble above her head.
+                      if (_thoughtEmoji != null)
+                        Positioned.fill(
+                          child: ThoughtBubble(
+                            heroX: _heroX,
+                            heroTopY: 0.30,
+                            emoji: _thoughtEmoji!,
+                          ),
+                        ),
                       // 5. Locomotive smoke — drifts over the top of the wagon.
                       Positioned.fill(
                         child: IgnorePointer(
