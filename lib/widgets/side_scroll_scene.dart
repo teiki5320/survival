@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import 'atmosphere.dart';
 import 'train_rocking.dart';
 
 /// Side-scroller wagon scene.
@@ -555,6 +556,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               ),
                             ),
                           ),
+                        ),
+                      // 4c. Floating dust motes — caught in the warm
+                      //     light through the wagon windows. Wagon stage
+                      //     0/1 (dirty/swept) shows them densely, the
+                      //     cleaner stages tone them down.
+                      Positioned.fill(
+                        child: DustParticles(
+                          animation: _sky,
+                          count: 30 - widget.wagonStage * 6,
+                          opacity: widget.night ? 0.20 : 0.45,
+                        ),
+                      ),
+                      // 4d. Lucioles — night-only, drift in slow loops
+                      //     across the wagon interior.
+                      if (widget.night)
+                        Positioned.fill(
+                          child: Fireflies(animation: _foreground, count: 5),
                         ),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),

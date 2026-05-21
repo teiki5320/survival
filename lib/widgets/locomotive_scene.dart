@@ -1,7 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../services/audio_service.dart';
+import 'atmosphere.dart';
 import 'train_rocking.dart';
 
 /// Locomotive cab scene — heroine has walked through the door at the
@@ -50,6 +53,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   Duration _lastTick = Duration.zero;
 
   int _logsThrown = 0;
+  // Brief shake offset applied to the whole scene right after a log
+  // thuds into the firebox. Decays to zero over ~400 ms.
+  double _shake = 0;
 
   @override
   void initState() {
@@ -75,6 +81,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     if (dtMicros <= 0) return;
     final dt = dtMicros / 1e6;
     final dtMs = (dt * 1000).round();
+
+    if (_shake > 0) {
+      _shake = (_shake - dt * 2.5).clamp(0.0, 1.0);
+    }
 
     final target = _heroTarget;
     if (target == null) {
@@ -116,7 +126,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   }
 
   void _throwLog() {
-    setState(() => _logsThrown++);
+    setState(() {
+      _logsThrown++;
+      _shake = 1.0;
+    });
     _walkTo(_heroXMin + 0.02);
     AudioService().playSfx('log_throw');
   }
@@ -168,7 +181,14 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (d) => _walkTo(d.localPosition.dx / w),
-                child: TrainRocking(
+                child: Transform.translate(
+                  offset: _shake > 0
+                      ? Offset(
+                          (math.sin(_shake * 30) * 6) * _shake,
+                          (math.cos(_shake * 26) * 4) * _shake,
+                        )
+                      : Offset.zero,
+                  child: TrainRocking(
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -202,9 +222,24 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           ),
                         ),
                       ),
+                      // Firebox glow — soft amber halo anchored on the
+                      // left wall where the firebox sits, pulsing.
+                      Positioned.fill(
+                        child: FireGlow(
+                          animation: _sky,
+                          x: 0.21,
+                          y: 0.68,
+                          radius: 0.55,
+                        ),
+                      ),
                       _buildHeroine(w, h),
+                      if (widget.night)
+                        Positioned.fill(
+                          child: Fireflies(animation: _horizon, count: 4),
+                        ),
                     ],
                   ),
+                ),
                 ),
               ),
             ),
