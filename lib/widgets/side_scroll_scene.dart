@@ -181,6 +181,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
       'assets/background/wagon_rails.png',
+      'assets/objects/bed.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -461,6 +462,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 4b. Bed — placed at the top-left of the wagon
+                      //     interior. Sized so the heroine's lying-down
+                      //     sprite (sleep_right) reads as resting on it.
+                      //     The sleep sprite is 366x103 in a 1376x768
+                      //     source; rendered at 28 % of screen width,
+                      //     the bed's mattress matches that footprint.
+                      Positioned(
+                        left: w * 0.04,
+                        top: h * 0.32,
+                        width: w * 0.28,
+                        child: _nightTint(
+                          Image.asset(
+                            'assets/objects/bed.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
                       // 5. Locomotive smoke — drifts over the top of the wagon.
@@ -624,6 +642,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 /// fully off-screen left, its partner takes over without a visible jump.
 class _ParallaxLayer extends StatelessWidget {
   const _ParallaxLayer({
+    super.key,
     required this.controller,
     required this.asset,
     this.fit = BoxFit.cover,
