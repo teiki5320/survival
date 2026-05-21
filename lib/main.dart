@@ -65,6 +65,7 @@ class _WagonScreenState extends State<WagonScreen> {
         child: _inLocomotive
             ? LocomotiveScene(
                 key: const ValueKey('locomotive'),
+                night: _night,
                 onReturn: () => setState(() => _inLocomotive = false),
               )
             : _buildWagon(key: const ValueKey('wagon')),
