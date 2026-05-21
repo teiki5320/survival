@@ -148,7 +148,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
       'assets/background/wagon_rails.png',
-      'assets/background/wheel.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -379,20 +378,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               asset: 'assets/background/wagon_rails.png',
                               fit: BoxFit.fill,
                               alignment: Alignment.center,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // 3b. Static wheel — sits in the wagon's coordinate
-                      //     space (full-canvas overlay sized like the wagon)
-                      //     so it stays pinned at its original position while
-                      //     the rails strip scrolls underneath.
-                      Positioned.fill(
-                        child: IgnorePointer(
-                          child: _nightTint(
-                            Image.asset(
-                              'assets/background/wheel.png',
-                              fit: BoxFit.contain,
                             ),
                           ),
                         ),
