@@ -73,7 +73,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // keep her on the wagon's parquet floor — left of 0.25 is the
   // locomotive / coupling, right of 0.82 is the closed back-door area.
   static const int _heroFrameCount = 49;
-  static const double _heroXMin = 0.25;
+  static const double _heroXMin = 0.20;
   static const double _heroXMax = 0.82;
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
