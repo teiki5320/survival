@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'services/audio_service.dart';
 import 'widgets/locomotive_scene.dart';
 import 'widgets/side_scroll_scene.dart';
 
@@ -56,6 +57,47 @@ class _WagonScreenState extends State<WagonScreen> {
 
   static const _stageLabels = ['Sale', 'Sol nettoyé', 'Vitres remises', 'Tout propre'];
 
+  final _audio = AudioService();
+
+  @override
+  void initState() {
+    super.initState();
+    _audio.startAmbientTrain();
+    _audio.setMusic(_night ? 'night' : 'day');
+  }
+
+  @override
+  void dispose() {
+    _audio.stopAll();
+    super.dispose();
+  }
+
+  void _enterLocomotive() {
+    setState(() => _inLocomotive = true);
+    _audio.startFire();
+    _audio.playSfx('door_open');
+  }
+
+  void _exitLocomotive() {
+    setState(() => _inLocomotive = false);
+    _audio.stopFire();
+    _audio.playSfx('door_close');
+  }
+
+  void _toggleRun() {
+    setState(() => _running = !_running);
+    if (_running) {
+      _audio.startAmbientTrain();
+    } else {
+      _audio.stopAmbientTrain();
+    }
+  }
+
+  void _toggleNight() {
+    setState(() => _night = !_night);
+    _audio.setMusic(_night ? 'night' : 'day');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,7 +108,7 @@ class _WagonScreenState extends State<WagonScreen> {
             ? LocomotiveScene(
                 key: const ValueKey('locomotive'),
                 night: _night,
-                onReturn: () => setState(() => _inLocomotive = false),
+                onReturn: _exitLocomotive,
               )
             : _buildWagon(key: const ValueKey('wagon')),
       ),
@@ -121,9 +163,7 @@ class _WagonScreenState extends State<WagonScreen> {
                       ? const Color(0xFFB85522)
                       : Colors.grey.shade800,
                   foregroundColor: _atLeftDoor ? Colors.white : Colors.grey.shade500,
-                  onPressed: _atLeftDoor
-                      ? () => setState(() => _inLocomotive = true)
-                      : null,
+                  onPressed: _atLeftDoor ? _enterLocomotive : null,
                   child: const Icon(Icons.meeting_room),
                 ),
                 const SizedBox(height: 12),
@@ -144,21 +184,24 @@ class _WagonScreenState extends State<WagonScreen> {
                 FloatingActionButton.small(
                   heroTag: 'toggle_night',
                   tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
-                  onPressed: () => setState(() => _night = !_night),
+                  onPressed: _toggleNight,
                   child: Icon(_night ? Icons.wb_sunny : Icons.nightlight_round),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'cycle_wagon_stage',
                   tooltip: 'Wagon: ${_stageLabels[_wagonStage]}',
-                  onPressed: () => setState(() => _wagonStage = (_wagonStage + 1) % 4),
+                  onPressed: () {
+                    setState(() => _wagonStage = (_wagonStage + 1) % 4);
+                    _audio.playSfx('clean');
+                  },
                   child: const Icon(Icons.cleaning_services),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'toggle_run',
                   tooltip: _running ? 'Arrêter le train' : 'Démarrer le train',
-                  onPressed: () => setState(() => _running = !_running),
+                  onPressed: _toggleRun,
                   child: Icon(_running ? Icons.pause : Icons.play_arrow),
                 ),
               ],

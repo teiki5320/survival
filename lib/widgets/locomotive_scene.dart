@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../services/audio_service.dart';
 import 'train_rocking.dart';
 
 /// Locomotive cab scene — heroine has walked through the door at the
@@ -117,6 +118,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   void _throwLog() {
     setState(() => _logsThrown++);
     _walkTo(_heroXMin + 0.02);
+    AudioService().playSfx('log_throw');
   }
 
   Widget _nightTint(Widget child) {

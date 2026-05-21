@@ -100,12 +100,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static const int _lieDownFrameMs = 60;
 
   // Bed object placement (normalised to scene size, mutable so the
-  // adjustment mode can drag + resize it live). Defaults put it on
-  // the parquet floor at the left side of the wagon — final values
-  // will be baked back here once dialled in.
-  double _bedLeft = 0.05;
-  double _bedTop = 0.55;
-  double _bedWidth = 0.28;
+  // adjustment mode can drag + resize it live). Defaults dialled in
+  // via the adjust mode and baked back here.
+  double _bedLeft = 0.194;
+  double _bedTop = 0.448;
+  double _bedWidth = 0.280;
 
   // Horizon parallax cycles through these in sequence with a slow
   // cross-fade so the train passes through varied scenery instead of
