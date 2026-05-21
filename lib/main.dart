@@ -52,6 +52,9 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inLocomotive = false;
   bool _onMap = false;
   bool _bedAdjust = false;
+  // Bumped on door-action tap; the wagon scene plays door_push and
+  // calls back when done, at which point we cross-fade to locomotive.
+  int _doorPushToken = 0;
   // Mirror of the heroine's X position, updated by the scene. Used to
   // enable the door action button only when she's at the left edge.
   double _heroX = 0.5;
@@ -80,9 +83,16 @@ class _WagonScreenState extends State<WagonScreen> {
   }
 
   void _enterLocomotive() {
+    // Trigger door_push in the wagon scene first — the actual
+    // transition happens in _onDoorPushDone when the anim completes.
+    setState(() => _doorPushToken++);
+    _audio.playSfx('door_open');
+  }
+
+  void _onDoorPushDone() {
+    if (!mounted) return;
     setState(() => _inLocomotive = true);
     _audio.startFire();
-    _audio.playSfx('door_open');
   }
 
   void _exitLocomotive() {
@@ -142,6 +152,8 @@ class _WagonScreenState extends State<WagonScreen> {
             lieDownToken: _lieDownToken,
             bedAdjust: _bedAdjust,
             logsThrown: _logsThrown,
+            doorPushToken: _doorPushToken,
+            onDoorPushDone: _onDoorPushDone,
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },

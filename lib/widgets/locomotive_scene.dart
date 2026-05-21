@@ -237,10 +237,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   }
 
   Widget _buildHeroine(double w, double h) {
-    // Standing sprite is 91x372 in source. Sized so she fits the cab —
-    // roughly 50 % of scene height.
-    final heroHeight = h * 0.50;
-    final heroWidth = heroHeight * (91 / 372);
     final isMoving = _heroTarget != null;
     String prefix;
     int frame;
@@ -274,6 +270,25 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         break;
     }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
+
+    // New 49-frame 512x512 sheets need different scaling than the
+    // legacy walk/idle. Match the wagon scene's correction.
+    // pickup is the old tight-cropped 170x385 sheet; warm_hands and
+    // carry_walk are 512x512 squares — they need a different aspect.
+    const newSquareSprites = {'warm_hands', 'carry_walk'};
+    final isNewSquare = newSquareSprites.contains(prefix);
+    final double heroHeight;
+    final double heroWidth;
+    if (prefix == 'pickup') {
+      heroHeight = h * 0.50;
+      heroWidth = heroHeight * (170 / 385);
+    } else if (isNewSquare) {
+      heroHeight = h * 0.50 * (512 / 360);
+      heroWidth = heroHeight;
+    } else {
+      heroHeight = h * 0.50;
+      heroWidth = heroHeight * (91 / 372);
+    }
     final feetY = h * 0.92;
     return Positioned(
       left: w * _heroX - heroWidth / 2,

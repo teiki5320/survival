@@ -31,6 +31,8 @@ class SideScrollScene extends StatefulWidget {
     this.onHeroXChanged,
     this.bedAdjust = false,
     this.logsThrown = 0,
+    this.doorPushToken = 0,
+    this.onDoorPushDone,
   });
 
   /// Wagon visual progression, 0..3:
@@ -57,6 +59,15 @@ class SideScrollScene extends StatefulWidget {
   /// pressed. The scene observes the change and plays the pickup
   /// frames in reverse so she bends over, then snaps into sleep.
   final int lieDownToken;
+
+  /// Incremented by the parent when the door-action button is pressed
+  /// to enter the locomotive. The scene plays the door_push animation
+  /// once and calls [onDoorPushDone] when it finishes — at which point
+  /// the parent transitions to the locomotive screen.
+  final int doorPushToken;
+
+  /// Fired when the door-push animation completes — see [doorPushToken].
+  final VoidCallback? onDoorPushDone;
 
   /// Fired the first time the user taps the wagon floor, so the parent
   /// can drop any "she's dancing" state it was holding.
@@ -148,14 +159,30 @@ class _SideScrollSceneState extends State<SideScrollScene>
   Timer? _thoughtClearTimer;
   int _idleFrame = 0;
   // Random idle break: after ~15 s standing still the heroine plays a
-  // yawn or stretch sheet once, then returns to idle. Breaks the
+  // yawn or look-window sheet once, then returns to idle. Breaks the
   // monotony without needing any input.
   int _idleStillMs = 0;
-  String? _idleBreak; // 'yawn' or 'stretch' while playing, null otherwise
+  String? _idleBreak; // 'yawn' / 'look_window' while playing
   int _idleBreakFrame = 0;
   int _idleBreakAccumMs = 0;
   static const int _idleBreakFrameMs = 65;
   static const int _idleBreakAfterMs = 15000;
+
+  // Wake-up sequence: triggered when the player taps while she's
+  // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
+  // up → arms down), then she's free to walk wherever the tap pointed.
+  bool _waking = false;
+  int _wakingPhase = 0; // 0 = wake_up, 1 = stretch
+  int _wakingFrame = 0;
+  int _wakingAccumMs = 0;
+  static const int _wakingFrameMs = 55;
+
+  // Door-push: short one-shot animation played when entering the
+  // locomotive. Fires onDoorPushDone when complete.
+  bool _doorPushing = false;
+  int _doorFrame = 0;
+  int _doorAccumMs = 0;
+  static const int _doorFrameMs = 40; // ~2s total for 49 frames
   int _sleepFrame = 0;
   int _danceFrame = 0;
   Duration _lastTick = Duration.zero;
@@ -272,6 +299,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _lieDownAccumMs = 0;
       });
     }
+    if (oldWidget.doorPushToken != widget.doorPushToken) {
+      setState(() {
+        _doorPushing = true;
+        _doorFrame = 0;
+        _doorAccumMs = 0;
+        _heroTarget = null;
+        _heroDancing = false;
+        _heroSleeping = false;
+        _heroLyingDown = false;
+      });
+    }
   }
 
   void _applyRunning() {
@@ -306,6 +344,41 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (dtMicros <= 0) return;
     final dt = dtMicros / 1e6;
     final dtMs = (dt * 1000).round();
+
+    if (_doorPushing) {
+      setState(() {
+        _doorAccumMs += dtMs;
+        while (_doorAccumMs >= _doorFrameMs) {
+          _doorAccumMs -= _doorFrameMs;
+          _doorFrame++;
+          if (_doorFrame >= _heroFrameCount) {
+            _doorPushing = false;
+            widget.onDoorPushDone?.call();
+            return;
+          }
+        }
+      });
+      return;
+    }
+
+    if (_waking) {
+      setState(() {
+        _wakingAccumMs += dtMs;
+        while (_wakingAccumMs >= _wakingFrameMs) {
+          _wakingAccumMs -= _wakingFrameMs;
+          _wakingFrame++;
+          if (_wakingFrame >= _heroFrameCount) {
+            _wakingFrame = 0;
+            _wakingPhase++;
+            if (_wakingPhase >= 2) {
+              _waking = false;
+              return;
+            }
+          }
+        }
+      });
+      return;
+    }
 
     if (_heroLyingDown) {
       setState(() {
@@ -426,13 +499,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   void _walkTo(double normalizedX) {
     final clamped = normalizedX.clamp(_heroXMin, _heroXMax);
+    final wasSleeping = _heroSleeping;
     setState(() {
-      // First tap wakes her up; the same tap also queues her next move,
-      // ends any dance or lie-down state.
       _heroSleeping = false;
       _heroDancing = false;
       _heroLyingDown = false;
       _heroTarget = clamped;
+      if (wasSleeping) {
+        // Don't let her snap from lying flat into a walk — play the
+        // wake_up + stretch sequence first, then she'll walk to the
+        // queued target.
+        _waking = true;
+        _wakingPhase = 0;
+        _wakingFrame = 0;
+        _wakingAccumMs = 0;
+      }
     });
     widget.onUserInteract?.call();
   }
@@ -790,6 +871,47 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final feetY = h * 0.79;
     final anchorX = _heroX * w;
 
+    if (_doorPushing) {
+      final heroHeight = h * 0.36 * (512 / 360);
+      final heroWidth = heroHeight;
+      final asset = 'assets/characters/door_push_${_doorFrame + 1}.png';
+      return Positioned(
+        left: anchorX - heroWidth / 2,
+        top: feetY - heroHeight,
+        width: heroWidth,
+        height: heroHeight,
+        child: IgnorePointer(
+          child: _nightTint(
+            Transform(
+              alignment: Alignment.center,
+              transform: _heroFacingRight
+                  ? Matrix4.identity()
+                  : (Matrix4.identity()..scale(-1.0, 1.0, 1.0)),
+              child: Image.asset(asset, fit: BoxFit.contain),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_waking) {
+      // Wake-up sequence: wake_up_* (lying → standing) then stretch_*
+      // (arms up → arms down). Both are 512x512 squares.
+      final prefix = _wakingPhase == 0 ? 'wake_up' : 'stretch';
+      final heroHeight = h * 0.36 * (512 / 360);
+      final heroWidth = heroHeight;
+      final asset = 'assets/characters/${prefix}_${_wakingFrame + 1}.png';
+      return Positioned(
+        left: anchorX - heroWidth / 2,
+        top: feetY - heroHeight,
+        width: heroWidth,
+        height: heroHeight,
+        child: IgnorePointer(
+          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+        ),
+      );
+    }
+
     if (_heroSleeping) {
       // Lying on the floor. Sleep sprite is 366x103 ≈ 3.55:1.
       final bodyLen = h * 0.36;
@@ -850,12 +972,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
 
-    // Standing / walking. Walk sprite aspect 166/381, idle aspect 91/372.
+    // Standing / walking / idle break. The legacy walk + idle sheets
+    // are tightly cropped (walk 166x381, idle 91x372). The newer 49-
+    // frame sheets (yawn, stretch, look_window, read, wake_up, etc.)
+    // are 512x512 squares with the character inside a smaller bbox —
+    // displaying them at the idle aspect would squash them horizontally
+    // and shrink the character. Bump heroHeight by 512/360 (the new
+    // sprite's vertical headroom) and use a square aspect so they read
+    // at the same physical scale as the legacy sheets.
+    const newSquareSprites = {
+      'yawn', 'stretch', 'look_window', 'read', 'wake_up',
+      'door_push', 'warm_hands', 'carry_walk',
+    };
     final isMoving = _heroTarget != null;
-    final heroHeight = h * 0.36;
-    final spriteAspect = isMoving ? (166 / 381) : (91 / 372);
-    final heroWidth = heroHeight * spriteAspect;
-
     int frame;
     String prefix;
     if (_idleBreak != null) {
@@ -869,6 +998,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
       frame = _idleFrame;
     }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
+
+    final isNewSquare = newSquareSprites.contains(prefix);
+    final double heroHeight;
+    final double spriteAspect;
+    if (isNewSquare) {
+      heroHeight = h * 0.36 * (512 / 360);
+      spriteAspect = 1.0;
+    } else if (isMoving) {
+      heroHeight = h * 0.36;
+      spriteAspect = 166 / 381;
+    } else {
+      heroHeight = h * 0.36;
+      spriteAspect = 91 / 372;
+    }
+    final heroWidth = heroHeight * spriteAspect;
 
     return Positioned(
       left: anchorX - heroWidth / 2,
