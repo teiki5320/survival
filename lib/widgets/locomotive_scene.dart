@@ -170,23 +170,25 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      _ParallaxLayer(
-                        controller: _sky,
-                        asset: widget.night
-                            ? 'assets/background/sky_night.png'
-                            : 'assets/background/sky.png',
-                        fit: BoxFit.cover,
+                      _nightTint(
+                        _ParallaxLayer(
+                          controller: _sky,
+                          asset: 'assets/background/sky.png',
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       Positioned(
                         left: 0,
                         right: 0,
                         top: h * 0.05,
                         bottom: 0,
-                        child: _ParallaxLayer(
-                          controller: _horizon,
-                          asset: 'assets/background/horizon_a.png',
-                          fit: BoxFit.fitWidth,
-                          alignment: Alignment.topCenter,
+                        child: _nightTint(
+                          _ParallaxLayer(
+                            controller: _horizon,
+                            asset: 'assets/background/horizon_a.png',
+                            fit: BoxFit.fitWidth,
+                            alignment: Alignment.topCenter,
+                          ),
                         ),
                       ),
                       Positioned.fill(

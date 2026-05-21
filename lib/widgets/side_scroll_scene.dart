@@ -374,13 +374,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Sky — drifting clouds, visible motion.
-                      _ParallaxLayer(
-                        controller: _sky,
-                        asset: widget.night
-                            ? 'assets/background/sky_night.png'
-                            : 'assets/background/sky.png',
-                        fit: BoxFit.cover,
+                      // 1. Sky — drifting clouds, visible motion. Night
+                      //    re-uses the day asset with a cool blue tint so
+                      //    the whole scene stays visually consistent.
+                      _nightTint(
+                        _ParallaxLayer(
+                          controller: _sky,
+                          asset: 'assets/background/sky.png',
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       // 2. Horizon — distant ruins reclaimed by vegetation.
                       //    Cycles through 3 variants (urban / wooded / industrial)
@@ -396,18 +398,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         bottom: 0,
                         child: AnimatedSwitcher(
                           duration: _horizonCrossFade,
-                          child: _ParallaxLayer(
-                            key: ValueKey(
-                              widget.night
-                                  ? 'horizon_night'
-                                  : _horizonAssets[_horizonIndex],
+                          child: _nightTint(
+                            _ParallaxLayer(
+                              key: ValueKey(_horizonAssets[_horizonIndex]),
+                              controller: _horizon,
+                              asset: _horizonAssets[_horizonIndex],
+                              fit: BoxFit.fitWidth,
+                              alignment: Alignment.topCenter,
                             ),
-                            controller: _horizon,
-                            asset: widget.night
-                                ? 'assets/background/horizon_night.png'
-                                : _horizonAssets[_horizonIndex],
-                            fit: BoxFit.fitWidth,
-                            alignment: Alignment.topCenter,
                           ),
                         ),
                       ),
