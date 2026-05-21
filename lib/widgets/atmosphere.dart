@@ -180,3 +180,301 @@ class _FireGlowPainter extends CustomPainter {
   bool shouldRepaint(_FireGlowPainter old) =>
       old.t != t || old.x != x || old.y != y || old.radius != radius;
 }
+
+/// Hanging vines drawn procedurally over the scene — a few rope-like
+/// strands dangling from the top edge, swaying gently. Adds life to the
+/// otherwise static wagon/cab walls without needing baked-in animation
+/// in the source PNG.
+class HangingVines extends StatelessWidget {
+  const HangingVines({
+    super.key,
+    required this.animation,
+    this.strands = const [0.06, 0.18, 0.34, 0.62, 0.78, 0.93],
+    this.opacity = 0.45,
+  });
+
+  final Animation<double> animation;
+  final List<double> strands;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _VinePainter(animation.value, strands: strands, opacity: opacity),
+        ),
+      ),
+    );
+  }
+}
+
+class _VinePainter extends CustomPainter {
+  _VinePainter(this.t, {required this.strands, required this.opacity});
+  final double t;
+  final List<double> strands;
+  final double opacity;
+
+  static final _rng = math.Random(57);
+  static final List<double> _phase = List.generate(16, (_) => _rng.nextDouble());
+  static final List<double> _length = List.generate(16, (_) => 0.18 + _rng.nextDouble() * 0.22);
+  static final List<double> _amp = List.generate(16, (_) => 8 + _rng.nextDouble() * 14);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stem = Paint()
+      ..color = Color.fromRGBO(58, 90, 42, opacity)
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    final leaf = Paint()..color = Color.fromRGBO(96, 142, 64, opacity);
+
+    for (int i = 0; i < strands.length; i++) {
+      final xn = strands[i];
+      final lifeT = (t + _phase[i]) * 2 * math.pi;
+      final ampX = _amp[i % 16];
+      final len = size.height * _length[i % 16];
+      final baseX = size.width * xn;
+      final topY = 0.0;
+      final path = Path()..moveTo(baseX, topY);
+      const segs = 14;
+      for (int s = 1; s <= segs; s++) {
+        final t01 = s / segs;
+        final y = topY + len * t01;
+        // Sway amplitude grows with how far down the strand you are
+        // (top is anchored, tip waves the most).
+        final wx = math.sin(lifeT + t01 * 1.6) * ampX * t01;
+        path.lineTo(baseX + wx, y);
+      }
+      canvas.drawPath(path, stem);
+      // Tip leaf
+      final tipT = lifeT + 1.6;
+      final tipX = baseX + math.sin(tipT) * ampX;
+      final tipY = topY + len;
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(tipX, tipY + 4), width: 10, height: 6),
+        leaf,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_VinePainter old) => old.t != t;
+}
+
+/// Warm-amber halo anchored on a sprite (heroine) — used when she's
+/// close to a light source like the firebox or a lamp. Brightness
+/// decays with distance from the source so the effect fades naturally
+/// as she walks away.
+class CharacterHalo extends StatelessWidget {
+  const CharacterHalo({
+    super.key,
+    required this.heroX,
+    required this.heroY,
+    required this.intensity,
+  });
+
+  /// Normalised X position of the heroine.
+  final double heroX;
+
+  /// Normalised Y position (her vertical centre, roughly).
+  final double heroY;
+
+  /// 0..1, multiplies the halo opacity.
+  final double intensity;
+
+  @override
+  Widget build(BuildContext context) {
+    if (intensity <= 0.02) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _HaloPainter(heroX: heroX, heroY: heroY, intensity: intensity),
+      ),
+    );
+  }
+}
+
+class _HaloPainter extends CustomPainter {
+  _HaloPainter({required this.heroX, required this.heroY, required this.intensity});
+  final double heroX;
+  final double heroY;
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * heroX;
+    final cy = size.height * heroY;
+    final r = size.shortestSide * 0.30;
+    final i = intensity.clamp(0.0, 1.0);
+    final shader = RadialGradient(
+      colors: [
+        Color.fromRGBO(255, 197, 120, 0.45 * i),
+        Color.fromRGBO(255, 167, 90, 0.18 * i),
+        const Color(0x00000000),
+      ],
+      stops: const [0.0, 0.40, 1.0],
+    ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r));
+    canvas.drawCircle(Offset(cx, cy), r, Paint()..shader = shader);
+  }
+
+  @override
+  bool shouldRepaint(_HaloPainter old) =>
+      old.heroX != heroX || old.heroY != heroY || old.intensity != intensity;
+}
+
+/// Subtle ambient brightness pulse synced to the train rocking — every
+/// roll cycle the scene gets a barely-perceptible breath of light, so
+/// the rolling motion feels physical without overdoing it.
+class AmbientPulse extends StatelessWidget {
+  const AmbientPulse({super.key, required this.animation, this.amplitude = 0.05});
+  final Animation<double> animation;
+  final double amplitude;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) {
+          final pulse = (math.sin(animation.value * 2 * math.pi) * 0.5 + 0.5) * amplitude;
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              color: Color.fromRGBO(255, 232, 180, pulse),
+            ),
+            child: const SizedBox.expand(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Rare zombie silhouette walking across the distant background at
+/// night. Triggers every ~45..90 s with a fresh random Y, then walks
+/// from off-frame right to off-frame left over a few seconds. Reuses
+/// the scene's existing horizon animation as a clock.
+class DistantZombie extends StatefulWidget {
+  const DistantZombie({super.key, required this.enabled});
+  final bool enabled;
+
+  @override
+  State<DistantZombie> createState() => _DistantZombieState();
+}
+
+class _DistantZombieState extends State<DistantZombie>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  final _rng = math.Random();
+  double _walkY = 0.6;
+  double _scale = 0.7;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 8),
+    )..addStatusListener((s) {
+        if (s == AnimationStatus.completed && mounted) {
+          // Wait a random idle period then schedule the next walk.
+          final wait = Duration(seconds: 45 + _rng.nextInt(60));
+          Future.delayed(wait, () {
+            if (!mounted || !widget.enabled) return;
+            _walkY = 0.50 + _rng.nextDouble() * 0.15;
+            _scale = 0.55 + _rng.nextDouble() * 0.30;
+            _ctrl.forward(from: 0);
+          });
+        }
+      });
+    // Start the first walk after a short initial delay so the night
+    // doesn't open with a zombie crossing immediately.
+    Future.delayed(const Duration(seconds: 20), () {
+      if (mounted && widget.enabled) _ctrl.forward(from: 0);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant DistantZombie oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.enabled && _ctrl.isAnimating) {
+      _ctrl.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, __) {
+          if (_ctrl.value == 0 || !_ctrl.isAnimating) {
+            return const SizedBox.shrink();
+          }
+          return CustomPaint(
+            painter: _ZombiePainter(t: _ctrl.value, walkY: _walkY, scale: _scale),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ZombiePainter extends CustomPainter {
+  _ZombiePainter({required this.t, required this.walkY, required this.scale});
+  final double t;
+  final double walkY;
+  final double scale;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Walks right → left.
+    final x = (1.05 - t * 1.10) * size.width;
+    final y = walkY * size.height;
+    final h = 36.0 * scale;
+    final paint = Paint()
+      ..color = Color.fromRGBO(20, 25, 30, 0.55)
+      ..strokeWidth = 1.8
+      ..strokeCap = StrokeCap.round;
+
+    // Head
+    canvas.drawCircle(Offset(x, y), 3.5 * scale, paint);
+    // Body
+    canvas.drawLine(Offset(x, y + 3 * scale), Offset(x, y + h * 0.55), paint);
+    // Arms (limp, swing slightly)
+    final armSwing = math.sin(t * 18) * 4 * scale;
+    canvas.drawLine(
+      Offset(x, y + h * 0.20),
+      Offset(x - 6 * scale - armSwing, y + h * 0.45),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(x, y + h * 0.20),
+      Offset(x + 5 * scale + armSwing, y + h * 0.50),
+      paint,
+    );
+    // Legs (alternating step)
+    final step = math.sin(t * 22) * 4 * scale;
+    canvas.drawLine(
+      Offset(x, y + h * 0.55),
+      Offset(x - 3 * scale + step, y + h),
+      paint,
+    );
+    canvas.drawLine(
+      Offset(x, y + h * 0.55),
+      Offset(x + 3 * scale - step, y + h),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ZombiePainter old) =>
+      old.t != t || old.walkY != walkY || old.scale != scale;
+}

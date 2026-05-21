@@ -30,6 +30,7 @@ class SideScrollScene extends StatefulWidget {
     this.onUserInteract,
     this.onHeroXChanged,
     this.bedAdjust = false,
+    this.logsThrown = 0,
   });
 
   /// Wagon visual progression, 0..3:
@@ -74,6 +75,10 @@ class SideScrollScene extends StatefulWidget {
   /// its current normalised position + width so the values can be copied
   /// back into the defaults below.
   final bool bedAdjust;
+
+  /// Total logs thrown into the locomotive firebox so far. Scales the
+  /// smoke density + speed-line intensity in this scene.
+  final int logsThrown;
 
   @override
   State<SideScrollScene> createState() => _SideScrollSceneState();
@@ -574,15 +579,50 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         Positioned.fill(
                           child: Fireflies(animation: _foreground, count: 5),
                         ),
+                      // 4e. Hanging vines — a handful of procedural strands
+                      //     dropping from the wagon's top edge, swaying.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.16,
+                        height: h * 0.20,
+                        child: HangingVines(
+                          animation: _sky,
+                          opacity: widget.night ? 0.30 : 0.45,
+                        ),
+                      ),
+                      // 4f. Distant zombie passing across the window band,
+                      //     night only.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.30,
+                        height: h * 0.30,
+                        child: DistantZombie(enabled: widget.night),
+                      ),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
+                      // 5b. Warm halo around the heroine when she's at
+                      //     either edge of the wagon (door areas — lamp
+                      //     glow / firebox spill from off-frame).
+                      Positioned.fill(
+                        child: CharacterHalo(
+                          heroX: _heroX,
+                          heroY: 0.72,
+                          intensity: _heroEdgeProximity() * (widget.night ? 1.0 : 0.6),
+                        ),
+                      ),
                       // 5. Locomotive smoke — drifts over the top of the wagon.
                       Positioned.fill(
                         child: IgnorePointer(
                           child: AnimatedBuilder(
                             animation: _smoke,
                             builder: (_, __) => CustomPaint(
-                              painter: _SmokePainter(_smoke.value, running: widget.running),
+                              painter: _SmokePainter(
+                                _smoke.value,
+                                running: widget.running,
+                                intensity: 1.0 + 0.10 * widget.logsThrown.clamp(0, 8),
+                              ),
                             ),
                           ),
                         ),
@@ -597,7 +637,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             child: AnimatedBuilder(
                               animation: _foreground,
                               builder: (_, __) => CustomPaint(
-                                painter: _SpeedLinesPainter(_foreground.value),
+                                painter: _SpeedLinesPainter(
+                                  _foreground.value,
+                                  intensity:
+                                      1.0 + 0.18 * widget.logsThrown.clamp(0, 5),
+                                ),
                               ),
                             ),
                           ),
@@ -611,6 +655,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ),
       ),
     );
+  }
+
+  /// 0..1, how close the heroine is to either door — feeds the warm
+  /// halo so she gets bathed in firebox / lamp glow when near the
+  /// edges.
+  double _heroEdgeProximity() {
+    const edgeBand = 0.12;
+    final dLeft = (_heroX - _heroXMin).abs();
+    final dRight = (_heroXMax - _heroX).abs();
+    final d = math.min(dLeft, dRight);
+    if (d >= edgeBand) return 0.0;
+    return 1.0 - (d / edgeBand);
   }
 
   Widget _buildHeroine(double w, double h) {
@@ -795,9 +851,14 @@ class _ParallaxLayer extends StatelessWidget {
 /// irregular, not a clean circle), drawn with a colour that lerps from
 /// near-black at the source to dusty grey as the puff ages.
 class _SmokePainter extends CustomPainter {
-  _SmokePainter(this.t, {required this.running});
+  _SmokePainter(this.t, {required this.running, this.intensity = 1.0});
   final double t;
   final bool running;
+
+  /// Multiplier on puff size + alpha. 1.0 = baseline; the parent feeds
+  /// in something like 1 + 0.1 * min(logs, 8) so the trail visibly
+  /// thickens after a few logs.
+  final double intensity;
 
   static const int _count = 12;
   static const int _subPuffs = 3;
@@ -829,7 +890,7 @@ class _SmokePainter extends CustomPainter {
           ? life / 0.06
           : (life > 0.55 ? (1.0 - (life - 0.55) / 0.45) : 1.0);
       final clamped = alpha.clamp(0.0, 1.0);
-      final baseRadius = (10 + life * 40) * _sizeJitter[i];
+      final baseRadius = (10 + life * 40) * _sizeJitter[i] * intensity;
       // Puff colour darker at source, lighter as it dissipates.
       final puffColor = Color.lerp(_young, _old, life)!;
 
@@ -856,7 +917,7 @@ class _SmokePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SmokePainter old) =>
-      old.t != t || old.running != running;
+      old.t != t || old.running != running || old.intensity != intensity;
 }
 
 /// Distant birds drifting across the sky band. Three flocks spaced along
@@ -904,8 +965,12 @@ class _BirdsPainter extends CustomPainter {
 /// reinforce the sense of speed. Streaks fade in/out and shift on every
 /// pass so they don't read as a repeating pattern.
 class _SpeedLinesPainter extends CustomPainter {
-  _SpeedLinesPainter(this.t);
+  _SpeedLinesPainter(this.t, {this.intensity = 1.0});
   final double t;
+
+  /// 1.0 baseline; >1 = more visible streaks (more bois in the firebox →
+  /// faster-feeling train).
+  final double intensity;
 
   static const int _count = 9;
   static final math.Random _rng = math.Random(91);
@@ -934,11 +999,14 @@ class _SpeedLinesPainter extends CustomPainter {
       final alpha = life < 0.15
           ? life / 0.15
           : (life > 0.70 ? (1.0 - (life - 0.70) / 0.30) : 1.0);
-      paint.color = Colors.white.withOpacity(0.18 * alpha.clamp(0.0, 1.0));
+      paint.color = Colors.white.withOpacity(
+        (0.18 * alpha.clamp(0.0, 1.0) * intensity).clamp(0.0, 0.6),
+      );
       canvas.drawLine(Offset(startX, y), Offset(endX, y), paint);
     }
   }
 
   @override
-  bool shouldRepaint(covariant _SpeedLinesPainter old) => old.t != t;
+  bool shouldRepaint(covariant _SpeedLinesPainter old) =>
+      old.t != t || old.intensity != intensity;
 }

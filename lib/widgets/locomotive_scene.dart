@@ -20,11 +20,15 @@ class LocomotiveScene extends StatefulWidget {
   const LocomotiveScene({
     super.key,
     required this.onReturn,
+    required this.logsThrown,
+    required this.onThrowLog,
     this.night = false,
   });
 
   final VoidCallback onReturn;
   final bool night;
+  final int logsThrown;
+  final VoidCallback onThrowLog;
 
   @override
   State<LocomotiveScene> createState() => _LocomotiveSceneState();
@@ -52,7 +56,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   int _idleAccumMs = 0;
   Duration _lastTick = Duration.zero;
 
-  int _logsThrown = 0;
   // Brief shake offset applied to the whole scene right after a log
   // thuds into the firebox. Decays to zero over ~400 ms.
   double _shake = 0;
@@ -125,11 +128,19 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     setState(() => _heroTarget = normalizedX.clamp(_heroXMin, _heroXMax));
   }
 
+  /// 0..1 — how close the heroine is to the firebox (x=0.21). Drives
+  /// the warm halo so it brightens as she steps up to the fire.
+  double _fireProximity() {
+    const fireboxX = 0.24;
+    const range = 0.18;
+    final d = (_heroX - fireboxX).abs();
+    if (d >= range) return 0.0;
+    return 1.0 - d / range;
+  }
+
   void _throwLog() {
-    setState(() {
-      _logsThrown++;
-      _shake = 1.0;
-    });
+    setState(() => _shake = 1.0);
+    widget.onThrowLog();
     _walkTo(_heroXMin + 0.02);
     AudioService().playSfx('log_throw');
   }
@@ -233,6 +244,21 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         ),
                       ),
                       _buildHeroine(w, h),
+                      // Warm halo when she's near the firebox (left)
+                      // or the woodpile (right). Brightest right next
+                      // to the open firebox door.
+                      Positioned.fill(
+                        child: CharacterHalo(
+                          heroX: _heroX,
+                          heroY: 0.68,
+                          intensity: _fireProximity(),
+                        ),
+                      ),
+                      // Subtle breathing of the ambient light synced
+                      // to the rocking cadence.
+                      Positioned.fill(
+                        child: AmbientPulse(animation: _sky, amplitude: 0.04),
+                      ),
                       if (widget.night)
                         Positioned.fill(
                           child: Fireflies(animation: _horizon, count: 4),
@@ -256,7 +282,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      'Bûches : $_logsThrown',
+                      'Bûches : ${widget.logsThrown}',
                       style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 16),
                     ),
                   ),

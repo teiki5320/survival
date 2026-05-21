@@ -55,6 +55,11 @@ class _WagonScreenState extends State<WagonScreen> {
   double _heroX = 0.5;
   bool get _atLeftDoor => _heroX <= SideScrollScene.heroXMin + 0.01;
 
+  // Total logs the heroine has thrown into the firebox. Plumbed back
+  // to the wagon scene to crank up the smoke trail + speed lines, so
+  // the gesture has a visible consequence outside the cab too.
+  int _logsThrown = 0;
+
   static const _stageLabels = ['Sale', 'Sol nettoyé', 'Vitres remises', 'Tout propre'];
 
   final _audio = AudioService();
@@ -108,6 +113,8 @@ class _WagonScreenState extends State<WagonScreen> {
             ? LocomotiveScene(
                 key: const ValueKey('locomotive'),
                 night: _night,
+                logsThrown: _logsThrown,
+                onThrowLog: () => setState(() => _logsThrown++),
                 onReturn: _exitLocomotive,
               )
             : _buildWagon(key: const ValueKey('wagon')),
@@ -127,6 +134,7 @@ class _WagonScreenState extends State<WagonScreen> {
             dancing: _dancing,
             lieDownToken: _lieDownToken,
             bedAdjust: _bedAdjust,
+            logsThrown: _logsThrown,
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },
