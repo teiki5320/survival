@@ -134,7 +134,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // top of the frame, `_horizonBottom` is the distance from the very
   // bottom. Defaults dialled in via the horizon adjust mode.
   double _horizonTop = 0.0;
-  double _horizonBottom = 0.05;
+  double _horizonBottom = 0.179;
 
   // Horizon parallax cycles through these in sequence with a slow
   // cross-fade so the train passes through varied scenery instead of
