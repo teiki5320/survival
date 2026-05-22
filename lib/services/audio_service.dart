@@ -97,12 +97,16 @@ class AudioService {
   Future<void> playSfx(String name, {double volume = 0.8}) async {
     if (!_enabled) return;
     final p = AudioPlayer();
-    // Wire the auto-dispose listener FIRST so a play() throw still
-    // hits a finally that disposes the player — no leak.
-    p.onPlayerComplete.first.then((_) => p.dispose());
     try {
       await p.setVolume(volume);
       await p.play(AssetSource('audio/sfx_$name.mp3'));
+      // Auto-dispose when the clip finishes. Only register AFTER a
+      // successful play(): registering before would leave a pending
+      // .first listener that fires "Bad state: No element" when we
+      // dispose the player in the catch path below. Errors on the
+      // stream are swallowed so a torn-down player can't surface as
+      // an unhandled exception.
+      p.onPlayerComplete.first.then((_) => p.dispose()).catchError((_) {});
     } catch (e) {
       await p.dispose();
       if (kDebugMode) {
