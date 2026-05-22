@@ -283,20 +283,26 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // height). Without that correction the character's feet hover
     // above the floor when these sprites play.
     const newSquareSprites = {'warm_hands', 'carry_walk'};
+    // Sprites whose source already faces LEFT — they're always played
+    // in a left-facing context (warm_hands at the firebox on the left)
+    // so we must NOT mirror them based on the last walk direction or
+    // she'd end up with her back to the fire.
+    const sourceFacesLeft = {'warm_hands'};
     final isNewSquare = newSquareSprites.contains(prefix);
+    final shouldMirror = !sourceFacesLeft.contains(prefix) && !_heroFacingRight;
     final double heroHeight;
     final double heroWidth;
     final double feetRatio;
     if (prefix == 'pickup') {
-      heroHeight = h * 0.50;
+      heroHeight = h * 0.44;
       heroWidth = heroHeight * (170 / 385);
       feetRatio = 1.0;
     } else if (isNewSquare) {
-      heroHeight = h * 0.50 * (512 / 360);
+      heroHeight = h * 0.44 * (512 / 360);
       heroWidth = heroHeight;
       feetRatio = 0.86;
     } else {
-      heroHeight = h * 0.50;
+      heroHeight = h * 0.44;
       heroWidth = heroHeight * (91 / 372);
       feetRatio = 1.0;
     }
@@ -309,7 +315,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       child: IgnorePointer(
         child: Transform(
           alignment: Alignment.center,
-          transform: Matrix4.identity()..scale(_heroFacingRight ? 1.0 : -1.0, 1.0),
+          transform: Matrix4.identity()..scale(shouldMirror ? -1.0 : 1.0, 1.0),
           child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
         ),
       ),
@@ -377,23 +383,23 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         ),
                       ),
                       // Firebox glow — soft amber halo anchored on the
-                      // left wall where the firebox sits, pulsing.
+                      // open firebox door (centre of the painted fire).
                       Positioned.fill(
                         child: FireGlow(
                           animation: _sky,
-                          x: 0.21,
-                          y: 0.68,
-                          radius: 0.55,
+                          x: 0.17,
+                          y: 0.66,
+                          radius: 0.45,
                         ),
                       ),
-                      // Live flames flickering inside the firebox.
+                      // Live flames flickering inside the firebox door.
                       Positioned.fill(
                         child: FireboxFlames(
                           animation: _sky,
-                          x: 0.21,
-                          y: 0.80,
-                          width: 0.08,
-                          height: 0.10,
+                          x: 0.17,
+                          y: 0.66,
+                          width: 0.07,
+                          height: 0.08,
                         ),
                       ),
                       _buildHeroine(w, h),

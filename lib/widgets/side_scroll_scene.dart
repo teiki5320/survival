@@ -539,28 +539,36 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Sky — drifting clouds, visible motion. Night
-                      //    re-uses the day asset with a cool blue tint so
-                      //    the whole scene stays visually consistent.
+                      // 1. Sky — drifting clouds. The raw asset is a cold
+                      //    grey; multiply with a warm cream so it sits with
+                      //    the honey-toned wagon + horizon vegetation
+                      //    instead of clashing. Night re-uses the same
+                      //    asset with a cool blue tint stacked on top.
                       _nightTint(
-                        _ParallaxLayer(
-                          controller: _sky,
-                          asset: 'assets/background/sky.png',
-                          fit: BoxFit.cover,
+                        ColorFiltered(
+                          colorFilter: const ColorFilter.mode(
+                            Color(0xFFFFE8C8),
+                            BlendMode.modulate,
+                          ),
+                          child: _ParallaxLayer(
+                            controller: _sky,
+                            asset: 'assets/background/sky.png',
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       // 2. Horizon — distant ruins reclaimed by vegetation.
                       //    Cycles through 3 variants (urban / wooded / industrial)
                       //    every ~45s with a 2s cross-fade so the train passes
                       //    through varied scenery instead of looping one image.
-                      //    Stretched down past the wagon body so the bottom
-                      //    of the source (meadow + ground) fills any gaps
-                      //    around the coupling chains under the wagon.
+                      //    Height contained so the source's bottom meadow stays
+                      //    cropped out — we only want sky + ruins behind the
+                      //    wagon's window band.
                       Positioned(
                         left: 0,
                         right: 0,
                         top: h * 0.18,
-                        bottom: 0,
+                        height: h * 0.42,
                         child: AnimatedSwitcher(
                           duration: _horizonCrossFade,
                           child: _nightTint(
@@ -882,28 +890,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final anchorX = _heroX * w;
 
     if (_doorPushing) {
+      // door_push source faces LEFT (toward the implied door on her
+      // left). The door FAB only fires at heroXMin where she's already
+      // facing the left door — so do NOT mirror, just render as-is.
+      // Mirroring would flip her to face right, away from the door.
       final heroHeight = h * 0.36 * (512 / 360);
       final heroWidth = heroHeight;
       final asset = 'assets/characters/door_push_${_doorFrame + 1}.png';
       return Positioned(
-        // New-square sprites have ~14 % padding below the character's
-        // feet inside their 512x512 canvas; anchor on the bbox bottom
-        // (86 % of sprite height) so feet sit on the floor instead of
-        // floating above it.
         left: anchorX - heroWidth / 2,
         top: feetY - heroHeight * 0.86,
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
-          child: _nightTint(
-            Transform(
-              alignment: Alignment.center,
-              transform: _heroFacingRight
-                  ? Matrix4.identity()
-                  : (Matrix4.identity()..scale(-1.0, 1.0, 1.0)),
-              child: Image.asset(asset, fit: BoxFit.contain),
-            ),
-          ),
+          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
         ),
       );
     }
