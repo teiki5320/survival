@@ -30,6 +30,7 @@ class SideScrollScene extends StatefulWidget {
     this.onUserInteract,
     this.onHeroXChanged,
     this.bedAdjust = false,
+    this.horizonAdjust = false,
     this.logsThrown = 0,
     this.doorPushToken = 0,
     this.onDoorPushDone,
@@ -87,6 +88,11 @@ class SideScrollScene extends StatefulWidget {
   /// back into the defaults below.
   final bool bedAdjust;
 
+  /// When `true` the horizon layer shows draggable top + bottom edges
+  /// so its rectangle can be dialled in live, with a HUD readout of
+  /// the normalised values to bake back into the defaults.
+  final bool horizonAdjust;
+
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
   final int logsThrown;
@@ -100,7 +106,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // World-scroll controllers.
   late final AnimationController _horizon;
   late final AnimationController _foreground;
-  late final AnimationController _closeGround;
   late final AnimationController _smoke;
   late final AnimationController _sky;
 
@@ -123,6 +128,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
   double _bedLeft = 0.194;
   double _bedTop = 0.448;
   double _bedWidth = 0.280;
+
+  // Horizon (middle background) clipping bounds — both are fractions
+  // of the scene height. `_horizonTop` is the distance from the very
+  // top of the frame, `_horizonBottom` is the distance from the very
+  // bottom. Defaults dialled in via the horizon adjust mode.
+  double _horizonTop = 0.0;
+  double _horizonBottom = 0.05;
 
   // Horizon parallax cycles through these in sequence with a slow
   // cross-fade so the train passes through varied scenery instead of
@@ -202,9 +214,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _sky = AnimationController(vsync: this, duration: const Duration(seconds: 30))..repeat();
     _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 28))..repeat();
     _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
-    // Deepest / fastest parallax: close-ground streaks just below the
-    // rails. ~2× the rails speed so the depth gradient reads clearly.
-    _closeGround = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
@@ -317,7 +326,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   void _applyRunning() {
-    final ctrls = [_horizon, _foreground, _closeGround, _smoke, _sky];
+    final ctrls = [_horizon, _foreground, _smoke, _sky];
     if (widget.running) {
       for (final c in ctrls) {
         if (!c.isAnimating) c.repeat();
@@ -338,7 +347,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _sky.dispose();
     _horizon.dispose();
     _foreground.dispose();
-    _closeGround.dispose();
     _smoke.dispose();
     super.dispose();
   }
@@ -544,16 +552,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Sky/horizon — fills from top of frame down
-                      //    to the wagon's chassis line (y≈0.95). Stops
-                      //    just before the very bottom so it doesn't
-                      //    show through the rails strip + close-ground
-                      //    parallax band below.
+                      // 1. Sky/horizon — vertical bounds are tunable
+                      //    via the horizon adjust mode (top + bottom
+                      //    drag handles when widget.horizonAdjust is
+                      //    on). Defaults are baked back from that mode.
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: 0,
-                        bottom: h * 0.05,
+                        top: h * _horizonTop,
+                        bottom: h * _horizonBottom,
                         child: AnimatedSwitcher(
                           duration: _horizonCrossFade,
                           child: _nightTint(
@@ -616,30 +623,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               asset: 'assets/background/wagon_rails.png',
                               fit: BoxFit.fill,
                               alignment: Alignment.center,
-                            ),
-                          ),
-                        ),
-                      ),
-                      // 3b. Close-ground parallax — narrow band below
-                      //     the rails (y=0.95..1.0). Painted earth tint
-                      //     + fast horizontal motion-blur streaks at
-                      //     2× the rails speed. Reads as the ground
-                      //     rushing past close to the camera, which is
-                      //     the deepest layer in the parallax stack
-                      //     (sky → horizon → rails → close ground).
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.95,
-                        bottom: 0,
-                        child: IgnorePointer(
-                          child: AnimatedBuilder(
-                            animation: _closeGround,
-                            builder: (_, __) => CustomPaint(
-                              painter: _CloseGroundPainter(
-                                _closeGround.value,
-                                night: widget.night,
-                              ),
                             ),
                           ),
                         ),
@@ -881,6 +864,104 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
+                      // 8. Horizon adjust overlay — dashed outline on
+                      //    the horizon rect, draggable top + bottom
+                      //    edges, live numeric HUD. Visible only when
+                      //    widget.horizonAdjust is on.
+                      if (widget.horizonAdjust) ...[
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: h * _horizonTop,
+                          bottom: h * _horizonBottom,
+                          child: IgnorePointer(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: const Color(0xFFFFB347),
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Top edge: drag vertically to change _horizonTop.
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: h * _horizonTop - 12,
+                          height: 24,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onPanUpdate: (d) => setState(() {
+                              _horizonTop = (_horizonTop + d.delta.dy / h)
+                                  .clamp(0.0, 1.0 - _horizonBottom - 0.05);
+                            }),
+                            child: Center(
+                              child: Container(
+                                width: 80,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFB85522),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Bottom edge: drag vertically to change
+                        // _horizonBottom (distance from the bottom).
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: h * _horizonBottom - 12,
+                          height: 24,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onPanUpdate: (d) => setState(() {
+                              _horizonBottom = (_horizonBottom - d.delta.dy / h)
+                                  .clamp(0.0, 1.0 - _horizonTop - 0.05);
+                            }),
+                            child: Center(
+                              child: Container(
+                                width: 80,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFB85522),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Horizon-adjust HUD: numeric readout of the
+                        // two clipping fractions so they can be copied
+                        // back into the defaults.
+                        Positioned(
+                          top: 16,
+                          left: 16,
+                          child: SafeArea(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.55),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                'horizonTop:    ${_horizonTop.toStringAsFixed(3)}\n'
+                                'horizonBottom: ${_horizonBottom.toStringAsFixed(3)}',
+                                style: const TextStyle(
+                                  color: Color(0xFFFFD9A0),
+                                  fontSize: 14,
+                                  fontFamily: 'Courier',
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1329,72 +1410,4 @@ class _SpeedLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SpeedLinesPainter old) =>
       old.t != t || old.intensity != intensity;
-}
-
-/// Deepest parallax layer: the strip of ground immediately under the
-/// wagon, between the rails and the bottom of the frame. Painted (no
-/// asset) so the band is always filled regardless of where the horizon
-/// happens to be cropped. Composition:
-///   - vertical earth gradient (dark soil near the rails, almost black
-///     at the very bottom);
-///   - fast left→right motion-blur streaks at ~2× the rails speed, so
-///     the ground reads as the closest, fastest thing in view.
-class _CloseGroundPainter extends CustomPainter {
-  _CloseGroundPainter(this.t, {this.night = false});
-  final double t;
-  final bool night;
-
-  static const int _streakCount = 24;
-  static final math.Random _rng = math.Random(57);
-  static final List<double> _yFrac =
-      List.generate(_streakCount, (_) => _rng.nextDouble());
-  static final List<double> _phase =
-      List.generate(_streakCount, (_) => _rng.nextDouble());
-  static final List<double> _len =
-      List.generate(_streakCount, (_) => 0.12 + _rng.nextDouble() * 0.28);
-  static final List<double> _stroke =
-      List.generate(_streakCount, (_) => 1.0 + _rng.nextDouble() * 1.8);
-
-  static const Color _dayTop = Color(0xFF4A3A24);
-  static const Color _dayBottom = Color(0xFF1A1208);
-  static const Color _nightTop = Color(0xFF1F2632);
-  static const Color _nightBottom = Color(0xFF080A0E);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    final ground = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: night
-            ? const [_nightTop, _nightBottom]
-            : const [_dayTop, _dayBottom],
-      ).createShader(rect);
-    canvas.drawRect(rect, ground);
-
-    final streak = Paint()..style = PaintingStyle.stroke;
-    final streakColor = night
-        ? const Color(0xFF6B7A92)
-        : const Color(0xFFB3997A);
-    for (int i = 0; i < _streakCount; i++) {
-      final life = (t + _phase[i]) % 1.0;
-      // Streak head sweeps left → right; trail lags behind so each
-      // streak feels like a blurred dash of soil rushing past.
-      final headX = size.width * (life * 1.6 - 0.3);
-      final tailX = headX - size.width * _len[i];
-      final y = size.height * _yFrac[i];
-      final alpha = life < 0.12
-          ? life / 0.12
-          : (life > 0.78 ? (1.0 - (life - 0.78) / 0.22) : 1.0);
-      streak
-        ..strokeWidth = _stroke[i]
-        ..color = streakColor.withValues(alpha: 0.55 * alpha.clamp(0.0, 1.0));
-      canvas.drawLine(Offset(tailX, y), Offset(headX, y), streak);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _CloseGroundPainter old) =>
-      old.t != t || old.night != night;
 }
