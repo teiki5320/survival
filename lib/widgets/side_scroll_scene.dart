@@ -539,36 +539,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Sky — drifting clouds. The raw asset is a cold
-                      //    grey; multiply with a warm cream so it sits with
-                      //    the honey-toned wagon + horizon vegetation
-                      //    instead of clashing. Night re-uses the same
-                      //    asset with a cool blue tint stacked on top.
-                      _nightTint(
-                        ColorFiltered(
-                          colorFilter: const ColorFilter.mode(
-                            Color(0xFFFFE8C8),
-                            BlendMode.modulate,
-                          ),
-                          child: _ParallaxLayer(
-                            controller: _sky,
-                            asset: 'assets/background/sky.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      // 2. Horizon — distant ruins reclaimed by vegetation.
-                      //    Cycles through 3 variants (urban / wooded / industrial)
-                      //    every ~45s with a 2s cross-fade so the train passes
-                      //    through varied scenery instead of looping one image.
-                      //    Height contained so the source's bottom meadow stays
-                      //    cropped out — we only want sky + ruins behind the
-                      //    wagon's window band.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.18,
-                        height: h * 0.42,
+                      // 1. Sky/horizon — the horizon images carry their
+                      //    own sky in the top band (warm Ghibli blue
+                      //    matching the rest of the palette), so we
+                      //    drop the cold sky.png as the primary sky
+                      //    and let the horizon fill the whole frame.
+                      //    Cycles through 3 variants every ~45 s.
+                      Positioned.fill(
                         child: AnimatedSwitcher(
                           duration: _horizonCrossFade,
                           child: _nightTint(
@@ -576,8 +553,29 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               key: ValueKey(_horizonAssets[_horizonIndex]),
                               controller: _horizon,
                               asset: _horizonAssets[_horizonIndex],
-                              fit: BoxFit.fitWidth,
-                              alignment: Alignment.topCenter,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 1b. Drifting cloud overlay — sky.png at a low
+                      //     opacity, scrolling on its own faster
+                      //     controller. Gives the sky a second layer of
+                      //     motion (cloud parallax) over the horizon's
+                      //     own painted sky.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        height: h * 0.30,
+                        child: IgnorePointer(
+                          child: Opacity(
+                            opacity: widget.night ? 0.18 : 0.30,
+                            child: _ParallaxLayer(
+                              controller: _sky,
+                              asset: 'assets/background/sky.png',
+                              fit: BoxFit.cover,
                             ),
                           ),
                         ),
