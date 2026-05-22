@@ -277,25 +277,33 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // New 49-frame 512x512 sheets need different scaling than the
     // legacy walk/idle. Match the wagon scene's correction.
     // pickup is the old tight-cropped 170x385 sheet; warm_hands and
-    // carry_walk are 512x512 squares — they need a different aspect.
+    // carry_walk are 512x512 squares — they need different scaling AND
+    // a different feet-anchor (the square sheets have ~14 % padding
+    // under the character so the bbox bottom sits at 86 % of sprite
+    // height). Without that correction the character's feet hover
+    // above the floor when these sprites play.
     const newSquareSprites = {'warm_hands', 'carry_walk'};
     final isNewSquare = newSquareSprites.contains(prefix);
     final double heroHeight;
     final double heroWidth;
+    final double feetRatio;
     if (prefix == 'pickup') {
       heroHeight = h * 0.50;
       heroWidth = heroHeight * (170 / 385);
+      feetRatio = 1.0;
     } else if (isNewSquare) {
       heroHeight = h * 0.50 * (512 / 360);
       heroWidth = heroHeight;
+      feetRatio = 0.86;
     } else {
       heroHeight = h * 0.50;
       heroWidth = heroHeight * (91 / 372);
+      feetRatio = 1.0;
     }
     final feetY = h * 0.92;
     return Positioned(
       left: w * _heroX - heroWidth / 2,
-      top: feetY - heroHeight,
+      top: feetY - heroHeight * feetRatio,
       width: heroWidth,
       height: heroHeight,
       child: IgnorePointer(
@@ -310,13 +318,18 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final w = constraints.maxWidth;
-        final h = constraints.maxHeight;
+    return Container(
+      color: Colors.black,
+      alignment: Alignment.center,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            final h = constraints.maxHeight;
 
-        return Stack(
-          children: [
+            return Stack(
+              children: [
             // Tappable rocking scene: sky + horizon + cab + heroine.
             Positioned.fill(
               child: GestureDetector(
@@ -457,9 +470,11 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                 ),
               ),
             ),
-          ],
-        );
-      },
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 

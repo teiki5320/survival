@@ -723,10 +723,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       // 4c. Floating dust motes — caught in the warm
-                      //     light through the wagon windows. Wagon stage
-                      //     0/1 (dirty/swept) shows them densely, the
-                      //     cleaner stages tone them down.
-                      Positioned.fill(
+                      //     light through the wagon windows. Confined
+                      //     to the wagon interior (y=0.20..0.80) so
+                      //     they don't drift in the sky above the
+                      //     wagon roof. Density drops with the stage.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.20,
+                        height: h * 0.60,
                         child: DustParticles(
                           animation: _sky,
                           count: 30 - widget.wagonStage * 6,
@@ -739,13 +744,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         Positioned.fill(
                           child: Fireflies(animation: _foreground, count: 5),
                         ),
-                      // 4e. Hanging vines — a handful of procedural strands
-                      //     dropping from the wagon's top edge, swaying.
+                      // 4e. Hanging vines — short procedural strands
+                      //     between the wagon roof and the top edge of
+                      //     the back-wall windows, so they don't cover
+                      //     the curtains or the visible landscape.
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: h * 0.16,
-                        height: h * 0.20,
+                        top: h * 0.17,
+                        height: h * 0.09,
                         child: HangingVines(
                           animation: _sky,
                           opacity: widget.night ? 0.30 : 0.45,
@@ -808,7 +815,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               painter: _SmokePainter(
                                 _smoke.value,
                                 running: widget.running,
-                                intensity: 1.0 + 0.10 * widget.logsThrown.clamp(0, 8),
+                                // Lighter baseline so daytime smoke
+                                // doesn't read as oppressive; each
+                                // log nudges intensity up.
+                                intensity: 0.65 + 0.08 * widget.logsThrown.clamp(0, 8),
                               ),
                             ),
                           ),
@@ -876,8 +886,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
       final heroWidth = heroHeight;
       final asset = 'assets/characters/door_push_${_doorFrame + 1}.png';
       return Positioned(
+        // New-square sprites have ~14 % padding below the character's
+        // feet inside their 512x512 canvas; anchor on the bbox bottom
+        // (86 % of sprite height) so feet sit on the floor instead of
+        // floating above it.
         left: anchorX - heroWidth / 2,
-        top: feetY - heroHeight,
+        top: feetY - heroHeight * 0.86,
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
@@ -903,7 +917,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       final asset = 'assets/characters/${prefix}_${_wakingFrame + 1}.png';
       return Positioned(
         left: anchorX - heroWidth / 2,
-        top: feetY - heroHeight,
+        top: feetY - heroHeight * 0.86,
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
@@ -1002,21 +1016,27 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final isNewSquare = newSquareSprites.contains(prefix);
     final double heroHeight;
     final double spriteAspect;
+    // bbox-bottom ratio: 1.0 for legacy tight crops, 0.86 for the
+    // 512x512 squares (their character ends at ~y=440 of 512).
+    final double feetRatio;
     if (isNewSquare) {
       heroHeight = h * 0.36 * (512 / 360);
       spriteAspect = 1.0;
+      feetRatio = 0.86;
     } else if (isMoving) {
       heroHeight = h * 0.36;
       spriteAspect = 166 / 381;
+      feetRatio = 1.0;
     } else {
       heroHeight = h * 0.36;
       spriteAspect = 91 / 372;
+      feetRatio = 1.0;
     }
     final heroWidth = heroHeight * spriteAspect;
 
     return Positioned(
       left: anchorX - heroWidth / 2,
-      top: feetY - heroHeight,
+      top: feetY - heroHeight * feetRatio,
       width: heroWidth,
       height: heroHeight,
       child: IgnorePointer(
