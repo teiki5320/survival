@@ -539,13 +539,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Sky/horizon — the horizon images carry their
-                      //    own sky in the top band (warm Ghibli blue
-                      //    matching the rest of the palette), so we
-                      //    drop the cold sky.png as the primary sky
-                      //    and let the horizon fill the whole frame.
-                      //    Cycles through 3 variants every ~45 s.
-                      Positioned.fill(
+                      // 1. Sky/horizon — fills from top of frame down
+                      //    to the wagon's bottom edge (y≈0.92, where
+                      //    the rails strip sits). Below that we want
+                      //    nothing — no meadow bleed under the rails.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        bottom: h * 0.08,
                         child: AnimatedSwitcher(
                           duration: _horizonCrossFade,
                           child: _nightTint(
