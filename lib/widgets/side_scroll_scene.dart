@@ -627,6 +627,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 3b. Plain white band under the rails strip
+                      //     (y=0.92..1.0). Restores the "old white
+                      //     background" the user wanted under the
+                      //     train, so we don't see the black container
+                      //     showing between the rails and the bottom
+                      //     of the frame.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.92,
+                        bottom: 0,
+                        child: const IgnorePointer(
+                          child: ColoredBox(color: Colors.white),
+                        ),
+                      ),
                       // 4. Wagon — fixed in the centre, picked from the
                       //    progression stage (dirty → swept → windowed →
                       //    clean). Night ColorFilter tints all four the
