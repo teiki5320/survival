@@ -100,6 +100,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // World-scroll controllers.
   late final AnimationController _horizon;
   late final AnimationController _foreground;
+  late final AnimationController _closeGround;
   late final AnimationController _smoke;
   late final AnimationController _sky;
 
@@ -201,6 +202,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _sky = AnimationController(vsync: this, duration: const Duration(seconds: 30))..repeat();
     _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 28))..repeat();
     _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+    // Deepest / fastest parallax: close-ground streaks just below the
+    // rails. ~2× the rails speed so the depth gradient reads clearly.
+    _closeGround = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
@@ -313,7 +317,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   void _applyRunning() {
-    final ctrls = [_horizon, _foreground, _smoke, _sky];
+    final ctrls = [_horizon, _foreground, _closeGround, _smoke, _sky];
     if (widget.running) {
       for (final c in ctrls) {
         if (!c.isAnimating) c.repeat();
@@ -334,6 +338,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _sky.dispose();
     _horizon.dispose();
     _foreground.dispose();
+    _closeGround.dispose();
     _smoke.dispose();
     super.dispose();
   }
@@ -540,14 +545,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                     fit: StackFit.expand,
                     children: [
                       // 1. Sky/horizon — fills from top of frame down
-                      //    to the wagon's bottom edge (y≈0.92, where
-                      //    the rails strip sits). Below that we want
-                      //    nothing — no meadow bleed under the rails.
+                      //    to the wagon's chassis line (y≈0.95). Stops
+                      //    just before the very bottom so it doesn't
+                      //    show through the rails strip + close-ground
+                      //    parallax band below.
                       Positioned(
                         left: 0,
                         right: 0,
                         top: 0,
-                        bottom: h * 0.08,
+                        bottom: h * 0.05,
                         child: AnimatedSwitcher(
                           duration: _horizonCrossFade,
                           child: _nightTint(
@@ -610,6 +616,30 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               asset: 'assets/background/wagon_rails.png',
                               fit: BoxFit.fill,
                               alignment: Alignment.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 3b. Close-ground parallax — narrow band below
+                      //     the rails (y=0.95..1.0). Painted earth tint
+                      //     + fast horizontal motion-blur streaks at
+                      //     2× the rails speed. Reads as the ground
+                      //     rushing past close to the camera, which is
+                      //     the deepest layer in the parallax stack
+                      //     (sky → horizon → rails → close ground).
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.95,
+                        bottom: 0,
+                        child: IgnorePointer(
+                          child: AnimatedBuilder(
+                            animation: _closeGround,
+                            builder: (_, __) => CustomPaint(
+                              painter: _CloseGroundPainter(
+                                _closeGround.value,
+                                night: widget.night,
+                              ),
                             ),
                           ),
                         ),
@@ -1299,4 +1329,72 @@ class _SpeedLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SpeedLinesPainter old) =>
       old.t != t || old.intensity != intensity;
+}
+
+/// Deepest parallax layer: the strip of ground immediately under the
+/// wagon, between the rails and the bottom of the frame. Painted (no
+/// asset) so the band is always filled regardless of where the horizon
+/// happens to be cropped. Composition:
+///   - vertical earth gradient (dark soil near the rails, almost black
+///     at the very bottom);
+///   - fast left→right motion-blur streaks at ~2× the rails speed, so
+///     the ground reads as the closest, fastest thing in view.
+class _CloseGroundPainter extends CustomPainter {
+  _CloseGroundPainter(this.t, {this.night = false});
+  final double t;
+  final bool night;
+
+  static const int _streakCount = 24;
+  static final math.Random _rng = math.Random(57);
+  static final List<double> _yFrac =
+      List.generate(_streakCount, (_) => _rng.nextDouble());
+  static final List<double> _phase =
+      List.generate(_streakCount, (_) => _rng.nextDouble());
+  static final List<double> _len =
+      List.generate(_streakCount, (_) => 0.12 + _rng.nextDouble() * 0.28);
+  static final List<double> _stroke =
+      List.generate(_streakCount, (_) => 1.0 + _rng.nextDouble() * 1.8);
+
+  static const Color _dayTop = Color(0xFF4A3A24);
+  static const Color _dayBottom = Color(0xFF1A1208);
+  static const Color _nightTop = Color(0xFF1F2632);
+  static const Color _nightBottom = Color(0xFF080A0E);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    final ground = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: night
+            ? const [_nightTop, _nightBottom]
+            : const [_dayTop, _dayBottom],
+      ).createShader(rect);
+    canvas.drawRect(rect, ground);
+
+    final streak = Paint()..style = PaintingStyle.stroke;
+    final streakColor = night
+        ? const Color(0xFF6B7A92)
+        : const Color(0xFFB3997A);
+    for (int i = 0; i < _streakCount; i++) {
+      final life = (t + _phase[i]) % 1.0;
+      // Streak head sweeps left → right; trail lags behind so each
+      // streak feels like a blurred dash of soil rushing past.
+      final headX = size.width * (life * 1.6 - 0.3);
+      final tailX = headX - size.width * _len[i];
+      final y = size.height * _yFrac[i];
+      final alpha = life < 0.12
+          ? life / 0.12
+          : (life > 0.78 ? (1.0 - (life - 0.78) / 0.22) : 1.0);
+      streak
+        ..strokeWidth = _stroke[i]
+        ..color = streakColor.withValues(alpha: 0.55 * alpha.clamp(0.0, 1.0));
+      canvas.drawLine(Offset(tailX, y), Offset(headX, y), streak);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _CloseGroundPainter old) =>
+      old.t != t || old.night != night;
 }
