@@ -627,19 +627,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 3b. Plain white band under the rails strip
-                      //     (y=0.92..1.0). Restores the "old white
-                      //     background" the user wanted under the
-                      //     train, so we don't see the black container
-                      //     showing between the rails and the bottom
-                      //     of the frame.
+                      // 3b. Close ground strip under the rails
+                      //     (y=0.92..1.0). Painted post-apo dirt + dry
+                      //     grass + small debris; scrolls on the same
+                      //     foreground controller as the rails so the
+                      //     two move together at close-camera speed.
                       Positioned(
                         left: 0,
                         right: 0,
                         top: h * 0.92,
                         bottom: 0,
-                        child: const IgnorePointer(
-                          child: ColoredBox(color: Colors.white),
+                        child: IgnorePointer(
+                          child: _nightTint(
+                            _ParallaxLayer(
+                              controller: _foreground,
+                              asset: 'assets/background/foreground_band.png',
+                              fit: BoxFit.cover,
+                              alignment: Alignment.bottomCenter,
+                            ),
+                          ),
                         ),
                       ),
                       // 4. Wagon — fixed in the centre, picked from the
