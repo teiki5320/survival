@@ -134,8 +134,11 @@ Process AutoSprite (anims 49-frame) :
 - Bed dialé : `_bedLeft = 0.194`, `_bedTop = 0.448`, `_bedWidth = 0.280`.
   **NE PAS toucher**, l'utilisateur a réglé ça via l'adjust mode.
 - Horizon adjust mode actif (FAB landscape) avec drag handles top + bottom
-  + HUD numérique. Défauts en cours : `_horizonTop = 0.0`,
-  `_horizonBottom = 0.05` mais l'utilisateur a dialé `0.173` à baker.
+  + HUD numérique. Défauts bakés : `_horizonTop = 0.0`,
+  `_horizonBottom = 0.179` (horizon s'arrête juste au-dessus des rails).
+- **Bande blanche statique** sous les rails (`top: h*0.92, bottom: 0`,
+  `ColoredBox(Colors.white)`) — c'est un placeholder à remplacer par un
+  vrai asset sol (cf. pending).
 - 49 frames par anim, 13 anims différentes (`walk_right`, `idle_right`,
   `sleep_right`, `dance`, `pickup`, `yawn`, `stretch`, `look_window`,
   `read`, `wake_up`, `door_push`, `warm_hands`, `carry_walk`).
@@ -196,13 +199,16 @@ etc.).
 
 ## Pending / en cours (fin de session 2026-05-22)
 
-1. **Horizon clipping** — `_horizonBottom = 0.05` baked dans `side_scroll_
-   scene.dart`. L'utilisateur a dialé `0.173` via le horizon adjust mode
-   (capture montre `horizonTop=0.000 / horizonBottom=0.173`). Pas encore
-   baké comme défaut.
-2. **Bande sous les rails** — l'utilisateur veut un **fond blanc statique**
-   sous le strip de rails (y > 0.92). C'était l'« ancien background ». Pas
-   fait, juste demandé.
+1. **Horizon clipping** — `_horizonBottom = 0.179` baked (commit `4101ef9`).
+   Horizon s'arrête juste au-dessus de la rails strip. Adjust mode toujours
+   accessible via le FAB landscape pour ajuster live.
+2. **Bande blanche sous les rails** — ajoutée (commit `3e9f142`) en
+   placeholder. `ColoredBox(Colors.white)` à y=0.92..1.0. **À remplacer**
+   par un vrai asset « sol » que l'utilisateur génère via OpenArt. Prompt
+   fourni : strip horizontal post-apo, dirt + ballast stones + dry grass
+   + small rusty debris, sans rails, fond noir top 60% pour keying, 16:9.
+   Drop dans `assets/background/foreground_band.png` (ou
+   `ground_band.png`), je key et intègre.
 3. **Transparence locomotive sur wagon_swept.png** — sur le wagon « sale mais
    sol propre » (stage 1 = swept), l'arrière de la locomotive a des zones
    transparentes qui laissent voir l'horizon à travers. Asset à fixer (soit
