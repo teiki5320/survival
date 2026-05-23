@@ -253,14 +253,17 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // toute la silhouette pliée, donc la calibrer à la même hauteur que
   // walk_right rendrait le perso plus grand qu'en walk_right. On garde
   // donc des valeurs ajustées à l'œil pour celles-là.
+  // Valeurs calibrées en jeu via le mode adjust (FAB règle). warm_hands
+  // au coin du feu sert de référence — toutes les anims debout sont
+  // dialées pour matcher visuellement cette taille de perso. Les anims
+  // pliées (warm_hands, pickup) ont des scales différents car leur bbox
+  // enveloppe la silhouette accroupie.
   static const Map<String, _AnimMetrics> _animMetrics = {
-    'walk_right':  _AnimMetrics(scale: 1.000, aspect: 166 / 381, feet: 0.984),
-    'idle_right':  _AnimMetrics(scale: 0.989, aspect: 91 / 372,  feet: 0.989),
-    'carry_walk':  _AnimMetrics(scale: 1.353, aspect: 1.0,       feet: 0.863),
-    // Anims pliées — mid-point entre l'ancienne valeur (trop petite) et
-    // la valeur bbox-calibrée (trop grande car la bbox enveloppe la
-    // silhouette pliée et la fait paraître surdimensionnée).
+    'walk_right':  _AnimMetrics(scale: 1.300, aspect: 166 / 381, feet: 0.984),
+    'idle_right':  _AnimMetrics(scale: 1.309, aspect: 91 / 372,  feet: 0.989),
     'warm_hands':  _AnimMetrics(scale: 1.300, aspect: 1.0,       feet: 0.86),
+    // Pas encore calibré en jeu — à dialer via le mode adjust.
+    'carry_walk':  _AnimMetrics(scale: 1.353, aspect: 1.0,       feet: 0.863),
     'pickup':      _AnimMetrics(scale: 1.100, aspect: 170 / 385, feet: 0.97),
   };
 

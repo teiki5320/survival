@@ -129,6 +129,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   double _bedTop = 0.448;
   double _bedWidth = 0.280;
 
+  // When the heroine arrived at the bed via a double-tap on it, render
+  // the sleep sprite ON the mattress (instead of on the floor). Offsets
+  // are normalised to the scene size, position is relative to the
+  // bed's centre/top so it stays glued to the bed as it moves.
+  bool _sleepOnBed = false;
+  double _sleepBedOffsetX = 0.0;   // centred on bed.x by default
+  double _sleepBedOffsetY = 0.04;  // a touch below bed top
+  double _sleepBedScale = 0.36;    // body length as fraction of scene height
+
   // Horizon (middle background) clipping bounds — both are fractions
   // of the scene height. `_horizonTop` is the distance from the very
   // top of the frame, `_horizonBottom` is the distance from the very
@@ -293,6 +302,24 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (oldWidget.running != widget.running) {
       _applyRunning();
     }
+    if (oldWidget.bedAdjust != widget.bedAdjust) {
+      setState(() {
+        if (widget.bedAdjust) {
+          // Activation : forcer la fille en sleepOnBed pour caler la pose.
+          _heroDancing = false;
+          _heroLyingDown = false;
+          _heroTarget = null;
+          _sleepOnBed = true;
+          _heroSleeping = true;
+          _sleepFrame = 0;
+          _sleepAccumMs = 0;
+        } else {
+          // Désactivation : la sortir du sleep pour qu'elle reprenne idle.
+          _heroSleeping = false;
+          _sleepOnBed = false;
+        }
+      });
+    }
     if (oldWidget.dancing != widget.dancing) {
       setState(() {
         _heroDancing = widget.dancing;
@@ -311,6 +338,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _heroSleeping = false;
         _heroTarget = null;
         _heroLyingDown = true;
+        _sleepOnBed = false; // FAB = se coucher sur place, par terre
         _lieDownFrame = _heroFrameCount - 1;
         _lieDownAccumMs = 0;
       });
@@ -495,9 +523,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _walkAccumMs = 0;
         if (arriveTriggersLieDown) {
           _walkingToBed = false;
-          _heroLyingDown = true;
-          _lieDownFrame = _heroFrameCount - 1;
-          _lieDownAccumMs = 0;
+          // Skip the pickup-reversed transition (it doesn't read as a
+          // climb-into-bed motion). Just snap to sleep on the mattress.
+          _sleepOnBed = true;
+          _heroSleeping = true;
+          _sleepFrame = 0;
+          _sleepAccumMs = 0;
         }
       });
       widget.onHeroXChanged?.call(_heroX);
@@ -768,32 +799,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // Bed-adjust HUD: live readout of the values so
-                      // they can be copied into the defaults above.
+                      // Bed-adjust HUD: live readout + +/- buttons for
+                      // bed position/size AND the sleep-on-bed offsets.
                       if (widget.bedAdjust)
                         Positioned(
                           top: 16,
                           left: 16,
                           child: SafeArea(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.55),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                'left: ${_bedLeft.toStringAsFixed(3)}\n'
-                                'top:  ${_bedTop.toStringAsFixed(3)}\n'
-                                'width:${_bedWidth.toStringAsFixed(3)}',
-                                style: const TextStyle(
-                                  color: Color(0xFFFFD9A0),
-                                  fontSize: 14,
-                                  fontFamily: 'Courier',
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
+                            child: _buildBedAdjustHud(w, h),
                           ),
                         ),
                       // 4c. Floating dust motes — caught in the warm
@@ -1091,10 +1104,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     if (_heroSleeping) {
-      // Lying on the floor. Sleep sprite is 366x103 ≈ 3.55:1.
-      final bodyLen = h * 0.36;
-      final bodyThick = bodyLen / (366 / 103);
+      // Sleep sprite is 366x103 ≈ 3.55:1.
       final asset = 'assets/characters/sleep_right_${_sleepFrame + 1}.png';
+      double bodyLen;
+      double left;
+      double top;
+      if (_sleepOnBed) {
+        // Allongée sur le matelas. Position glued au lit, offsets dialés
+        // via le mode bedAdjust.
+        bodyLen = h * _sleepBedScale;
+        final bodyThick = bodyLen / (366 / 103);
+        final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
+        left = bedCenterX + _sleepBedOffsetX * w - bodyLen / 2;
+        top = (_bedTop + _sleepBedOffsetY) * h - bodyThick / 2;
+        return Positioned(
+          left: left,
+          top: top,
+          width: bodyLen,
+          height: bodyThick,
+          child: IgnorePointer(
+            child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+          ),
+        );
+      }
+      // Par terre (déclenché par le FAB "Se coucher").
+      bodyLen = h * 0.36;
+      final bodyThick = bodyLen / (366 / 103);
       return Positioned(
         left: anchorX - bodyLen / 2,
         top: feetY - bodyThick,
@@ -1213,6 +1248,96 @@ class _SideScrollSceneState extends State<SideScrollScene>
             child: Image.asset(asset, fit: BoxFit.contain),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBedAdjustHud(double w, double h) {
+    Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
+          onTap: onTap,
+          radius: 22,
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(
+              color: Color(0xFFB85522),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 18),
+          ),
+        );
+    Widget row(String label, double value, VoidCallback minus, VoidCallback plus) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 130,
+              child: Text(
+                '$label ${value.toStringAsFixed(3)}',
+                style: const TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 12,
+                  fontFamily: 'Courier',
+                ),
+              ),
+            ),
+            btn(Icons.remove, minus),
+            const SizedBox(width: 4),
+            btn(Icons.add, plus),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            'BED',
+            style: TextStyle(
+              color: Color(0xFFFFD9A0),
+              fontSize: 13,
+              fontFamily: 'Courier',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          row('left ', _bedLeft,
+              () => setState(() => _bedLeft = (_bedLeft - 0.005).clamp(0.0, 1.0)),
+              () => setState(() => _bedLeft = (_bedLeft + 0.005).clamp(0.0, 1.0))),
+          row('top  ', _bedTop,
+              () => setState(() => _bedTop = (_bedTop - 0.005).clamp(0.0, 1.0)),
+              () => setState(() => _bedTop = (_bedTop + 0.005).clamp(0.0, 1.0))),
+          row('width', _bedWidth,
+              () => setState(() => _bedWidth = (_bedWidth - 0.005).clamp(0.05, 0.8)),
+              () => setState(() => _bedWidth = (_bedWidth + 0.005).clamp(0.05, 0.8))),
+          const SizedBox(height: 6),
+          const Text(
+            'SLEEP ON BED',
+            style: TextStyle(
+              color: Color(0xFFFFD9A0),
+              fontSize: 13,
+              fontFamily: 'Courier',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          row('offX ', _sleepBedOffsetX,
+              () => setState(() => _sleepBedOffsetX -= 0.005),
+              () => setState(() => _sleepBedOffsetX += 0.005)),
+          row('offY ', _sleepBedOffsetY,
+              () => setState(() => _sleepBedOffsetY -= 0.005),
+              () => setState(() => _sleepBedOffsetY += 0.005)),
+          row('scale', _sleepBedScale,
+              () => setState(() => _sleepBedScale = (_sleepBedScale - 0.01).clamp(0.1, 1.0)),
+              () => setState(() => _sleepBedScale = (_sleepBedScale + 0.01).clamp(0.1, 1.0))),
+        ],
       ),
     );
   }
