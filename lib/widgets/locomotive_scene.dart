@@ -5,7 +5,6 @@ import 'package:flutter/scheduler.dart';
 
 import '../services/audio_service.dart';
 import 'atmosphere.dart';
-import 'hero_sprite.dart';
 import 'train_rocking.dart';
 
 enum _LocoAction {
@@ -292,6 +291,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         }
         break;
     }
+    final asset = 'assets/characters/${prefix}_${frame + 1}.png';
+
     // warm_hands is rendered in a left-facing context (firebox is on
     // the left). Source already faces left → don't mirror it based on
     // the last walk direction.
@@ -315,27 +316,17 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     final heroWidth = heroHeight * m.aspect;
     final feetRatio = m.feet;
     final feetY = h * 0.92;
-    // throwing = pickup lu à l'envers, ce que Flame ne gère pas
-    // nativement → on garde Image.asset pour ce cas-là.
-    final isReversedPickup = _action == _LocoAction.throwing;
-    final Widget sprite;
-    if (isReversedPickup) {
-      final asset = 'assets/characters/${prefix}_${frame + 1}.png';
-      sprite = Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(shouldMirror ? -1.0 : 1.0, 1.0),
-        child: Image.asset(asset, fit: BoxFit.contain),
-      );
-    } else {
-      sprite = HeroSprite(prefix: prefix, mirror: shouldMirror);
-    }
     return Positioned(
       left: w * _heroX - heroWidth / 2,
       top: feetY - heroHeight * feetRatio,
       width: heroWidth,
       height: heroHeight,
       child: IgnorePointer(
-        child: _nightTint(sprite),
+        child: Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()..scale(shouldMirror ? -1.0 : 1.0, 1.0),
+          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+        ),
       ),
     );
   }
