@@ -408,6 +408,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
           if (_wakingFrame >= _heroFrameCount) {
             _wakingFrame = 0;
             _wakingPhase++;
+            // Fin de wake_up → passage à stretch. La fille n'est plus
+            // sur le lit, elle pose pied à côté. On clear sleepOnBed et
+            // on repositionne le perso au centre du lit en X.
+            if (_wakingPhase == 1 && _sleepOnBed) {
+              _sleepOnBed = false;
+              _heroX = (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
+              widget.onHeroXChanged?.call(_heroX);
+            }
             if (_wakingPhase >= 2) {
               _waking = false;
               return;
@@ -993,9 +1001,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
       final heroHeight = h * 0.36 * (512 / 360);
       final heroWidth = heroHeight;
       final asset = 'assets/characters/${prefix}_${_wakingFrame + 1}.png';
+      // Quand on se réveille DU LIT, la phase wake_up doit se passer SUR
+      // le lit (sinon la fille téléporte du lit au sol invisible avant
+      // de jouer stretch). On positionne wake_up sur le matelas tant
+      // qu'on est en phase 0, puis stretch repart au sol comme avant.
+      double top;
+      double left;
+      if (_sleepOnBed && _wakingPhase == 0) {
+        final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
+        left = bedCenterX - heroWidth / 2;
+        top = (_bedTop + _sleepBedOffsetY) * h - heroHeight * 0.5;
+      } else {
+        left = anchorX - heroWidth / 2;
+        top = feetY - heroHeight * 0.86;
+      }
       return Positioned(
-        left: anchorX - heroWidth / 2,
-        top: feetY - heroHeight * 0.86,
+        left: left,
+        top: top,
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
