@@ -289,7 +289,16 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // she'd end up with her back to the fire.
     const sourceFacesLeft = {'warm_hands'};
     final isNewSquare = newSquareSprites.contains(prefix);
-    final shouldMirror = !sourceFacesLeft.contains(prefix) && !_heroFacingRight;
+    // pickup source bends LEFT by default. In the locomotive the woodpile
+    // is on the right (action == pickingUp → flip so she bends right) and
+    // the firebox is on the left (action == throwing → no flip, she bends
+    // left towards it). Other sprites use the regular walk-direction mirror.
+    final bool shouldMirror;
+    if (prefix == 'pickup') {
+      shouldMirror = _action == _LocoAction.pickingUp;
+    } else {
+      shouldMirror = !sourceFacesLeft.contains(prefix) && !_heroFacingRight;
+    }
     final double heroHeight;
     final double heroWidth;
     final double feetRatio;
@@ -297,6 +306,13 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       heroHeight = h * 0.44;
       heroWidth = heroHeight * (170 / 385);
       feetRatio = 1.0;
+    } else if (prefix == 'warm_hands') {
+      // La fille est accroupie dans ce sprite et occupe plus de hauteur
+      // dans le 512x512 que carry_walk (debout) — on réduit le scale
+      // pour qu'elle paraisse cohérente avec idle_right une fois rendue.
+      heroHeight = h * 0.44 * (512 / 420);
+      heroWidth = heroHeight;
+      feetRatio = 0.86;
     } else if (isNewSquare) {
       heroHeight = h * 0.44 * (512 / 360);
       heroWidth = heroHeight;

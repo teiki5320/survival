@@ -157,6 +157,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _heroFacingRight = true;
   bool _heroSleeping = false;
   bool _heroDancing = false;
+  // When set, the next walk-arrival auto-triggers a lie-down (used by
+  // the double-tap-on-bed handler so she walks over before lying down).
+  bool _walkingToBed = false;
   // Lie-down transition: plays pickup frames in reverse (upright → bent
   // over), then snaps into the sleep loop on the floor.
   bool _heroLyingDown = false;
@@ -484,11 +487,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final delta = target - _heroX;
     final step = _heroSpeed * dt;
     if (delta.abs() <= step) {
+      final arriveTriggersLieDown = _walkingToBed;
       setState(() {
         _heroX = target;
         _heroTarget = null;
         _walkFrame = 0;
         _walkAccumMs = 0;
+        if (arriveTriggersLieDown) {
+          _walkingToBed = false;
+          _heroLyingDown = true;
+          _lieDownFrame = _heroFrameCount - 1;
+          _lieDownAccumMs = 0;
+        }
       });
       widget.onHeroXChanged?.call(_heroX);
       return;
@@ -517,11 +527,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _heroSleeping = false;
       _heroDancing = false;
       _heroLyingDown = false;
+      _walkingToBed = false;
       _heroTarget = clamped;
       if (wasSleeping) {
         // Don't let her snap from lying flat into a walk — play the
         // wake_up + stretch sequence first, then she'll walk to the
         // queued target.
+        _waking = true;
+        _wakingPhase = 0;
+        _wakingFrame = 0;
+        _wakingAccumMs = 0;
+      }
+    });
+    widget.onUserInteract?.call();
+  }
+
+  /// Double-tap on the bed → walk over, then play the lie-down sequence.
+  void _goLieDownOnBed() {
+    final target = (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
+    final wasSleeping = _heroSleeping;
+    setState(() {
+      _heroSleeping = false;
+      _heroDancing = false;
+      _heroLyingDown = false;
+      _walkingToBed = true;
+      _heroTarget = target;
+      if (wasSleeping) {
         _waking = true;
         _wakingPhase = 0;
         _wakingFrame = 0;
@@ -671,6 +702,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         width: w * _bedWidth,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
+                          onDoubleTap: widget.bedAdjust ? null : _goLieDownOnBed,
                           onPanUpdate: widget.bedAdjust
                               ? (d) => setState(() {
                                     _bedLeft = (_bedLeft + d.delta.dx / w)
