@@ -418,7 +418,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
             // on repositionne le perso au centre du lit en X.
             if (_wakingPhase == 1 && _sleepOnBed) {
               _sleepOnBed = false;
-              _heroX = (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
+              // La fille se redresse + sort du lit → elle atterrit DEBOUT
+              // À CÔTÉ du lit (au bord droit, pas sur le matelas), pour
+              // que stretch puis idle ne dépassent pas du wagon vers la
+              // porte gauche.
+              const stepOffBedX = 0.50; // bedRight (0.47) + petit décalage
+              _heroX = stepOffBedX.clamp(_heroXMin, _heroXMax);
               widget.onHeroXChanged?.call(_heroX);
             }
             if (_wakingPhase >= 2) {
