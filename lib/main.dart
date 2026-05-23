@@ -8,6 +8,13 @@ import 'widgets/side_scroll_scene.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Augmente le cache d'images de Flutter. Par défaut ~100MB, ce qui
+  // est trop petit pour 13 anims × 49 frames de 512x512 RGBA décodées
+  // (≈450MB). Sans ça, le cache purge des frames et re-décode au switch
+  // d'anim → saccadement visible. iPhone 16 Plus a 6GB de RAM, 800MB
+  // pour les sprites c'est ok.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 800 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 2000;
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
