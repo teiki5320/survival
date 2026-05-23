@@ -29,11 +29,13 @@ class HeroSpriteCache {
   }
 
   Future<void> _loadAnim(String prefix, _AnimSpec spec) async {
-    final sprites = <Sprite>[];
-    for (int i = 1; i <= spec.frameCount; i++) {
-      final image = await _images.load('${prefix}_$i.png');
-      sprites.add(Sprite(image));
-    }
+    // Loads en parallèle pour ne pas serializer le décodage.
+    final imagesFut = <Future>[
+      for (int i = 1; i <= spec.frameCount; i++)
+        _images.load('${prefix}_$i.png'),
+    ];
+    final loaded = await Future.wait(imagesFut);
+    final sprites = [for (final img in loaded) Sprite(img)];
     _anims[prefix] = SpriteAnimation.spriteList(
       sprites,
       stepTime: spec.frameDurationMs / 1000.0,

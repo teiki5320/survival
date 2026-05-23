@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'atmosphere.dart';
+import 'hero_sprite.dart';
 import 'train_rocking.dart';
 
 /// Side-scroller wagon scene.
@@ -971,12 +972,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final anchorX = _heroX * w;
 
     if (_doorPushing) {
-      // door_push source pousse vers la DROITE en réalité. La porte
-      // wagon → loco est à GAUCHE de la scène, donc on mirror pour que
-      // la fille pousse vers la gauche.
+      // door_push source pousse vers la DROITE; la porte wagon → loco
+      // est à GAUCHE de la scène, donc mirror.
       final heroHeight = h * 0.36 * (512 / 360);
       final heroWidth = heroHeight;
-      final asset = 'assets/characters/door_push_${_doorFrame + 1}.png';
       return Positioned(
         left: anchorX - heroWidth / 2,
         top: feetY - heroHeight * 0.86,
@@ -984,11 +983,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         height: heroHeight,
         child: IgnorePointer(
           child: _nightTint(
-            Transform(
-              alignment: Alignment.center,
-              transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-              child: Image.asset(asset, fit: BoxFit.contain),
-            ),
+            const HeroSprite(prefix: 'door_push', mirror: true),
           ),
         ),
       );
@@ -1000,7 +995,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       final prefix = _wakingPhase == 0 ? 'wake_up' : 'stretch';
       final heroHeight = h * 0.36 * (512 / 360);
       final heroWidth = heroHeight;
-      final asset = 'assets/characters/${prefix}_${_wakingFrame + 1}.png';
       // Quand on se réveille DU LIT, la phase wake_up doit se passer SUR
       // le lit (sinon la fille téléporte du lit au sol invisible avant
       // de jouer stretch). On positionne wake_up sur le matelas tant
@@ -1021,21 +1015,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+          child: _nightTint(HeroSprite(prefix: prefix)),
         ),
       );
     }
 
     if (_heroSleeping) {
       // Sleep sprite is 366x103 ≈ 3.55:1.
-      final asset = 'assets/characters/sleep_right_${_sleepFrame + 1}.png';
       double bodyLen;
       double left;
       double top;
       if (_sleepOnBed) {
-        // Allongée sur le matelas. Position glued au lit, offsets dialés
-        // via le mode bedAdjust. Sprite mirroré: source = pieds à droite,
-        // sur le lit on veut la tête côté oreiller (gauche).
+        // Allongée sur le matelas, mirror pour avoir la tête à gauche.
         bodyLen = h * _sleepBedScale;
         final bodyThick = bodyLen / (366 / 103);
         final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
@@ -1048,11 +1039,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           height: bodyThick,
           child: IgnorePointer(
             child: _nightTint(
-              Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-                child: Image.asset(asset, fit: BoxFit.contain),
-              ),
+              const HeroSprite(prefix: 'sleep_right', mirror: true),
             ),
           ),
         );
@@ -1066,7 +1053,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         width: bodyLen,
         height: bodyThick,
         child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+          child: _nightTint(const HeroSprite(prefix: 'sleep_right')),
         ),
       );
     }
@@ -1103,14 +1090,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
       // matches walk/idle scale instead of looking shrunk.
       final heroHeight = h * 0.36 * (425 / 365);
       final heroWidth = heroHeight * (264 / 425);
-      final asset = 'assets/characters/dance_${_danceFrame + 1}.png';
       return Positioned(
         left: anchorX - heroWidth / 2,
         top: feetY - heroHeight,
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+          child: _nightTint(const HeroSprite(prefix: 'dance')),
         ),
       );
     }
@@ -1128,19 +1114,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'door_push', 'warm_hands', 'carry_walk',
     };
     final isMoving = _heroTarget != null;
-    int frame;
-    String prefix;
+    final String prefix;
     if (_idleBreak != null) {
       prefix = _idleBreak!;
-      frame = _idleBreakFrame;
     } else if (isMoving) {
       prefix = 'walk_right';
-      frame = _walkFrame;
     } else {
       prefix = 'idle_right';
-      frame = _idleFrame;
     }
-    final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
     final isNewSquare = newSquareSprites.contains(prefix);
     final double heroHeight;
@@ -1170,13 +1151,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       height: heroHeight,
       child: IgnorePointer(
         child: _nightTint(
-          Transform(
-            alignment: Alignment.center,
-            transform: _heroFacingRight
-                ? Matrix4.identity()
-                : (Matrix4.identity()..scale(-1.0, 1.0, 1.0)),
-            child: Image.asset(asset, fit: BoxFit.contain),
-          ),
+          HeroSprite(prefix: prefix, mirror: !_heroFacingRight),
         ),
       ),
     );
