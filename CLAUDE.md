@@ -46,14 +46,14 @@ narratifs câblés. Mécaniques de progression / sauvegarde à construire.
   parade c'est **toujours `flutter run --release`**. Le release mode AOT
   fonctionne sans souci.
 
-## Règles de commit / push **STRICT**
+## Règles de commit / push
 
-- **Commit UNIQUEMENT sur ordre explicite** de l'utilisateur (« go »,
-  « commit », « pousse », etc.). Citation : « j'aimerais que tu commit
-  seulement quand je te le dit desormais pour eviter les quotas. tu prépares
-  tout mais tu commit que quand je le dit ou valide. »
-- Tu prépares les edits et tu attends. Si t'es en train d'enchaîner plusieurs
-  fix, tu peux les empiler tous avant de commit.
+- **Commit + push à chaque modification** sans attendre validation explicite.
+  L'utilisateur a explicitement levé (2026-05-23) la restriction qui était
+  en place avant (« tu commits seulement quand je te le dis »). Retour au
+  mode normal : tu prépares un fix → tu commits → tu push, dans la foulée.
+- Si t'enchaînes plusieurs petits fixes liés sur le même sujet, tu peux
+  les empiler dans un seul commit pour garder l'historique propre.
 - Push direct sur `main` (`git push -u origin main`), pas de PR à créer.
 
 ---
@@ -263,7 +263,7 @@ Phase narrative :
 - **Analyse visuelle** : ne pas survoler (proportions, intégration, échelle).
   Vraiment regarder l'image qu'il envoie.
 - **Délégations explicites** :
-  - Commit : NON sauf ordre explicite. Voir « Règles de commit ».
+  - Commit : OUI à chaque modification. Voir « Règles de commit ».
   - Décisions UX / esthétiques : NON, toujours lui proposer.
   - Génération d'assets via OpenArt / AutoSprite : c'est LUI qui génère,
     je fournis les prompts.
