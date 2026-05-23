@@ -83,13 +83,14 @@ class SideScrollScene extends StatefulWidget {
   final void Function(double heroX)? onHeroXChanged;
 
   /// Left bound for the heroine in normalised X. Exposed so the parent
-  /// can compare against it to know when she's at the door.
-  static const double heroXMin = 0.20;
+  /// can compare against it to know when she's at the door (= porte
+  /// gauche du wagon vers la locomotive).
+  static const double heroXMin = 0.13;
 
   /// Right bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the right door
   /// (= ouverture sur la map du monde).
-  static const double heroXMax = 0.82;
+  static const double heroXMax = 0.90;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
