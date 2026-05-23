@@ -29,8 +29,6 @@ class SideScrollScene extends StatefulWidget {
     this.lieDownToken = 0,
     this.onUserInteract,
     this.onHeroXChanged,
-    this.bedAdjust = false,
-    this.propsAdjust = false,
     this.logsThrown = 0,
     this.doorPushToken = 0,
     this.onDoorPushDone,
@@ -88,15 +86,6 @@ class SideScrollScene extends StatefulWidget {
   /// (= ouverture sur la map du monde).
   static const double heroXMax = 0.82;
 
-  /// When `true` the bed becomes draggable + resizable, and a HUD shows
-  /// its current normalised position + width so the values can be copied
-  /// back into the defaults below.
-  final bool bedAdjust;
-
-  /// When `true`, the hydro tower and oil lamp get draggable handles +
-  /// a HUD with +/- buttons for fine-tuning position and scale.
-  final bool propsAdjust;
-
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
   final int logsThrown;
@@ -139,13 +128,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // bed's centre/top so it stays glued to the bed as it moves.
   bool _sleepOnBed = false;
   double _sleepBedOffsetX = 0.0;   // centré sur le centre du lit
-  double _sleepBedOffsetY = 0.115; // calé sur le matelas via bedAdjust
+  double _sleepBedOffsetY = 0.115; // calé sur le matelas
   double _sleepBedScale = 0.36;    // longueur corps en fraction de h
 
   // Props installés dans le wagon — chaque entry contient sa position
-  // (left/top centrés, normalisés) + sa hauteur en fraction de h. Le mode
-  // propsAdjust laisse les dialer live via drag, handle de resize, ou le
-  // HUD top-right avec un selector (chip row) pour choisir le prop actif.
+  // (left/top centrés, normalisés) + sa hauteur en fraction de h.
   static final List<_PropDef> _propDefs = [
     _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
@@ -167,9 +154,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
   };
-
-  /// Prop actif pour le HUD du mode propsAdjust (sélectionné via chip).
-  String _activeProp = 'hydro';
 
   // Horizon (middle background) clipping bounds — both are fractions
   // of the scene height. `_horizonTop` is the distance from the very
@@ -350,24 +334,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.running != widget.running) {
       _applyRunning();
-    }
-    if (oldWidget.bedAdjust != widget.bedAdjust) {
-      setState(() {
-        if (widget.bedAdjust) {
-          // Activation : forcer la fille en sleepOnBed pour caler la pose.
-          _heroDancing = false;
-          _heroLyingDown = false;
-          _heroTarget = null;
-          _sleepOnBed = true;
-          _heroSleeping = true;
-          _sleepFrame = 0;
-          _sleepAccumMs = 0;
-        } else {
-          // Désactivation : la sortir du sleep pour qu'elle reprenne idle.
-          _heroSleeping = false;
-          _sleepOnBed = false;
-        }
-      });
     }
     if (oldWidget.dancing != widget.dancing) {
       setState(() {
@@ -795,88 +761,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         width: w * _bedWidth,
                         child: GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onDoubleTap: widget.bedAdjust ? null : _goLieDownOnBed,
-                          onPanUpdate: widget.bedAdjust
-                              ? (d) => setState(() {
-                                    _bedLeft = (_bedLeft + d.delta.dx / w)
-                                        .clamp(0.0, 1.0 - _bedWidth);
-                                    _bedTop = (_bedTop + d.delta.dy / h)
-                                        .clamp(0.0, 0.95);
-                                  })
-                              : null,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              _nightTint(
-                                Image.asset(
-                                  'assets/objects/bed.png',
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
-                              if (widget.bedAdjust) ...[
-                                // Dashed outline around the bed's
-                                // hitbox so the drag target is visible.
-                                Positioned.fill(
-                                  child: IgnorePointer(
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: const Color(0xFFFFB347),
-                                          width: 2,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                // Bottom-right resize handle: drag to
-                                // grow / shrink the bed by changing
-                                // its normalised width. Aspect ratio
-                                // stays locked (Image.asset contains).
-                                Positioned(
-                                  right: -16,
-                                  bottom: -16,
-                                  child: GestureDetector(
-                                    behavior: HitTestBehavior.opaque,
-                                    onPanUpdate: (d) => setState(() {
-                                      _bedWidth = (_bedWidth + d.delta.dx / w)
-                                          .clamp(0.05, 0.80);
-                                    }),
-                                    child: Container(
-                                      width: 32,
-                                      height: 32,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFB85522),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(
-                                        Icons.open_in_full,
-                                        color: Colors.white,
-                                        size: 18,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
+                          onDoubleTap: _goLieDownOnBed,
+                          child: _nightTint(
+                            Image.asset(
+                              'assets/objects/bed.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
                       ),
-                      // Bed-adjust HUD: live readout + +/- buttons for
-                      // bed position/size AND the sleep-on-bed offsets.
-                      // Positionné en haut-droite (zone vide loin du lit
-                      // qui est à gauche) pour ne pas être masqué.
-                      if (widget.bedAdjust)
-                        Positioned(
-                          top: 8,
-                          right: 80, // évite les FABs de droite
-                          child: _buildBedAdjustHud(w, h),
-                        ),
-                      if (widget.propsAdjust)
-                        Positioned(
-                          top: 8,
-                          right: 80,
-                          child: _buildPropsAdjustHud(),
-                        ),
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
@@ -1061,103 +954,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
             'assets/objects/${def.key}.png',
             fit: BoxFit.contain,
           );
-    final child = _nightTint(sprite);
-    if (!widget.propsAdjust) {
-      return Positioned(
-        left: left,
-        top: top,
-        width: propW,
-        height: propH,
-        child: IgnorePointer(child: child),
-      );
-    }
-    // Mode adjust : drag pour bouger, handle pour redimensionner, et
-    // tap pour sélectionner ce prop dans le HUD (sliders au top-right).
-    final isActive = _activeProp == def.key;
     return Positioned(
       left: left,
       top: top,
       width: propW,
       height: propH,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => setState(() => _activeProp = def.key),
-        onPanUpdate: (d) => setState(() {
-          pos.left = (pos.left + d.delta.dx / w).clamp(0.0, 1.0);
-          pos.top = (pos.top + d.delta.dy / h).clamp(0.0, 1.0);
-          _activeProp = def.key;
-        }),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            child,
-            // Outline (orange si actif, blanc translucide sinon).
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: isActive
-                          ? const Color(0xFFFFB347)
-                          : Colors.white.withValues(alpha: 0.35),
-                      width: isActive ? 2 : 1,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // Petite étiquette en haut-gauche du sprite avec le label.
-            Positioned(
-              top: -16,
-              left: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? const Color(0xFFB85522)
-                      : Colors.black.withValues(alpha: 0.55),
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: Text(
-                  def.label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontFamily: 'Courier',
-                  ),
-                ),
-              ),
-            ),
-            // Handle de resize en bas-droite (visible seulement actif).
-            if (isActive)
-              Positioned(
-                right: -16,
-                bottom: -16,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanUpdate: (d) => setState(() {
-                    pos.height = (pos.height + d.delta.dy / h)
-                        .clamp(0.03, 1.0);
-                  }),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFB85522),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.open_in_full,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+      child: IgnorePointer(child: _nightTint(sprite)),
     );
   }
 
@@ -1230,7 +1032,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       double top;
       if (_sleepOnBed) {
         // Allongée sur le matelas. Position glued au lit, offsets dialés
-        // via le mode bedAdjust. Sprite mirroré: source = pieds à droite,
+        // Sprite mirroré: source = pieds à droite,
         // sur le lit on veut la tête côté oreiller (gauche).
         bodyLen = h * _sleepBedScale;
         final bodyThick = bodyLen / (366 / 103);
@@ -1374,211 +1176,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
             child: Image.asset(asset, fit: BoxFit.contain),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildPropsAdjustHud() {
-    final pos = _propPos[_activeProp]!;
-    final def = _propDefs.firstWhere((d) => d.key == _activeProp);
-
-    Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
-          onTap: onTap,
-          radius: 18,
-          child: Container(
-            width: 26,
-            height: 26,
-            decoration: const BoxDecoration(
-              color: Color(0xFFB85522),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.white, size: 16),
-          ),
-        );
-
-    Widget row(String label, double value, double step,
-        void Function(double delta) apply) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 110,
-              child: Text(
-                '$label ${value.toStringAsFixed(3)}',
-                style: const TextStyle(
-                  color: Color(0xFFFFD9A0),
-                  fontSize: 11,
-                  fontFamily: 'Courier',
-                ),
-              ),
-            ),
-            btn(Icons.remove, () => setState(() => apply(-step))),
-            const SizedBox(width: 4),
-            btn(Icons.add, () => setState(() => apply(step))),
-          ],
-        ),
-      );
-    }
-
-    // Selector row : un chip par prop. Tap pour sélectionner.
-    final chips = _propDefs.map((d) {
-      final selected = d.key == _activeProp;
-      return Padding(
-        padding: const EdgeInsets.only(right: 4),
-        child: GestureDetector(
-          onTap: () => setState(() => _activeProp = d.key),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: selected
-                  ? const Color(0xFFB85522)
-                  : Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              d.label,
-              style: TextStyle(
-                color: selected
-                    ? Colors.white
-                    : const Color(0xFFFFD9A0),
-                fontSize: 10,
-                fontFamily: 'Courier',
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-        ),
-      );
-    }).toList();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 260,
-            child: Wrap(
-              spacing: 0,
-              runSpacing: 4,
-              children: chips,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            def.label.toUpperCase(),
-            style: const TextStyle(
-              color: Color(0xFFFFD9A0),
-              fontSize: 11,
-              fontFamily: 'Courier',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          row('left  ', pos.left, 0.005,
-              (d) => pos.left = (pos.left + d).clamp(0.0, 1.0)),
-          row('top   ', pos.top, 0.005,
-              (d) => pos.top = (pos.top + d).clamp(0.0, 1.0)),
-          row('height', pos.height, 0.01,
-              (d) => pos.height = (pos.height + d).clamp(0.03, 1.0)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBedAdjustHud(double w, double h) {
-    Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
-          onTap: onTap,
-          radius: 18,
-          child: Container(
-            width: 26,
-            height: 26,
-            decoration: const BoxDecoration(
-              color: Color(0xFFB85522),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.white, size: 16),
-          ),
-        );
-    Widget row(String label, double value, VoidCallback minus, VoidCallback plus) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 96,
-              child: Text(
-                '$label ${value.toStringAsFixed(3)}',
-                style: const TextStyle(
-                  color: Color(0xFFFFD9A0),
-                  fontSize: 11,
-                  fontFamily: 'Courier',
-                ),
-              ),
-            ),
-            btn(Icons.remove, minus),
-            const SizedBox(width: 4),
-            btn(Icons.add, plus),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'BED',
-            style: TextStyle(
-              color: Color(0xFFFFD9A0),
-              fontSize: 11,
-              fontFamily: 'Courier',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          row('left ', _bedLeft,
-              () => setState(() => _bedLeft = (_bedLeft - 0.005).clamp(0.0, 1.0)),
-              () => setState(() => _bedLeft = (_bedLeft + 0.005).clamp(0.0, 1.0))),
-          row('top  ', _bedTop,
-              () => setState(() => _bedTop = (_bedTop - 0.005).clamp(0.0, 1.0)),
-              () => setState(() => _bedTop = (_bedTop + 0.005).clamp(0.0, 1.0))),
-          row('width', _bedWidth,
-              () => setState(() => _bedWidth = (_bedWidth - 0.005).clamp(0.05, 0.8)),
-              () => setState(() => _bedWidth = (_bedWidth + 0.005).clamp(0.05, 0.8))),
-          const SizedBox(height: 4),
-          const Text(
-            'SLEEP',
-            style: TextStyle(
-              color: Color(0xFFFFD9A0),
-              fontSize: 11,
-              fontFamily: 'Courier',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          row('offX ', _sleepBedOffsetX,
-              () => setState(() => _sleepBedOffsetX -= 0.005),
-              () => setState(() => _sleepBedOffsetX += 0.005)),
-          row('offY ', _sleepBedOffsetY,
-              () => setState(() => _sleepBedOffsetY -= 0.005),
-              () => setState(() => _sleepBedOffsetY += 0.005)),
-          row('scale', _sleepBedScale,
-              () => setState(() => _sleepBedScale = (_sleepBedScale - 0.01).clamp(0.1, 1.0)),
-              () => setState(() => _sleepBedScale = (_sleepBedScale + 0.01).clamp(0.1, 1.0))),
-        ],
       ),
     );
   }
