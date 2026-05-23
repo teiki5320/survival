@@ -335,15 +335,27 @@ class _SideScrollSceneState extends State<SideScrollScene>
         );
       }
     }
-    // Le chien a 3 anims (idle = dog_1..49, walk, sleep) — précache tout.
-    for (final prefix in ['dog', 'dog_walk', 'dog_sleep']) {
-      for (int i = 1; i <= 49; i++) {
+    // Plume (chien) — précache les 9 anims. idle = image statique,
+    // walk = 49 frames, le reste = 25 frames.
+    precacheImage(const AssetImage('assets/objects/dog_idle.png'), context);
+    const dogAnims = {
+      'dog_walk':         49,
+      'dog_sleep':        25,
+      'dog_lay_down':     25,
+      'dog_wag_tail':     25,
+      'dog_bark':         25,
+      'dog_stretch_yawn': 25,
+      'dog_head_tilt':    25,
+      'dog_eat':          25,
+    };
+    dogAnims.forEach((prefix, count) {
+      for (int i = 1; i <= count; i++) {
         precacheImage(
           AssetImage('assets/objects/${prefix}_$i.png'),
           context,
         );
       }
-    }
+    });
     for (final asset in const [
       'assets/background/sky.png',
       'assets/background/sky_night.png',
@@ -1800,14 +1812,33 @@ class _DogActor extends StatefulWidget {
   State<_DogActor> createState() => _DogActorState();
 }
 
-enum _DogState { idle, walk, sleep }
+enum _DogState {
+  idle,        // assis tranquille (image statique : dog_idle.png)
+  walk,        // se déplace, X glisse, direction selon target
+  layDown,     // transition idle → sleep (joue 1x, non-loop)
+  sleep,       // dort en boule (loop)
+  stretchYawn, // transition sleep → idle (joue 1x, non-loop)
+  wagTail,     // assis, queue qui s'agite (loop court)
+  bark,        // aboie (loop court)
+  headTilt,    // incline la tête, curieux (loop court)
+  eat,         // mange dans la gamelle (loop court, conditionnel)
+}
 
 class _DogActorState extends State<_DogActor>
     with SingleTickerProviderStateMixin {
-  static const int _frameCount = 49;
-  static const int _idleMs = 80;
-  static const int _walkMs = 50;
-  static const int _sleepMs = 110;
+  // Frame count + cadence par état. idle = 1 (image statique).
+  static const Map<_DogState, _AnimDef> _anims = {
+    _DogState.idle:        _AnimDef(prefix: 'dog_idle',         frames: 1,  frameMs: 0,   loops: true),
+    _DogState.walk:        _AnimDef(prefix: 'dog_walk',         frames: 49, frameMs: 50,  loops: true),
+    _DogState.layDown:     _AnimDef(prefix: 'dog_lay_down',     frames: 25, frameMs: 70,  loops: false),
+    _DogState.sleep:       _AnimDef(prefix: 'dog_sleep',        frames: 25, frameMs: 110, loops: true),
+    _DogState.stretchYawn: _AnimDef(prefix: 'dog_stretch_yawn', frames: 25, frameMs: 70,  loops: false),
+    _DogState.wagTail:     _AnimDef(prefix: 'dog_wag_tail',     frames: 25, frameMs: 60,  loops: true),
+    _DogState.bark:        _AnimDef(prefix: 'dog_bark',         frames: 25, frameMs: 60,  loops: true),
+    _DogState.headTilt:    _AnimDef(prefix: 'dog_head_tilt',    frames: 25, frameMs: 70,  loops: true),
+    _DogState.eat:         _AnimDef(prefix: 'dog_eat',          frames: 25, frameMs: 70,  loops: true),
+  };
+
   static const double _walkSpeed = 0.06; // unités normalisées / sec
 
   final math.Random _rng = math.Random();
@@ -1825,7 +1856,7 @@ class _DogActorState extends State<_DogActor>
   @override
   void initState() {
     super.initState();
-    _pickNextState(initial: true);
+    _enterState(_DogState.idle, initial: true);
     _ticker = createTicker(_onTick)..start();
   }
 
@@ -1835,30 +1866,16 @@ class _DogActorState extends State<_DogActor>
     super.dispose();
   }
 
-  void _pickNextState({bool initial = false}) {
-    // Pondération : idle 45%, walk 35%, sleep 20%.
-    // On évite de rester deux fois de suite sur le même état (sauf idle).
-    _DogState next;
-    final r = _rng.nextDouble();
-    if (initial) {
-      next = _DogState.idle;
-    } else if (r < 0.45) {
-      next = _DogState.idle;
-    } else if (r < 0.80) {
-      next = _DogState.walk;
-    } else {
-      next = _state == _DogState.sleep ? _DogState.idle : _DogState.sleep;
-    }
+  /// Configure les paramètres d'un nouvel état (durée, direction, etc.).
+  void _enterState(_DogState next, {bool initial = false}) {
     _state = next;
     _frame = 0;
     _accumMs = 0;
     switch (next) {
       case _DogState.idle:
-        _stateRemainMs = 3000 + _rng.nextInt(4000); // 3-7s
+        _stateRemainMs = 2500 + _rng.nextInt(3500); // 2.5-6s
         break;
       case _DogState.walk:
-        // Cible random dans la zone autorisée, au moins 0.10 plus loin
-        // que la position actuelle pour que ça vaille la peine de marcher.
         double target;
         do {
           target = widget.xMin +
@@ -1866,12 +1883,78 @@ class _DogActorState extends State<_DogActor>
         } while ((target - _x).abs() < 0.10);
         _walkTargetX = target;
         _dir = target > _x ? 1.0 : -1.0;
-        _stateRemainMs = 8000; // safety cap : si bloqué, restart state
+        _stateRemainMs = 8000;
+        break;
+      case _DogState.layDown:
+      case _DogState.stretchYawn:
+        // Anim non-loop : durée = framesCount × frameMs (joue 1×).
+        final a = _anims[next]!;
+        _stateRemainMs = a.frames * a.frameMs;
         break;
       case _DogState.sleep:
-        _stateRemainMs = 6000 + _rng.nextInt(8000); // 6-14s
+        _stateRemainMs = 8000 + _rng.nextInt(10000); // 8-18s
+        break;
+      case _DogState.wagTail:
+      case _DogState.bark:
+      case _DogState.headTilt:
+        _stateRemainMs = 1500 + _rng.nextInt(2000); // 1.5-3.5s
+        break;
+      case _DogState.eat:
+        _stateRemainMs = 3000 + _rng.nextInt(3000); // 3-6s
         break;
     }
+    if (initial) return;
+  }
+
+  /// Pick la prochaine action depuis l'état actuel. Les transitions
+  /// suivent une logique naturelle : sleep s'enchaîne avec stretchYawn,
+  /// layDown enchaîne sur sleep, et depuis idle on peut partir sur
+  /// n'importe quelle action courte.
+  void _pickNextState() {
+    _DogState next;
+    switch (_state) {
+      case _DogState.layDown:
+        // Vient de se coucher → s'endort directement.
+        next = _DogState.sleep;
+        break;
+      case _DogState.sleep:
+        // Sortie de sommeil → s'étire + bâille avant de revenir actif.
+        next = _DogState.stretchYawn;
+        break;
+      case _DogState.stretchYawn:
+        // Fin de l'étirement → idle.
+        next = _DogState.idle;
+        break;
+      case _DogState.walk:
+        // Après marche → idle ou head_tilt (curiosité après pause).
+        next = _rng.nextDouble() < 0.7 ? _DogState.idle : _DogState.headTilt;
+        break;
+      case _DogState.bark:
+      case _DogState.wagTail:
+      case _DogState.headTilt:
+      case _DogState.eat:
+        // Actions courtes → retour à idle.
+        next = _DogState.idle;
+        break;
+      case _DogState.idle:
+        // Depuis idle : pondération entre les actions possibles.
+        final r = _rng.nextDouble();
+        if (r < 0.30) {
+          next = _DogState.walk;
+        } else if (r < 0.45) {
+          next = _DogState.wagTail;
+        } else if (r < 0.58) {
+          next = _DogState.headTilt;
+        } else if (r < 0.65) {
+          next = _DogState.bark;
+        } else if (r < 0.80) {
+          next = _DogState.layDown; // 15% → sleep loop via layDown
+        } else {
+          next = _DogState.idle; // 20% : reste assis encore un peu
+        }
+        break;
+    }
+    _enterState(next);
   }
 
   void _onTick(Duration elapsed) {
@@ -1880,15 +1963,17 @@ class _DogActorState extends State<_DogActor>
     _lastTick = elapsed;
     if (dtMs <= 0) return;
 
+    final a = _anims[_state]!;
     _accumMs += dtMs;
-    final framePeriod = switch (_state) {
-      _DogState.idle => _idleMs,
-      _DogState.walk => _walkMs,
-      _DogState.sleep => _sleepMs,
-    };
-    while (_accumMs >= framePeriod) {
-      _accumMs -= framePeriod;
-      _frame = (_frame + 1) % _frameCount;
+    if (a.frameMs > 0) {
+      while (_accumMs >= a.frameMs) {
+        _accumMs -= a.frameMs;
+        if (a.loops) {
+          _frame = (_frame + 1) % a.frames;
+        } else if (_frame < a.frames - 1) {
+          _frame++;
+        }
+      }
     }
 
     _stateRemainMs -= dtMs;
@@ -1905,23 +1990,17 @@ class _DogActorState extends State<_DogActor>
     setState(() {});
   }
 
-  String get _assetPrefix => switch (_state) {
-        _DogState.idle => 'dog',
-        _DogState.walk => 'dog_walk',
-        _DogState.sleep => 'dog_sleep',
-      };
-
   @override
   Widget build(BuildContext context) {
     final propH = widget.h * widget.height;
     final propW = propH;
     final left = widget.w * _x - propW / 2;
     final top = widget.h * widget.topFrac;
-    final asset = 'assets/objects/${_assetPrefix}_${_frame + 1}.png';
+    final a = _anims[_state]!;
+    final asset = a.frames == 1
+        ? 'assets/objects/${a.prefix}.png'
+        : 'assets/objects/${a.prefix}_${_frame + 1}.png';
     Widget sprite = Image.asset(asset, fit: BoxFit.contain);
-    // Sprite source = face légèrement à droite. Mirror quand on marche
-    // vers la gauche. En idle/sleep on n'a pas de direction → garde la
-    // dernière utilisée (_dir) pour pas qu'il "saute" de face.
     if (_dir < 0) {
       sprite = Transform(
         alignment: Alignment.center,
@@ -1937,4 +2016,17 @@ class _DogActorState extends State<_DogActor>
       child: IgnorePointer(child: widget.tint(sprite)),
     );
   }
+}
+
+class _AnimDef {
+  const _AnimDef({
+    required this.prefix,
+    required this.frames,
+    required this.frameMs,
+    required this.loops,
+  });
+  final String prefix;
+  final int frames;
+  final int frameMs;
+  final bool loops;
 }
