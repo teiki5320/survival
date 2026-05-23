@@ -67,9 +67,10 @@ class _WagonScreenState extends State<WagonScreen> {
   // calls back when done, at which point we cross-fade to locomotive.
   int _doorPushToken = 0;
   // Mirror of the heroine's X position, updated by the scene. Used to
-  // enable the door action button only when she's at the left edge.
+  // enable the door action buttons only when she's at the left/right edge.
   double _heroX = 0.5;
   bool get _atLeftDoor => _heroX <= SideScrollScene.heroXMin + 0.01;
+  bool get _atRightDoor => _heroX >= SideScrollScene.heroXMax - 0.01;
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -174,9 +175,12 @@ class _WagonScreenState extends State<WagonScreen> {
               if (_dancing) setState(() => _dancing = false);
             },
             onHeroXChanged: (x) {
-              final wasAtDoor = _atLeftDoor;
+              final wasAtLeft = _atLeftDoor;
+              final wasAtRight = _atRightDoor;
               _heroX = x;
-              if (wasAtDoor != _atLeftDoor) setState(() {});
+              if (wasAtLeft != _atLeftDoor || wasAtRight != _atRightDoor) {
+                setState(() {});
+              }
             },
           ),
         ),
@@ -189,12 +193,18 @@ class _WagonScreenState extends State<WagonScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 FloatingActionButton.small(
-                  heroTag: 'open_map',
-                  tooltip: 'Ouvrir la carte',
-                  backgroundColor: const Color(0xFF8B6F4E),
-                  foregroundColor: Colors.white,
-                  onPressed: () => setState(() => _onMap = true),
-                  child: const Icon(Icons.map),
+                  heroTag: 'right_door',
+                  tooltip: _atRightDoor
+                      ? 'Ouvrir la porte droite'
+                      : 'Va à la porte droite (bord droit)',
+                  backgroundColor: _atRightDoor
+                      ? const Color(0xFFB85522)
+                      : Colors.grey.shade800,
+                  foregroundColor:
+                      _atRightDoor ? Colors.white : Colors.grey.shade500,
+                  onPressed:
+                      _atRightDoor ? () => setState(() => _onMap = true) : null,
+                  child: const Icon(Icons.meeting_room_outlined),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(

@@ -82,6 +82,11 @@ class SideScrollScene extends StatefulWidget {
   /// can compare against it to know when she's at the door.
   static const double heroXMin = 0.20;
 
+  /// Right bound for the heroine in normalised X. Exposed so the parent
+  /// can compare against it to know when she's at the right door
+  /// (= ouverture sur la map du monde).
+  static const double heroXMax = 0.82;
+
   /// When `true` the bed becomes draggable + resizable, and a HUD shows
   /// its current normalised position + width so the values can be copied
   /// back into the defaults below.
@@ -108,7 +113,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // locomotive / coupling, right of 0.82 is the closed back-door area.
   static const int _heroFrameCount = 49;
   static const double _heroXMin = SideScrollScene.heroXMin;
-  static const double _heroXMax = 0.82;
+  static const double _heroXMax = SideScrollScene.heroXMax;
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
