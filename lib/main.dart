@@ -14,11 +14,13 @@ Future<void> main() async {
     DeviceOrientation.landscapeRight,
   ]);
   // Précharge toutes les anims du perso en mémoire Flame avant le premier
-  // frame. Décodage des 13×49 PNG en parallèle, ~1-2s sur iPhone récent.
-  // L'attendre ici évite que les premiers rendus aient un sprite vide.
-  await preloadHeroSprites();
+  // frame — sinon le premier switch d'anim a une latence visible. Lance
+  // en background pour ne pas bloquer le démarrage de l'app.
+  unawaited(preloadHeroSprites());
   runApp(const TrainCosyApp());
 }
+
+void unawaited(Future<void> _) {}
 
 class TrainCosyApp extends StatelessWidget {
   const TrainCosyApp({super.key});
