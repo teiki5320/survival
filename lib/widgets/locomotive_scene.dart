@@ -81,14 +81,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // thuds into the firebox. Decays to zero over ~400 ms.
   double _shake = 0;
 
-  // Character-size adjustment mode. When `true`, +/- buttons appear and
-  // override the scale + feet of the currently playing animation so the
-  // user can dial each anim live and read the final values from the HUD.
-  bool _charAdjust = false;
-  final Map<String, double> _scaleOverride = {};
-  final Map<String, double> _feetOverride = {};
-  String _activeAnimForAdjust = 'idle_right';
-
   @override
   void initState() {
     super.initState();
@@ -320,17 +312,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // sits in the sprite (1.0 = touches the bottom, 0.85 = 15% padding
     // below the character's feet).
     final m = _animMetrics[prefix]!;
-    final scale = _scaleOverride[prefix] ?? m.scale;
-    final feetRatio = _feetOverride[prefix] ?? m.feet;
-    final heroHeight = h * 0.44 * scale;
+    final heroHeight = h * 0.44 * m.scale;
     final heroWidth = heroHeight * m.aspect;
+    final feetRatio = m.feet;
     final feetY = h * 0.92;
-    // Track active anim for the adjust HUD.
-    if (_charAdjust && _activeAnimForAdjust != prefix) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _activeAnimForAdjust = prefix);
-      });
-    }
     return Positioned(
       left: w * _heroX - heroWidth / 2,
       top: feetY - heroHeight * feetRatio,
@@ -482,18 +467,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     FloatingActionButton.small(
-                      heroTag: 'char_adjust',
-                      tooltip: 'Calibrer taille perso',
-                      backgroundColor: _charAdjust
-                          ? const Color(0xFFFFB347)
-                          : null,
-                      onPressed: () => setState(() {
-                        _charAdjust = !_charAdjust;
-                      }),
-                      child: const Icon(Icons.straighten),
-                    ),
-                    const SizedBox(height: 12),
-                    FloatingActionButton.small(
                       heroTag: 'throw_log',
                       tooltip: 'Mettre une bûche',
                       backgroundColor: const Color(0xFFB85522),
@@ -512,104 +485,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                 ),
               ),
             ),
-            // Char-size adjust HUD: numeric readout + +/- buttons for
-            // the currently playing animation's scale and feet ratio.
-            if (_charAdjust)
-              Positioned(
-                top: 24,
-                right: 24,
-                child: SafeArea(child: _buildCharAdjustHud()),
-              ),
               ],
             );
           },
         ),
-      ),
-    );
-  }
-
-  Widget _buildCharAdjustHud() {
-    final anim = _activeAnimForAdjust;
-    final m = _animMetrics[anim]!;
-    final scale = _scaleOverride[anim] ?? m.scale;
-    final feet = _feetOverride[anim] ?? m.feet;
-    void bumpScale(double d) => setState(() {
-          _scaleOverride[anim] = (scale + d).clamp(0.2, 3.0);
-        });
-    void bumpFeet(double d) => setState(() {
-          _feetOverride[anim] = (feet + d).clamp(0.5, 1.0);
-        });
-    Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
-          onTap: onTap,
-          radius: 22,
-          child: Container(
-            width: 36,
-            height: 36,
-            decoration: const BoxDecoration(
-              color: Color(0xFFB85522),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.white, size: 20),
-          ),
-        );
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.65),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            anim,
-            style: const TextStyle(
-              color: Color(0xFFFFD9A0),
-              fontSize: 15,
-              fontFamily: 'Courier',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              SizedBox(
-                width: 110,
-                child: Text(
-                  'scale ${scale.toStringAsFixed(3)}',
-                  style: const TextStyle(
-                    color: Color(0xFFFFD9A0),
-                    fontSize: 13,
-                    fontFamily: 'Courier',
-                  ),
-                ),
-              ),
-              btn(Icons.remove, () => bumpScale(-0.02)),
-              const SizedBox(width: 6),
-              btn(Icons.add, () => bumpScale(0.02)),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              SizedBox(
-                width: 110,
-                child: Text(
-                  'feet  ${feet.toStringAsFixed(3)}',
-                  style: const TextStyle(
-                    color: Color(0xFFFFD9A0),
-                    fontSize: 13,
-                    fontFamily: 'Courier',
-                  ),
-                ),
-              ),
-              btn(Icons.remove, () => bumpFeet(-0.01)),
-              const SizedBox(width: 6),
-              btn(Icons.add, () => bumpFeet(0.01)),
-            ],
-          ),
-        ],
       ),
     );
   }

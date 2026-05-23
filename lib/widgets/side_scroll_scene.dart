@@ -30,7 +30,6 @@ class SideScrollScene extends StatefulWidget {
     this.onUserInteract,
     this.onHeroXChanged,
     this.bedAdjust = false,
-    this.horizonAdjust = false,
     this.logsThrown = 0,
     this.doorPushToken = 0,
     this.onDoorPushDone,
@@ -87,11 +86,6 @@ class SideScrollScene extends StatefulWidget {
   /// its current normalised position + width so the values can be copied
   /// back into the defaults below.
   final bool bedAdjust;
-
-  /// When `true` the horizon layer shows draggable top + bottom edges
-  /// so its rectangle can be dialled in live, with a HUD readout of
-  /// the normalised values to bake back into the defaults.
-  final bool horizonAdjust;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
@@ -801,13 +795,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       ),
                       // Bed-adjust HUD: live readout + +/- buttons for
                       // bed position/size AND the sleep-on-bed offsets.
+                      // Positionné en haut-droite (zone vide loin du lit
+                      // qui est à gauche) pour ne pas être masqué.
                       if (widget.bedAdjust)
                         Positioned(
-                          top: 16,
-                          left: 16,
-                          child: SafeArea(
-                            child: _buildBedAdjustHud(w, h),
-                          ),
+                          top: 8,
+                          right: 80, // évite les FABs de droite
+                          child: _buildBedAdjustHud(w, h),
                         ),
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
@@ -930,104 +924,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
-                      // 8. Horizon adjust overlay — dashed outline on
-                      //    the horizon rect, draggable top + bottom
-                      //    edges, live numeric HUD. Visible only when
-                      //    widget.horizonAdjust is on.
-                      if (widget.horizonAdjust) ...[
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          top: h * _horizonTop,
-                          bottom: h * _horizonBottom,
-                          child: IgnorePointer(
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(0xFFFFB347),
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Top edge: drag vertically to change _horizonTop.
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          top: h * _horizonTop - 12,
-                          height: 24,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onPanUpdate: (d) => setState(() {
-                              _horizonTop = (_horizonTop + d.delta.dy / h)
-                                  .clamp(0.0, 1.0 - _horizonBottom - 0.05);
-                            }),
-                            child: Center(
-                              child: Container(
-                                width: 80,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFB85522),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Bottom edge: drag vertically to change
-                        // _horizonBottom (distance from the bottom).
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: h * _horizonBottom - 12,
-                          height: 24,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onPanUpdate: (d) => setState(() {
-                              _horizonBottom = (_horizonBottom - d.delta.dy / h)
-                                  .clamp(0.0, 1.0 - _horizonTop - 0.05);
-                            }),
-                            child: Center(
-                              child: Container(
-                                width: 80,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFB85522),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        // Horizon-adjust HUD: numeric readout of the
-                        // two clipping fractions so they can be copied
-                        // back into the defaults.
-                        Positioned(
-                          top: 16,
-                          left: 16,
-                          child: SafeArea(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.55),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                'horizonTop:    ${_horizonTop.toStringAsFixed(3)}\n'
-                                'horizonBottom: ${_horizonBottom.toStringAsFixed(3)}',
-                                style: const TextStyle(
-                                  color: Color(0xFFFFD9A0),
-                                  fontSize: 14,
-                                  fontFamily: 'Courier',
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -1067,10 +963,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final anchorX = _heroX * w;
 
     if (_doorPushing) {
-      // door_push source faces LEFT (toward the implied door on her
-      // left). The door FAB only fires at heroXMin where she's already
-      // facing the left door — so do NOT mirror, just render as-is.
-      // Mirroring would flip her to face right, away from the door.
+      // door_push source pousse vers la DROITE en réalité. La porte
+      // wagon → loco est à GAUCHE de la scène, donc on mirror pour que
+      // la fille pousse vers la gauche.
       final heroHeight = h * 0.36 * (512 / 360);
       final heroWidth = heroHeight;
       final asset = 'assets/characters/door_push_${_doorFrame + 1}.png';
@@ -1080,7 +975,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+          child: _nightTint(
+            Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+              child: Image.asset(asset, fit: BoxFit.contain),
+            ),
+          ),
         ),
       );
     }
@@ -1111,7 +1012,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       double top;
       if (_sleepOnBed) {
         // Allongée sur le matelas. Position glued au lit, offsets dialés
-        // via le mode bedAdjust.
+        // via le mode bedAdjust. Sprite mirroré: source = pieds à droite,
+        // sur le lit on veut la tête côté oreiller (gauche).
         bodyLen = h * _sleepBedScale;
         final bodyThick = bodyLen / (366 / 103);
         final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
@@ -1123,7 +1025,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
           width: bodyLen,
           height: bodyThick,
           child: IgnorePointer(
-            child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+            child: _nightTint(
+              Transform(
+                alignment: Alignment.center,
+                transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+                child: Image.asset(asset, fit: BoxFit.contain),
+              ),
+            ),
           ),
         );
       }
@@ -1255,29 +1163,30 @@ class _SideScrollSceneState extends State<SideScrollScene>
   Widget _buildBedAdjustHud(double w, double h) {
     Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
           onTap: onTap,
-          radius: 22,
+          radius: 18,
           child: Container(
-            width: 32,
-            height: 32,
+            width: 26,
+            height: 26,
             decoration: const BoxDecoration(
               color: Color(0xFFB85522),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: Colors.white, size: 18),
+            child: Icon(icon, color: Colors.white, size: 16),
           ),
         );
     Widget row(String label, double value, VoidCallback minus, VoidCallback plus) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
+        padding: const EdgeInsets.symmetric(vertical: 1),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 130,
+              width: 96,
               child: Text(
                 '$label ${value.toStringAsFixed(3)}',
                 style: const TextStyle(
                   color: Color(0xFFFFD9A0),
-                  fontSize: 12,
+                  fontSize: 11,
                   fontFamily: 'Courier',
                 ),
               ),
@@ -1291,9 +1200,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.65),
+        color: Colors.black.withValues(alpha: 0.75),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -1304,7 +1213,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             'BED',
             style: TextStyle(
               color: Color(0xFFFFD9A0),
-              fontSize: 13,
+              fontSize: 11,
               fontFamily: 'Courier',
               fontWeight: FontWeight.bold,
             ),
@@ -1318,12 +1227,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
           row('width', _bedWidth,
               () => setState(() => _bedWidth = (_bedWidth - 0.005).clamp(0.05, 0.8)),
               () => setState(() => _bedWidth = (_bedWidth + 0.005).clamp(0.05, 0.8))),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           const Text(
-            'SLEEP ON BED',
+            'SLEEP',
             style: TextStyle(
               color: Color(0xFFFFD9A0),
-              fontSize: 13,
+              fontSize: 11,
               fontFamily: 'Courier',
               fontWeight: FontWeight.bold,
             ),
