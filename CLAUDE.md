@@ -81,6 +81,16 @@ Process AutoSprite (anims 49-frame) :
 3. Je l'intègre dans `side_scroll_scene.dart` ou `locomotive_scene.dart`
    (state machine + précache + bbox/feetRatio).
 
+**MCP AutoSprite** : l'utilisateur a ajouté `https://www.autosprite.io/api/mcp`
+(Bearer token) sur le **Claude Code CLI du Mac mini** uniquement
+(`/Users/jeanperraudeau/.claude.json`). Une session **Claude Code on the web**
+(comme la mienne quand je tourne dans la sandbox cloud) **n'y a pas accès** :
+les MCPs sont figés au boot du container et ne sont pas synchronisés avec
+l'UI Connecteurs de claude.ai. Donc si je tourne côté web, je ne peux pas
+générer/régénérer des sprites moi-même — l'utilisateur lance les générations
+depuis le Claude local du Mac, puis push, et je récupère côté web pour
+intégrer. Ne pas reproposer 50 fois l'install MCP côté web, ça l'agace.
+
 ---
 
 ## Checklist prompt OpenArt
