@@ -138,7 +138,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
     _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
     _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
-    _PropDef('dog',      'Chien',     animated: true,  frameCount: 49),
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
     _PropDef('firstaid', 'Secours',   animated: false),
@@ -149,11 +148,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'lamp':     _PropPos(0.415, 0.323, 0.104),
     'stove':    _PropPos(0.629, 0.445, 0.263),
     'filter':   _PropPos(0.727, 0.514, 0.200),
-    'dog':      _PropPos(0.434, 0.673, 0.086),
     'table':    _PropPos(0.498, 0.525, 0.180),
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
   };
+
+  // Le chien a sa propre state machine (idle / walk / sleep) — pas un
+  // prop statique. Sa hauteur et son Y restent fixes ; son X glisse
+  // quand il marche.
+  static const double _dogHeight = 0.086;
+  static const double _dogTop = 0.673;
+  static const double _dogXMin = 0.30;
+  static const double _dogXMax = 0.75;
 
   // Horizon (middle background) clipping bounds — both are fractions
   // of the scene height. `_horizonTop` is the distance from the very
@@ -307,6 +313,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
       } else {
         precacheImage(
           AssetImage('assets/objects/${def.key}.png'),
+          context,
+        );
+      }
+    }
+    // Le chien a 3 anims (idle = dog_1..49, walk, sleep) — précache tout.
+    for (final prefix in ['dog', 'dog_walk', 'dog_sleep']) {
+      for (int i = 1; i <= 49; i++) {
+        precacheImage(
+          AssetImage('assets/objects/${prefix}_$i.png'),
           context,
         );
       }
@@ -821,6 +836,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     qu'elle puisse passer devant.
                       for (final def in _propDefs)
                         _buildProp(def: def, w: w, h: h),
+                      // 4g-bis. Chien autonome : sa propre state machine
+                      //     (idle → walk → sleep → ...) qui choisit sa
+                      //     prochaine action toutes les quelques secondes.
+                      _DogActor(
+                        w: w,
+                        h: h,
+                        height: _dogHeight,
+                        topFrac: _dogTop,
+                        xMin: _dogXMin,
+                        xMax: _dogXMax,
+                        tint: _nightTint,
+                      ),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
                       // 5b. Warm halo around the heroine when she's at
@@ -1507,4 +1534,167 @@ class _SpeedLinesPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _SpeedLinesPainter old) =>
       old.t != t || old.intensity != intensity;
+}
+
+/// Chien autonome. Tourne entre 3 états (idle, walk, sleep) en piochant
+/// aléatoirement chaque transition. Pendant `walk`, sa position X glisse
+/// dans [xMin, xMax] ; le sprite est miroré selon la direction.
+class _DogActor extends StatefulWidget {
+  const _DogActor({
+    required this.w,
+    required this.h,
+    required this.height,
+    required this.topFrac,
+    required this.xMin,
+    required this.xMax,
+    required this.tint,
+  });
+  final double w;
+  final double h;
+  final double height; // fraction de h
+  final double topFrac;
+  final double xMin;
+  final double xMax;
+  final Widget Function(Widget) tint;
+  @override
+  State<_DogActor> createState() => _DogActorState();
+}
+
+enum _DogState { idle, walk, sleep }
+
+class _DogActorState extends State<_DogActor>
+    with SingleTickerProviderStateMixin {
+  static const int _frameCount = 49;
+  static const int _idleMs = 80;
+  static const int _walkMs = 50;
+  static const int _sleepMs = 110;
+  static const double _walkSpeed = 0.06; // unités normalisées / sec
+
+  final math.Random _rng = math.Random();
+  late final Ticker _ticker;
+  Duration? _lastTick;
+
+  _DogState _state = _DogState.idle;
+  int _frame = 0;
+  int _accumMs = 0;
+  double _x = 0.45;
+  double _dir = 1.0; // +1 = droite, -1 = gauche (sprite source face droite)
+  double _walkTargetX = 0.45;
+  int _stateRemainMs = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pickNextState(initial: true);
+    _ticker = createTicker(_onTick)..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  void _pickNextState({bool initial = false}) {
+    // Pondération : idle 45%, walk 35%, sleep 20%.
+    // On évite de rester deux fois de suite sur le même état (sauf idle).
+    _DogState next;
+    final r = _rng.nextDouble();
+    if (initial) {
+      next = _DogState.idle;
+    } else if (r < 0.45) {
+      next = _DogState.idle;
+    } else if (r < 0.80) {
+      next = _DogState.walk;
+    } else {
+      next = _state == _DogState.sleep ? _DogState.idle : _DogState.sleep;
+    }
+    _state = next;
+    _frame = 0;
+    _accumMs = 0;
+    switch (next) {
+      case _DogState.idle:
+        _stateRemainMs = 3000 + _rng.nextInt(4000); // 3-7s
+        break;
+      case _DogState.walk:
+        // Cible random dans la zone autorisée, au moins 0.10 plus loin
+        // que la position actuelle pour que ça vaille la peine de marcher.
+        double target;
+        do {
+          target = widget.xMin +
+              _rng.nextDouble() * (widget.xMax - widget.xMin);
+        } while ((target - _x).abs() < 0.10);
+        _walkTargetX = target;
+        _dir = target > _x ? 1.0 : -1.0;
+        _stateRemainMs = 8000; // safety cap : si bloqué, restart state
+        break;
+      case _DogState.sleep:
+        _stateRemainMs = 6000 + _rng.nextInt(8000); // 6-14s
+        break;
+    }
+  }
+
+  void _onTick(Duration elapsed) {
+    final last = _lastTick ?? elapsed;
+    final dtMs = (elapsed - last).inMilliseconds;
+    _lastTick = elapsed;
+    if (dtMs <= 0) return;
+
+    _accumMs += dtMs;
+    final framePeriod = switch (_state) {
+      _DogState.idle => _idleMs,
+      _DogState.walk => _walkMs,
+      _DogState.sleep => _sleepMs,
+    };
+    while (_accumMs >= framePeriod) {
+      _accumMs -= framePeriod;
+      _frame = (_frame + 1) % _frameCount;
+    }
+
+    _stateRemainMs -= dtMs;
+
+    if (_state == _DogState.walk) {
+      final step = _walkSpeed * (dtMs / 1000.0) * _dir;
+      _x = (_x + step).clamp(widget.xMin, widget.xMax);
+      if ((_x - _walkTargetX).abs() < 0.005 || _stateRemainMs <= 0) {
+        _pickNextState();
+      }
+    } else if (_stateRemainMs <= 0) {
+      _pickNextState();
+    }
+    setState(() {});
+  }
+
+  String get _assetPrefix => switch (_state) {
+        _DogState.idle => 'dog',
+        _DogState.walk => 'dog_walk',
+        _DogState.sleep => 'dog_sleep',
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final propH = widget.h * widget.height;
+    final propW = propH;
+    final left = widget.w * _x - propW / 2;
+    final top = widget.h * widget.topFrac;
+    final asset = 'assets/objects/${_assetPrefix}_${_frame + 1}.png';
+    Widget sprite = Image.asset(asset, fit: BoxFit.contain);
+    // Sprite source = face légèrement à droite. Mirror quand on marche
+    // vers la gauche. En idle/sleep on n'a pas de direction → garde la
+    // dernière utilisée (_dir) pour pas qu'il "saute" de face.
+    if (_dir < 0) {
+      sprite = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+        child: sprite,
+      );
+    }
+    return Positioned(
+      left: left,
+      top: top,
+      width: propW,
+      height: propH,
+      child: IgnorePointer(child: widget.tint(sprite)),
+    );
+  }
 }
