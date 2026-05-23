@@ -142,17 +142,38 @@ class _SideScrollSceneState extends State<SideScrollScene>
   double _sleepBedOffsetY = 0.115; // calé sur le matelas via bedAdjust
   double _sleepBedScale = 0.36;    // longueur corps en fraction de h
 
-  // Tour hydroponique — position (centre, normalisé) et hauteur en
-  // fraction de h. Dialée live via le mode propsAdjust.
-  double _hydroLeft = 0.62;
-  double _hydroTop = 0.52;
-  double _hydroHeight = 0.36;
+  // Props installés dans le wagon — chaque entry contient sa position
+  // (left/top centrés, normalisés) + sa hauteur en fraction de h. Le mode
+  // propsAdjust laisse les dialer live via drag, handle de resize, ou le
+  // HUD top-right avec un selector (chip row) pour choisir le prop actif.
+  static final List<_PropDef> _propDefs = [
+    _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
+    _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
+    _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
+    _PropDef('lights',   'Guirlande', animated: true,  frameCount: 49),
+    _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
+    _PropDef('dog',      'Chien',     animated: true,  frameCount: 49),
+    _PropDef('rug',      'Tapis',     animated: false),
+    _PropDef('table',    'Table',     animated: false),
+    _PropDef('notebook', 'Carnet',    animated: false),
+    _PropDef('firstaid', 'Secours',   animated: false),
+  ];
 
-  // Lampe à pétrole — suspendue, donc top correspond au sommet du
-  // sprite (la chaîne va du plafond vers le bas).
-  double _lampLeft = 0.50;
-  double _lampTop = 0.10;
-  double _lampHeight = 0.30;
+  final Map<String, _PropPos> _propPos = {
+    'hydro':    _PropPos(0.62, 0.52, 0.36),
+    'lamp':     _PropPos(0.50, 0.10, 0.30),
+    'stove':    _PropPos(0.25, 0.62, 0.24),
+    'lights':   _PropPos(0.50, 0.06, 0.10),
+    'filter':   _PropPos(0.80, 0.56, 0.20),
+    'dog':      _PropPos(0.42, 0.82, 0.16),
+    'rug':      _PropPos(0.55, 0.87, 0.08),
+    'table':    _PropPos(0.55, 0.62, 0.18),
+    'notebook': _PropPos(0.36, 0.70, 0.07),
+    'firstaid': _PropPos(0.78, 0.78, 0.11),
+  };
+
+  /// Prop actif pour le HUD du mode propsAdjust (sélectionné via chip).
+  String _activeProp = 'hydro';
 
   // Horizon (middle background) clipping bounds — both are fractions
   // of the scene height. `_horizonTop` is the distance from the very
@@ -294,10 +315,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
         precacheImage(AssetImage('assets/characters/${anim}_$i.png'), context);
       }
     }
-    // Animations d'objets (tour hydroponique + lampe).
-    for (final prop in const ['hydro', 'lamp']) {
-      for (int i = 1; i <= 49; i++) {
-        precacheImage(AssetImage('assets/objects/${prop}_$i.png'), context);
+    // Précache des props animés (49 frames chacun) + statiques.
+    for (final def in _propDefs) {
+      if (def.animated) {
+        for (int i = 1; i <= def.frameCount; i++) {
+          precacheImage(
+            AssetImage('assets/objects/${def.key}_$i.png'),
+            context,
+          );
+        }
+      } else {
+        precacheImage(
+          AssetImage('assets/objects/${def.key}.png'),
+          context,
+        );
       }
     }
     for (final asset in const [
@@ -895,41 +926,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
                       ),
-                      // 4g. Props animés (tour hydroponique + lampe) —
-                      //     rendus DERRIÈRE la fille pour qu'elle passe
-                      //     devant quand elle marche.
-                      _buildProp(
-                        w: w,
-                        h: h,
-                        prefix: 'hydro',
-                        frameDurationMs: 70,
-                        normLeft: _hydroLeft,
-                        normTop: _hydroTop,
-                        normHeight: _hydroHeight,
-                        onDrag: (dx, dy) => setState(() {
-                          _hydroLeft = (_hydroLeft + dx).clamp(0.0, 1.0);
-                          _hydroTop = (_hydroTop + dy).clamp(0.0, 1.0);
-                        }),
-                        onResize: (delta) => setState(() {
-                          _hydroHeight = (_hydroHeight + delta).clamp(0.05, 1.0);
-                        }),
-                      ),
-                      _buildProp(
-                        w: w,
-                        h: h,
-                        prefix: 'lamp',
-                        frameDurationMs: 70,
-                        normLeft: _lampLeft,
-                        normTop: _lampTop,
-                        normHeight: _lampHeight,
-                        onDrag: (dx, dy) => setState(() {
-                          _lampLeft = (_lampLeft + dx).clamp(0.0, 1.0);
-                          _lampTop = (_lampTop + dy).clamp(0.0, 1.0);
-                        }),
-                        onResize: (delta) => setState(() {
-                          _lampHeight = (_lampHeight + delta).clamp(0.05, 1.0);
-                        }),
-                      ),
+                      // 4g. Props installés dans le wagon (tour hydro,
+                      //     lampe, poêle, guirlande, filtre eau, chien,
+                      //     tapis, table, carnet, trousse). Rendus avant
+                      //     la fille pour qu'elle puisse passer devant.
+                      for (final def in _propDefs)
+                        _buildProp(def: def, w: w, h: h),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
                       // 5b. Warm halo around the heroine when she's at
@@ -1039,30 +1041,30 @@ class _SideScrollSceneState extends State<SideScrollScene>
     return 1.0 - (d / edgeBand);
   }
 
-  /// Construit un prop animé (49 frames) positionné en (normLeft, normTop)
-  /// avec une hauteur normHeight (fraction de la hauteur de scène).
-  /// Width est calculée à partir de la 1ère frame pour préserver le ratio
-  /// natif du sprite (les 2 sprites font 512x512 donc ratio 1:1).
+  /// Construit un prop (animé 49 frames ou statique) positionné selon
+  /// l'entry correspondante de [_propPos] (left/top centrés, height en
+  /// fraction de h). Tous les sprites AutoSprite sont 512x512 (ratio
+  /// 1:1) donc width = height.
   Widget _buildProp({
+    required _PropDef def,
     required double w,
     required double h,
-    required String prefix,
-    required int frameDurationMs,
-    required double normLeft,
-    required double normTop,
-    required double normHeight,
-    required void Function(double dxFrac, double dyFrac) onDrag,
-    required void Function(double deltaFrac) onResize,
   }) {
-    final propH = h * normHeight;
-    final propW = propH; // sprites 512x512 → ratio 1:1
-    final left = w * normLeft - propW / 2;
-    final top = h * normTop;
-    final sprite = _AnimatedSprite(
-      prefix: prefix,
-      frameCount: 49,
-      durationMs: frameDurationMs * 49,
-    );
+    final pos = _propPos[def.key]!;
+    final propH = h * pos.height;
+    final propW = propH;
+    final left = w * pos.left - propW / 2;
+    final top = h * pos.top;
+    final Widget sprite = def.animated
+        ? _AnimatedSprite(
+            prefix: def.key,
+            frameCount: def.frameCount,
+            durationMs: def.frameDurationMs * def.frameCount,
+          )
+        : Image.asset(
+            'assets/objects/${def.key}.png',
+            fit: BoxFit.contain,
+          );
     final child = _nightTint(sprite);
     if (!widget.propsAdjust) {
       return Positioned(
@@ -1073,7 +1075,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
         child: IgnorePointer(child: child),
       );
     }
-    // Mode adjust : drag pour bouger, handle pour redimensionner.
+    // Mode adjust : drag pour bouger, handle pour redimensionner, et
+    // tap pour sélectionner ce prop dans le HUD (sliders au top-right).
+    final isActive = _activeProp == def.key;
     return Positioned(
       left: left,
       top: top,
@@ -1081,46 +1085,80 @@ class _SideScrollSceneState extends State<SideScrollScene>
       height: propH,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onPanUpdate: (d) => onDrag(d.delta.dx / w, d.delta.dy / h),
+        onTap: () => setState(() => _activeProp = def.key),
+        onPanUpdate: (d) => setState(() {
+          pos.left = (pos.left + d.delta.dx / w).clamp(0.0, 1.0);
+          pos.top = (pos.top + d.delta.dy / h).clamp(0.0, 1.0);
+          _activeProp = def.key;
+        }),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             child,
-            // Outline orange pour visibilité.
+            // Outline (orange si actif, blanc translucide sinon).
             Positioned.fill(
               child: IgnorePointer(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     border: Border.all(
-                      color: const Color(0xFFFFB347),
-                      width: 2,
+                      color: isActive
+                          ? const Color(0xFFFFB347)
+                          : Colors.white.withValues(alpha: 0.35),
+                      width: isActive ? 2 : 1,
                     ),
                   ),
                 ),
               ),
             ),
-            // Handle de resize en bas-droite.
+            // Petite étiquette en haut-gauche du sprite avec le label.
             Positioned(
-              right: -16,
-              bottom: -16,
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onPanUpdate: (d) => onResize(d.delta.dy / h),
-                child: Container(
-                  width: 32,
-                  height: 32,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFB85522),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.open_in_full,
+              top: -16,
+              left: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFFB85522)
+                      : Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: Text(
+                  def.label,
+                  style: const TextStyle(
                     color: Colors.white,
-                    size: 18,
+                    fontSize: 9,
+                    fontFamily: 'Courier',
                   ),
                 ),
               ),
             ),
+            // Handle de resize en bas-droite (visible seulement actif).
+            if (isActive)
+              Positioned(
+                right: -16,
+                bottom: -16,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onPanUpdate: (d) => setState(() {
+                    pos.height = (pos.height + d.delta.dy / h)
+                        .clamp(0.03, 1.0);
+                  }),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFB85522),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.open_in_full,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -1345,6 +1383,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildPropsAdjustHud() {
+    final pos = _propPos[_activeProp]!;
+    final def = _propDefs.firstWhere((d) => d.key == _activeProp);
+
     Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
           onTap: onTap,
           radius: 18,
@@ -1358,7 +1399,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
             child: Icon(icon, color: Colors.white, size: 16),
           ),
         );
-    Widget row(String label, double value, VoidCallback minus, VoidCallback plus) {
+
+    Widget row(String label, double value, double step,
+        void Function(double delta) apply) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 1),
         child: Row(
@@ -1375,61 +1418,79 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 ),
               ),
             ),
-            btn(Icons.remove, minus),
+            btn(Icons.remove, () => setState(() => apply(-step))),
             const SizedBox(width: 4),
-            btn(Icons.add, plus),
+            btn(Icons.add, () => setState(() => apply(step))),
           ],
         ),
       );
     }
 
+    // Selector row : un chip par prop. Tap pour sélectionner.
+    final chips = _propDefs.map((d) {
+      final selected = d.key == _activeProp;
+      return Padding(
+        padding: const EdgeInsets.only(right: 4),
+        child: GestureDetector(
+          onTap: () => setState(() => _activeProp = d.key),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: selected
+                  ? const Color(0xFFB85522)
+                  : Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              d.label,
+              style: TextStyle(
+                color: selected
+                    ? Colors.white
+                    : const Color(0xFFFFD9A0),
+                fontSize: 10,
+                fontFamily: 'Courier',
+                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      );
+    }).toList();
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.75),
+        color: Colors.black.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            'HYDRO',
-            style: TextStyle(
+          SizedBox(
+            width: 260,
+            child: Wrap(
+              spacing: 0,
+              runSpacing: 4,
+              children: chips,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            def.label.toUpperCase(),
+            style: const TextStyle(
               color: Color(0xFFFFD9A0),
               fontSize: 11,
               fontFamily: 'Courier',
               fontWeight: FontWeight.bold,
             ),
           ),
-          row('left  ', _hydroLeft,
-              () => setState(() => _hydroLeft = (_hydroLeft - 0.005).clamp(0.0, 1.0)),
-              () => setState(() => _hydroLeft = (_hydroLeft + 0.005).clamp(0.0, 1.0))),
-          row('top   ', _hydroTop,
-              () => setState(() => _hydroTop = (_hydroTop - 0.005).clamp(0.0, 1.0)),
-              () => setState(() => _hydroTop = (_hydroTop + 0.005).clamp(0.0, 1.0))),
-          row('height', _hydroHeight,
-              () => setState(() => _hydroHeight = (_hydroHeight - 0.01).clamp(0.05, 1.0)),
-              () => setState(() => _hydroHeight = (_hydroHeight + 0.01).clamp(0.05, 1.0))),
-          const SizedBox(height: 4),
-          const Text(
-            'LAMP',
-            style: TextStyle(
-              color: Color(0xFFFFD9A0),
-              fontSize: 11,
-              fontFamily: 'Courier',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          row('left  ', _lampLeft,
-              () => setState(() => _lampLeft = (_lampLeft - 0.005).clamp(0.0, 1.0)),
-              () => setState(() => _lampLeft = (_lampLeft + 0.005).clamp(0.0, 1.0))),
-          row('top   ', _lampTop,
-              () => setState(() => _lampTop = (_lampTop - 0.005).clamp(0.0, 1.0)),
-              () => setState(() => _lampTop = (_lampTop + 0.005).clamp(0.0, 1.0))),
-          row('height', _lampHeight,
-              () => setState(() => _lampHeight = (_lampHeight - 0.01).clamp(0.05, 1.0)),
-              () => setState(() => _lampHeight = (_lampHeight + 0.01).clamp(0.05, 1.0))),
+          row('left  ', pos.left, 0.005,
+              (d) => pos.left = (pos.left + d).clamp(0.0, 1.0)),
+          row('top   ', pos.top, 0.005,
+              (d) => pos.top = (pos.top + d).clamp(0.0, 1.0)),
+          row('height', pos.height, 0.01,
+              (d) => pos.height = (pos.height + d).clamp(0.03, 1.0)),
         ],
       ),
     );
@@ -1554,6 +1615,33 @@ class _SideScrollSceneState extends State<SideScrollScene>
 /// Translates an asset horizontally to give the illusion of infinite scroll.
 /// Renders two copies side-by-side and shifts both together; when one slides
 /// fully off-screen left, its partner takes over without a visible jump.
+/// Définition statique d'un prop : sa clé d'asset, son label HUD, et
+/// s'il est animé (49 frames) ou statique (1 PNG `assets/objects/<key>.png`).
+class _PropDef {
+  const _PropDef(
+    this.key,
+    this.label, {
+    required this.animated,
+    this.frameCount = 1,
+    this.frameDurationMs = 70,
+  });
+
+  final String key;
+  final String label;
+  final bool animated;
+  final int frameCount;
+  final int frameDurationMs;
+}
+
+/// Position normalisée d'un prop dans la scène (centres x,y + hauteur
+/// en fraction de h). Mutable pour permettre le drag en mode adjust.
+class _PropPos {
+  _PropPos(this.left, this.top, this.height);
+  double left;
+  double top;
+  double height;
+}
+
 /// Joue une animation `assets/objects/<prefix>_<i>.png` en boucle via un
 /// AnimationController. Plus léger qu'un Ticker custom pour les props
 /// qui n'ont pas de logique d'état.
