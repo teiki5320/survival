@@ -92,12 +92,12 @@ class SideScrollScene extends StatefulWidget {
   /// Left bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the door (= porte
   /// gauche du wagon vers la locomotive).
-  static const double heroXMin = 0.13;
+  static const double heroXMin = 0.08;
 
   /// Right bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the right door
   /// (= ouverture sur la map du monde).
-  static const double heroXMax = 0.90;
+  static const double heroXMax = 0.94;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
@@ -462,18 +462,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
           if (_wakingFrame >= _heroFrameCount) {
             _wakingFrame = 0;
             _wakingPhase++;
-            // Fin de wake_up → passage à stretch. La fille n'est plus
-            // sur le lit, elle pose pied à côté. On clear sleepOnBed et
-            // on repositionne le perso au centre du lit en X.
+            // Fin de wake_up → si on dormait sur le lit, on skip stretch
+            // (sinon ça fait un saut de ~250px vers la droite + un saut
+            // vertical lit→sol). On atterrit debout au centre du lit en
+            // X et on enchaîne direct sur idle.
             if (_wakingPhase == 1 && _sleepOnBed) {
               _sleepOnBed = false;
-              // La fille se redresse + sort du lit → elle atterrit DEBOUT
-              // À CÔTÉ du lit (au bord droit, pas sur le matelas), pour
-              // que stretch puis idle ne dépassent pas du wagon vers la
-              // porte gauche.
-              const stepOffBedX = 0.50; // bedRight (0.47) + petit décalage
-              _heroX = stepOffBedX.clamp(_heroXMin, _heroXMax);
+              final bedCenter = (_bedLeft + _bedWidth / 2)
+                  .clamp(_heroXMin, _heroXMax);
+              _heroX = bedCenter;
               widget.onHeroXChanged?.call(_heroX);
+              _waking = false;
+              return;
             }
             if (_wakingPhase >= 2) {
               _waking = false;
