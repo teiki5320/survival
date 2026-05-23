@@ -59,6 +59,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inLocomotive = false;
   bool _onMap = false;
   bool _bedAdjust = false;
+  bool _propsAdjust = false;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -168,6 +169,7 @@ class _WagonScreenState extends State<WagonScreen> {
             dancing: _dancing,
             lieDownToken: _lieDownToken,
             bedAdjust: _bedAdjust,
+            propsAdjust: _propsAdjust,
             logsThrown: _logsThrown,
             doorPushToken: _doorPushToken,
             onDoorPushDone: _onDoorPushDone,
@@ -214,6 +216,17 @@ class _WagonScreenState extends State<WagonScreen> {
                   foregroundColor: _bedAdjust ? Colors.white : null,
                   onPressed: () => setState(() => _bedAdjust = !_bedAdjust),
                   child: Icon(_bedAdjust ? Icons.check : Icons.tune),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'props_adjust',
+                  tooltip: _propsAdjust
+                      ? 'Valider la position des objets'
+                      : 'Régler les objets (tour, lampe…)',
+                  backgroundColor: _propsAdjust ? const Color(0xFFB85522) : null,
+                  foregroundColor: _propsAdjust ? Colors.white : null,
+                  onPressed: () => setState(() => _propsAdjust = !_propsAdjust),
+                  child: Icon(_propsAdjust ? Icons.check : Icons.widgets),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
