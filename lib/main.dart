@@ -5,6 +5,7 @@ import 'services/audio_service.dart';
 import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
+import 'widgets/wardrobe_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -58,6 +59,7 @@ class _WagonScreenState extends State<WagonScreen> {
 
   bool _inLocomotive = false;
   bool _onMap = false;
+  bool _inWardrobe = false;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -137,7 +139,12 @@ class _WagonScreenState extends State<WagonScreen> {
       backgroundColor: Colors.black,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 600),
-        child: _onMap
+        child: _inWardrobe
+            ? WardrobeScreen(
+                key: const ValueKey('wardrobe'),
+                onClose: () => setState(() => _inWardrobe = false),
+              )
+            : _onMap
             ? MapScreen(
                 key: const ValueKey('map'),
                 onClose: () => setState(() => _onMap = false),
@@ -169,6 +176,7 @@ class _WagonScreenState extends State<WagonScreen> {
             logsThrown: _logsThrown,
             doorPushToken: _doorPushToken,
             onDoorPushDone: _onDoorPushDone,
+            onOpenWardrobe: () => setState(() => _inWardrobe = true),
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },

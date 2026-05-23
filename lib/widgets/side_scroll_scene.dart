@@ -32,6 +32,7 @@ class SideScrollScene extends StatefulWidget {
     this.logsThrown = 0,
     this.doorPushToken = 0,
     this.onDoorPushDone,
+    this.onOpenWardrobe,
   });
 
   /// Wagon visual progression, 0..3:
@@ -67,6 +68,10 @@ class SideScrollScene extends StatefulWidget {
 
   /// Fired when the door-push animation completes — see [doorPushToken].
   final VoidCallback? onDoorPushDone;
+
+  /// Fired when the user taps the commode (wardrobe). The parent opens
+  /// the full-screen outfit selector.
+  final VoidCallback? onOpenWardrobe;
 
   /// Fired the first time the user taps the wagon floor, so the parent
   /// can drop any "she's dancing" state it was holding.
@@ -141,6 +146,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
     _PropDef('firstaid', 'Secours',   animated: false),
+    _PropDef('commode',  'Commode',   animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -151,6 +157,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'table':    _PropPos(0.498, 0.525, 0.180),
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
+    'commode':  _PropPos(0.130, 0.560, 0.180),
   };
 
   // Le chien a sa propre state machine (idle / walk / sleep) — pas un
@@ -981,12 +988,28 @@ class _SideScrollSceneState extends State<SideScrollScene>
             'assets/objects/${def.key}.png',
             fit: BoxFit.contain,
           );
+    final wrapped = _nightTint(sprite);
+    // Commode = tappable, ouvre l'écran wardrobe. Les autres props sont
+    // non-interactifs (la fille passe devant).
+    if (def.key == 'commode' && widget.onOpenWardrobe != null) {
+      return Positioned(
+        left: left,
+        top: top,
+        width: propW,
+        height: propH,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onOpenWardrobe,
+          child: wrapped,
+        ),
+      );
+    }
     return Positioned(
       left: left,
       top: top,
       width: propW,
       height: propH,
-      child: IgnorePointer(child: _nightTint(sprite)),
+      child: IgnorePointer(child: wrapped),
     );
   }
 

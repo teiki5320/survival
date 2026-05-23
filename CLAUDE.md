@@ -81,6 +81,18 @@ Process AutoSprite (anims 49-frame) :
 3. Je l'intègre dans `side_scroll_scene.dart` ou `locomotive_scene.dart`
    (state machine + précache + bbox/feetRatio).
 
+**Règles AutoSprite (décidées le 2026-05-23)** :
+- **Ne JAMAIS faire de preview** (`generate_asset_preview`). L'utilisateur
+  préfère dépenser 5 crédits sur une anim choisie au lieu de 1 cred sur
+  4 previews dont 3 ne serviront pas. Génère directement la version
+  finale.
+- **Toujours valider le coût AVANT toute dépense**. Annoncer le nombre
+  de crédits utilisés et attendre OK avant de lancer. Exceptions sans
+  besoin de valider : `create_asset` (save d'une URL = 0 cred),
+  `remove_asset_background` (gratuit aussi sur asset déjà saved).
+- Tarif référence : `animate_asset` legendary 49 frames = 5 cred,
+  `regenerate_spritesheet` ≈ 5 cred par anim.
+
 **MCP AutoSprite** : l'utilisateur a ajouté `https://www.autosprite.io/api/mcp`
 (Bearer token) sur le **Claude Code CLI du Mac mini** uniquement
 (`/Users/jeanperraudeau/.claude.json`). Une session **Claude Code on the web**
