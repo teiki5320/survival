@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'services/audio_service.dart';
-import 'widgets/hero_sprite.dart';
 import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
@@ -13,14 +12,8 @@ Future<void> main() async {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
-  // Précharge toutes les anims du perso en mémoire Flame avant le premier
-  // frame — sinon le premier switch d'anim a une latence visible. Lance
-  // en background pour ne pas bloquer le démarrage de l'app.
-  unawaited(preloadHeroSprites());
   runApp(const TrainCosyApp());
 }
-
-void unawaited(Future<void> _) {}
 
 class TrainCosyApp extends StatelessWidget {
   const TrainCosyApp({super.key});
