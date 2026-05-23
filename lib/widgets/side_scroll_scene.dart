@@ -128,9 +128,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // are normalised to the scene size, position is relative to the
   // bed's centre/top so it stays glued to the bed as it moves.
   bool _sleepOnBed = false;
-  double _sleepBedOffsetX = 0.0;   // centred on bed.x by default
-  double _sleepBedOffsetY = 0.04;  // a touch below bed top
-  double _sleepBedScale = 0.36;    // body length as fraction of scene height
+  double _sleepBedOffsetX = 0.0;   // centré sur le centre du lit
+  double _sleepBedOffsetY = 0.115; // calé sur le matelas via bedAdjust
+  double _sleepBedScale = 0.36;    // longueur corps en fraction de h
 
   // Horizon (middle background) clipping bounds — both are fractions
   // of the scene height. `_horizonTop` is the distance from the very
