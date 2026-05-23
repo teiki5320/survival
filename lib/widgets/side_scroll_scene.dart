@@ -150,26 +150,22 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
     _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
-    _PropDef('lights',   'Guirlande', animated: true,  frameCount: 49),
     _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
     _PropDef('dog',      'Chien',     animated: true,  frameCount: 49),
-    _PropDef('rug',      'Tapis',     animated: false),
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
     _PropDef('firstaid', 'Secours',   animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
-    'hydro':    _PropPos(0.62, 0.52, 0.36),
-    'lamp':     _PropPos(0.50, 0.10, 0.30),
-    'stove':    _PropPos(0.25, 0.62, 0.24),
-    'lights':   _PropPos(0.50, 0.06, 0.10),
-    'filter':   _PropPos(0.80, 0.56, 0.20),
-    'dog':      _PropPos(0.42, 0.82, 0.16),
-    'rug':      _PropPos(0.55, 0.87, 0.08),
-    'table':    _PropPos(0.55, 0.62, 0.18),
-    'notebook': _PropPos(0.36, 0.70, 0.07),
-    'firstaid': _PropPos(0.78, 0.78, 0.11),
+    'hydro':    _PropPos(0.807, 0.357, 0.360),
+    'lamp':     _PropPos(0.415, 0.323, 0.104),
+    'stove':    _PropPos(0.629, 0.445, 0.263),
+    'filter':   _PropPos(0.727, 0.514, 0.200),
+    'dog':      _PropPos(0.434, 0.673, 0.086),
+    'table':    _PropPos(0.498, 0.525, 0.180),
+    'notebook': _PropPos(0.249, 0.670, 0.070),
+    'firstaid': _PropPos(0.296, 0.635, 0.110),
   };
 
   /// Prop actif pour le HUD du mode propsAdjust (sélectionné via chip).
@@ -927,9 +923,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         child: DistantZombie(enabled: widget.night),
                       ),
                       // 4g. Props installés dans le wagon (tour hydro,
-                      //     lampe, poêle, guirlande, filtre eau, chien,
-                      //     tapis, table, carnet, trousse). Rendus avant
-                      //     la fille pour qu'elle puisse passer devant.
+                      //     lampe, poêle, filtre eau, chien, table,
+                      //     carnet, trousse). Rendus avant la fille pour
+                      //     qu'elle puisse passer devant.
                       for (final def in _propDefs)
                         _buildProp(def: def, w: w, h: h),
                       // 5. Heroine — walks on the wagon floor.
