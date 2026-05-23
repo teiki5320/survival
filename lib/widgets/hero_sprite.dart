@@ -1,20 +1,24 @@
-import 'dart:typed_data';
-import 'dart:ui' as ui;
-
+import 'package:flame/cache.dart';
 import 'package:flame/sprite.dart';
 import 'package:flame/widgets.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 /// Pré-charge et garde en mémoire les SpriteAnimation de toutes les
-/// anims du perso. Les images sont décodées via rootBundle (Flutter
-/// natif) pour éviter toute dépendance sur l'API Images de Flame.
+/// anims du perso. Chaque anim = N PNG individuels dans
+/// assets/characters/<prefix>_<i>.png.
+///
+/// Pourquoi un singleton : Flame.images est un cache global, mais on
+/// veut un cache custom (prefix = assets/characters/) et on veut éviter
+/// de re-créer les SpriteAnimation à chaque rebuild.
 class HeroSpriteCache {
   HeroSpriteCache._();
   static final HeroSpriteCache instance = HeroSpriteCache._();
 
+  final Images _images = Images(prefix: 'assets/characters/');
   final Map<String, SpriteAnimation> _anims = {};
 
+  /// Pré-charge toutes les anims au démarrage. Idempotent : safe à
+  /// appeler plusieurs fois.
   Future<void> preload({
     required Map<String, _AnimSpec> animations,
   }) async {
@@ -25,25 +29,18 @@ class HeroSpriteCache {
   }
 
   Future<void> _loadAnim(String prefix, _AnimSpec spec) async {
-    final futures = <Future<ui.Image>>[
+    // Loads en parallèle pour ne pas serializer le décodage.
+    final imagesFut = <Future>[
       for (int i = 1; i <= spec.frameCount; i++)
-        _loadAsset('assets/characters/${prefix}_$i.png'),
+        _images.load('${prefix}_$i.png'),
     ];
-    final images = await Future.wait(futures);
-    final sprites = [for (final img in images) Sprite(img)];
+    final loaded = await Future.wait(imagesFut);
+    final sprites = [for (final img in loaded) Sprite(img)];
     _anims[prefix] = SpriteAnimation.spriteList(
       sprites,
       stepTime: spec.frameDurationMs / 1000.0,
       loop: spec.loop,
     );
-  }
-
-  Future<ui.Image> _loadAsset(String path) async {
-    final ByteData data = await rootBundle.load(path);
-    final Uint8List bytes = data.buffer.asUint8List();
-    final ui.Codec codec = await ui.instantiateImageCodec(bytes);
-    final ui.FrameInfo frame = await codec.getNextFrame();
-    return frame.image;
   }
 
   SpriteAnimation? get(String prefix) => _anims[prefix];
@@ -60,6 +57,8 @@ class _AnimSpec {
   final bool loop;
 }
 
+/// Specs des 13 anims du perso. À appeler une fois au démarrage de l'app
+/// (depuis main.dart) pour pré-charger en background.
 Map<String, _AnimSpec> defaultHeroAnimSpecs() => const {
       'walk_right':  _AnimSpec(frameCount: 49, frameDurationMs: 50),
       'idle_right':  _AnimSpec(frameCount: 49, frameDurationMs: 80),
@@ -79,36 +78,76 @@ Map<String, _AnimSpec> defaultHeroAnimSpecs() => const {
 Future<void> preloadHeroSprites() =>
     HeroSpriteCache.instance.preload(animations: defaultHeroAnimSpecs());
 
-/// Widget qui joue une animation du perso. Si l'anim n'est pas encore
-/// chargée, rend un SizedBox vide (le preload est lancé depuis main).
+/// Widget qui joue une animation du perso. Switch d'anim sans rebuild
+/// du widget (juste un swap de la SpriteAnimation).
 ///
-/// La key sur SpriteAnimationWidget force la recréation du ticker
-/// interne quand prefix change → l'anim repart frame 0.
-class HeroSprite extends StatelessWidget {
+/// Le rendu est piloté par Flame (pas par le ticker Dart de la scène),
+/// donc le changement de prefix ne coûte rien — l'anim suivante est
+/// déjà décodée et prête.
+class HeroSprite extends StatefulWidget {
   const HeroSprite({
     super.key,
     required this.prefix,
     this.mirror = false,
+    this.onComplete,
   });
 
+  /// Nom de l'anim à jouer (ex: 'walk_right', 'warm_hands').
   final String prefix;
+
+  /// Mirror horizontal (pour gauche vs droite).
   final bool mirror;
+
+  /// Appelé quand une anim one-shot (loop=false) termine sa lecture.
+  final VoidCallback? onComplete;
+
+  @override
+  State<HeroSprite> createState() => _HeroSpriteState();
+}
+
+class _HeroSpriteState extends State<HeroSprite> {
+  SpriteAnimationTicker? _ticker;
+
+  @override
+  void initState() {
+    super.initState();
+    _bindAnim();
+  }
+
+  @override
+  void didUpdateWidget(covariant HeroSprite oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.prefix != widget.prefix) {
+      _bindAnim();
+    }
+  }
+
+  void _bindAnim() {
+    final anim = HeroSpriteCache.instance.get(widget.prefix);
+    if (anim == null) return;
+    // Rewind: cloner le ticker pour repartir frame 0 à chaque switch
+    // d'anim (sinon il continue à la position précédente).
+    _ticker = anim.createTicker();
+    if (widget.onComplete != null) {
+      _ticker!.onComplete = widget.onComplete;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final anim = HeroSpriteCache.instance.get(prefix);
-    if (anim == null) return const SizedBox.shrink();
-    Widget child = SpriteAnimationWidget(
-      animation: anim,
-      key: ValueKey(prefix),
-    );
-    if (mirror) {
-      child = Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-        child: child,
-      );
+    final anim = HeroSpriteCache.instance.get(widget.prefix);
+    if (anim == null || _ticker == null) {
+      return const SizedBox.shrink();
     }
-    return child;
+    final child = SpriteAnimationWidget(
+      animation: anim,
+      animationTicker: _ticker,
+    );
+    if (!widget.mirror) return child;
+    return Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+      child: child,
+    );
   }
 }
