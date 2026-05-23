@@ -239,6 +239,19 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     );
   }
 
+  // Mesuré via tools/measure_sprite_bboxes.py (bbox réelle alpha>16).
+  // scale = h * 0.44 * scale donne la hauteur du sprite à l'écran pour
+  // que la hauteur du PERSO dans le sprite matche celle de walk_right.
+  // aspect = sprite_w / sprite_h. feet = position du bas de la bbox
+  // dans le sprite (1.0 = touche le bord bas, 0.847 = padding 15%).
+  static const Map<String, _AnimMetrics> _animMetrics = {
+    'walk_right':  _AnimMetrics(scale: 1.000, aspect: 166 / 381, feet: 0.984),
+    'idle_right':  _AnimMetrics(scale: 0.989, aspect: 91 / 372,  feet: 0.989),
+    'pickup':      _AnimMetrics(scale: 1.231, aspect: 170 / 385, feet: 0.948),
+    'carry_walk':  _AnimMetrics(scale: 1.353, aspect: 1.0,       feet: 0.863),
+    'warm_hands':  _AnimMetrics(scale: 1.733, aspect: 1.0,       feet: 0.847),
+  };
+
   Widget _buildHeroine(double w, double h) {
     final isMoving = _heroTarget != null;
     String prefix;
@@ -263,7 +276,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         break;
       case _LocoAction.idle:
         if (!isMoving && _fireProximity() > 0.5) {
-          // Standing close to the firebox → warm-hands loop.
           prefix = 'warm_hands';
           frame = _idleFrame;
         } else {
@@ -274,54 +286,28 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
-    // New 49-frame 512x512 sheets need different scaling than the
-    // legacy walk/idle. Match the wagon scene's correction.
-    // pickup is the old tight-cropped 170x385 sheet; warm_hands and
-    // carry_walk are 512x512 squares — they need different scaling AND
-    // a different feet-anchor (the square sheets have ~14 % padding
-    // under the character so the bbox bottom sits at 86 % of sprite
-    // height). Without that correction the character's feet hover
-    // above the floor when these sprites play.
-    const newSquareSprites = {'warm_hands', 'carry_walk'};
-    // Sprites whose source already faces LEFT — they're always played
-    // in a left-facing context (warm_hands at the firebox on the left)
-    // so we must NOT mirror them based on the last walk direction or
-    // she'd end up with her back to the fire.
+    // warm_hands is rendered in a left-facing context (firebox is on
+    // the left). Source already faces left → don't mirror it based on
+    // the last walk direction.
     const sourceFacesLeft = {'warm_hands'};
-    final isNewSquare = newSquareSprites.contains(prefix);
-    // pickup source bends LEFT by default. In the locomotive the woodpile
-    // is on the right (action == pickingUp → flip so she bends right) and
-    // the firebox is on the left (action == throwing → no flip, she bends
-    // left towards it). Other sprites use the regular walk-direction mirror.
+    // pickup source bends LEFT by default. Woodpile is on the right
+    // (pickingUp → flip), firebox is on the left (throwing → no flip).
     final bool shouldMirror;
     if (prefix == 'pickup') {
       shouldMirror = _action == _LocoAction.pickingUp;
     } else {
       shouldMirror = !sourceFacesLeft.contains(prefix) && !_heroFacingRight;
     }
-    final double heroHeight;
-    final double heroWidth;
-    final double feetRatio;
-    if (prefix == 'pickup') {
-      heroHeight = h * 0.44;
-      heroWidth = heroHeight * (170 / 385);
-      feetRatio = 1.0;
-    } else if (prefix == 'warm_hands') {
-      // La fille est accroupie dans ce sprite et occupe plus de hauteur
-      // dans le 512x512 que carry_walk (debout) — on réduit le scale
-      // pour qu'elle paraisse cohérente avec idle_right une fois rendue.
-      heroHeight = h * 0.44 * (512 / 420);
-      heroWidth = heroHeight;
-      feetRatio = 0.86;
-    } else if (isNewSquare) {
-      heroHeight = h * 0.44 * (512 / 360);
-      heroWidth = heroHeight;
-      feetRatio = 0.86;
-    } else {
-      heroHeight = h * 0.44;
-      heroWidth = heroHeight * (91 / 372);
-      feetRatio = 1.0;
-    }
+    // Per-anim metrics, baked from tools/measure_sprite_bboxes.py.
+    // scale = multiplier on the walk_right baseline (h * 0.44) so the
+    // character's on-screen body height matches across animations.
+    // aspect = sprite width/height ratio. feet = where the bbox bottom
+    // sits in the sprite (1.0 = touches the bottom, 0.85 = 15% padding
+    // below the character's feet).
+    final m = _animMetrics[prefix]!;
+    final heroHeight = h * 0.44 * m.scale;
+    final heroWidth = heroHeight * m.aspect;
+    final feetRatio = m.feet;
     final feetY = h * 0.92;
     return Positioned(
       left: w * _heroX - heroWidth / 2,
@@ -519,6 +505,17 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       ),
     );
   }
+}
+
+class _AnimMetrics {
+  const _AnimMetrics({
+    required this.scale,
+    required this.aspect,
+    required this.feet,
+  });
+  final double scale;
+  final double aspect;
+  final double feet;
 }
 
 class _ParallaxLayer extends StatelessWidget {
