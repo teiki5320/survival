@@ -81,6 +81,14 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // thuds into the firebox. Decays to zero over ~400 ms.
   double _shake = 0;
 
+  // Character-size adjustment mode. When `true`, +/- buttons appear and
+  // override the scale + feet of the currently playing animation so the
+  // user can dial each anim live and read the final values from the HUD.
+  bool _charAdjust = false;
+  final Map<String, double> _scaleOverride = {};
+  final Map<String, double> _feetOverride = {};
+  String _activeAnimForAdjust = 'idle_right';
+
   @override
   void initState() {
     super.initState();
@@ -239,17 +247,21 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     );
   }
 
-  // Mesuré via tools/measure_sprite_bboxes.py (bbox réelle alpha>16).
-  // scale = h * 0.44 * scale donne la hauteur du sprite à l'écran pour
-  // que la hauteur du PERSO dans le sprite matche celle de walk_right.
-  // aspect = sprite_w / sprite_h. feet = position du bas de la bbox
-  // dans le sprite (1.0 = touche le bord bas, 0.847 = padding 15%).
+  // Mesuré via tools/measure_sprite_bboxes.py (bbox réelle alpha>16) pour
+  // les anims DEBOUT (walk_right, idle_right, carry_walk). Pour les anims
+  // ACCROUPIES / PENCHÉES (warm_hands, pickup) la bbox-bottom contient
+  // toute la silhouette pliée, donc la calibrer à la même hauteur que
+  // walk_right rendrait le perso plus grand qu'en walk_right. On garde
+  // donc des valeurs ajustées à l'œil pour celles-là.
   static const Map<String, _AnimMetrics> _animMetrics = {
     'walk_right':  _AnimMetrics(scale: 1.000, aspect: 166 / 381, feet: 0.984),
     'idle_right':  _AnimMetrics(scale: 0.989, aspect: 91 / 372,  feet: 0.989),
-    'pickup':      _AnimMetrics(scale: 1.231, aspect: 170 / 385, feet: 0.948),
     'carry_walk':  _AnimMetrics(scale: 1.353, aspect: 1.0,       feet: 0.863),
-    'warm_hands':  _AnimMetrics(scale: 1.733, aspect: 1.0,       feet: 0.847),
+    // Anims pliées — mid-point entre l'ancienne valeur (trop petite) et
+    // la valeur bbox-calibrée (trop grande car la bbox enveloppe la
+    // silhouette pliée et la fait paraître surdimensionnée).
+    'warm_hands':  _AnimMetrics(scale: 1.300, aspect: 1.0,       feet: 0.86),
+    'pickup':      _AnimMetrics(scale: 1.100, aspect: 170 / 385, feet: 0.97),
   };
 
   Widget _buildHeroine(double w, double h) {
@@ -305,10 +317,17 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // sits in the sprite (1.0 = touches the bottom, 0.85 = 15% padding
     // below the character's feet).
     final m = _animMetrics[prefix]!;
-    final heroHeight = h * 0.44 * m.scale;
+    final scale = _scaleOverride[prefix] ?? m.scale;
+    final feetRatio = _feetOverride[prefix] ?? m.feet;
+    final heroHeight = h * 0.44 * scale;
     final heroWidth = heroHeight * m.aspect;
-    final feetRatio = m.feet;
     final feetY = h * 0.92;
+    // Track active anim for the adjust HUD.
+    if (_charAdjust && _activeAnimForAdjust != prefix) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _activeAnimForAdjust = prefix);
+      });
+    }
     return Positioned(
       left: w * _heroX - heroWidth / 2,
       top: feetY - heroHeight * feetRatio,
@@ -460,6 +479,18 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     FloatingActionButton.small(
+                      heroTag: 'char_adjust',
+                      tooltip: 'Calibrer taille perso',
+                      backgroundColor: _charAdjust
+                          ? const Color(0xFFFFB347)
+                          : null,
+                      onPressed: () => setState(() {
+                        _charAdjust = !_charAdjust;
+                      }),
+                      child: const Icon(Icons.straighten),
+                    ),
+                    const SizedBox(height: 12),
+                    FloatingActionButton.small(
                       heroTag: 'throw_log',
                       tooltip: 'Mettre une bûche',
                       backgroundColor: const Color(0xFFB85522),
@@ -478,10 +509,104 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                 ),
               ),
             ),
+            // Char-size adjust HUD: numeric readout + +/- buttons for
+            // the currently playing animation's scale and feet ratio.
+            if (_charAdjust)
+              Positioned(
+                top: 24,
+                right: 24,
+                child: SafeArea(child: _buildCharAdjustHud()),
+              ),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildCharAdjustHud() {
+    final anim = _activeAnimForAdjust;
+    final m = _animMetrics[anim]!;
+    final scale = _scaleOverride[anim] ?? m.scale;
+    final feet = _feetOverride[anim] ?? m.feet;
+    void bumpScale(double d) => setState(() {
+          _scaleOverride[anim] = (scale + d).clamp(0.2, 3.0);
+        });
+    void bumpFeet(double d) => setState(() {
+          _feetOverride[anim] = (feet + d).clamp(0.5, 1.0);
+        });
+    Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
+          onTap: onTap,
+          radius: 22,
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFFB85522),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 20),
+          ),
+        );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.65),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            anim,
+            style: const TextStyle(
+              color: Color(0xFFFFD9A0),
+              fontSize: 15,
+              fontFamily: 'Courier',
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              SizedBox(
+                width: 110,
+                child: Text(
+                  'scale ${scale.toStringAsFixed(3)}',
+                  style: const TextStyle(
+                    color: Color(0xFFFFD9A0),
+                    fontSize: 13,
+                    fontFamily: 'Courier',
+                  ),
+                ),
+              ),
+              btn(Icons.remove, () => bumpScale(-0.02)),
+              const SizedBox(width: 6),
+              btn(Icons.add, () => bumpScale(0.02)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              SizedBox(
+                width: 110,
+                child: Text(
+                  'feet  ${feet.toStringAsFixed(3)}',
+                  style: const TextStyle(
+                    color: Color(0xFFFFD9A0),
+                    fontSize: 13,
+                    fontFamily: 'Courier',
+                  ),
+                ),
+              ),
+              btn(Icons.remove, () => bumpFeet(-0.01)),
+              const SizedBox(width: 6),
+              btn(Icons.add, () => bumpFeet(0.01)),
+            ],
+          ),
+        ],
       ),
     );
   }
