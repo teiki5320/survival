@@ -328,11 +328,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
       }
     }
     // Précache des props animés (49 frames chacun) + statiques.
+    // ResizeImage(width: 256) pour matcher le rendering et garantir
+    // qu'on cache la version décodée à 256px (4× moins de mémoire).
     for (final def in _propDefs) {
       if (def.animated) {
         for (int i = 1; i <= def.frameCount; i++) {
           precacheImage(
-            AssetImage('assets/objects/${def.key}_$i.png'),
+            ResizeImage(
+              AssetImage('assets/objects/${def.key}_$i.png'),
+              width: 256,
+            ),
             context,
           );
         }
@@ -1392,8 +1397,17 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
         final frame = (_ctrl.value * widget.frameCount)
             .floor()
             .clamp(0, widget.frameCount - 1);
-        return Image.asset(
-          'assets/objects/${widget.prefix}_${frame + 1}.png',
+        // ResizeImage : décode à 256px max (au lieu de la taille native
+        // 512px). Divise par 4 la mémoire de chaque frame en cache et
+        // donc la fréquence des purges qui re-décodent à chaud (cause
+        // des saccades au démarrage d'anim).
+        return Image(
+          image: ResizeImage(
+            AssetImage(
+              'assets/objects/${widget.prefix}_${frame + 1}.png',
+            ),
+            width: 256,
+          ),
           fit: BoxFit.contain,
         );
       },
