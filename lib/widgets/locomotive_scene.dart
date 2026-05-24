@@ -367,11 +367,20 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           ),
                         ),
                       ),
+                      // Flammes animées DERRIÈRE le PNG — visibles à
+                      // travers le petit carré transparent du poêle.
+                      Positioned.fill(
+                        child: FireboxFlames(
+                          animation: _sky,
+                          x: 0.17,
+                          y: 0.66,
+                          width: 0.07,
+                          height: 0.08,
+                        ),
+                      ),
                       // Locomotive cab — la transparence est bakée dans
-                      // le PNG (key_out_black). Les zones noires du fond
-                      // sont alpha=0 → le paysage (sky + horizon) est
-                      // visible à travers la porte, le hublot, les
-                      // fenêtres, et les bords de la cab.
+                      // le PNG (chroma key vert + bleu). Vert = paysage
+                      // (porte, hublot, fenêtres), bleu = feu (poêle).
                       Positioned.fill(
                         child: _nightTint(
                           Image.asset(
@@ -381,24 +390,14 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           ),
                         ),
                       ),
-                      // Firebox glow — soft amber halo anchored on the
-                      // open firebox door (centre of the painted fire).
+                      // Firebox glow — halo ambré devant la cab, donne
+                      // l'impression que le feu éclaire l'intérieur.
                       Positioned.fill(
                         child: FireGlow(
                           animation: _sky,
                           x: 0.17,
                           y: 0.66,
                           radius: 0.45,
-                        ),
-                      ),
-                      // Live flames flickering inside the firebox door.
-                      Positioned.fill(
-                        child: FireboxFlames(
-                          animation: _sky,
-                          x: 0.17,
-                          y: 0.66,
-                          width: 0.07,
-                          height: 0.08,
                         ),
                       ),
                       _buildHeroine(w, h),
