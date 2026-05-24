@@ -88,6 +88,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _near(double centerX, [double tol = 0.05]) =>
       (_heroX - centerX).abs() < tol;
   bool get _atNotebook => _near(SideScrollScene.notebookCenterX);
+  bool get _atFilter => _near(SideScrollScene.filterCenterX);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -216,11 +217,13 @@ class _WagonScreenState extends State<WagonScreen> {
               final wasR = _atRightDoor;
               final wasB = _atBed;
               final wasN = _atNotebook;
+              final wasF = _atFilter;
               _heroX = x;
               if (wasL != _atLeftDoor ||
                   wasR != _atRightDoor ||
                   wasB != _atBed ||
-                  wasN != _atNotebook) {
+                  wasN != _atNotebook ||
+                  wasF != _atFilter) {
                 setState(() {});
               }
             },
@@ -257,7 +260,29 @@ class _WagonScreenState extends State<WagonScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
+                  // Jauges hunger / thirst / fatigue (live via GameState).
+                  AnimatedBuilder(
+                    animation: GameState.instance,
+                    builder: (_, __) {
+                      final gs = GameState.instance;
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _statBar(Icons.restaurant, gs.hunger,
+                              const Color(0xFFE89B5C)),
+                          const SizedBox(height: 2),
+                          _statBar(Icons.water_drop, gs.thirst,
+                              const Color(0xFF6FAEDF)),
+                          const SizedBox(height: 2),
+                          _statBar(Icons.bedtime, gs.fatigue,
+                              const Color(0xFFB385D9)),
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -332,6 +357,41 @@ class _WagonScreenState extends State<WagonScreen> {
     );
   }
 
+  /// Mini-jauge horizontale icone + barre 80px. Couleur passe au rouge
+  /// quand la valeur descend sous 25 %.
+  Widget _statBar(IconData icon, double value, Color color) {
+    final low = value < 0.25;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon,
+            size: 12,
+            color: low ? const Color(0xFFE05A4D) : color.withValues(alpha: 0.9)),
+        const SizedBox(width: 4),
+        Container(
+          width: 80,
+          height: 6,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(3),
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: value.clamp(0.0, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: low ? const Color(0xFFE05A4D) : color,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Petit bouton +/- 26x26 utilisé dans le HUD top-left.
   Widget _tinyBtn(IconData icon, VoidCallback onTap) => InkResponse(
         onTap: onTap,
@@ -371,6 +431,14 @@ class _WagonScreenState extends State<WagonScreen> {
         // côté state machine — sera ajoutée quand on aura l'anim
         // sit_floor pour la transition (sinon elle lit debout, bizarre).
         GameState.instance.restoreFatigue(0.10);
+      };
+    } else if (_atFilter) {
+      icon = Icons.local_drink;
+      action = () {
+        // Boit au filtre : restore soif. L'anim drink est clean
+        // (fille seule avec tasse), à brancher quand on aura la
+        // state machine "specialAnim" côté scene.
+        GameState.instance.restoreThirst(0.20);
       };
     } else if (_doorPushing) {
       icon = Icons.meeting_room;
