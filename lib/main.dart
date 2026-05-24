@@ -69,9 +69,14 @@ class _WagonScreenState extends State<WagonScreen> {
   // Bumped on door-action tap; the wagon scene plays door_push and
   // calls back when done, at which point we cross-fade to locomotive.
   int _doorPushToken = 0;
-  // Mirror of the heroine's X position, updated by the scene. Used to
-  // enable the door action buttons only when she's at the left/right edge.
+  // Mirror of the heroine's X position. `_heroX` change quand le perso
+  // bouge (60Hz) — pour éviter un setState à chaque tick qui rebuild
+  // toute la scène et fait saccader, on l'expose via un ValueNotifier
+  // que seul le HUD heroX écoute. Le setState n'est appelé que sur les
+  // transitions de zone (porte gauche, porte droite, lit) qui modifient
+  // l'apparence du _actionFab.
   double _heroX = 0.5;
+  final ValueNotifier<double> _heroXNotifier = ValueNotifier(0.5);
   bool get _atLeftDoor => _heroX <= SideScrollScene.heroXMin + 0.01;
   bool get _atRightDoor => _heroX >= SideScrollScene.heroXMax - 0.01;
   bool get _atBed =>
@@ -95,6 +100,7 @@ class _WagonScreenState extends State<WagonScreen> {
 
   @override
   void dispose() {
+    _heroXNotifier.dispose();
     _audio.stopAll();
     super.dispose();
   }
@@ -186,9 +192,19 @@ class _WagonScreenState extends State<WagonScreen> {
               if (_dancing) setState(() => _dancing = false);
             },
             onHeroXChanged: (x) {
-              // Toujours setState pour que le HUD top-left affiche
-              // heroX en live (pas seulement aux transitions de zone).
-              setState(() => _heroX = x);
+              // Pas de setState à chaque tick (fait saccader toute la
+              // scène). Mise à jour live du HUD via le ValueNotifier,
+              // et setState seulement si la zone du _actionFab change.
+              _heroXNotifier.value = x;
+              final wasL = _atLeftDoor;
+              final wasR = _atRightDoor;
+              final wasB = _atBed;
+              _heroX = x;
+              if (wasL != _atLeftDoor ||
+                  wasR != _atRightDoor ||
+                  wasB != _atBed) {
+                setState(() {});
+              }
             },
           ),
         ),

@@ -846,16 +846,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     between the wagon roof and the top edge of
                       //     the back-wall windows, so they don't cover
                       //     the curtains or the visible landscape.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.17,
-                        height: h * 0.09,
-                        child: HangingVines(
-                          animation: _sky,
-                          opacity: widget.night ? 0.30 : 0.45,
-                        ),
-                      ),
                       // 4f. Distant zombie passing across the window band,
                       //     night only.
                       Positioned(
@@ -908,15 +898,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           enabled: widget.wagonStage <= 1,
                         ),
                       ),
-                      // 5d. Rain on the window band, night only and only
-                      //     while the train is moving — gives "weather".
-                      if (widget.night && widget.running)
-                        Positioned.fill(
-                          child: WindowRain(
-                            animation: _foreground,
-                            density: 24,
-                          ),
-                        ),
                       // 5e. Random thought bubble above her head.
                       if (_thoughtEmoji != null)
                         Positioned.fill(
