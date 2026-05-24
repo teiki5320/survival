@@ -224,14 +224,19 @@ class _WagonScreenState extends State<WagonScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'heroX = ${_heroX.toStringAsFixed(3)}  '
-                    'L=${_atLeftDoor ? "✓" : "·"}  '
-                    'R=${_atRightDoor ? "✓" : "·"}',
-                    style: const TextStyle(
-                      color: Color(0xFFFFD9A0),
-                      fontSize: 12,
-                      fontFamily: 'Courier',
+                  // ValueListenableBuilder = se met à jour sans rebuild
+                  // du Stack parent → pas de saccade live.
+                  ValueListenableBuilder<double>(
+                    valueListenable: _heroXNotifier,
+                    builder: (_, x, __) => Text(
+                      'heroX = ${x.toStringAsFixed(3)}  '
+                      'L=${_atLeftDoor ? "✓" : "·"}  '
+                      'R=${_atRightDoor ? "✓" : "·"}',
+                      style: const TextStyle(
+                        color: Color(0xFFFFD9A0),
+                        fontSize: 12,
+                        fontFamily: 'Courier',
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),

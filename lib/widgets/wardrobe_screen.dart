@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 
 /// Plein écran "armoire" : la fille en grand au centre, idle qui boucle,
 /// et une flèche de chaque côté pour cycler entre les tenues. Pour
@@ -14,48 +13,19 @@ class WardrobeScreen extends StatefulWidget {
   State<WardrobeScreen> createState() => _WardrobeScreenState();
 }
 
-class _WardrobeScreenState extends State<WardrobeScreen>
-    with SingleTickerProviderStateMixin {
-  // Une entry par tenue. `dir` = sous-dossier sous `assets/characters/`
-  // qui contient idle_right_1..49.png (laisser vide = dossier racine,
-  // càd la tenue actuelle déjà bakée).
+class _WardrobeScreenState extends State<WardrobeScreen> {
+  // Une entry par tenue. `frontAsset` = chemin du sprite STATIQUE de
+  // face affiché au centre (pour qu'on voie la tenue, pas un profil).
+  // L'animation idle reviendra quand on aura plus d'1 tenue + une vue
+  // de face animée par tenue.
   static const List<_Outfit> _outfits = [
-    _Outfit(name: 'Chemise blanche', dir: ''),
+    _Outfit(
+      name: 'Chemise blanche',
+      frontAsset: 'assets/characters/heroine_front.png',
+    ),
   ];
 
-  static const int _frameCount = 49;
-  static const int _frameMs = 80;
-
   int _outfitIndex = 0;
-  int _frame = 0;
-  int _accumMs = 0;
-  late final Ticker _ticker;
-  Duration? _last;
-
-  @override
-  void initState() {
-    super.initState();
-    _ticker = createTicker(_onTick)..start();
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  void _onTick(Duration elapsed) {
-    final last = _last ?? elapsed;
-    final dt = (elapsed - last).inMilliseconds;
-    _last = elapsed;
-    if (dt <= 0) return;
-    _accumMs += dt;
-    while (_accumMs >= _frameMs) {
-      _accumMs -= _frameMs;
-      _frame = (_frame + 1) % _frameCount;
-    }
-    setState(() {});
-  }
 
   void _prev() {
     setState(() {
@@ -67,12 +37,6 @@ class _WardrobeScreenState extends State<WardrobeScreen>
     setState(() {
       _outfitIndex = (_outfitIndex + 1) % _outfits.length;
     });
-  }
-
-  String _assetPath() {
-    final outfit = _outfits[_outfitIndex];
-    final prefix = outfit.dir.isEmpty ? '' : '${outfit.dir}/';
-    return 'assets/characters/${prefix}idle_right_${_frame + 1}.png';
   }
 
   @override
@@ -106,7 +70,10 @@ class _WardrobeScreenState extends State<WardrobeScreen>
                 height: figureH,
                 child: AspectRatio(
                   aspectRatio: 1,
-                  child: Image.asset(_assetPath(), fit: BoxFit.contain),
+                  child: Image.asset(
+                    _outfits[_outfitIndex].frontAsset,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
             ),
@@ -183,9 +150,9 @@ class _WardrobeScreenState extends State<WardrobeScreen>
 }
 
 class _Outfit {
-  const _Outfit({required this.name, required this.dir});
+  const _Outfit({required this.name, required this.frontAsset});
   final String name;
-  final String dir;
+  final String frontAsset;
 }
 
 class _ArrowButton extends StatelessWidget {

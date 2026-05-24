@@ -639,13 +639,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _walkingToBed = false;
       _heroTarget = clamped;
       if (wasSleeping) {
-        // Don't let her snap from lying flat into a walk — play the
-        // wake_up + stretch sequence first, then she'll walk to the
-        // queued target.
-        _waking = true;
-        _wakingPhase = 0;
-        _wakingFrame = 0;
-        _wakingAccumMs = 0;
+        if (_sleepOnBed) {
+          // Réveil depuis le LIT : skip toute la séquence wake_up +
+          // stretch (causait le bug "se penche puis remonte" + saut
+          // de position). On snap directement à idle au centre du lit.
+          _sleepOnBed = false;
+          final bedCenter =
+              (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
+          _heroX = bedCenter;
+          widget.onHeroXChanged?.call(_heroX);
+        } else {
+          // Réveil depuis le SOL : la séquence wake_up + stretch garde
+          // du sens visuellement (couchée → debout).
+          _waking = true;
+          _wakingPhase = 0;
+          _wakingFrame = 0;
+          _wakingAccumMs = 0;
+        }
       }
     });
     widget.onUserInteract?.call();
@@ -662,10 +672,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _walkingToBed = true;
       _heroTarget = target;
       if (wasSleeping) {
-        _waking = true;
-        _wakingPhase = 0;
-        _wakingFrame = 0;
-        _wakingAccumMs = 0;
+        if (_sleepOnBed) {
+          _sleepOnBed = false;
+          final bedCenter =
+              (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
+          _heroX = bedCenter;
+          widget.onHeroXChanged?.call(_heroX);
+        } else {
+          _waking = true;
+          _wakingPhase = 0;
+          _wakingFrame = 0;
+          _wakingAccumMs = 0;
+        }
       }
     });
     widget.onUserInteract?.call();
