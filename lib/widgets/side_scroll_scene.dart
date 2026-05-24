@@ -647,10 +647,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         // probability so it doesn't fire like clockwork).
         if (_idleStillMs >= _idleBreakAfterMs) {
           _idleStillMs = 0;
-          final nearWindow = _nearWindow();
-          if (nearWindow) {
-            _idleBreak = 'look_window';
-          } else if (math.Random().nextDouble() < 0.6) {
+          if (math.Random().nextDouble() < 0.6) {
             _idleBreak = 'yawn';
           }
           _idleBreakFrame = 0;
