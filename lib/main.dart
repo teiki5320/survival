@@ -60,7 +60,6 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inLocomotive = false;
   bool _onMap = false;
   bool _inWardrobe = false;
-  bool _propsAdjust = false;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -178,7 +177,6 @@ class _WagonScreenState extends State<WagonScreen> {
             doorPushToken: _doorPushToken,
             onDoorPushDone: _onDoorPushDone,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
-            propsAdjust: _propsAdjust,
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },
@@ -190,6 +188,32 @@ class _WagonScreenState extends State<WagonScreen> {
                 setState(() {});
               }
             },
+          ),
+        ),
+        // Debug overlay temporaire : affiche _heroX + état porte droite
+        // pour diagnostiquer pourquoi la map ne s'ouvre pas.
+        Positioned(
+          top: 8,
+          left: 8,
+          child: SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'x=${_heroX.toStringAsFixed(3)}  '
+                'right=${_atRightDoor ? "✓" : "✗"}  '
+                'map=${_onMap ? "ON" : "off"}',
+                style: const TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 11,
+                  fontFamily: 'Courier',
+                ),
+              ),
+            ),
           ),
         ),
         Positioned(
@@ -210,20 +234,13 @@ class _WagonScreenState extends State<WagonScreen> {
                       : Colors.grey.shade800,
                   foregroundColor:
                       _atRightDoor ? Colors.white : Colors.grey.shade500,
-                  onPressed:
-                      _atRightDoor ? () => setState(() => _onMap = true) : null,
+                  onPressed: _atRightDoor
+                      ? () {
+                          debugPrint('[FAB right_door] tapped, opening map');
+                          setState(() => _onMap = true);
+                        }
+                      : null,
                   child: const Icon(Icons.meeting_room_outlined),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'props_adjust',
-                  tooltip: _propsAdjust
-                      ? 'Valider la position des objets'
-                      : 'Régler les objets',
-                  backgroundColor: _propsAdjust ? const Color(0xFFB85522) : null,
-                  foregroundColor: _propsAdjust ? Colors.white : null,
-                  onPressed: () => setState(() => _propsAdjust = !_propsAdjust),
-                  child: Icon(_propsAdjust ? Icons.check : Icons.widgets),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(

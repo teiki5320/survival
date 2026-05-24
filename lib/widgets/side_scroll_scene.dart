@@ -33,7 +33,6 @@ class SideScrollScene extends StatefulWidget {
     this.doorPushToken = 0,
     this.onDoorPushDone,
     this.onOpenWardrobe,
-    this.propsAdjust = false,
   });
 
   /// Wagon visual progression, 0..3:
@@ -74,12 +73,6 @@ class SideScrollScene extends StatefulWidget {
   /// the full-screen outfit selector.
   final VoidCallback? onOpenWardrobe;
 
-  /// When `true`, every prop becomes draggable + resizable with an
-  /// orange outline + a HUD top-right (chip selector + position/size
-  /// sliders). Used to dial in positions live then bake back into
-  /// [_propPos] defaults.
-  final bool propsAdjust;
-
   /// Fired the first time the user taps the wagon floor, so the parent
   /// can drop any "she's dancing" state it was holding.
   final VoidCallback? onUserInteract;
@@ -92,12 +85,12 @@ class SideScrollScene extends StatefulWidget {
   /// Left bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the door (= porte
   /// gauche du wagon vers la locomotive).
-  static const double heroXMin = 0.08;
+  static const double heroXMin = 0.05;
 
   /// Right bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the right door
   /// (= ouverture sur la map du monde).
-  static const double heroXMax = 0.94;
+  static const double heroXMax = 0.97;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
@@ -159,23 +152,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
   ];
 
   final Map<String, _PropPos> _propPos = {
-    'hydro':    _PropPos(0.807, 0.357, 0.360),
+    'hydro':    _PropPos(0.805, 0.412, 0.326),
     'lamp':     _PropPos(0.415, 0.323, 0.104),
     'stove':    _PropPos(0.629, 0.445, 0.263),
     'filter':   _PropPos(0.727, 0.514, 0.200),
-    'table':    _PropPos(0.498, 0.525, 0.180),
+    'table':    _PropPos(0.479, 0.557, 0.151),
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
-    'commode':  _PropPos(0.130, 0.560, 0.180),
-    'bowl':     _PropPos(0.400, 0.840, 0.080),
+    'commode':  _PropPos(0.539, 0.571, 0.139),
+    'bowl':     _PropPos(0.481, 0.669, 0.080),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
   // pour la remplir, Plume passe à empty quand elle vient de manger.
   bool _bowlFull = true;
-
-  /// Prop actif pour le HUD du mode propsAdjust (sélectionné via chip).
-  String _activeProp = 'hydro';
 
   // Le chien a sa propre state machine (idle / walk / sleep) — pas un
   // prop statique. Sa hauteur et son Y restent fixes ; son X glisse
@@ -875,13 +865,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     qu'elle puisse passer devant.
                       for (final def in _propDefs)
                         _buildProp(def: def, w: w, h: h),
-                      // HUD du mode propsAdjust (chip selector + sliders).
-                      if (widget.propsAdjust)
-                        Positioned(
-                          top: 8,
-                          right: 80, // évite les FABs de droite
-                          child: _buildPropsAdjustHud(),
-                        ),
                       // 4g-bis. Chien autonome : sa propre state machine
                       //     (idle → walk → sleep → ...) qui choisit sa
                       //     prochaine action toutes les quelques secondes.
@@ -1039,95 +1022,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           );
     final wrapped = _nightTint(sprite);
 
-    // Mode adjust : drag pour bouger, resize handle pour redimensionner,
-    // outline visible, tap pour sélectionner ce prop dans le HUD.
-    if (widget.propsAdjust) {
-      final isActive = _activeProp == def.key;
-      return Positioned(
-        left: left,
-        top: top,
-        width: propW,
-        height: propH,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => setState(() => _activeProp = def.key),
-          onPanUpdate: (d) => setState(() {
-            pos.left = (pos.left + d.delta.dx / w).clamp(0.0, 1.0);
-            pos.top = (pos.top + d.delta.dy / h).clamp(0.0, 1.0);
-            _activeProp = def.key;
-          }),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              wrapped,
-              Positioned.fill(
-                child: IgnorePointer(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: isActive
-                            ? const Color(0xFFFFB347)
-                            : Colors.white.withValues(alpha: 0.35),
-                        width: isActive ? 2 : 1,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: -16,
-                left: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 4, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? const Color(0xFFB85522)
-                        : Colors.black.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text(
-                    def.label,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 9,
-                      fontFamily: 'Courier',
-                    ),
-                  ),
-                ),
-              ),
-              if (isActive)
-                Positioned(
-                  right: -16,
-                  bottom: -16,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanUpdate: (d) => setState(() {
-                      pos.height = (pos.height + d.delta.dy / h)
-                          .clamp(0.03, 1.0);
-                    }),
-                    child: Container(
-                      width: 32,
-                      height: 32,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFB85522),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.open_in_full,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Mode normal : commode = tappable (ouvre wardrobe), bowl = tap
+    // commode = tappable (ouvre wardrobe), bowl = tap
     // pour remplir si vide, reste = inert.
     if (def.key == 'commode' && widget.onOpenWardrobe != null) {
       return Positioned(
@@ -1169,115 +1064,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   /// HUD du mode propsAdjust : chip selector pour choisir le prop actif,
   /// puis 3 rows left/top/height avec boutons +/- pour fine-tuning.
-  Widget _buildPropsAdjustHud() {
-    final pos = _propPos[_activeProp]!;
-    final def = _propDefs.firstWhere((d) => d.key == _activeProp);
-
-    Widget btn(IconData icon, VoidCallback onTap) => InkResponse(
-          onTap: onTap,
-          radius: 18,
-          child: Container(
-            width: 26,
-            height: 26,
-            decoration: const BoxDecoration(
-              color: Color(0xFFB85522),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: Colors.white, size: 16),
-          ),
-        );
-
-    Widget row(String label, double value, double step,
-        void Function(double delta) apply) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 110,
-              child: Text(
-                '$label ${value.toStringAsFixed(3)}',
-                style: const TextStyle(
-                  color: Color(0xFFFFD9A0),
-                  fontSize: 11,
-                  fontFamily: 'Courier',
-                ),
-              ),
-            ),
-            btn(Icons.remove, () => setState(() => apply(-step))),
-            const SizedBox(width: 4),
-            btn(Icons.add, () => setState(() => apply(step))),
-          ],
-        ),
-      );
-    }
-
-    final chips = _propDefs.map((d) {
-      final selected = d.key == _activeProp;
-      return Padding(
-        padding: const EdgeInsets.only(right: 4),
-        child: GestureDetector(
-          onTap: () => setState(() => _activeProp = d.key),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: selected
-                  ? const Color(0xFFB85522)
-                  : Colors.white.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              d.label,
-              style: TextStyle(
-                color: selected
-                    ? Colors.white
-                    : const Color(0xFFFFD9A0),
-                fontSize: 10,
-                fontFamily: 'Courier',
-                fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-        ),
-      );
-    }).toList();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 260,
-            child: Wrap(spacing: 0, runSpacing: 4, children: chips),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            def.label.toUpperCase(),
-            style: const TextStyle(
-              color: Color(0xFFFFD9A0),
-              fontSize: 11,
-              fontFamily: 'Courier',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          row('left  ', pos.left, 0.005,
-              (d) => pos.left = (pos.left + d).clamp(0.0, 1.0)),
-          row('top   ', pos.top, 0.005,
-              (d) => pos.top = (pos.top + d).clamp(0.0, 1.0)),
-          row('height', pos.height, 0.01,
-              (d) => pos.height = (pos.height + d).clamp(0.03, 1.0)),
-        ],
-      ),
-    );
-  }
-
   Widget _buildHeroine(double w, double h) {
     // Wagon's interior floor sits roughly at this Y.
     final feetY = h * 0.79;
