@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'models/game_state.dart';
 import 'services/audio_service.dart';
 import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
@@ -81,6 +84,10 @@ class _WagonScreenState extends State<WagonScreen> {
   bool get _atRightDoor => _heroX >= SideScrollScene.heroXMax - 0.01;
   bool get _atBed =>
       (_heroX - SideScrollScene.bedCenterX).abs() < 0.05;
+  // Zones interactives autour des props.
+  bool _near(double centerX, [double tol = 0.05]) =>
+      (_heroX - centerX).abs() < tol;
+  bool get _atNotebook => _near(SideScrollScene.notebookCenterX);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -91,15 +98,27 @@ class _WagonScreenState extends State<WagonScreen> {
 
   final _audio = AudioService();
 
+  /// Cycle jour/nuit auto : passe day → night → day toutes les
+  /// [_dayNightPeriod] minutes. Le bouton lune (FAB) garde la main si
+  /// le joueur veut forcer manuellement.
+  static const Duration _dayNightPeriod = Duration(minutes: 6);
+  Timer? _dayNightTimer;
+
   @override
   void initState() {
     super.initState();
     _audio.startAmbientTrain();
     _audio.setMusic(_night ? 'night' : 'day');
+    _dayNightTimer = Timer.periodic(_dayNightPeriod, (_) {
+      if (!mounted) return;
+      setState(() => _night = !_night);
+      _audio.setMusic(_night ? 'night' : 'day');
+    });
   }
 
   @override
   void dispose() {
+    _dayNightTimer?.cancel();
     _heroXNotifier.dispose();
     _audio.stopAll();
     super.dispose();
@@ -192,17 +211,16 @@ class _WagonScreenState extends State<WagonScreen> {
               if (_dancing) setState(() => _dancing = false);
             },
             onHeroXChanged: (x) {
-              // Pas de setState à chaque tick (fait saccader toute la
-              // scène). Mise à jour live du HUD via le ValueNotifier,
-              // et setState seulement si la zone du _actionFab change.
               _heroXNotifier.value = x;
               final wasL = _atLeftDoor;
               final wasR = _atRightDoor;
               final wasB = _atBed;
+              final wasN = _atNotebook;
               _heroX = x;
               if (wasL != _atLeftDoor ||
                   wasR != _atRightDoor ||
-                  wasB != _atBed) {
+                  wasB != _atBed ||
+                  wasN != _atNotebook) {
                 setState(() {});
               }
             },
@@ -345,6 +363,15 @@ class _WagonScreenState extends State<WagonScreen> {
     } else if (_atBed) {
       icon = Icons.bed;
       action = () => setState(() => _lieDownToken++);
+    } else if (_atNotebook) {
+      icon = Icons.menu_book;
+      action = () {
+        // Lit le carnet : un petit shot de fatigue (repos mental) +
+        // bulle. L'anim "read" est dans le repo mais pas encore branchée
+        // côté state machine — sera ajoutée quand on aura l'anim
+        // sit_floor pour la transition (sinon elle lit debout, bizarre).
+        GameState.instance.restoreFatigue(0.10);
+      };
     } else if (_doorPushing) {
       icon = Icons.meeting_room;
     }

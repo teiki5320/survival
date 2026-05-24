@@ -96,9 +96,15 @@ class SideScrollScene extends StatefulWidget {
   /// (= ouverture sur la map du monde).
   static const double heroXMax = 0.86;
 
-  /// Centre X normalisé du lit. Le parent l'utilise pour savoir si la
-  /// fille est à côté du lit (= action contextuelle "se coucher").
+  /// Centres X normalisés des props interactifs. Le parent compare
+  /// _heroX à ces valeurs pour décider quoi afficher sur l'action FAB.
   static const double bedCenterX = 0.334;
+  static const double notebookCenterX = 0.249;
+  static const double lampCenterX = 0.415;
+  static const double stoveCenterX = 0.629;
+  static const double filterCenterX = 0.727;
+  static const double hydroCenterX = 0.805;
+  static const double bowlCenterX = 0.481;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.

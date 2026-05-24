@@ -18,6 +18,12 @@ class GameState extends ChangeNotifier {
       const Duration(seconds: 60),
       (_) => _tickRefill(),
     );
+    // Drain hunger/thirst/fatigue toutes les 5s (granularité fine pour
+    // que la jauge bouge visiblement plutôt que de sauter d'un palier).
+    _drainTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _tickDrain(),
+    );
   }
   static final GameState instance = GameState._();
 
@@ -51,6 +57,54 @@ class GameState extends ChangeNotifier {
 
   void grantEnergy(int amount) {
     _energy = (_energy + amount).clamp(0, maxEnergy);
+    notifyListeners();
+  }
+
+  // --- Survival bars (faim / soif / fatigue) ---
+  // Toutes de 0.0 (vide / épuisé) à 1.0 (rassasié / reposé). Décroissent
+  // lentement avec le temps ; restored par interactions (eat → +faim,
+  // drink → +soif, sleep dans le lit → +fatigue).
+  double _hunger = 1.0;
+  double _thirst = 1.0;
+  double _fatigue = 1.0;
+  double get hunger => _hunger;
+  double get thirst => _thirst;
+  double get fatigue => _fatigue;
+
+  // Décroissance par seconde réelle.
+  static const double _hungerDrainPerSec = 1.0 / (60 * 30); // vide en 30 min
+  static const double _thirstDrainPerSec = 1.0 / (60 * 20); // 20 min
+  static const double _fatigueDrainPerSec = 1.0 / (60 * 45); // 45 min
+
+  Timer? _drainTimer;
+  DateTime _lastDrainTick = DateTime.now();
+
+  void _tickDrain() {
+    final now = DateTime.now();
+    final dt = now.difference(_lastDrainTick).inSeconds.toDouble();
+    if (dt <= 0) return;
+    _lastDrainTick = now;
+    final h0 = _hunger, t0 = _thirst, f0 = _fatigue;
+    _hunger = (_hunger - _hungerDrainPerSec * dt).clamp(0.0, 1.0);
+    _thirst = (_thirst - _thirstDrainPerSec * dt).clamp(0.0, 1.0);
+    _fatigue = (_fatigue - _fatigueDrainPerSec * dt).clamp(0.0, 1.0);
+    if (_hunger != h0 || _thirst != t0 || _fatigue != f0) {
+      notifyListeners();
+    }
+  }
+
+  void restoreHunger(double amount) {
+    _hunger = (_hunger + amount).clamp(0.0, 1.0);
+    notifyListeners();
+  }
+
+  void restoreThirst(double amount) {
+    _thirst = (_thirst + amount).clamp(0.0, 1.0);
+    notifyListeners();
+  }
+
+  void restoreFatigue(double amount) {
+    _fatigue = (_fatigue + amount).clamp(0.0, 1.0);
     notifyListeners();
   }
 
@@ -91,6 +145,7 @@ class GameState extends ChangeNotifier {
   @override
   void dispose() {
     _refillTimer?.cancel();
+    _drainTimer?.cancel();
     super.dispose();
   }
 }
