@@ -246,33 +246,29 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   /// Génère les widgets du mode adjust : 3 rectangles draggables/
   /// resizables (porte + 2 fenêtres) + HUD top-right avec chip
   /// selector + sliders position/taille.
-  List<Widget> _buildMaskAdjustOverlay() {
+  List<Widget> _buildMaskAdjustOverlay(double w, double h) {
     final widgets = <Widget>[];
     for (int i = 0; i < _maskHoles.length; i++) {
       final r = _maskHoles[i];
       final isActive = _activeMask == i;
-      widgets.add(LayoutBuilder(
-        builder: (ctx, c) {
-          final w = c.maxWidth;
-          final h = c.maxHeight;
-          return Positioned(
-            left: r.x1 * w,
-            top: r.y1 * h,
-            width: r.w * w,
-            height: r.h * h,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _activeMask = i),
-              onPanUpdate: (d) => setState(() {
-                final dx = d.delta.dx / w;
-                final dy = d.delta.dy / h;
-                r.x1 = (r.x1 + dx).clamp(0.0, 1.0 - r.w);
-                r.x2 = r.x1 + r.w;
-                r.y1 = (r.y1 + dy).clamp(0.0, 1.0 - r.h);
-                r.y2 = r.y1 + r.h;
-                _activeMask = i;
-              }),
-              child: Stack(
+      widgets.add(Positioned(
+        left: r.x1 * w,
+        top: r.y1 * h,
+        width: r.w * w,
+        height: r.h * h,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => setState(() => _activeMask = i),
+          onPanUpdate: (d) => setState(() {
+            final dx = d.delta.dx / w;
+            final dy = d.delta.dy / h;
+            r.x1 = (r.x1 + dx).clamp(0.0, 1.0 - r.w);
+            r.x2 = r.x1 + r.w;
+            r.y1 = (r.y1 + dy).clamp(0.0, 1.0 - r.h);
+            r.y2 = r.y1 + r.h;
+            _activeMask = i;
+          }),
+          child: Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Positioned.fill(
@@ -365,8 +361,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                 ],
               ),
             ),
-          );
-        },
+          ),
       ));
     }
     // HUD top-right : chip selector + sliders +/- pour la zone active.
@@ -721,7 +716,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
               ),
             ),
             // Mode adjust : overlay des 3 trous draggables + HUD top-right.
-            if (_maskAdjust) ..._buildMaskAdjustOverlay(),
+            if (_maskAdjust) ..._buildMaskAdjustOverlay(w, h),
             // Action buttons (bottom-right).
             Positioned(
               right: 16,
