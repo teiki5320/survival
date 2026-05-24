@@ -93,6 +93,13 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     _NormRect(0.580, 0.720, 0.420, 0.660), // fenêtre droite
   ];
   static const List<String> _maskLabels = ['Porte', 'Fenêtre G', 'Fenêtre D'];
+  // Couleurs des fills semi-transparents en mode adjust (porte rouge,
+  // fenêtres bleu / vert) pour visualiser les futurs trous distincts.
+  static const List<Color> _maskTintColors = [
+    Color(0xFFE85C3F), // porte = rouge orangé
+    Color(0xFF4A9CD9), // fenêtre G = bleu
+    Color(0xFF6FBF73), // fenêtre D = vert
+  ];
 
   @override
   void initState() {
@@ -270,6 +277,12 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
+                        // Fill semi-transparent coloré par zone : porte
+                        // rouge, fenêtre G bleu, fenêtre D vert. Permet
+                        // de visualiser le futur trou par-dessus la
+                        // locomotive pendant le réglage.
+                        color: _maskTintColors[i]
+                            .withValues(alpha: isActive ? 0.40 : 0.22),
                         border: Border.all(
                           color: isActive
                               ? const Color(0xFFFFB347)
@@ -610,6 +623,17 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       Positioned.fill(
                         child: LayoutBuilder(
                           builder: (ctx, c) {
+                            final image = Image.asset(
+                              'assets/background/locomotive.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => _placeholder(),
+                            );
+                            // En mode adjust : pas de clip, locomotive
+                            // pleinement visible. Sinon : trous appliqués
+                            // pour révéler le background derrière.
+                            if (_maskAdjust) {
+                              return _nightTint(image);
+                            }
                             final holes = _maskHoles
                                 .map((r) => Rect.fromLTRB(
                                       c.maxWidth * r.x1,
@@ -621,11 +645,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                             return _nightTint(
                               ClipPath(
                                 clipper: HoleClipper(holes),
-                                child: Image.asset(
-                                  'assets/background/locomotive.png',
-                                  fit: BoxFit.contain,
-                                  errorBuilder: (_, __, ___) => _placeholder(),
-                                ),
+                                child: image,
                               ),
                             );
                           },
