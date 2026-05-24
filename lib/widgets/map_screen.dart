@@ -19,10 +19,24 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  static const _mapImage = AssetImage('assets/background/map.png');
+  bool _mapReady = false;
+  bool _mapFailed = false;
+
   @override
   void initState() {
     super.initState();
     GameState.instance.addListener(_onState);
+    // Pré-décoder map.png : si on attend pas, Flutter peut afficher
+    // un placeholder gris pendant le décode du PNG (2 MB).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      precacheImage(_mapImage, context).then((_) {
+        if (mounted) setState(() => _mapReady = true);
+      }).catchError((e) {
+        debugPrint('map.png precache failed: $e');
+        if (mounted) setState(() => _mapFailed = true);
+      });
+    });
   }
 
   @override
@@ -53,97 +67,97 @@ class _MapScreenState extends State<MapScreen> {
     final state = GameState.instance;
     return Scaffold(
       backgroundColor: const Color(0xFFB8945C),
-      body: SafeArea(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Map backdrop : fond sépia plein + radial gradient via
-            // DecoratedBox (plus fiable qu'un CustomPaint qui n'a parfois
-            // pas de taille). On overlaie ensuite map.png si elle charge.
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: RadialGradient(
-                    center: Alignment.center,
-                    radius: 1.0,
-                    colors: [
-                      Color(0xFFE8D2A0),
-                      Color(0xFFB8945C),
-                      Color(0xFF5A3A1F),
-                    ],
-                    stops: [0.0, 0.55, 1.0],
-                  ),
-                ),
-              ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1) Background sépia plein + map.png en DecorationImage (rendue
+          //    en une seule passe, pas de placeholder gris pendant decode).
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFB8945C),
+              image: _mapReady
+                  ? const DecorationImage(
+                      image: _mapImage,
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
-            Positioned.fill(
-              child: Image.asset(
-                'assets/background/map.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
-            ),
-            // Train icon — fixed home base in the middle-left.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: SizedBox.expand(
-                  child: CustomPaint(painter: _TrainPinPainter()),
-                ),
-              ),
-            ),
-            // Location pins, one per world entry.
-            ...world.map((loc) => _LocationPin(
-                  location: loc,
-                  unlocked: state.isLocationUnlocked(loc.id),
-                  enabled: state.canLeaveTrain,
-                  onTap: () => _openLocation(loc),
-                )),
-            // HUD top-left: energy + inventory summary.
-            Positioned(
-              top: 16,
-              left: 16,
-              child: _HudPanel(state: state),
-            ),
-            // Close button top-right.
-            Positioned(
-              top: 12,
-              right: 12,
-              child: FloatingActionButton.small(
-                heroTag: 'map_close',
-                tooltip: 'Retour au train',
-                onPressed: widget.onClose,
-                child: const Icon(Icons.close),
-              ),
-            ),
-            if (!state.canLeaveTrain)
-              Positioned(
-                bottom: 24,
-                left: 24,
-                right: 24,
-                child: SafeArea(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 18, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFB85522)),
-                    ),
-                    child: const Text(
-                      'Tu es épuisée. Tu ne peux plus quitter le train. '
-                      'L\'énergie remonte petit à petit — repose-toi.',
-                      textAlign: TextAlign.center,
+            // En attendant precache : fond sépia + label discret pour
+            // vérifier que le widget est bien rendu (sinon on saurait
+            // que c'est en amont, pas l'image).
+            child: _mapFailed
+                ? const Center(
+                    child: Text(
+                      'map.png introuvable',
                       style: TextStyle(
-                        color: Color(0xFFFFD9A0),
-                        fontSize: 14,
-                        height: 1.4,
+                        color: Colors.white,
+                        fontSize: 18,
+                        backgroundColor: Color(0xFFB85522),
                       ),
                     ),
+                  )
+                : null,
+          ),
+          // 2) HUD top-left: energy + inventory summary.
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: _HudPanel(state: state),
+              ),
+            ),
+          ),
+          // 3) Pins de location.
+          ...world.map((loc) => _LocationPin(
+                location: loc,
+                unlocked: state.isLocationUnlocked(loc.id),
+                enabled: state.canLeaveTrain,
+                onTap: () => _openLocation(loc),
+              )),
+          // 4) Close button top-right.
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Align(
+                alignment: Alignment.topRight,
+                child: FloatingActionButton.small(
+                  heroTag: 'map_close',
+                  tooltip: 'Retour au train',
+                  onPressed: widget.onClose,
+                  child: const Icon(Icons.close),
+                ),
+              ),
+            ),
+          ),
+          if (!state.canLeaveTrain)
+            Positioned(
+              bottom: 24,
+              left: 24,
+              right: 24,
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 18, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFB85522)),
+                  ),
+                  child: const Text(
+                    'Tu es épuisée. Tu ne peux plus quitter le train. '
+                    'L\'énergie remonte petit à petit — repose-toi.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Color(0xFFFFD9A0),
+                      fontSize: 14,
+                      height: 1.4,
+                    ),
+                    ),
                   ),
                 ),
               ),
-          ],
-        ),
+        ],
       ),
     );
   }
