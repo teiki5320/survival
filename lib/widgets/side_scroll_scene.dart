@@ -29,6 +29,7 @@ class SideScrollScene extends StatefulWidget {
     this.night = false,
     this.dancing = false,
     this.lieDownToken = 0,
+    this.cookToken = 0,
     this.onUserInteract,
     this.onHeroXChanged,
     this.logsThrown = 0,
@@ -66,6 +67,7 @@ class SideScrollScene extends StatefulWidget {
   /// pressed. The scene observes the change and plays the pickup
   /// frames in reverse so she bends over, then snaps into sleep.
   final int lieDownToken;
+  final int cookToken;
 
   /// Incremented by the parent when the door-action button is pressed
   /// to enter the locomotive. The scene plays the door_push animation
@@ -235,6 +237,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // When set, the next walk-arrival auto-triggers a lie-down (used by
   // the double-tap-on-bed handler so she walks over before lying down).
   bool _walkingToBed = false;
+  bool _walkingToStove = false;
   // Lie-down transition: plays pickup frames in reverse (upright → bent
   // over), then snaps into the sleep loop on the floor.
   bool _heroLyingDown = false;
@@ -461,6 +464,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _heroTarget = target;
       });
     }
+    if (oldWidget.cookToken != widget.cookToken) {
+      final target = stoveCenterX.clamp(_heroXMin, _heroXMax);
+      setState(() {
+        _heroDancing = false;
+        _heroSleeping = false;
+        _heroLyingDown = false;
+        _walkingToStove = true;
+        _heroTarget = target;
+      });
+    }
     if (oldWidget.doorPushToken != widget.doorPushToken) {
       setState(() {
         _doorPushing = true;
@@ -663,6 +676,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final step = _heroSpeed * dt;
     if (delta.abs() <= step) {
       final arriveTriggersLieDown = _walkingToBed;
+      final arriveTriggerssCook = _walkingToStove;
       setState(() {
         _heroX = target;
         _heroTarget = null;
@@ -670,12 +684,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _walkAccumMs = 0;
         if (arriveTriggersLieDown) {
           _walkingToBed = false;
-          // Skip the pickup-reversed transition (it doesn't read as a
-          // climb-into-bed motion). Just snap to sleep on the mattress.
           _sleepOnBed = true;
           _heroSleeping = true;
           _sleepFrame = 0;
           _sleepAccumMs = 0;
+        }
+        if (arriveTriggerssCook) {
+          _walkingToStove = false;
+          _activeSpecial = 'cook';
+          _activeSpecialFrames = 25;
+          _activeSpecialLoops = false;
+          _specialFrame = 0;
+          _specialAccumMs = 0;
+          GameState.instance.restoreHunger(0.20);
         }
       });
       widget.onHeroXChanged?.call(_heroX);
@@ -706,6 +727,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _heroDancing = false;
       _heroLyingDown = false;
       _walkingToBed = false;
+      _walkingToStove = false;
       _heroTarget = clamped;
       if (wasSleeping) {
         if (_sleepOnBed) {

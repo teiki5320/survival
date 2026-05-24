@@ -59,6 +59,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _night = false;
   bool _dancing = false;
   int _lieDownToken = 0;
+  int _cookToken = 0;
 
   bool _inLocomotive = false;
   bool _onMap = false;
@@ -223,6 +224,7 @@ class _WagonScreenState extends State<WagonScreen> {
             night: _night,
             dancing: _dancing,
             lieDownToken: _lieDownToken,
+            cookToken: _cookToken,
             logsThrown: _logsThrown,
             doorPushToken: _doorPushToken,
             onDoorPushDone: _onDoorPushDone,
@@ -484,10 +486,7 @@ class _WagonScreenState extends State<WagonScreen> {
       };
     } else if (_atStove) {
       icon = Icons.soup_kitchen;
-      action = () {
-        _triggerSpecial('cook', frames: 25);
-        GameState.instance.restoreHunger(0.20);
-      };
+      action = () => setState(() => _cookToken++);
     } else if (_atLamp) {
       icon = GameState.instance.lampOn
           ? Icons.lightbulb
