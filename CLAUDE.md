@@ -35,6 +35,16 @@ narratifs câblés. Mécaniques de progression / sauvegarde à construire.
   date l'utilisateur a **désactivé** la distribution auto sur xcloud pour
   économiser les quotas TestFlight (« j'ai enlevé sur xcloud pour qsue ça
   build pas sur testflight »).
+- **Xcode Cloud "Archive - iOS" en rouge** : ouvrir l'onglet **Erreur**
+  pour voir le message. Si c'est **"Preparing build for App Store
+  Connect failed"** → c'est l'étape d'upload TestFlight qui rejette
+  (version déjà présente). Fix : **bump `version:` dans `pubspec.yaml`**
+  (incrémenter le `+N` au minimum, ex `0.11.0+1` → `0.11.1+2`) puis
+  re-push. Les .ipa sont quand même générés (artefacts dispos) mais
+  l'app n'apparaît pas sur TestFlight sans bump.
+- Si pas de "Preparing build" failure et que les artefacts sont là, le
+  build est OK et l'app est dispo sur TestFlight — pas besoin de
+  retrigger.
 - **Bundle ID iOS** : `com.teiki5320.trainCosy`.
 - **App Store Connect** : app créée, TestFlight Internal Testing actif.
 - **Flutter** : projet scaffold via `flutter create`, dossier `ios/` committé.
