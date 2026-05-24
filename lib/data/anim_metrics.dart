@@ -59,77 +59,68 @@ const double kHeroBaseHeight = 0.36;
 /// surévaluer la taille perso — la bbox enveloppe à la fois le
 /// perso et le mobilier, donc 1.0 (= taille de walk_right) reste
 /// proche de la silhouette réelle.
+/// Toutes les valeurs scale sont calibrées via
+/// `python3 tools/measure_sprite_bboxes.py` : scale = 0.974 / h_ratio
+/// (idle_right h_ratio = 0.974 sert de référence). Ce ratio garantit
+/// que la tête du perso reste à la même hauteur écran quelle que soit
+/// l'anim. Les anims avec gros mobilier dans la bbox (read, pet_dog)
+/// sont capées plus bas pour ne pas que le meuble domine.
 const Map<String, AnimMetrics> kAnimMetrics = {
-  // Sprites legacy (crops serrés autour du perso debout) — mirror
-  // selon `_heroFacingRight` (source face à droite).
-  'walk_right':    AnimMetrics(scale: 1.000, aspect: 166 / 381, feet: 1.000),
-  'idle_right':    AnimMetrics(scale: 1.000, aspect:  91 / 372, feet: 1.000),
+  // --- Debout, crops serrés (legacy 170×381 / 91×372) ---
+  'walk_right':    AnimMetrics(scale: 1.01, aspect: 166 / 381, feet: 0.984),
+  'idle_right':    AnimMetrics(scale: 1.00, aspect:  91 / 372, feet: 0.989),
 
-  // Sprite couchée — proportions horizontales. Composition fixe
-  // (orientation de la tête baked dans le sprite).
+  // --- Couchée (366×103) — géométrie horizontale, scale=1.0 ---
   'sleep_right':   AnimMetrics(
-    scale: 1.000, aspect: 366 / 103, feet: 1.000, noMirror: true,
+    scale: 1.00, aspect: 366 / 103, feet: 1.00, noMirror: true,
   ),
 
-  // Dance : bras levés, 264x425, perso face caméra → jamais flippé.
+  // --- Dance (264×425) — bras levés, face caméra ---
   'dance':         AnimMetrics(
-    scale: 425 / 365, aspect: 264 / 425, feet: 1.000, noMirror: true,
+    scale: 1.11, aspect: 264 / 425, feet: 0.987, noMirror: true,
   ),
 
-  // Pickup : 170x385, perso plié, mirror selon facing (et special-
-  // case en loco selon l'action).
-  'pickup':        AnimMetrics(scale: 1.000, aspect: 170 / 385, feet: 1.000),
+  // --- Pickup (170×385) — penchée, garder ~1.0 ---
+  'pickup':        AnimMetrics(scale: 1.00, aspect: 170 / 385, feet: 0.948),
 
-  // Carrés 512x512 — idle-breaks debout, mirror selon facing.
-  'yawn':          AnimMetrics(scale: 512 / 360, aspect: 1.0, feet: 0.86),
-  'look_window':   AnimMetrics(scale: 512 / 360, aspect: 1.0, feet: 0.86),
+  // --- 512×512 debout (idle-breaks), mirror selon facing ---
+  'yawn':          AnimMetrics(scale: 1.40, aspect: 1.0, feet: 0.861),
+  'look_window':   AnimMetrics(scale: 1.22, aspect: 1.0, feet: 0.891),
 
-  // 512x512, composition orientée (stretch après wake, wake_up sur
-  // le lit) → jamais flippées.
+  // --- 512×512 composition orientée → noMirror ---
   'stretch':       AnimMetrics(
-    scale: 512 / 360, aspect: 1.0, feet: 0.86, noMirror: true,
+    scale: 1.25, aspect: 1.0, feet: 0.891, noMirror: true,
   ),
   'wake_up':       AnimMetrics(
-    scale: 512 / 360, aspect: 1.0, feet: 0.86, noMirror: true,
+    scale: 1.67, aspect: 1.0, feet: 0.859, noMirror: true,
   ),
   'wake_up_clean': AnimMetrics(
-    scale: 512 / 360, aspect: 1.0, feet: 0.86, noMirror: true,
+    scale: 1.40, aspect: 1.0, feet: 0.859, noMirror: true,
   ),
-  // door_push : source pousse vers la droite, mais en wagon la porte
-  // loco est à gauche → la scène wagon force toujours le mirror.
-  // noMirror laissé à false pour ne pas surprendre si on réutilise
-  // l'anim ailleurs sans mirror forcé.
-  'door_push':     AnimMetrics(scale: 512 / 360, aspect: 1.0, feet: 0.86),
+  'door_push':     AnimMetrics(scale: 1.46, aspect: 1.0, feet: 0.857),
 
-  // Loco-only — warm_hands face au feu (à gauche) en source, jamais
-  // flippée. Valeurs dialées à l'œil en jeu (les valeurs scale=1.733
-  // / 1.353 sorties par measure_sprite_bboxes.py surévaluent le
-  // perso parce que la bbox englobe le poêle / la bûche).
+  // --- Loco-only ---
   'warm_hands':    AnimMetrics(
-    scale: 1.000, aspect: 1.0, feet: 0.86, noMirror: true,
+    scale: 1.00, aspect: 1.0, feet: 0.86, noMirror: true,
   ),
-  'carry_walk':    AnimMetrics(scale: 1.192, aspect: 1.0, feet: 0.863),
+  'carry_walk':    AnimMetrics(scale: 1.37, aspect: 1.0, feet: 0.863),
 
-  // Anims spéciales avec mobilier dans la bbox — composition fixe,
-  // jamais flippées. Scale calibré pour que la TÊTE du perso reste
-  // à la même hauteur écran qu'en idle (calculé via h_ratio mesuré
-  // par measure_sprite_bboxes.py). Les anims avec du gros mobilier
-  // (read = chaise, pet_dog = chien) sont capées plus bas pour ne
-  // pas que le meuble domine visuellement.
-  'read':          AnimMetrics(
-    scale: 1.20, aspect: 1.0, feet: 0.84, noMirror: true,
+  // --- Anims spéciales avec mobilier → noMirror ---
+  'drink':         AnimMetrics(
+    scale: 1.36, aspect: 1.0, feet: 0.863, noMirror: true,
   ),
   'cook':          AnimMetrics(
-    scale: 1.38, aspect: 1.0, feet: 0.86, noMirror: true,
-  ),
-  'drink':         AnimMetrics(
-    scale: 1.36, aspect: 1.0, feet: 0.86, noMirror: true,
+    scale: 1.38, aspect: 1.0, feet: 0.859, noMirror: true,
   ),
   'garden_tend':   AnimMetrics(
-    scale: 1.30, aspect: 1.0, feet: 0.87, noMirror: true,
+    scale: 1.30, aspect: 1.0, feet: 0.871, noMirror: true,
+  ),
+  // Capés — gros mobilier dans la bbox gonfle le h_ratio.
+  'read':          AnimMetrics(
+    scale: 1.20, aspect: 1.0, feet: 0.840, noMirror: true,
   ),
   'pet_dog':       AnimMetrics(
-    scale: 1.20, aspect: 1.0, feet: 0.85, noMirror: true,
+    scale: 1.20, aspect: 1.0, feet: 0.845, noMirror: true,
   ),
 };
 
