@@ -466,7 +466,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       });
     }
     if (oldWidget.cookToken != widget.cookToken) {
-      final target = stoveCenterX.clamp(_heroXMin, _heroXMax);
+      final target = SideScrollScene.stoveCenterX.clamp(_heroXMin, _heroXMax);
       setState(() {
         _heroDancing = false;
         _heroSleeping = false;
