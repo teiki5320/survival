@@ -52,16 +52,28 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     final state = GameState.instance;
     return Scaffold(
-      backgroundColor: const Color(0xFF161310),
+      backgroundColor: const Color(0xFFB8945C),
       body: SafeArea(
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            // Map backdrop : fond sépia procédural TOUJOURS rendu (garantit
-            // qu'on ne voit pas un écran gris si l'image asset rate). Puis
-            // map.png par-dessus si elle charge.
+            // Map backdrop : fond sépia plein + radial gradient via
+            // DecoratedBox (plus fiable qu'un CustomPaint qui n'a parfois
+            // pas de taille). On overlaie ensuite map.png si elle charge.
             Positioned.fill(
-              child: SizedBox.expand(
-                child: CustomPaint(painter: _ProceduralMapPainter()),
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 1.0,
+                    colors: [
+                      Color(0xFFE8D2A0),
+                      Color(0xFFB8945C),
+                      Color(0xFF5A3A1F),
+                    ],
+                    stops: [0.0, 0.55, 1.0],
+                  ),
+                ),
               ),
             ),
             Positioned.fill(

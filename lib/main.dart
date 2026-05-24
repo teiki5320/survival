@@ -186,15 +186,9 @@ class _WagonScreenState extends State<WagonScreen> {
               if (_dancing) setState(() => _dancing = false);
             },
             onHeroXChanged: (x) {
-              final wasL = _atLeftDoor;
-              final wasR = _atRightDoor;
-              final wasB = _atBed;
-              _heroX = x;
-              if (wasL != _atLeftDoor ||
-                  wasR != _atRightDoor ||
-                  wasB != _atBed) {
-                setState(() {});
-              }
+              // Toujours setState pour que le HUD top-left affiche
+              // heroX en live (pas seulement aux transitions de zone).
+              setState(() => _heroX = x);
             },
           ),
         ),
@@ -314,43 +308,79 @@ class _WagonScreenState extends State<WagonScreen> {
         ),
       );
 
-  /// Bouton ACTION contextuel — un seul FAB rond qui remplace les
-  /// 3 boutons (porte loco, porte map, se coucher). Sa couleur, son
-  /// icône et son action dépendent de la position du perso.
+  /// Gros bouton rond contextuel — remplace les 3 anciens FABs (porte
+  /// loco, porte map, lit). Icône + action dépendent de la position
+  /// du perso. Style cosy : disque brun warm + bordure dorée + ombre.
   Widget _actionFab() {
     IconData icon = Icons.help_outline;
-    String tooltip = 'Approche-toi du lit, de la porte gauche ou droite';
     VoidCallback? action;
 
     if (_atLeftDoor && !_doorPushing) {
       icon = Icons.meeting_room;
-      tooltip = 'Entrer dans la locomotive';
       action = _enterLocomotive;
     } else if (_atRightDoor) {
       icon = Icons.map;
-      tooltip = 'Ouvrir la carte du monde';
-      action = () {
-        debugPrint('[action] open map');
-        setState(() => _onMap = true);
-      };
+      action = () => setState(() => _onMap = true);
     } else if (_atBed) {
       icon = Icons.bed;
-      tooltip = 'Se coucher';
       action = () => setState(() => _lieDownToken++);
     } else if (_doorPushing) {
       icon = Icons.meeting_room;
-      tooltip = 'Elle ouvre la porte…';
     }
 
-    final active = action != null;
-    return FloatingActionButton.small(
-      heroTag: 'action',
-      tooltip: tooltip,
-      backgroundColor:
-          active ? const Color(0xFFB85522) : Colors.grey.shade800,
-      foregroundColor: active ? Colors.white : Colors.grey.shade500,
-      onPressed: action,
-      child: Icon(icon),
+    final bool active = action != null;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: active
+            ? const RadialGradient(
+                colors: [Color(0xFFD96A2C), Color(0xFFB85522)],
+                center: Alignment(-0.3, -0.4),
+                radius: 1.1,
+              )
+            : RadialGradient(
+                colors: [Colors.grey.shade700, Colors.grey.shade900],
+                center: const Alignment(-0.3, -0.4),
+                radius: 1.1,
+              ),
+        border: Border.all(
+          color: active
+              ? const Color(0xFFFFD9A0).withValues(alpha: 0.85)
+              : Colors.grey.shade600,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: active ? 0.45 : 0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+          if (active)
+            BoxShadow(
+              color: const Color(0xFFFFB347).withValues(alpha: 0.35),
+              blurRadius: 18,
+              spreadRadius: 1,
+            ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: action,
+          child: Center(
+            child: Icon(
+              icon,
+              color: active ? Colors.white : Colors.grey.shade500,
+              size: 30,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
