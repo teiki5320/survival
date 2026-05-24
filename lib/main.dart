@@ -108,6 +108,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool get _atNotebook => _near(SideScrollScene.notebookCenterX);
   bool get _atFilter => _near(SideScrollScene.filterCenterX);
   bool get _atLamp => _near(SideScrollScene.lampCenterX);
+  bool get _atStove => _near(SideScrollScene.stoveCenterX);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -242,13 +243,15 @@ class _WagonScreenState extends State<WagonScreen> {
               final wasN = _atNotebook;
               final wasF = _atFilter;
               final wasLamp = _atLamp;
+              final wasStove = _atStove;
               _heroX = x;
               if (wasL != _atLeftDoor ||
                   wasR != _atRightDoor ||
                   wasB != _atBed ||
                   wasN != _atNotebook ||
                   wasF != _atFilter ||
-                  wasLamp != _atLamp) {
+                  wasLamp != _atLamp ||
+                  wasStove != _atStove) {
                 setState(() {});
               }
             },
@@ -478,6 +481,12 @@ class _WagonScreenState extends State<WagonScreen> {
       action = () {
         _triggerSpecial('drink', frames: 25);
         GameState.instance.restoreThirst(0.20);
+      };
+    } else if (_atStove) {
+      icon = Icons.soup_kitchen;
+      action = () {
+        _triggerSpecial('cook', frames: 25);
+        GameState.instance.restoreHunger(0.20);
       };
     } else if (_atLamp) {
       icon = GameState.instance.lampOn
