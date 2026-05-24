@@ -56,20 +56,27 @@ class _MapScreenState extends State<MapScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Map backdrop (procedural fallback or asset if present).
+            // Map backdrop : fond sépia procédural TOUJOURS rendu (garantit
+            // qu'on ne voit pas un écran gris si l'image asset rate). Puis
+            // map.png par-dessus si elle charge.
+            Positioned.fill(
+              child: SizedBox.expand(
+                child: CustomPaint(painter: _ProceduralMapPainter()),
+              ),
+            ),
             Positioned.fill(
               child: Image.asset(
                 'assets/background/map.png',
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => CustomPaint(
-                  painter: _ProceduralMapPainter(),
-                ),
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
               ),
             ),
             // Train icon — fixed home base in the middle-left.
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(painter: _TrainPinPainter()),
+                child: SizedBox.expand(
+                  child: CustomPaint(painter: _TrainPinPainter()),
+                ),
               ),
             ),
             // Location pins, one per world entry.

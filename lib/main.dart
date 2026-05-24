@@ -60,6 +60,8 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inLocomotive = false;
   bool _onMap = false;
   bool _inWardrobe = false;
+  // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
+  double _dogHeight = 0.086;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -72,6 +74,8 @@ class _WagonScreenState extends State<WagonScreen> {
   double _heroX = 0.5;
   bool get _atLeftDoor => _heroX <= SideScrollScene.heroXMin + 0.01;
   bool get _atRightDoor => _heroX >= SideScrollScene.heroXMax - 0.01;
+  bool get _atBed =>
+      (_heroX - SideScrollScene.bedCenterX).abs() < 0.05;
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -177,41 +181,69 @@ class _WagonScreenState extends State<WagonScreen> {
             doorPushToken: _doorPushToken,
             onDoorPushDone: _onDoorPushDone,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
+            dogHeight: _dogHeight,
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },
             onHeroXChanged: (x) {
-              final wasAtLeft = _atLeftDoor;
-              final wasAtRight = _atRightDoor;
+              final wasL = _atLeftDoor;
+              final wasR = _atRightDoor;
+              final wasB = _atBed;
               _heroX = x;
-              if (wasAtLeft != _atLeftDoor || wasAtRight != _atRightDoor) {
+              if (wasL != _atLeftDoor ||
+                  wasR != _atRightDoor ||
+                  wasB != _atBed) {
                 setState(() {});
               }
             },
           ),
         ),
-        // Debug overlay temporaire : affiche _heroX + état porte droite
-        // pour diagnostiquer pourquoi la map ne s'ouvre pas.
+        // HUD top-left : coord live du perso + taille du chien (slider).
         Positioned(
           top: 8,
           left: 8,
           child: SafeArea(
             child: Container(
               padding: const EdgeInsets.symmetric(
-                  horizontal: 8, vertical: 4),
+                  horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                'x=${_heroX.toStringAsFixed(3)}  '
-                'right=${_atRightDoor ? "✓" : "✗"}  '
-                'map=${_onMap ? "ON" : "off"}',
-                style: const TextStyle(
-                  color: Color(0xFFFFD9A0),
-                  fontSize: 11,
-                  fontFamily: 'Courier',
-                ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'heroX = ${_heroX.toStringAsFixed(3)}  '
+                    'L=${_atLeftDoor ? "✓" : "·"}  '
+                    'R=${_atRightDoor ? "✓" : "·"}',
+                    style: const TextStyle(
+                      color: Color(0xFFFFD9A0),
+                      fontSize: 12,
+                      fontFamily: 'Courier',
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'chien ${_dogHeight.toStringAsFixed(3)}  ',
+                        style: const TextStyle(
+                          color: Color(0xFFFFD9A0),
+                          fontSize: 12,
+                          fontFamily: 'Courier',
+                        ),
+                      ),
+                      _tinyBtn(Icons.remove, () => setState(() =>
+                          _dogHeight = (_dogHeight - 0.005).clamp(0.04, 0.20))),
+                      const SizedBox(width: 4),
+                      _tinyBtn(Icons.add, () => setState(() =>
+                          _dogHeight = (_dogHeight + 0.005).clamp(0.04, 0.20))),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -224,48 +256,10 @@ class _WagonScreenState extends State<WagonScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                FloatingActionButton.small(
-                  heroTag: 'right_door',
-                  tooltip: _atRightDoor
-                      ? 'Ouvrir la porte droite'
-                      : 'Va à la porte droite (bord droit)',
-                  backgroundColor: _atRightDoor
-                      ? const Color(0xFFB85522)
-                      : Colors.grey.shade800,
-                  foregroundColor:
-                      _atRightDoor ? Colors.white : Colors.grey.shade500,
-                  onPressed: _atRightDoor
-                      ? () {
-                          debugPrint('[FAB right_door] tapped, opening map');
-                          setState(() => _onMap = true);
-                        }
-                      : null,
-                  child: const Icon(Icons.meeting_room_outlined),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'door_action',
-                  tooltip: _doorPushing
-                      ? 'Elle ouvre la porte…'
-                      : _atLeftDoor
-                          ? 'Entrer dans la locomotive'
-                          : 'Va à la porte (bord gauche)',
-                  backgroundColor: _atLeftDoor && !_doorPushing
-                      ? const Color(0xFFB85522)
-                      : Colors.grey.shade800,
-                  foregroundColor:
-                      _atLeftDoor && !_doorPushing ? Colors.white : Colors.grey.shade500,
-                  onPressed:
-                      _atLeftDoor && !_doorPushing ? _enterLocomotive : null,
-                  child: const Icon(Icons.meeting_room),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'lie_down',
-                  tooltip: 'Se coucher',
-                  onPressed: () => setState(() => _lieDownToken++),
-                  child: const Icon(Icons.bed),
-                ),
+                // Bouton ACTION contextuel — un seul rond qui s'allume
+                // quand le perso atteint un bord. Tap = entre dans la
+                // loco (bord gauche) ou ouvre la map (bord droit).
+                _actionFab(),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'toggle_dance',
@@ -302,6 +296,61 @@ class _WagonScreenState extends State<WagonScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  /// Petit bouton +/- 26x26 utilisé dans le HUD top-left.
+  Widget _tinyBtn(IconData icon, VoidCallback onTap) => InkResponse(
+        onTap: onTap,
+        radius: 18,
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: const BoxDecoration(
+            color: Color(0xFFB85522),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 16),
+        ),
+      );
+
+  /// Bouton ACTION contextuel — un seul FAB rond qui remplace les
+  /// 3 boutons (porte loco, porte map, se coucher). Sa couleur, son
+  /// icône et son action dépendent de la position du perso.
+  Widget _actionFab() {
+    IconData icon = Icons.help_outline;
+    String tooltip = 'Approche-toi du lit, de la porte gauche ou droite';
+    VoidCallback? action;
+
+    if (_atLeftDoor && !_doorPushing) {
+      icon = Icons.meeting_room;
+      tooltip = 'Entrer dans la locomotive';
+      action = _enterLocomotive;
+    } else if (_atRightDoor) {
+      icon = Icons.map;
+      tooltip = 'Ouvrir la carte du monde';
+      action = () {
+        debugPrint('[action] open map');
+        setState(() => _onMap = true);
+      };
+    } else if (_atBed) {
+      icon = Icons.bed;
+      tooltip = 'Se coucher';
+      action = () => setState(() => _lieDownToken++);
+    } else if (_doorPushing) {
+      icon = Icons.meeting_room;
+      tooltip = 'Elle ouvre la porte…';
+    }
+
+    final active = action != null;
+    return FloatingActionButton.small(
+      heroTag: 'action',
+      tooltip: tooltip,
+      backgroundColor:
+          active ? const Color(0xFFB85522) : Colors.grey.shade800,
+      foregroundColor: active ? Colors.white : Colors.grey.shade500,
+      onPressed: action,
+      child: Icon(icon),
     );
   }
 }

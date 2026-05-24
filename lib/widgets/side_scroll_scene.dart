@@ -33,6 +33,7 @@ class SideScrollScene extends StatefulWidget {
     this.doorPushToken = 0,
     this.onDoorPushDone,
     this.onOpenWardrobe,
+    this.dogHeight = 0.086,
   });
 
   /// Wagon visual progression, 0..3:
@@ -73,6 +74,9 @@ class SideScrollScene extends StatefulWidget {
   /// the full-screen outfit selector.
   final VoidCallback? onOpenWardrobe;
 
+  /// Hauteur du chien en fraction de h (réglable via slider parent).
+  final double dogHeight;
+
   /// Fired the first time the user taps the wagon floor, so the parent
   /// can drop any "she's dancing" state it was holding.
   final VoidCallback? onUserInteract;
@@ -91,6 +95,10 @@ class SideScrollScene extends StatefulWidget {
   /// can compare against it to know when she's at the right door
   /// (= ouverture sur la map du monde).
   static const double heroXMax = 0.97;
+
+  /// Centre X normalisé du lit. Le parent l'utilise pour savoir si la
+  /// fille est à côté du lit (= action contextuelle "se coucher").
+  static const double bedCenterX = 0.334;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
@@ -167,10 +175,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // pour la remplir, Plume passe à empty quand elle vient de manger.
   bool _bowlFull = true;
 
-  // Le chien a sa propre state machine (idle / walk / sleep) — pas un
-  // prop statique. Sa hauteur et son Y restent fixes ; son X glisse
-  // quand il marche.
-  static const double _dogHeight = 0.086;
+  // Le chien a sa propre state machine. Sa hauteur vient du parent
+  // (slider live), son Y reste fixe, son X glisse quand il marche.
   static const double _dogTop = 0.673;
   static const double _dogXMin = 0.30;
   static const double _dogXMax = 0.75;
@@ -871,7 +877,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       _DogActor(
                         w: w,
                         h: h,
-                        height: _dogHeight,
+                        height: widget.dogHeight,
                         topFrac: _dogTop,
                         xMin: _dogXMin,
                         xMax: _dogXMax,
