@@ -155,6 +155,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('notebook', 'Carnet',    animated: false),
     _PropDef('firstaid', 'Secours',   animated: false),
     _PropDef('commode',  'Commode',   animated: false),
+    _PropDef('bowl',     'Gamelle',   animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -166,7 +167,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
     'commode':  _PropPos(0.130, 0.560, 0.180),
+    'bowl':     _PropPos(0.400, 0.840, 0.080),
   };
+
+  // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
+  // pour la remplir, Plume passe à empty quand elle vient de manger.
+  bool _bowlFull = true;
 
   /// Prop actif pour le HUD du mode propsAdjust (sélectionné via chip).
   String _activeProp = 'hydro';
@@ -335,6 +341,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
         );
       }
     }
+    // Bowl a 2 états statiques.
+    precacheImage(const AssetImage('assets/objects/bowl_full.png'), context);
+    precacheImage(const AssetImage('assets/objects/bowl_empty.png'), context);
     // Plume (chien) — précache les 9 anims. idle = image statique,
     // walk = 49 frames, le reste = 25 frames.
     precacheImage(const AssetImage('assets/objects/dog_idle.png'), context);
@@ -884,6 +893,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         xMin: _dogXMin,
                         xMax: _dogXMax,
                         tint: _nightTint,
+                        bowlX: _propPos['bowl']!.left,
+                        isBowlFull: () => _bowlFull,
+                        onAteFromBowl: () =>
+                            setState(() => _bowlFull = false),
                       ),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
@@ -1008,6 +1021,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final propW = propH;
     final left = w * pos.left - propW / 2;
     final top = h * pos.top;
+    // La gamelle a 2 états (full / empty) → asset différent selon
+    // [_bowlFull]. Le reste suit le mapping standard (animé ou statique).
+    final String staticAsset = def.key == 'bowl'
+        ? (_bowlFull ? 'assets/objects/bowl_full.png'
+                     : 'assets/objects/bowl_empty.png')
+        : 'assets/objects/${def.key}.png';
     final Widget sprite = def.animated
         ? _AnimatedSprite(
             prefix: def.key,
@@ -1015,7 +1034,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             durationMs: def.frameDurationMs * def.frameCount,
           )
         : Image.asset(
-            'assets/objects/${def.key}.png',
+            staticAsset,
             fit: BoxFit.contain,
           );
     final wrapped = _nightTint(sprite);
@@ -1108,7 +1127,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
 
-    // Mode normal : commode = tappable (ouvre wardrobe), reste = inert.
+    // Mode normal : commode = tappable (ouvre wardrobe), bowl = tap
+    // pour remplir si vide, reste = inert.
     if (def.key == 'commode' && widget.onOpenWardrobe != null) {
       return Positioned(
         left: left,
@@ -1118,6 +1138,22 @@ class _SideScrollSceneState extends State<SideScrollScene>
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onOpenWardrobe,
+          child: wrapped,
+        ),
+      );
+    }
+    if (def.key == 'bowl') {
+      return Positioned(
+        left: left,
+        top: top,
+        width: propW,
+        height: propH,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          // Tap = toggle full ↔ empty. Pour l'instant pas de coût/inventaire ;
+          // c'est juste pour tester la mécanique. Plus tard on conditionnera
+          // la recharge à une ressource "ration" dans le GameState.
+          onTap: () => setState(() => _bowlFull = !_bowlFull),
           child: wrapped,
         ),
       );
@@ -1800,6 +1836,9 @@ class _DogActor extends StatefulWidget {
     required this.xMin,
     required this.xMax,
     required this.tint,
+    this.bowlX,
+    this.isBowlFull,
+    this.onAteFromBowl,
   });
   final double w;
   final double h;
@@ -1808,6 +1847,13 @@ class _DogActor extends StatefulWidget {
   final double xMin;
   final double xMax;
   final Widget Function(Widget) tint;
+  /// Position X normalisée de la gamelle (centre). Si null, pas de gamelle.
+  final double? bowlX;
+  /// Lambda qui renvoie l'état actuel de la gamelle (true = pleine).
+  final bool Function()? isBowlFull;
+  /// Callback appelé quand Plume vient de finir un cycle d'eat près
+  /// d'une gamelle pleine → la passe à vide.
+  final VoidCallback? onAteFromBowl;
   @override
   State<_DogActor> createState() => _DogActorState();
 }
@@ -1852,6 +1898,9 @@ class _DogActorState extends State<_DogActor>
   double _dir = 1.0; // +1 = droite, -1 = gauche (sprite source face droite)
   double _walkTargetX = 0.45;
   int _stateRemainMs = 0;
+  // Quand true, la marche en cours vise la gamelle ; à la fin du walk
+  // on enchaîne sur `eat` au lieu de retomber en idle.
+  bool _walkingToBowl = false;
 
   @override
   void initState() {
@@ -1867,7 +1916,10 @@ class _DogActorState extends State<_DogActor>
   }
 
   /// Configure les paramètres d'un nouvel état (durée, direction, etc.).
-  void _enterState(_DogState next, {bool initial = false}) {
+  /// [walkTarget] permet de forcer la cible quand on l'envoie manger à
+  /// la gamelle (sinon la cible est random).
+  void _enterState(_DogState next,
+      {bool initial = false, double? walkTarget}) {
     _state = next;
     _frame = 0;
     _accumMs = 0;
@@ -1876,13 +1928,17 @@ class _DogActorState extends State<_DogActor>
         _stateRemainMs = 2500 + _rng.nextInt(3500); // 2.5-6s
         break;
       case _DogState.walk:
-        double target;
-        do {
-          target = widget.xMin +
-              _rng.nextDouble() * (widget.xMax - widget.xMin);
-        } while ((target - _x).abs() < 0.10);
-        _walkTargetX = target;
-        _dir = target > _x ? 1.0 : -1.0;
+        if (walkTarget != null) {
+          _walkTargetX = walkTarget.clamp(widget.xMin, widget.xMax);
+        } else {
+          double target;
+          do {
+            target = widget.xMin +
+                _rng.nextDouble() * (widget.xMax - widget.xMin);
+          } while ((target - _x).abs() < 0.10);
+          _walkTargetX = target;
+        }
+        _dir = _walkTargetX > _x ? 1.0 : -1.0;
         _stateRemainMs = 8000;
         break;
       case _DogState.layDown:
@@ -1912,32 +1968,49 @@ class _DogActorState extends State<_DogActor>
   /// n'importe quelle action courte.
   void _pickNextState() {
     _DogState next;
+    double? walkTarget;
     switch (_state) {
       case _DogState.layDown:
-        // Vient de se coucher → s'endort directement.
         next = _DogState.sleep;
         break;
       case _DogState.sleep:
-        // Sortie de sommeil → s'étire + bâille avant de revenir actif.
         next = _DogState.stretchYawn;
         break;
       case _DogState.stretchYawn:
-        // Fin de l'étirement → idle.
         next = _DogState.idle;
         break;
       case _DogState.walk:
-        // Après marche → idle ou head_tilt (curiosité après pause).
-        next = _rng.nextDouble() < 0.7 ? _DogState.idle : _DogState.headTilt;
+        // Si on allait vers la gamelle → manger sur place.
+        if (_walkingToBowl) {
+          _walkingToBowl = false;
+          next = _DogState.eat;
+        } else {
+          next = _rng.nextDouble() < 0.7
+              ? _DogState.idle
+              : _DogState.headTilt;
+        }
+        break;
+      case _DogState.eat:
+        // Fini de manger → vide la gamelle puis idle.
+        widget.onAteFromBowl?.call();
+        next = _DogState.idle;
         break;
       case _DogState.bark:
       case _DogState.wagTail:
       case _DogState.headTilt:
-      case _DogState.eat:
-        // Actions courtes → retour à idle.
         next = _DogState.idle;
         break;
       case _DogState.idle:
-        // Depuis idle : pondération entre les actions possibles.
+        // Si la gamelle est pleine, ~30% de chance de partir manger.
+        final bowlX = widget.bowlX;
+        final bowlFull = widget.isBowlFull?.call() ?? false;
+        if (bowlX != null && bowlFull && _rng.nextDouble() < 0.30) {
+          _walkingToBowl = true;
+          walkTarget = bowlX;
+          next = _DogState.walk;
+          break;
+        }
+        // Sinon : pondération standard entre actions possibles.
         final r = _rng.nextDouble();
         if (r < 0.30) {
           next = _DogState.walk;
@@ -1948,13 +2021,13 @@ class _DogActorState extends State<_DogActor>
         } else if (r < 0.65) {
           next = _DogState.bark;
         } else if (r < 0.80) {
-          next = _DogState.layDown; // 15% → sleep loop via layDown
+          next = _DogState.layDown;
         } else {
-          next = _DogState.idle; // 20% : reste assis encore un peu
+          next = _DogState.idle;
         }
         break;
     }
-    _enterState(next);
+    _enterState(next, walkTarget: walkTarget);
   }
 
   void _onTick(Duration elapsed) {
