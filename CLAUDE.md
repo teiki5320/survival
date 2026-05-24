@@ -133,6 +133,20 @@ PNG dans le repo. Fond noir baked-in → je key avec
   `project.pbxproj` Flutter standards. Pas de manipulation Xcode Cloud
   (pas d'API).
 
+## En cours (dernière session, à reprendre)
+
+- Build TestFlight actuel : `0.11.15+16` (commit `0788dd8`).
+- **À tester en jeu** : mode adjust loco (FAB `crop_free` icon), 3
+  rectangles draggables (porte + 2 fenêtres). L'utilisateur calibre,
+  me file les valeurs finales, je bake dans `_maskHoles`.
+- **En attente validation** : regen 4 anims hero foireuses (artefacts
+  d'objets bakés dans le sprite) — `cook` / `pet_dog` / `garden_tend` /
+  `wake_up_clean`. Coût 20 cred AutoSprite. Prompts v2 ajustés (perso
+  seul, objet invisible).
+- **Drink** est la seule des 5 nouvelles anims qui est clean et
+  branchée (action FAB près du filtre).
+- **AutoSprite** : ~223 crédits restants.
+
 ## Inspirations
 
 Lexploratrice2025 (réf clé). Studio Ghibli (Chihiro, Château Ambulant,
