@@ -111,25 +111,25 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   'carry_walk':    AnimMetrics(scale: 1.192, aspect: 1.0, feet: 0.863),
 
   // Anims spéciales avec mobilier dans la bbox — composition fixe,
-  // jamais flippées. scale=1.0 (= taille de walk_right) calibre le
-  // rendu proche de la silhouette réelle (la chaise/chien/poêle/
-  // plante élargit la bbox alpha, donc le scale mesuré par le
-  // script surévalue le perso). À tweaker à la main si l'une paraît
-  // encore mal proportionnée en jeu.
+  // jamais flippées. Scale calibré pour que la TÊTE du perso reste
+  // à la même hauteur écran qu'en idle (calculé via h_ratio mesuré
+  // par measure_sprite_bboxes.py). Les anims avec du gros mobilier
+  // (read = chaise, pet_dog = chien) sont capées plus bas pour ne
+  // pas que le meuble domine visuellement.
   'read':          AnimMetrics(
-    scale: 1.00, aspect: 1.0, feet: 0.84, noMirror: true,
+    scale: 1.20, aspect: 1.0, feet: 0.84, noMirror: true,
   ),
   'cook':          AnimMetrics(
-    scale: 1.00, aspect: 1.0, feet: 0.86, noMirror: true,
+    scale: 1.38, aspect: 1.0, feet: 0.86, noMirror: true,
   ),
   'drink':         AnimMetrics(
-    scale: 1.00, aspect: 1.0, feet: 0.86, noMirror: true,
+    scale: 1.36, aspect: 1.0, feet: 0.86, noMirror: true,
   ),
   'garden_tend':   AnimMetrics(
-    scale: 1.00, aspect: 1.0, feet: 0.87, noMirror: true,
+    scale: 1.30, aspect: 1.0, feet: 0.87, noMirror: true,
   ),
   'pet_dog':       AnimMetrics(
-    scale: 1.00, aspect: 1.0, feet: 0.85, noMirror: true,
+    scale: 1.20, aspect: 1.0, feet: 0.85, noMirror: true,
   ),
 };
 
