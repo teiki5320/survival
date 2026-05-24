@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../data/anim_metrics.dart';
 import '../models/game_state.dart';
 import 'atmosphere.dart';
 import 'train_rocking.dart';
@@ -1185,36 +1186,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final feetY = h * 0.79;
     final anchorX = _heroX * w;
 
-    // Anim spéciale en cours (drink, read, cook, pet_dog, garden_tend) :
-    // rend le sprite spécial à la place du normal idle / walk.
-    if (_activeSpecial != null) {
-      final heroHeight = h * 0.36 * (512 / 360);
-      final heroWidth = heroHeight;
-      final asset =
-          'assets/characters/${_activeSpecial}_${_specialFrame + 1}.png';
+    // Cas spéciaux ancrés sur le lit : la fille n'est pas sur le sol,
+    // la géométrie est driven par les offsets bedAdjust (bakés). On
+    // garde ces deux branches en early-return car le placement diffère
+    // trop de la formule générale feetY-anchored.
+    if (_heroSleeping && _sleepOnBed) {
+      // Allongée sur le matelas, sprite mirroré (tête côté oreiller).
+      final asset = 'assets/characters/sleep_right_${_sleepFrame + 1}.png';
+      final bodyLen = h * _sleepBedScale;
+      final bodyThick = bodyLen / (366 / 103);
+      final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
+      final left = bedCenterX + _sleepBedOffsetX * w - bodyLen / 2;
+      final top = (_bedTop + _sleepBedOffsetY) * h - bodyThick / 2;
       return Positioned(
-        left: anchorX - heroWidth / 2,
-        top: feetY - heroHeight * 0.86,
-        width: heroWidth,
-        height: heroHeight,
-        child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
-        ),
-      );
-    }
-
-    if (_doorPushing) {
-      // door_push source pousse vers la DROITE en réalité. La porte
-      // wagon → loco est à GAUCHE de la scène, donc on mirror pour que
-      // la fille pousse vers la gauche.
-      final heroHeight = h * 0.36 * (512 / 360);
-      final heroWidth = heroHeight;
-      final asset = 'assets/characters/door_push_${_doorFrame + 1}.png';
-      return Positioned(
-        left: anchorX - heroWidth / 2,
-        top: feetY - heroHeight * 0.86,
-        width: heroWidth,
-        height: heroHeight,
+        left: left,
+        top: top,
+        width: bodyLen,
+        height: bodyThick,
         child: IgnorePointer(
           child: _nightTint(
             Transform(
@@ -1226,31 +1214,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ),
       );
     }
-
-    if (_waking) {
-      // Wake-up sequence: wake_up_* (lying → standing) then stretch_*
-      // (arms up → arms down). Both are 512x512 squares.
-      final prefix = _wakingPhase == 0 ? 'wake_up' : 'stretch';
-      final heroHeight = h * 0.36 * (512 / 360);
-      final heroWidth = heroHeight;
-      final asset = 'assets/characters/${prefix}_${_wakingFrame + 1}.png';
-      // Quand on se réveille DU LIT, la phase wake_up doit se passer SUR
-      // le lit (sinon la fille téléporte du lit au sol invisible avant
-      // de jouer stretch). On positionne wake_up sur le matelas tant
-      // qu'on est en phase 0, puis stretch repart au sol comme avant.
-      double top;
-      double left;
-      if (_sleepOnBed && _wakingPhase == 0) {
-        final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
-        left = bedCenterX - heroWidth / 2;
-        top = (_bedTop + _sleepBedOffsetY) * h - heroHeight * 0.5;
-      } else {
-        left = anchorX - heroWidth / 2;
-        top = feetY - heroHeight * 0.86;
-      }
+    if (_waking && _wakingPhase == 0 && _sleepOnBed) {
+      // wake_up sur le matelas (avant que stretch ne reparte au sol).
+      final asset = 'assets/characters/wake_up_${_wakingFrame + 1}.png';
+      final m = animMetricsFor('wake_up');
+      final heroHeight = h * kHeroBaseHeight * m.scale;
+      final heroWidth = heroHeight * m.aspect;
+      final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
       return Positioned(
-        left: left,
-        top: top,
+        left: bedCenterX - heroWidth / 2,
+        top: (_bedTop + _sleepBedOffsetY) * h - heroHeight * 0.5,
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
@@ -1259,155 +1232,71 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
 
-    if (_heroSleeping) {
-      // Sleep sprite is 366x103 ≈ 3.55:1.
-      final asset = 'assets/characters/sleep_right_${_sleepFrame + 1}.png';
-      double bodyLen;
-      double left;
-      double top;
-      if (_sleepOnBed) {
-        // Allongée sur le matelas. Position glued au lit, offsets dialés
-        // Sprite mirroré: source = pieds à droite,
-        // sur le lit on veut la tête côté oreiller (gauche).
-        bodyLen = h * _sleepBedScale;
-        final bodyThick = bodyLen / (366 / 103);
-        final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
-        left = bedCenterX + _sleepBedOffsetX * w - bodyLen / 2;
-        top = (_bedTop + _sleepBedOffsetY) * h - bodyThick / 2;
-        return Positioned(
-          left: left,
-          top: top,
-          width: bodyLen,
-          height: bodyThick,
-          child: IgnorePointer(
-            child: _nightTint(
-              Transform(
-                alignment: Alignment.center,
-                transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-                child: Image.asset(asset, fit: BoxFit.contain),
-              ),
-            ),
-          ),
-        );
-      }
-      // Par terre (déclenché par le FAB "Se coucher").
-      bodyLen = h * 0.36;
-      final bodyThick = bodyLen / (366 / 103);
-      return Positioned(
-        left: anchorX - bodyLen / 2,
-        top: feetY - bodyThick,
-        width: bodyLen,
-        height: bodyThick,
-        child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
-        ),
-      );
-    }
-
-    if (_heroLyingDown) {
-      // Pickup sprite is 170x385, aspect ≈ 0.44, body fills the bbox so
-      // same scale as walk/idle.
-      final heroHeight = h * 0.36;
-      final heroWidth = heroHeight * (170 / 385);
-      final asset = 'assets/characters/pickup_${_lieDownFrame + 1}.png';
-      return Positioned(
-        left: anchorX - heroWidth / 2,
-        top: feetY - heroHeight,
-        width: heroWidth,
-        height: heroHeight,
-        child: IgnorePointer(
-          child: _nightTint(
-            Transform(
-              alignment: Alignment.center,
-              transform: _heroFacingRight
-                  ? Matrix4.identity()
-                  : (Matrix4.identity()..scale(-1.0, 1.0, 1.0)),
-              child: Image.asset(asset, fit: BoxFit.contain),
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (_heroDancing) {
-      // Dance sprite is 264x425. The body's head-to-feet height is
-      // smaller than the bbox because the raised arms add ~15% of bbox
-      // height above the head — bump heroHeight so the on-screen body
-      // matches walk/idle scale instead of looking shrunk.
-      final heroHeight = h * 0.36 * (425 / 365);
-      final heroWidth = heroHeight * (264 / 425);
-      final asset = 'assets/characters/dance_${_danceFrame + 1}.png';
-      return Positioned(
-        left: anchorX - heroWidth / 2,
-        top: feetY - heroHeight,
-        width: heroWidth,
-        height: heroHeight,
-        child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
-        ),
-      );
-    }
-
-    // Standing / walking / idle break. The legacy walk + idle sheets
-    // are tightly cropped (walk 166x381, idle 91x372). The newer 49-
-    // frame sheets (yawn, stretch, look_window, read, wake_up, etc.)
-    // are 512x512 squares with the character inside a smaller bbox —
-    // displaying them at the idle aspect would squash them horizontally
-    // and shrink the character. Bump heroHeight by 512/360 (the new
-    // sprite's vertical headroom) and use a square aspect so they read
-    // at the same physical scale as the legacy sheets.
-    const newSquareSprites = {
-      'yawn', 'stretch', 'look_window', 'read', 'wake_up',
-      'door_push', 'warm_hands', 'carry_walk',
-    };
-    final isMoving = _heroTarget != null;
-    int frame;
+    // Dispatch unifié : choisit l'anim active selon l'état, puis lookup
+    // metrics et render avec une formule unique (feetY-anchored).
     String prefix;
-    if (_idleBreak != null) {
+    int frame;
+    if (_activeSpecial != null) {
+      prefix = _activeSpecial!;
+      frame = _specialFrame;
+    } else if (_doorPushing) {
+      prefix = 'door_push';
+      frame = _doorFrame;
+    } else if (_waking) {
+      prefix = _wakingPhase == 0 ? 'wake_up' : 'stretch';
+      frame = _wakingFrame;
+    } else if (_heroSleeping) {
+      prefix = 'sleep_right';
+      frame = _sleepFrame;
+    } else if (_heroLyingDown) {
+      prefix = 'pickup';
+      frame = _lieDownFrame;
+    } else if (_heroDancing) {
+      prefix = 'dance';
+      frame = _danceFrame;
+    } else if (_idleBreak != null) {
       prefix = _idleBreak!;
       frame = _idleBreakFrame;
-    } else if (isMoving) {
+    } else if (_heroTarget != null) {
       prefix = 'walk_right';
       frame = _walkFrame;
     } else {
       prefix = 'idle_right';
       frame = _idleFrame;
     }
+
+    final m = animMetricsFor(prefix);
+    final heroHeight = h * kHeroBaseHeight * m.scale;
+    final heroWidth = heroHeight * m.aspect;
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
-    final isNewSquare = newSquareSprites.contains(prefix);
-    final double heroHeight;
-    final double spriteAspect;
-    // bbox-bottom ratio: 1.0 for legacy tight crops, 0.86 for the
-    // 512x512 squares (their character ends at ~y=440 of 512).
-    final double feetRatio;
-    if (isNewSquare) {
-      heroHeight = h * 0.36 * (512 / 360);
-      spriteAspect = 1.0;
-      feetRatio = 0.86;
-    } else if (isMoving) {
-      heroHeight = h * 0.36;
-      spriteAspect = 166 / 381;
-      feetRatio = 1.0;
+    // Mirror logic :
+    //  - door_push source pousse vers la droite, porte loco est à
+    //    gauche → toujours mirror en wagon.
+    //  - sprites noMirror (composition fixe : read, dance, sleep…) :
+    //    jamais flippés.
+    //  - sinon : mirror quand le perso regarde à gauche.
+    final bool shouldMirror;
+    if (prefix == 'door_push') {
+      shouldMirror = true;
+    } else if (m.noMirror) {
+      shouldMirror = false;
     } else {
-      heroHeight = h * 0.36;
-      spriteAspect = 91 / 372;
-      feetRatio = 1.0;
+      shouldMirror = !_heroFacingRight;
     }
-    final heroWidth = heroHeight * spriteAspect;
 
     return Positioned(
       left: anchorX - heroWidth / 2,
-      top: feetY - heroHeight * feetRatio,
+      top: feetY - heroHeight * m.feet,
       width: heroWidth,
       height: heroHeight,
       child: IgnorePointer(
         child: _nightTint(
           Transform(
             alignment: Alignment.center,
-            transform: _heroFacingRight
-                ? Matrix4.identity()
-                : (Matrix4.identity()..scale(-1.0, 1.0, 1.0)),
+            transform: shouldMirror
+                ? (Matrix4.identity()..scale(-1.0, 1.0, 1.0))
+                : Matrix4.identity(),
             child: Image.asset(asset, fit: BoxFit.contain),
           ),
         ),

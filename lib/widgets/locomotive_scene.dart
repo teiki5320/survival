@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../data/anim_metrics.dart';
 import '../services/audio_service.dart';
 import 'atmosphere.dart';
 import 'train_rocking.dart';
@@ -473,27 +474,12 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     );
   }
 
-  // Mesuré via tools/measure_sprite_bboxes.py (bbox réelle alpha>16) pour
-  // les anims DEBOUT (walk_right, idle_right, carry_walk). Pour les anims
-  // ACCROUPIES / PENCHÉES (warm_hands, pickup) la bbox-bottom contient
-  // toute la silhouette pliée, donc la calibrer à la même hauteur que
-  // walk_right rendrait le perso plus grand qu'en walk_right. On garde
-  // donc des valeurs ajustées à l'œil pour celles-là.
-  // Valeurs calibrées en jeu via le mode adjust (FAB règle). warm_hands
-  // au coin du feu sert de référence — toutes les anims debout sont
-  // dialées pour matcher visuellement cette taille de perso. Les anims
-  // pliées (warm_hands, pickup) ont des scales différents car leur bbox
-  // enveloppe la silhouette accroupie.
-  static const Map<String, _AnimMetrics> _animMetrics = {
-    'walk_right':  _AnimMetrics(scale: 1.300, aspect: 166 / 381, feet: 0.984),
-    'idle_right':  _AnimMetrics(scale: 1.309, aspect: 91 / 372,  feet: 0.989),
-    'warm_hands':  _AnimMetrics(scale: 1.300, aspect: 1.0,       feet: 0.86),
-    // carry_walk source = 512×512, le perso occupe moins que toute la
-    // box. Scale bumpé pour matcher visuellement la hauteur de
-    // walk_right.
-    'carry_walk':  _AnimMetrics(scale: 1.55, aspect: 1.0, feet: 0.92),
-    'pickup':      _AnimMetrics(scale: 1.30, aspect: 170 / 385, feet: 0.92),
-  };
+  // Base de hauteur du perso dans la scène loco. walk_right rend à
+  // h * _kLocoHeroBase. Plus grand que le wagon (kHeroBaseHeight =
+  // 0.36) parce que la caméra loco est plus rapprochée. Les ratios
+  // scale / aspect / feet par anim sont piochés dans la table
+  // partagée kAnimMetrics (lib/data/anim_metrics.dart).
+  static const double _kLocoHeroBase = 0.572;
 
   Widget _buildHeroine(double w, double h) {
     final isMoving = _heroTarget != null;
@@ -529,28 +515,22 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
-    // warm_hands is rendered in a left-facing context (firebox is on
-    // the left). Source already faces left → don't mirror it based on
-    // the last walk direction.
-    const sourceFacesLeft = {'warm_hands'};
-    // pickup source bends RIGHT par défaut. Woodpile à droite = no
-    // mirror (pencher à droite). Firebox à gauche = mirror (pencher à
-    // gauche). Si le sens te paraît encore inversé en jeu : flip ce
-    // ternaire.
+    // pickup source bends RIGHT par défaut. Firebox à gauche = mirror
+    // (pencher à gauche, donc à throwing). warm_hands.noMirror=true
+    // dans la table partagée → jamais flippée (face au feu à gauche).
+    final m = animMetricsFor(prefix);
     final bool shouldMirror;
     if (prefix == 'pickup') {
       shouldMirror = _action == _LocoAction.throwing;
+    } else if (m.noMirror) {
+      shouldMirror = false;
     } else {
-      shouldMirror = !sourceFacesLeft.contains(prefix) && !_heroFacingRight;
+      shouldMirror = !_heroFacingRight;
     }
-    // Per-anim metrics, baked from tools/measure_sprite_bboxes.py.
-    // scale = multiplier on the walk_right baseline (h * 0.44) so the
-    // character's on-screen body height matches across animations.
-    // aspect = sprite width/height ratio. feet = where the bbox bottom
-    // sits in the sprite (1.0 = touches the bottom, 0.85 = 15% padding
-    // below the character's feet).
-    final m = _animMetrics[prefix]!;
-    final heroHeight = h * 0.44 * m.scale;
+    // walk_right rend à h * _kLocoHeroBase * 1.0. Les autres anims
+    // se calibrent via m.scale (relatif à walk_right). Cf.
+    // lib/data/anim_metrics.dart.
+    final heroHeight = h * _kLocoHeroBase * m.scale;
     final heroWidth = heroHeight * m.aspect;
     final feetRatio = m.feet;
     final feetY = h * 0.92;
@@ -790,17 +770,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       ),
     );
   }
-}
-
-class _AnimMetrics {
-  const _AnimMetrics({
-    required this.scale,
-    required this.aspect,
-    required this.feet,
-  });
-  final double scale;
-  final double aspect;
-  final double feet;
 }
 
 class _ParallaxLayer extends StatelessWidget {
