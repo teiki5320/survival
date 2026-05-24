@@ -173,7 +173,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static final List<_PropDef> _propDefs = [
     _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
-    _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
+    _PropDef('stove',    'Poele',     animated: true,  frameCount: 25),
     _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
@@ -1072,6 +1072,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     required double w,
     required double h,
   }) {
+    // Stove masqué pendant l'anim cook (la gazinière est bakée dans
+    // le sprite du perso qui cuisine).
+    if (def.key == 'stove' && _activeSpecial == 'cook') {
+      return const SizedBox.shrink();
+    }
+
     final pos = _propPos[def.key]!;
     final propH = h * pos.height;
     final propW = propH;
