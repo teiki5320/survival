@@ -61,7 +61,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _onMap = false;
   bool _inWardrobe = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
-  double _dogHeight = 0.086;
+  double _dogHeight = 0.136;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -330,39 +330,46 @@ class _WagonScreenState extends State<WagonScreen> {
 
     final bool active = action != null;
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      width: 64,
-      height: 64,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      width: 72,
+      height: 72,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: active
             ? const RadialGradient(
-                colors: [Color(0xFFD96A2C), Color(0xFFB85522)],
-                center: Alignment(-0.3, -0.4),
-                radius: 1.1,
+                center: Alignment(-0.2, -0.3),
+                radius: 1.0,
+                colors: [
+                  Color(0xFFF2B879), // honey crème en haut-gauche
+                  Color(0xFFD97A35), // orange chaud
+                  Color(0xFF8A3E15), // rouge brique en bas
+                ],
+                stops: [0.0, 0.55, 1.0],
               )
             : RadialGradient(
-                colors: [Colors.grey.shade700, Colors.grey.shade900],
-                center: const Alignment(-0.3, -0.4),
-                radius: 1.1,
+                center: const Alignment(-0.2, -0.3),
+                radius: 1.0,
+                colors: [
+                  Colors.grey.shade500,
+                  Colors.grey.shade700,
+                  Colors.grey.shade900,
+                ],
+                stops: const [0.0, 0.55, 1.0],
               ),
-        border: Border.all(
-          color: active
-              ? const Color(0xFFFFD9A0).withValues(alpha: 0.85)
-              : Colors.grey.shade600,
-          width: 2,
-        ),
         boxShadow: [
+          // Ombre portée douce.
           BoxShadow(
-            color: Colors.black.withValues(alpha: active ? 0.45 : 0.25),
-            blurRadius: 14,
-            offset: const Offset(0, 5),
+            color: Colors.black.withValues(alpha: active ? 0.55 : 0.30),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
           ),
+          // Halo chaud externe quand actif.
           if (active)
-            BoxShadow(
-              color: const Color(0xFFFFB347).withValues(alpha: 0.35),
-              blurRadius: 18,
-              spreadRadius: 1,
+            const BoxShadow(
+              color: Color(0x66FFB347),
+              blurRadius: 26,
+              spreadRadius: 2,
             ),
         ],
       ),
@@ -372,12 +379,62 @@ class _WagonScreenState extends State<WagonScreen> {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: action,
-          child: Center(
-            child: Icon(
-              icon,
-              color: active ? Colors.white : Colors.grey.shade500,
-              size: 30,
-            ),
+          splashColor: Colors.white.withValues(alpha: 0.25),
+          highlightColor: Colors.white.withValues(alpha: 0.10),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Highlight haut (rim light) pour donner le côté bombé.
+              Positioned(
+                top: 6,
+                left: 14,
+                right: 14,
+                height: 14,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white.withValues(
+                            alpha: active ? 0.45 : 0.18),
+                        Colors.white.withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Ombrage du bas (inset shadow) — affine le volume.
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 26,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.0),
+                          Colors.black.withValues(alpha: 0.22),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // Icône.
+              Icon(
+                icon,
+                color: active
+                    ? const Color(0xFFFFF6E2)
+                    : Colors.grey.shade400,
+                size: 32,
+              ),
+            ],
           ),
         ),
       ),

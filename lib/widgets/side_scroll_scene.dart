@@ -33,7 +33,7 @@ class SideScrollScene extends StatefulWidget {
     this.doorPushToken = 0,
     this.onDoorPushDone,
     this.onOpenWardrobe,
-    this.dogHeight = 0.086,
+    this.dogHeight = 0.136,
   });
 
   /// Wagon visual progression, 0..3:
@@ -89,12 +89,12 @@ class SideScrollScene extends StatefulWidget {
   /// Left bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the door (= porte
   /// gauche du wagon vers la locomotive).
-  static const double heroXMin = 0.05;
+  static const double heroXMin = 0.22;
 
   /// Right bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the right door
   /// (= ouverture sur la map du monde).
-  static const double heroXMax = 0.97;
+  static const double heroXMax = 0.86;
 
   /// Centre X normalisé du lit. Le parent l'utilise pour savoir si la
   /// fille est à côté du lit (= action contextuelle "se coucher").
@@ -178,8 +178,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Le chien a sa propre state machine. Sa hauteur vient du parent
   // (slider live), son Y reste fixe, son X glisse quand il marche.
   static const double _dogTop = 0.673;
-  static const double _dogXMin = 0.30;
-  static const double _dogXMax = 0.75;
+  static const double _dogXMin = 0.35;
+  static const double _dogXMax = 0.70;
 
   // Horizon (middle background) clipping bounds — both are fractions
   // of the scene height. `_horizonTop` is the distance from the very
