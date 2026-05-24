@@ -288,6 +288,10 @@ Phase narrative :
 - **Langue** : français, ton décontracté direct.
 - **Style** : cash, pas de blabla, pas de flatterie. Quand quelque chose ne
   va pas, lui dire. Quand quelque chose est cool, lui dire aussi.
+- **TOUJOURS NUMÉROTER les listes / propositions / options** (1, 2, 3...).
+  L'utilisateur répond par numéros (« 1, 5, 8 ») au lieu de retaper les
+  noms. Bullets `-` à proscrire pour les listes de choix. Aussi valable
+  pour les sous-listes : 1.1, 1.2, etc.
 - **Analyse visuelle** : ne pas survoler (proportions, intégration, échelle).
   Vraiment regarder l'image qu'il envoie.
 - **Délégations explicites** :
