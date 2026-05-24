@@ -278,38 +278,59 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   Positioned.fill(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        // Fill semi-transparent coloré par zone : porte
-                        // rouge, fenêtre G bleu, fenêtre D vert. Permet
-                        // de visualiser le futur trou par-dessus la
-                        // locomotive pendant le réglage.
+                        // Fill très opaque par zone (porte rouge,
+                        // fenêtre G bleu, fenêtre D vert) pour les
+                        // distinguer clairement de la cab peinte.
+                        // Active = plus opaque que les autres.
                         color: _maskTintColors[i]
-                            .withValues(alpha: isActive ? 0.40 : 0.22),
+                            .withValues(alpha: isActive ? 0.75 : 0.55),
                         border: Border.all(
                           color: isActive
                               ? const Color(0xFFFFB347)
-                              : Colors.white.withValues(alpha: 0.45),
-                          width: isActive ? 2.5 : 1.5,
+                              : Colors.white,
+                          width: isActive ? 5.0 : 3.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Crosshair central pour repérer le centre du rect
+                  // (utile pour aligner sur un détail peint).
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Center(
+                        child: Container(
+                          width: 24,
+                          height: 24,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: Colors.black, width: 2,
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                   Positioned(
-                    top: -18,
+                    top: -24,
                     left: 0,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 5, vertical: 1),
+                          horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
                         color: isActive
                             ? const Color(0xFFB85522)
-                            : Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(3),
+                            : Colors.black.withValues(alpha: 0.85),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.white, width: 1),
                       ),
                       child: Text(
                         _maskLabels[i],
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
                           fontFamily: 'Courier',
                         ),
                       ),
@@ -317,8 +338,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   ),
                   if (isActive)
                     Positioned(
-                      right: -16,
-                      bottom: -16,
+                      right: -20,
+                      bottom: -20,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onPanUpdate: (d) => setState(() {
@@ -328,14 +349,16 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           r.y2 = (r.y2 + dh).clamp(r.y1 + 0.02, 1.0);
                         }),
                         child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFB85522),
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFB85522),
                             shape: BoxShape.circle,
+                            border: Border.all(
+                                color: Colors.white, width: 3),
                           ),
                           child: const Icon(Icons.open_in_full,
-                              color: Colors.white, size: 18),
+                              color: Colors.white, size: 24),
                         ),
                       ),
                     ),
