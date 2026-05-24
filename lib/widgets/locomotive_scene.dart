@@ -81,6 +81,19 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // thuds into the firebox. Decays to zero over ~400 ms.
   double _shake = 0;
 
+  // Mode adjust des trous (porte + 2 fenêtres latérales). Quand
+  // activé, les 3 rectangles deviennent draggables/resizables + HUD
+  // top-right avec sliders. Valeurs bakées ici (normalisées au render
+  // size de l'asset locomotive.png, qui occupe la scène en BoxFit.contain).
+  bool _maskAdjust = false;
+  int _activeMask = 0; // 0=door, 1=leftWin, 2=rightWin
+  final List<_NormRect> _maskHoles = [
+    _NormRect(0.420, 0.580, 0.300, 0.850), // porte centrale
+    _NormRect(0.300, 0.420, 0.420, 0.660), // fenêtre gauche
+    _NormRect(0.580, 0.720, 0.420, 0.660), // fenêtre droite
+  ];
+  static const List<String> _maskLabels = ['Porte', 'Fenêtre G', 'Fenêtre D'];
+
   @override
   void initState() {
     super.initState();
@@ -220,6 +233,214 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     final d = (_heroX - _fireboxX).abs();
     if (d >= range) return 0.0;
     return 1.0 - d / range;
+  }
+
+  /// Génère les widgets du mode adjust : 3 rectangles draggables/
+  /// resizables (porte + 2 fenêtres) + HUD top-right avec chip
+  /// selector + sliders position/taille.
+  List<Widget> _buildMaskAdjustOverlay() {
+    final widgets = <Widget>[];
+    for (int i = 0; i < _maskHoles.length; i++) {
+      final r = _maskHoles[i];
+      final isActive = _activeMask == i;
+      widgets.add(LayoutBuilder(
+        builder: (ctx, c) {
+          final w = c.maxWidth;
+          final h = c.maxHeight;
+          return Positioned(
+            left: r.x1 * w,
+            top: r.y1 * h,
+            width: r.w * w,
+            height: r.h * h,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _activeMask = i),
+              onPanUpdate: (d) => setState(() {
+                final dx = d.delta.dx / w;
+                final dy = d.delta.dy / h;
+                r.x1 = (r.x1 + dx).clamp(0.0, 1.0 - r.w);
+                r.x2 = r.x1 + r.w;
+                r.y1 = (r.y1 + dy).clamp(0.0, 1.0 - r.h);
+                r.y2 = r.y1 + r.h;
+                _activeMask = i;
+              }),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: isActive
+                              ? const Color(0xFFFFB347)
+                              : Colors.white.withValues(alpha: 0.45),
+                          width: isActive ? 2.5 : 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: -18,
+                    left: 0,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: isActive
+                            ? const Color(0xFFB85522)
+                            : Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: Text(
+                        _maskLabels[i],
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontFamily: 'Courier',
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (isActive)
+                    Positioned(
+                      right: -16,
+                      bottom: -16,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onPanUpdate: (d) => setState(() {
+                          final dw = d.delta.dx / w;
+                          final dh = d.delta.dy / h;
+                          r.x2 = (r.x2 + dw).clamp(r.x1 + 0.02, 1.0);
+                          r.y2 = (r.y2 + dh).clamp(r.y1 + 0.02, 1.0);
+                        }),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFB85522),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.open_in_full,
+                              color: Colors.white, size: 18),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ));
+    }
+    // HUD top-right : chip selector + sliders +/- pour la zone active.
+    widgets.add(Positioned(
+      top: 8,
+      right: 80,
+      child: SafeArea(child: _buildMaskAdjustHud()),
+    ));
+    return widgets;
+  }
+
+  Widget _tinyBtn(IconData icon, VoidCallback onTap) => InkResponse(
+        onTap: onTap,
+        radius: 18,
+        child: Container(
+          width: 26,
+          height: 26,
+          decoration: const BoxDecoration(
+            color: Color(0xFFB85522),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: Colors.white, size: 16),
+        ),
+      );
+
+  Widget _buildMaskAdjustHud() {
+    final r = _maskHoles[_activeMask];
+    Widget row(String label, double value, void Function(double) apply,
+        {double step = 0.005}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 96,
+              child: Text(
+                '$label ${value.toStringAsFixed(3)}',
+                style: const TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 11,
+                  fontFamily: 'Courier',
+                ),
+              ),
+            ),
+            _tinyBtn(Icons.remove,
+                () => setState(() => apply(-step))),
+            const SizedBox(width: 4),
+            _tinyBtn(Icons.add,
+                () => setState(() => apply(step))),
+          ],
+        ),
+      );
+    }
+
+    final chips = List.generate(_maskHoles.length, (i) {
+      final sel = i == _activeMask;
+      return Padding(
+        padding: const EdgeInsets.only(right: 4),
+        child: GestureDetector(
+          onTap: () => setState(() => _activeMask = i),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: sel
+                  ? const Color(0xFFB85522)
+                  : Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              _maskLabels[i],
+              style: TextStyle(
+                color: sel ? Colors.white : const Color(0xFFFFD9A0),
+                fontSize: 10,
+                fontFamily: 'Courier',
+                fontWeight: sel ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+        ),
+      );
+    });
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(mainAxisSize: MainAxisSize.min, children: chips),
+          const SizedBox(height: 6),
+          row('x1', r.x1, (d) {
+            r.x1 = (r.x1 + d).clamp(0.0, r.x2 - 0.02);
+          }),
+          row('x2', r.x2, (d) {
+            r.x2 = (r.x2 + d).clamp(r.x1 + 0.02, 1.0);
+          }),
+          row('y1', r.y1, (d) {
+            r.y1 = (r.y1 + d).clamp(0.0, r.y2 - 0.02);
+          }),
+          row('y2', r.y2, (d) {
+            r.y2 = (r.y2 + d).clamp(r.y1 + 0.02, 1.0);
+          }),
+        ],
+      ),
+    );
   }
 
   void _throwLog() {
@@ -387,12 +608,27 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         ),
                       ),
                       Positioned.fill(
-                        child: _nightTint(
-                          Image.asset(
-                            'assets/background/locomotive.png',
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          ),
+                        child: LayoutBuilder(
+                          builder: (ctx, c) {
+                            final holes = _maskHoles
+                                .map((r) => Rect.fromLTRB(
+                                      c.maxWidth * r.x1,
+                                      c.maxHeight * r.y1,
+                                      c.maxWidth * r.x2,
+                                      c.maxHeight * r.y2,
+                                    ))
+                                .toList();
+                            return _nightTint(
+                              ClipPath(
+                                clipper: HoleClipper(holes),
+                                child: Image.asset(
+                                  'assets/background/locomotive.png',
+                                  fit: BoxFit.contain,
+                                  errorBuilder: (_, __, ___) => _placeholder(),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       // Firebox glow — soft amber halo anchored on the
@@ -461,6 +697,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                 ),
               ),
             ),
+            // Mode adjust : overlay des 3 trous draggables + HUD top-right.
+            if (_maskAdjust) ..._buildMaskAdjustOverlay(),
             // Action buttons (bottom-right).
             Positioned(
               right: 16,
@@ -477,6 +715,22 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       foregroundColor: Colors.white,
                       onPressed: _throwLog,
                       child: const Icon(Icons.local_fire_department),
+                    ),
+                    const SizedBox(height: 12),
+                    FloatingActionButton.small(
+                      heroTag: 'mask_adjust',
+                      tooltip: _maskAdjust
+                          ? 'Valider les positions des trous'
+                          : 'Régler porte + fenêtres',
+                      backgroundColor: _maskAdjust
+                          ? const Color(0xFFB85522)
+                          : null,
+                      foregroundColor:
+                          _maskAdjust ? Colors.white : null,
+                      onPressed: () =>
+                          setState(() => _maskAdjust = !_maskAdjust),
+                      child: Icon(
+                          _maskAdjust ? Icons.check : Icons.crop_free),
                     ),
                     const SizedBox(height: 12),
                     FloatingActionButton.small(
@@ -575,5 +829,45 @@ class _ParallaxLayer extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// Rectangle normalisé (0..1 sur w/h) — utilisé pour les trous du masque
+/// asset locomotive (porte + 2 fenêtres latérales) ajustables en jeu.
+class _NormRect {
+  _NormRect(this.x1, this.x2, this.y1, this.y2);
+  double x1, x2, y1, y2;
+  double get cx => (x1 + x2) / 2;
+  double get cy => (y1 + y2) / 2;
+  double get w => x2 - x1;
+  double get h => y2 - y1;
+}
+
+/// Clipper qui troue un widget : retourne un path = rectangle scène
+/// PLEIN minus les trous (via PathFillType.evenOdd). Wrapping un
+/// Image.asset dans ClipPath(clipper: HoleClipper(holes)) rend
+/// l'image transparente sur les zones spécifiées, opaque ailleurs.
+class HoleClipper extends CustomClipper<Path> {
+  HoleClipper(this.holes);
+  final List<Rect> holes;
+
+  @override
+  Path getClip(Size size) {
+    final path = Path()
+      ..fillType = PathFillType.evenOdd
+      ..addRect(Offset.zero & size);
+    for (final h in holes) {
+      path.addRect(h);
+    }
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant HoleClipper old) {
+    if (old.holes.length != holes.length) return true;
+    for (int i = 0; i < holes.length; i++) {
+      if (old.holes[i] != holes[i]) return true;
+    }
+    return false;
   }
 }
