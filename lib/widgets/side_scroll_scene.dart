@@ -282,7 +282,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _doorPushing = false;
   int _doorFrame = 0;
   int _doorAccumMs = 0;
-  static const int _doorFrameMs = 40; // ~2s total for 49 frames
+  static const int _doorFrameMs = 33;
+  static const int _doorMaxFrames = 15;
   int _sleepFrame = 0;
   int _danceFrame = 0;
   Duration _lastTick = Duration.zero;
@@ -512,7 +513,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         while (_doorAccumMs >= _doorFrameMs) {
           _doorAccumMs -= _doorFrameMs;
           _doorFrame++;
-          if (_doorFrame >= _heroFrameCount) {
+          if (_doorFrame >= _doorMaxFrames) {
             _doorPushing = false;
             widget.onDoorPushDone?.call();
             return;
