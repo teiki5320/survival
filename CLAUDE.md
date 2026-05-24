@@ -92,6 +92,12 @@ Process AutoSprite (anims 49-frame) :
   `remove_asset_background` (gratuit aussi sur asset déjà saved).
 - Tarif référence : `animate_asset` legendary 49 frames = 5 cred,
   `regenerate_spritesheet` ≈ 5 cred par anim.
+- **Pour les assets statiques nouveaux** : AutoSprite n'a PAS de
+  "génération directe" — uniquement `generate_asset_preview` (1 cred
+  obligatoirement = 4 variantes turbo). Donc pour un sprite statique
+  nouveau, le workflow est : l'utilisateur le génère sur **OpenArt**
+  (Nano Banana 2) puis drop le PNG dans le repo. Je donne le prompt,
+  il génère, je key + intègre. Pas d'exception sauf accord explicite.
 
 **MCP AutoSprite** : l'utilisateur a ajouté `https://www.autosprite.io/api/mcp`
 (Bearer token) sur le **Claude Code CLI du Mac mini** uniquement
