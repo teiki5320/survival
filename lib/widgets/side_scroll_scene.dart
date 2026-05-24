@@ -238,6 +238,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // the double-tap-on-bed handler so she walks over before lying down).
   bool _walkingToBed = false;
   bool _walkingToStove = false;
+  bool _stoveAdjust = false;
   // Lie-down transition: plays pickup frames in reverse (upright → bent
   // over), then snaps into the sleep loop on the floor.
   bool _heroLyingDown = false;
