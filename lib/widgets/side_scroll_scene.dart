@@ -35,6 +35,10 @@ class SideScrollScene extends StatefulWidget {
     this.onDoorPushDone,
     this.onOpenWardrobe,
     this.dogHeight = 0.136,
+    this.specialAnim,
+    this.specialAnimFrames = 25,
+    this.specialAnimLoops = false,
+    this.specialAnimToken = 0,
   });
 
   /// Wagon visual progression, 0..3:
@@ -77,6 +81,17 @@ class SideScrollScene extends StatefulWidget {
 
   /// Hauteur du chien en fraction de h (réglable via slider parent).
   final double dogHeight;
+
+  /// Nom de l'anim spéciale (preset depuis le parent : 'drink', 'read',
+  /// 'cook', 'pet_dog', 'garden_tend'). Null = pas d'anim active.
+  /// La scène lit `assets/characters/${specialAnim}_${frame+1}.png`.
+  final String? specialAnim;
+  /// Nombre de frames dans le PNG set.
+  final int specialAnimFrames;
+  /// True = boucle indéfinie, false = joue 1× puis retour à idle.
+  final bool specialAnimLoops;
+  /// Increment pour (re)déclencher la même anim.
+  final int specialAnimToken;
 
   /// Fired the first time the user taps the wagon floor, so the parent
   /// can drop any "she's dancing" state it was holding.
@@ -252,6 +267,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _wakingAccumMs = 0;
   static const int _wakingFrameMs = 55;
 
+  // Anim spéciale en cours (drink, read, cook, pet_dog, garden_tend).
+  // Pilotée par le parent via specialAnim + specialAnimToken.
+  String? _activeSpecial;
+  int _activeSpecialFrames = 25;
+  bool _activeSpecialLoops = false;
+  int _specialFrame = 0;
+  int _specialAccumMs = 0;
+  static const int _specialFrameMs = 70;
+
   // Door-push: short one-shot animation played when entering the
   // locomotive. Fires onDoorPushDone when complete.
   bool _doorPushing = false;
@@ -397,6 +421,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (oldWidget.running != widget.running) {
       _applyRunning();
     }
+    if (oldWidget.specialAnimToken != widget.specialAnimToken &&
+        widget.specialAnim != null) {
+      setState(() {
+        _activeSpecial = widget.specialAnim;
+        _activeSpecialFrames = widget.specialAnimFrames;
+        _activeSpecialLoops = widget.specialAnimLoops;
+        _specialFrame = 0;
+        _specialAccumMs = 0;
+        // Couper les autres états qui pourraient interférer.
+        _heroSleeping = false;
+        _heroDancing = false;
+        _heroLyingDown = false;
+        _heroTarget = null;
+      });
+    }
     if (oldWidget.dancing != widget.dancing) {
       setState(() {
         _heroDancing = widget.dancing;
@@ -476,6 +515,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _doorPushing = false;
             widget.onDoorPushDone?.call();
             return;
+          }
+        }
+      });
+      return;
+    }
+
+    if (_activeSpecial != null) {
+      setState(() {
+        _specialAccumMs += dtMs;
+        while (_specialAccumMs >= _specialFrameMs) {
+          _specialAccumMs -= _specialFrameMs;
+          _specialFrame++;
+          if (_specialFrame >= _activeSpecialFrames) {
+            if (_activeSpecialLoops) {
+              _specialFrame = 0;
+            } else {
+              _activeSpecial = null;
+              return;
+            }
           }
         }
       });
@@ -1126,6 +1184,24 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Wagon's interior floor sits roughly at this Y.
     final feetY = h * 0.79;
     final anchorX = _heroX * w;
+
+    // Anim spéciale en cours (drink, read, cook, pet_dog, garden_tend) :
+    // rend le sprite spécial à la place du normal idle / walk.
+    if (_activeSpecial != null) {
+      final heroHeight = h * 0.36 * (512 / 360);
+      final heroWidth = heroHeight;
+      final asset =
+          'assets/characters/${_activeSpecial}_${_specialFrame + 1}.png';
+      return Positioned(
+        left: anchorX - heroWidth / 2,
+        top: feetY - heroHeight * 0.86,
+        width: heroWidth,
+        height: heroHeight,
+        child: IgnorePointer(
+          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+        ),
+      );
+    }
 
     if (_doorPushing) {
       // door_push source pousse vers la DROITE en réalité. La porte

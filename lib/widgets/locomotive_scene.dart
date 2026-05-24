@@ -254,9 +254,11 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     'walk_right':  _AnimMetrics(scale: 1.300, aspect: 166 / 381, feet: 0.984),
     'idle_right':  _AnimMetrics(scale: 1.309, aspect: 91 / 372,  feet: 0.989),
     'warm_hands':  _AnimMetrics(scale: 1.300, aspect: 1.0,       feet: 0.86),
-    // Pas encore calibré en jeu — à dialer via le mode adjust.
-    'carry_walk':  _AnimMetrics(scale: 1.353, aspect: 1.0,       feet: 0.863),
-    'pickup':      _AnimMetrics(scale: 1.100, aspect: 170 / 385, feet: 0.97),
+    // carry_walk source = 512×512, le perso occupe moins que toute la
+    // box. Scale bumpé pour matcher visuellement la hauteur de
+    // walk_right.
+    'carry_walk':  _AnimMetrics(scale: 1.55, aspect: 1.0, feet: 0.92),
+    'pickup':      _AnimMetrics(scale: 1.30, aspect: 170 / 385, feet: 0.92),
   };
 
   Widget _buildHeroine(double w, double h) {
@@ -297,11 +299,13 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // the left). Source already faces left → don't mirror it based on
     // the last walk direction.
     const sourceFacesLeft = {'warm_hands'};
-    // pickup source bends LEFT by default. Woodpile is on the right
-    // (pickingUp → flip), firebox is on the left (throwing → no flip).
+    // pickup source bends RIGHT par défaut. Woodpile à droite = no
+    // mirror (pencher à droite). Firebox à gauche = mirror (pencher à
+    // gauche). Si le sens te paraît encore inversé en jeu : flip ce
+    // ternaire.
     final bool shouldMirror;
     if (prefix == 'pickup') {
-      shouldMirror = _action == _LocoAction.pickingUp;
+      shouldMirror = _action == _LocoAction.throwing;
     } else {
       shouldMirror = !sourceFacesLeft.contains(prefix) && !_heroFacingRight;
     }

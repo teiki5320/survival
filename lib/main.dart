@@ -80,6 +80,24 @@ class _WagonScreenState extends State<WagonScreen> {
   // l'apparence du _actionFab.
   double _heroX = 0.5;
   final ValueNotifier<double> _heroXNotifier = ValueNotifier(0.5);
+
+  // Anim spéciale (drink, read, cook, pet_dog, garden_tend). On
+  // incrémente `_specialAnimToken` à chaque (re)déclenchement pour que
+  // la scène détecte le changement même si le nom reste identique.
+  String? _specialAnim;
+  int _specialAnimFrames = 25;
+  bool _specialAnimLoops = false;
+  int _specialAnimToken = 0;
+
+  void _triggerSpecial(String name,
+      {int frames = 25, bool loops = false}) {
+    setState(() {
+      _specialAnim = name;
+      _specialAnimFrames = frames;
+      _specialAnimLoops = loops;
+      _specialAnimToken++;
+    });
+  }
   bool get _atLeftDoor => _heroX <= SideScrollScene.heroXMin + 0.01;
   bool get _atRightDoor => _heroX >= SideScrollScene.heroXMax - 0.01;
   bool get _atBed =>
@@ -209,6 +227,10 @@ class _WagonScreenState extends State<WagonScreen> {
             onDoorPushDone: _onDoorPushDone,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
             dogHeight: _dogHeight,
+            specialAnim: _specialAnim,
+            specialAnimFrames: _specialAnimFrames,
+            specialAnimLoops: _specialAnimLoops,
+            specialAnimToken: _specialAnimToken,
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },
@@ -448,18 +470,13 @@ class _WagonScreenState extends State<WagonScreen> {
     } else if (_atNotebook) {
       icon = Icons.menu_book;
       action = () {
-        // Lit le carnet : un petit shot de fatigue (repos mental) +
-        // bulle. L'anim "read" est dans le repo mais pas encore branchée
-        // côté state machine — sera ajoutée quand on aura l'anim
-        // sit_floor pour la transition (sinon elle lit debout, bizarre).
+        _triggerSpecial('read', frames: 49);
         GameState.instance.restoreFatigue(0.10);
       };
     } else if (_atFilter) {
       icon = Icons.local_drink;
       action = () {
-        // Boit au filtre : restore soif. L'anim drink est clean
-        // (fille seule avec tasse), à brancher quand on aura la
-        // state machine "specialAnim" côté scene.
+        _triggerSpecial('drink', frames: 25);
         GameState.instance.restoreThirst(0.20);
       };
     } else if (_atLamp) {
