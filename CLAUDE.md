@@ -194,6 +194,12 @@ intégrer. Ne pas reproposer 50 fois l'install MCP côté web, ça l'agace.
   rectangle de la porte (x=0.42..0.58, y=0.30..0.85) et le hublot rond
   (ellipse cx=0.51, cy=0.147, r=0.06W) sont transparents. Le reste est
   opaque pour éviter le bleed du wagon en dessous.
+- **Trous noirs latéraux signalés en TestFlight** : l'asset a de larges
+  zones à RGB(18,18,18) sur les murs latéraux qui apparaissent comme du
+  noir uni sur iPad. Pas un bug code, à fixer soit en brightenant
+  l'asset Python, soit en regénérant un nouveau locomotive.png sur
+  OpenArt avec un prompt « bien éclairé », soit via overlay warm dans
+  la scène.
 - Heroine height : `h * 0.44`.
 - Woodpile à x=0.70, firebox à x=0.30.
 - `FireboxFlames + FireGlow` à `(0.17, 0.66)` puis `(0.17, 0.72)`.
