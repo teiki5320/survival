@@ -367,6 +367,16 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           ),
                         ),
                       ),
+                      // Fond sombre derrière le poêle — bloque le
+                      // paysage (sky/horizon) pour que seul le feu
+                      // animé soit visible à travers le trou du poêle.
+                      Positioned(
+                        left: w * 0.10,
+                        top: h * 0.52,
+                        width: w * 0.18,
+                        height: h * 0.28,
+                        child: const ColoredBox(color: Color(0xFF0A0806)),
+                      ),
                       // Flammes animées DERRIÈRE le PNG — visibles à
                       // travers le petit carré transparent du poêle.
                       Positioned.fill(
