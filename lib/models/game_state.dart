@@ -24,6 +24,7 @@ class GameState extends ChangeNotifier {
       const Duration(seconds: 5),
       (_) => _tickDrain(),
     );
+    _initWeatherCycle();
   }
   static final GameState instance = GameState._();
 
@@ -116,6 +117,23 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Météo --- (cycle automatique).
+  Weather _weather = Weather.clear;
+  Weather get weather => _weather;
+  // Toutes les 30s pour l'instant (visualiser vite). Passer à plusieurs
+  // minutes en prod pour un rythme atmosphérique plus calme.
+  static const Duration _weatherPeriod = Duration(seconds: 30);
+  Timer? _weatherTimer;
+  void _initWeatherCycle() {
+    _weatherTimer ??= Timer.periodic(_weatherPeriod, (_) {
+      // Pick au hasard mais évite de répéter le même.
+      final pool =
+          Weather.values.where((w) => w != _weather).toList();
+      _weather = pool[DateTime.now().millisecondsSinceEpoch % pool.length];
+      notifyListeners();
+    });
+  }
+
   // --- Inventory ---
   // Loose typed: item id → count. Items granted by choices accumulate.
   final Map<String, int> _items = {};
@@ -154,6 +172,11 @@ class GameState extends ChangeNotifier {
   void dispose() {
     _refillTimer?.cancel();
     _drainTimer?.cancel();
+    _weatherTimer?.cancel();
     super.dispose();
   }
 }
+
+/// État météo global. Pilote l'overlay visuel de la scène wagon (teinte
+/// + particules pluie/brouillard) et plus tard les sounds ambient.
+enum Weather { clear, cloudy, rainy, foggy }

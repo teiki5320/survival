@@ -263,6 +263,25 @@ class _WagonScreenState extends State<WagonScreen> {
                       ),
                     ),
                   ),
+                  AnimatedBuilder(
+                    animation: GameState.instance,
+                    builder: (_, __) {
+                      const labels = {
+                        Weather.clear: '☀ clear',
+                        Weather.cloudy: '☁ cloudy',
+                        Weather.rainy: '🌧 rainy',
+                        Weather.foggy: '🌫 foggy',
+                      };
+                      return Text(
+                        labels[GameState.instance.weather] ?? '',
+                        style: const TextStyle(
+                          color: Color(0xFFFFD9A0),
+                          fontSize: 12,
+                          fontFamily: 'Courier',
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 6),
                   // Jauges hunger / thirst / fatigue (live via GameState).
                   AnimatedBuilder(

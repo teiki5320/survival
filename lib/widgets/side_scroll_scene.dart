@@ -937,6 +937,36 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             emoji: _thoughtEmoji!,
                           ),
                         ),
+                      // 5f. Overlay météo : teinte plein écran + voile
+                      //     selon GameState.weather. Mis en haut du
+                      //     Stack pour couvrir TOUT (sauf le HUD).
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: AnimatedBuilder(
+                            animation: GameState.instance,
+                            builder: (_, __) {
+                              final w = GameState.instance.weather;
+                              Color? tint;
+                              switch (w) {
+                                case Weather.clear:
+                                  return const SizedBox.shrink();
+                                case Weather.cloudy:
+                                  tint = const Color(0x1A2A3A4A);
+                                  break;
+                                case Weather.rainy:
+                                  tint = const Color(0x2A1E2A3A);
+                                  break;
+                                case Weather.foggy:
+                                  tint = const Color(0x33D8D2C8);
+                                  break;
+                              }
+                              return DecoratedBox(
+                                decoration: BoxDecoration(color: tint),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
                       // 5. Locomotive smoke — drifts over the top of the wagon.
                       Positioned.fill(
                         child: IgnorePointer(
