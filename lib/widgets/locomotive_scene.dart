@@ -383,9 +383,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         child: FireboxFlames(
                           animation: _sky,
                           x: 0.17,
-                          y: 0.66,
-                          width: 0.07,
-                          height: 0.08,
+                          y: 0.70,
+                          width: 0.10,
+                          height: 0.12,
                         ),
                       ),
                       // Locomotive cab — la transparence est bakée dans
