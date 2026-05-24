@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../models/game_state.dart';
 import 'atmosphere.dart';
 import 'train_rocking.dart';
 
@@ -1036,7 +1037,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
             staticAsset,
             fit: BoxFit.contain,
           );
-    final wrapped = _nightTint(sprite);
+    Widget wrapped = _nightTint(sprite);
+    // Lampe à pétrole : dim quand éteinte (GameState.lampOn = false).
+    if (def.key == 'lamp') {
+      wrapped = AnimatedBuilder(
+        animation: GameState.instance,
+        builder: (_, child) => Opacity(
+          opacity: GameState.instance.lampOn ? 1.0 : 0.18,
+          child: child,
+        ),
+        child: wrapped,
+      );
+    }
 
     // commode = tappable (ouvre wardrobe), bowl = tap
     // pour remplir si vide, reste = inert.

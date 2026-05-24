@@ -108,6 +108,14 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // --- Wagon ambient state ---
+  bool _lampOn = true;
+  bool get lampOn => _lampOn;
+  void toggleLamp() {
+    _lampOn = !_lampOn;
+    notifyListeners();
+  }
+
   // --- Inventory ---
   // Loose typed: item id → count. Items granted by choices accumulate.
   final Map<String, int> _items = {};

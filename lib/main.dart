@@ -89,6 +89,7 @@ class _WagonScreenState extends State<WagonScreen> {
       (_heroX - centerX).abs() < tol;
   bool get _atNotebook => _near(SideScrollScene.notebookCenterX);
   bool get _atFilter => _near(SideScrollScene.filterCenterX);
+  bool get _atLamp => _near(SideScrollScene.lampCenterX);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -218,12 +219,14 @@ class _WagonScreenState extends State<WagonScreen> {
               final wasB = _atBed;
               final wasN = _atNotebook;
               final wasF = _atFilter;
+              final wasLamp = _atLamp;
               _heroX = x;
               if (wasL != _atLeftDoor ||
                   wasR != _atRightDoor ||
                   wasB != _atBed ||
                   wasN != _atNotebook ||
-                  wasF != _atFilter) {
+                  wasF != _atFilter ||
+                  wasLamp != _atLamp) {
                 setState(() {});
               }
             },
@@ -440,6 +443,11 @@ class _WagonScreenState extends State<WagonScreen> {
         // state machine "specialAnim" côté scene.
         GameState.instance.restoreThirst(0.20);
       };
+    } else if (_atLamp) {
+      icon = GameState.instance.lampOn
+          ? Icons.lightbulb
+          : Icons.lightbulb_outline;
+      action = () => setState(() => GameState.instance.toggleLamp());
     } else if (_doorPushing) {
       icon = Icons.meeting_room;
     }
