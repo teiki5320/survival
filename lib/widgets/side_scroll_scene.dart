@@ -450,14 +450,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
       });
     }
     if (oldWidget.lieDownToken != widget.lieDownToken) {
+      // FAB lit → marcher vers le lit, puis se coucher dessus.
+      final target = (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
       setState(() {
         _heroDancing = false;
         _heroSleeping = false;
-        _heroTarget = null;
-        _heroLyingDown = true;
-        _sleepOnBed = false; // FAB = se coucher sur place, par terre
-        _lieDownFrame = _heroFrameCount - 1;
-        _lieDownAccumMs = 0;
+        _heroLyingDown = false;
+        _walkingToBed = true;
+        _heroTarget = target;
       });
     }
     if (oldWidget.doorPushToken != widget.doorPushToken) {
@@ -732,33 +732,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     widget.onUserInteract?.call();
   }
 
-  /// Double-tap on the bed → walk over, then play the lie-down sequence.
-  void _goLieDownOnBed() {
-    final target = (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
-    final wasSleeping = _heroSleeping;
-    setState(() {
-      _heroSleeping = false;
-      _heroDancing = false;
-      _heroLyingDown = false;
-      _walkingToBed = true;
-      _heroTarget = target;
-      if (wasSleeping) {
-        if (_sleepOnBed) {
-          _sleepOnBed = false;
-          final bedCenter =
-              (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
-          _heroX = bedCenter;
-          widget.onHeroXChanged?.call(_heroX);
-        } else {
-          _waking = true;
-          _wakingPhase = 0;
-          _wakingFrame = 0;
-          _wakingAccumMs = 0;
-        }
-      }
-    });
-    widget.onUserInteract?.call();
-  }
 
 
   @override
@@ -898,14 +871,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         left: w * _bedLeft,
                         top: h * _bedTop,
                         width: w * _bedWidth,
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onDoubleTap: _goLieDownOnBed,
-                          child: _nightTint(
-                            Image.asset(
-                              'assets/objects/bed.png',
-                              fit: BoxFit.contain,
-                            ),
+                        child: _nightTint(
+                          Image.asset(
+                            'assets/objects/bed.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
