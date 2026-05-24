@@ -367,15 +367,26 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           ),
                         ),
                       ),
-                      // Fond sombre derrière le poêle — bloque le
-                      // paysage (sky/horizon) pour que seul le feu
-                      // animé soit visible à travers le trou du poêle.
+                      // Fond chaud derrière le poêle — simule des
+                      // braises/parois éclairées. Bloque le paysage
+                      // pour que seul le feu soit visible.
                       Positioned(
                         left: w * 0.10,
                         top: h * 0.52,
                         width: w * 0.18,
                         height: h * 0.28,
-                        child: const ColoredBox(color: Color(0xFF0A0806)),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: RadialGradient(
+                              center: const Alignment(0.0, 0.3),
+                              radius: 0.9,
+                              colors: const [
+                                Color(0xFF4A2008),
+                                Color(0xFF1A0A02),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                       // Flammes animées DERRIÈRE le PNG — visibles à
                       // travers le petit carré transparent du poêle.

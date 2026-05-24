@@ -787,7 +787,7 @@ class _FlamePainter extends CustomPainter {
     final hpx = size.height * h;
 
     for (int i = 0; i < _phase.length; i++) {
-      final wave = math.sin((t * _speed[i] + _phase[i]) * 2 * math.pi);
+      final wave = math.sin((t * 30 * _speed[i] + _phase[i]) * 2 * math.pi);
       final scale = _scale[i] * (0.85 + 0.15 * wave);
       final fx = cx + _xOff[i] * wpx * 0.5;
       final flameH = hpx * scale;
