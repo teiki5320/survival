@@ -117,7 +117,7 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   ),
   // Capés — gros mobilier dans la bbox gonfle le h_ratio.
   'read':          AnimMetrics(
-    scale: 1.20, aspect: 1.0, feet: 0.840, noMirror: true,
+    scale: 0.90, aspect: 1.0, feet: 0.840, noMirror: true,
   ),
   'pet_dog':       AnimMetrics(
     scale: 1.20, aspect: 1.0, feet: 0.845, noMirror: true,
