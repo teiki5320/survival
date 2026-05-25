@@ -766,7 +766,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
           builder: (context, constraints) {
             final w = constraints.maxWidth;
             final h = constraints.maxHeight;
-            return ClipRect(
+            return Stack(
+              children: [
+              ClipRect(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (d) => _walkTo(d.localPosition.dx / w),
@@ -1057,6 +1059,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   ),
                 ),
               ),
+              ),
+              if (_stoveAdjust)
+                Positioned(
+                  bottom: 16,
+                  left: 16,
+                  child: SafeArea(child: _buildStoveAdjustHud()),
+                ),
+              ],
             );
           },
         ),
@@ -1166,6 +1176,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ),
       );
     }
+    if (def.key == 'stove') {
+      return Positioned(
+        left: left,
+        top: top,
+        width: propW,
+        height: propH,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onLongPress: () => setState(() => _stoveAdjust = !_stoveAdjust),
+          child: wrapped,
+        ),
+      );
+    }
     return Positioned(
       left: left,
       top: top,
@@ -1175,8 +1198,69 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
-  /// HUD du mode propsAdjust : chip selector pour choisir le prop actif,
-  /// puis 3 rows left/top/height avec boutons +/- pour fine-tuning.
+  Widget _buildStoveAdjustHud() {
+    final pos = _propPos['stove']!;
+    Widget row(String label, double value, void Function(double) apply,
+        {double step = 0.005}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 110,
+              child: Text(
+                '$label ${value.toStringAsFixed(3)}',
+                style: const TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 12,
+                  fontFamily: 'Courier',
+                ),
+              ),
+            ),
+            _adjustBtn(Icons.remove, () => setState(() => apply(-step))),
+            const SizedBox(width: 4),
+            _adjustBtn(Icons.add, () => setState(() => apply(step))),
+          ],
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.80),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Gazinière', style: TextStyle(
+            color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold,
+          )),
+          const SizedBox(height: 4),
+          row('left  ', pos.left, (d) => pos.left += d),
+          row('top   ', pos.top, (d) => pos.top += d),
+          row('height', pos.height, (d) => pos.height += d),
+        ],
+      ),
+    );
+  }
+
+  Widget _adjustBtn(IconData icon, VoidCallback onTap) => InkResponse(
+    onTap: onTap,
+    radius: 18,
+    child: Container(
+      width: 28,
+      height: 28,
+      decoration: const BoxDecoration(
+        color: Color(0xFFB85522),
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white, size: 16),
+    ),
+  );
+
   Widget _buildHeroine(double w, double h) {
     // Wagon's interior floor sits roughly at this Y.
     final feetY = h * 0.79;
