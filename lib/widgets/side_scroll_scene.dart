@@ -1229,7 +1229,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     final pos = _propPos[def.key]!;
     final propH = h * pos.height;
-    final propW = propH;
+    final propW = w * pos.width;
     final left = w * pos.left - propW / 2;
     final top = h * pos.top;
     // La gamelle a 2 états (full / empty) → asset différent selon
@@ -1331,8 +1331,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 bottom: -16,
                 child: GestureDetector(
                   onPanUpdate: (d) => setState(() {
+                    pos.width += d.delta.dx / w;
+                    pos.width = pos.width.clamp(0.03, 0.50);
                     pos.height += d.delta.dy / h;
-                    pos.height = pos.height.clamp(0.05, 0.60);
+                    pos.height = pos.height.clamp(0.03, 0.50);
                   }),
                   child: Container(
                     width: 32,
@@ -1397,15 +1399,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'left: ${pos.left.toStringAsFixed(3)}',
+            'left:  ${pos.left.toStringAsFixed(3)}',
             style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
           ),
           Text(
-            'top:  ${pos.top.toStringAsFixed(3)}',
+            'top:   ${pos.top.toStringAsFixed(3)}',
             style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
           ),
           Text(
-            'width:${pos.height.toStringAsFixed(3)}',
+            'width: ${pos.width.toStringAsFixed(3)}',
+            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
+          ),
+          Text(
+            'height:${pos.height.toStringAsFixed(3)}',
             style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
           ),
         ],
@@ -1612,10 +1618,12 @@ class _PropDef {
 /// Position normalisée d'un prop dans la scène (centres x,y + hauteur
 /// en fraction de h). Mutable pour permettre le drag en mode adjust.
 class _PropPos {
-  _PropPos(this.left, this.top, this.height);
+  _PropPos(this.left, this.top, this.height, [double? width])
+      : width = width ?? height;
   double left;
   double top;
   double height;
+  double width;
 }
 
 /// Joue une animation `assets/objects/<prefix>_<i>.png` en boucle via un
