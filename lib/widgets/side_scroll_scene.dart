@@ -1287,8 +1287,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
         height: propH,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onLongPress: () => setState(() => _stoveAdjust = !_stoveAdjust),
-          child: wrapped,
+          onDoubleTap: () => setState(() => _stoveAdjust = !_stoveAdjust),
+          onPanUpdate: _stoveAdjust
+              ? (d) {
+                  setState(() {
+                    pos.left += d.delta.dx / w;
+                    pos.top += d.delta.dy / h;
+                  });
+                }
+              : null,
+          child: _stoveAdjust
+              ? Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: const Color(0xFFFF6B00), width: 2),
+                  ),
+                  child: wrapped,
+                )
+              : wrapped,
         ),
       );
     }
@@ -1338,12 +1353,24 @@ class _SideScrollSceneState extends State<SideScrollScene>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Gazinière', style: TextStyle(
-            color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Gazinière', style: TextStyle(
+                color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold,
+              )),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => setState(() => _stoveAdjust = false),
+                child: const Icon(Icons.close, color: Colors.white, size: 18),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text('Drag le poêle pour le placer', style: TextStyle(
+            color: Color(0xFFFFD9A0), fontSize: 11,
           )),
           const SizedBox(height: 4),
-          row('left  ', pos.left, (d) => pos.left += d),
-          row('top   ', pos.top, (d) => pos.top += d),
           row('taille', pos.height, (d) => pos.height += d, step: 0.01),
         ],
       ),
