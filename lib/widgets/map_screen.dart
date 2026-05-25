@@ -47,32 +47,24 @@ class _MapScreenState extends State<MapScreen> {
             maxScale: 3.0,
             boundaryMargin: const EdgeInsets.all(200),
             child: Center(
-              child: RotatedBox(
-                quarterTurns: 1,
-                child: SizedBox(
-                  width: screenSize.height * 1.4,
-                  height: screenSize.width * 1.4,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Image.asset(
-                        'assets/background/map_route.png',
-                        fit: BoxFit.contain,
-                        errorBuilder: (_, e, __) {
-                          debugPrint('map_route.png load failed: $e');
-                          return const ColoredBox(color: Color(0xFFB8945C));
-                        },
-                      ),
-                      Positioned.fill(
-                        child: CustomPaint(
-                          painter: _TrainOnTrackPainter(
-                            position: GameState.instance.trainPosition,
-                          ),
-                        ),
-                      ),
-                    ],
+              child: Stack(
+                children: [
+                  Image.asset(
+                    'assets/background/map_route.png',
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, e, __) {
+                      debugPrint('map_route.png load failed: $e');
+                      return const ColoredBox(color: Color(0xFFB8945C));
+                    },
                   ),
-                ),
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _TrainOnTrackPainter(
+                        position: GameState.instance.trainPosition,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -114,9 +106,9 @@ class _TrainOnTrackPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width * 0.50;
-    final cy = size.height * 0.50;
-    final rx = size.width * 0.33;
-    final ry = size.height * 0.40;
+    final cy = size.height * 0.46;
+    final rx = size.width * 0.38;
+    final ry = size.height * 0.34;
 
     // 0 = top (cold zone), 0.5 = bottom (warm zone)
     final angle = position * 2 * math.pi - math.pi / 2;
