@@ -1045,6 +1045,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         onAteFromBowl: () =>
                             setState(() => _bowlFull = false),
                       ),
+                      // 4c. Lamp glow when lamp is on.
+                      if (GameState.instance.lampOn)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Opacity(
+                              opacity: widget.night ? 0.9 : 0.35,
+                              child: FireGlow(
+                                animation: _sky,
+                                x: 0.415,
+                                y: 0.35,
+                                radius: 0.25,
+                              ),
+                            ),
+                          ),
+                        ),
                       // 5. Heroine — walks on the wagon floor.
                       _buildHeroine(w, h),
                       // 5b. Warm halo around the heroine when she's at
