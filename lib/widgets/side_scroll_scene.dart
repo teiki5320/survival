@@ -972,16 +972,35 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 4a. Frost overlay on windows in cold zone.
+                      // 4a. Frost on left window (cold zone).
                       if (GameState.instance.inColdZone)
-                        Positioned.fill(
+                        Positioned(
+                          left: w * 0.30,
+                          top: h * 0.20,
+                          width: w * 0.15,
+                          height: h * 0.35,
                           child: IgnorePointer(
-                            child: AnimatedOpacity(
-                              duration: const Duration(seconds: 5),
-                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.6 : 0.3,
+                            child: Opacity(
+                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.25 : 0.12,
                               child: Image.asset(
                                 'assets/objects/frost_overlay.png',
-                                fit: BoxFit.contain,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (GameState.instance.inColdZone)
+                        Positioned(
+                          left: w * 0.72,
+                          top: h * 0.20,
+                          width: w * 0.15,
+                          height: h * 0.35,
+                          child: IgnorePointer(
+                            child: Opacity(
+                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.25 : 0.12,
+                              child: Image.asset(
+                                'assets/objects/frost_overlay.png',
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),

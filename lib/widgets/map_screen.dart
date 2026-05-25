@@ -34,6 +34,8 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+
     return Scaffold(
       backgroundColor: const Color(0xFF1A1410),
       body: Stack(
@@ -41,31 +43,37 @@ class _MapScreenState extends State<MapScreen> {
         children: [
           InteractiveViewer(
             transformationController: _transformCtrl,
-            minScale: 0.8,
+            minScale: 0.5,
             maxScale: 3.0,
-            boundaryMargin: const EdgeInsets.all(100),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Stack(
-                  children: [
-                    Image.asset(
-                      'assets/background/map_route.png',
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, e, __) {
-                        debugPrint('map_route.png load failed: $e');
-                        return const ColoredBox(color: Color(0xFFB8945C));
-                      },
-                    ),
-                    Positioned.fill(
-                      child: CustomPaint(
-                        painter: _TrainMarkerPainter(
-                          position: GameState.instance.trainPosition,
+            boundaryMargin: const EdgeInsets.all(200),
+            child: Center(
+              child: RotatedBox(
+                quarterTurns: 1,
+                child: SizedBox(
+                  width: screenSize.height * 1.4,
+                  height: screenSize.width * 1.4,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/background/map_route.png',
+                        fit: BoxFit.contain,
+                        errorBuilder: (_, e, __) {
+                          debugPrint('map_route.png load failed: $e');
+                          return const ColoredBox(color: Color(0xFFB8945C));
+                        },
+                      ),
+                      Positioned.fill(
+                        child: CustomPaint(
+                          painter: _TrainOnTrackPainter(
+                            position: GameState.instance.trainPosition,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                );
-              },
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           SafeArea(
@@ -99,49 +107,68 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
-class _TrainMarkerPainter extends CustomPainter {
-  _TrainMarkerPainter({required this.position});
+class _TrainOnTrackPainter extends CustomPainter {
+  _TrainOnTrackPainter({required this.position});
   final double position;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Le parcours est un ovale centré sur la carte.
-    final cx = size.width * 0.5;
-    final cy = size.height * 0.5;
-    final rx = size.width * 0.35;
-    final ry = size.height * 0.38;
+    final cx = size.width * 0.50;
+    final cy = size.height * 0.50;
+    final rx = size.width * 0.33;
+    final ry = size.height * 0.40;
 
-    // Position sur l'ovale (0 = haut = zone froide, 0.5 = bas = zone chaude).
+    // 0 = top (cold zone), 0.5 = bottom (warm zone)
     final angle = position * 2 * math.pi - math.pi / 2;
     final x = cx + rx * math.cos(angle);
     final y = cy + ry * math.sin(angle);
 
+    // Train icon: small locomotive shape
+    canvas.save();
+    canvas.translate(x, y);
+
+    // Direction tangente à l'ovale
+    final tangentAngle = math.atan2(
+      ry * math.cos(angle),
+      -rx * math.sin(angle),
+    );
+    canvas.rotate(tangentAngle);
+
+    // Corps du train
+    final bodyPaint = Paint()..color = const Color(0xFFD4440F);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-12, -5, 24, 10),
+        const Radius.circular(3),
+      ),
+      bodyPaint,
+    );
+
+    // Cheminée
+    canvas.drawRect(
+      const Rect.fromLTWH(6, -9, 4, 4),
+      Paint()..color = const Color(0xFF2A2A2A),
+    );
+
+    // Roues
+    final wheelPaint = Paint()..color = const Color(0xFF1A1A1A);
+    canvas.drawCircle(const Offset(-6, 5), 3, wheelPaint);
+    canvas.drawCircle(const Offset(6, 5), 3, wheelPaint);
+
+    canvas.restore();
+
     // Halo
     canvas.drawCircle(
       Offset(x, y),
-      14,
+      18,
       Paint()
-        ..color = const Color(0x55FF6B00)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
-    );
-    // Point train
-    canvas.drawCircle(
-      Offset(x, y),
-      7,
-      Paint()..color = const Color(0xFFFF6B00),
-    );
-    canvas.drawCircle(
-      Offset(x, y),
-      7,
-      Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+        ..color = const Color(0x33FF6B00)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
     );
   }
 
   @override
-  bool shouldRepaint(_TrainMarkerPainter old) => old.position != position;
+  bool shouldRepaint(_TrainOnTrackPainter old) => old.position != position;
 }
 
 class _TrainZoneHUD extends StatelessWidget {

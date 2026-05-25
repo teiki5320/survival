@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../data/anim_metrics.dart';
+import '../models/game_state.dart';
 import '../services/audio_service.dart';
 import 'atmosphere.dart';
 import 'train_rocking.dart';
@@ -234,10 +235,17 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   }
 
   Widget _nightTint(Widget child) {
-    if (!widget.night) return child;
+    Widget result = child;
+    if (GameState.instance.inColdZone) {
+      result = ColorFiltered(
+        colorFilter: const ColorFilter.mode(Color(0xFFD0D8E8), BlendMode.modulate),
+        child: result,
+      );
+    }
+    if (!widget.night) return result;
     return ColorFiltered(
       colorFilter: const ColorFilter.mode(Color(0xFF4A5C82), BlendMode.modulate),
-      child: child,
+      child: result,
     );
   }
 
@@ -349,7 +357,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       _nightTint(
                         _ParallaxLayer(
                           controller: _sky,
-                          asset: 'assets/background/sky.png',
+                          asset: GameState.instance.inColdZone
+                              ? 'assets/background/sky_snow.png'
+                              : 'assets/background/sky.png',
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -361,7 +371,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         child: _nightTint(
                           _ParallaxLayer(
                             controller: _horizon,
-                            asset: 'assets/background/horizon_a.png',
+                            asset: GameState.instance.inColdZone
+                                ? 'assets/background/horizon_snow_a.png'
+                                : 'assets/background/horizon_a.png',
                             fit: BoxFit.fitWidth,
                             alignment: Alignment.topCenter,
                           ),
