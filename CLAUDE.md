@@ -1,177 +1,313 @@
 # Train Cosy — mémoire Claude
 
-## Projet
+Ce fichier sert de **mémoire persistante** entre sessions. Lis-le au démarrage
+de chaque nouvelle conversation avant d'agir sur ce repo.
 
-Jeu narratif **cosy post-apo** en Flutter/iOS. Une jeune femme (avec son
-chien **Plume**, husky chiot) vit dans le dernier wagon d'un train qui
-roule à travers un monde mort. Side-scroller vue de côté, locomotive à
-gauche, paysage qui défile. Train tangue, jour/nuit, météo dynamique.
+---
 
-**Esthétique** : Studio Ghibli + lofi anime, hand-painted. Palette warm
-honey browns / cream / amber dedans, cold blue / pale fog dehors.
+## Le projet
+
+**Train Cosy** est une app Flutter / iOS en cours de prototype : un jeu narratif
+**cosy post-apocalyptique**. Une jeune femme (l'« habitante ») vit seule dans
+le dernier wagon d'un train qui roule à travers un monde mort. Elle interagit
+avec son environnement, le train tangue doucement, l'ambiance bascule jour /
+nuit. Le jeu est un **side-scroller** vue de côté : le wagon est centré, le
+paysage défile latéralement derrière, la locomotive est à gauche.
+
+**Esthétique cible** : Studio Ghibli + lofi anime, hand-painted, palette warm
+honey browns / cream / soft amber dedans, cold blue / pale fog dehors.
+
+**État actuel** : prototype visuel solide + boucle CI/CD opérationnelle.
+Animations 49-frames : 13 héroïne câblées dans le code + 5 assets prêts non
+intégrés (cook, drink, garden_tend, pet_dog, wake_up_clean) + 8 anims chien.
+Locomotive scène + carte du monde + events narratifs câblés. HUD survie
+(hunger/thirst/fatigue) + cycle météo auto. Mécaniques de progression /
+sauvegarde à construire.
+
+---
 
 ## Workflow technique
 
-- Repo `teiki5320/survival`. Branche **`main` uniquement**, push direct
-  (pas de PR, pas de branche `claude/*`).
-- **Commit + push à chaque modification** sans demander validation.
-- Bundle iOS `com.teiki5320.trainCosy`. Xcode Cloud watch `main`.
-- **Bump `version:` dans `pubspec.yaml`** à chaque push. Sinon
-  l'archive fail avec "Preparing build for App Store Connect failed".
-- **Toujours `flutter analyze`** avant de push pour vérifier qu'il n'y
-  a pas d'erreur de compilation (exit-code 65 sur xcloud sinon).
-- Dev local : Mac mini `/Users/jeanperraudeau/survival`, iPhone 16 Plus,
-  iOS 26.5 beta + Xcode 26.5. **Toujours `flutter run --release`**.
-- Hook stop : si je laisse uncommitted, le hook me force à push.
+- **Repo** : `teiki5320/survival` (le nom historique, le projet s'appelle
+  Train Cosy en interne).
+- **Branche** : **`main` uniquement**. L'utilisateur a explicitement dit de
+  bosser direct sur main, pas de branches Claude. **NE PAS** créer de branche
+  `claude/<feature>`.
+- **CI** : Xcode Cloud watchait `main` (build + upload TestFlight auto). À
+  date l'utilisateur a **désactivé** la distribution auto sur xcloud pour
+  économiser les quotas TestFlight.
+- **Xcode Cloud "Archive - iOS" en rouge** : ouvrir l'onglet **Erreur**
+  pour voir le message. Si c'est **"Preparing build for App Store
+  Connect failed"** → c'est l'étape d'upload TestFlight qui rejette
+  (version déjà présente). Fix : **bump `version:` dans `pubspec.yaml`**
+  (incrémenter le `+N` au minimum, ex `0.11.10+11` → `0.11.11+12`) puis
+  re-push.
+- **Bundle ID iOS** : `com.teiki5320.trainCosy`.
+- **App Store Connect** : app créée, TestFlight Internal Testing actif.
+- **Flutter** : projet scaffold via `flutter create`, dossier `ios/` committé.
+  ci_scripts dans `ios/ci_scripts/ci_post_clone.sh`.
+- **Dev local** : l'utilisateur build par cable depuis son Mac mini
+  (`/Users/jeanperraudeau/survival`), iPhone 16 Plus « Jean »
+  (UDID `00008140-00113D122E8B001C`). iOS 26.5 beta + Xcode 26.5.
+- **iOS 26 beta + debug mode** : crash `EXC_BAD_ACCESS` au launch (JIT). La
+  parade c'est **toujours `flutter run --release`**. Le release mode AOT
+  fonctionne sans souci.
+- **Version actuelle** : `0.11.10+11` dans `pubspec.yaml`.
+- **Dépendances** : `audioplayers: ^6.1.0`, `cupertino_icons: ^1.0.6`.
+
+## Règles de commit / push
+
+- **Commit + push à chaque modification** sans attendre validation explicite.
+  L'utilisateur a explicitement levé (2026-05-23) la restriction qui était
+  en place avant. Retour au mode normal : fix → commit → push, dans la foulée.
+- Si t'enchaînes plusieurs petits fixes liés sur le même sujet, empile dans
+  un seul commit.
+- Push direct sur `main` (`git push -u origin main`), pas de PR à créer.
+
+---
 
 ## Workflow assets
 
-**OpenArt (Nano Banana 2)** = l'utilisateur génère sur OpenArt, drop le
-PNG dans le repo. Fond noir baked-in → je key avec
-`tools/key_out_black.py`.
+L'utilisateur génère les images via **OpenArt** (Nano Banana 2 le plus
+souvent) ou les sprites d'animation via **AutoSprite** (49 frames par anim).
 
-**Chroma key vert/bleu** = pour la locomotive, l'utilisateur génère le
-PNG avec fond vert (= paysage visible) et fond bleu (= feu animé).
-Je key les deux couleurs → alpha=0. Le PNG gère tout le masking, pas
-de ClipPath runtime.
+Process classique image :
+1. Génère dans OpenArt (prompt qu'on a calibré).
+2. Drop le PNG dans le repo (drag-and-drop GitHub web depuis l'iPad, ou
+   `cp + git add + push` depuis le Mac).
+3. Me dit « poussé ».
+4. Je récupère, key out le fond noir (`tools/key_out_black.py`), déplace
+   vers le chemin canonique.
 
-**AutoSprite (anims)** = l'utilisateur lance depuis le Mac CLI. Règles :
+OpenArt **n'exporte pas vraiment en transparence** — fond noir baked-in.
+Toujours demander **fond noir pur** dans le prompt, je keye derrière.
 
-- **JAMAIS de preview** (`generate_asset_preview`). Toujours direct.
-- **Valider le coût AVANT** chaque dépense.
-- **Asset statique nouveau** = l'utilisateur génère sur OpenArt.
-- **Prompt AutoSprite** : NE PAS décrire le personnage. Juste l'action
-  et la vue. Ex: `Back view, right arm stirring, subtle shoulder
-  movement. Solid black background.`
-- MCP AutoSprite installé sur le Mac CLI uniquement (pas sur web).
+Process AutoSprite (anims 49-frame) :
+1. L'utilisateur génère une sheet ou un dossier de 49 PNGs depuis AutoSprite.
+2. Drop dans `assets/characters/<anim_name>_<i>.png` (i = 1..49).
+3. J'intègre dans `side_scroll_scene.dart` ou `locomotive_scene.dart`
+   (state machine + précache + bbox/feetRatio).
 
-### Pattern prompt OpenArt
+**Règles AutoSprite (décidées le 2026-05-23)** :
+- **Ne JAMAIS faire de preview** (`generate_asset_preview`). Générer
+  directement la version finale.
+- **Toujours valider le coût AVANT toute dépense**. Annoncer le nombre
+  de crédits et attendre OK.
+- Tarif : `animate_asset` legendary 49 frames = 5 cred,
+  `regenerate_spritesheet` ≈ 5 cred par anim.
+- Pour assets statiques : l'utilisateur génère sur **OpenArt**, je donne
+  le prompt, il génère, je key + intègre.
 
-1. Vue / angle précis
-2. Fond `solid black background (#000000)`, no shadow, no walls
-3. Cadrage : full body/object visible avec marge
-4. Lumière `warm honey golden lighting from upper left`
-5. Style `anime illustration style, Studio Ghibli inspired,
-   hand-painted texture, lofi cozy aesthetic`
-6. Négatif `no text, no letters, no watermark, no characters around`
+**MCP AutoSprite** : disponible uniquement sur le **Claude Code CLI du Mac
+mini** (`/Users/jeanperraudeau/.claude.json`). Une session **Claude Code on
+the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
 
-## Architecture code
+---
 
-- `lib/main.dart` — `WagonScreen` + routing wagon/locomotive/map/
-  wardrobe. HUD top-left (heroX live + barres + météo). FAB action
-  contextuel rond (lit / portes / lampe / lire / boire / cuisiner
-  selon zone). Cycle jour/nuit auto 6 min.
-- `lib/data/anim_metrics.dart` — **Table unifiée** `kAnimMetrics` des
-  métriques de rendu héroïne (scale/aspect/feet/noMirror) partagée
-  entre wagon et loco. Calibrée via `tools/measure_sprite_bboxes.py`.
-  Pour ajuster une anim : modifier scale/feet dans cette table.
-- `lib/widgets/side_scroll_scene.dart` — Scène wagon. State machine
-  héroïne (idle/walk/sleep/dance/cook/drink/read/...). Props animés
-  via `_AnimatedSprite` (ResizeImage 256). Chien `_DogActor`. Système
-  anim spéciale via `specialAnim` + token (drink) ou `cookToken`
-  (walk-to-stove + cook). Mode adjust gazinière (long-press).
-- `lib/widgets/locomotive_scene.dart` — Cabine loco. PNG avec chroma
-  key (vert=paysage, bleu=feu). `FireboxFlames` DERRIÈRE le PNG
-  (visible à travers le trou du poêle). Fond braises (gradient ambré)
-  bloque le paysage derrière le poêle. Script bûches intact.
-- `lib/widgets/map_screen.dart` — Map ultra-minimaliste.
-- `lib/widgets/wardrobe_screen.dart` — Outfit picker plein écran.
-- `lib/widgets/atmosphere.dart` — DustParticles, Fireflies, FireGlow,
-  CharacterHalo, DistantZombie, FootstepDust, ThoughtBubble,
-  FireboxFlames (flammes 30× plus rapides que le cycle sky).
-- `lib/models/game_state.dart` — Singleton ChangeNotifier. Énergie,
-  hunger/thirst/fatigue, inventaire, flags, locations, lampOn, weather.
-- `lib/services/audio_service.dart` — Wrappers safe, code no-op.
-- `lib/data/world.dart` — 3 Locations + Question/Choice models.
+## Checklist prompt OpenArt
 
-### Système de taille du perso
+1. **Sens / vue** — angle précis en degrés.
+2. **Fond** — `solid black background (#000000)`, `no shadow on ground`,
+   `no surface under`, `no walls`.
+3. **Cadrage** — `full body / object visible with comfortable margin all
+   around`.
+4. **Éclairage** — `warm honey golden lighting from the upper left`.
+5. **Style** — `anime illustration style, Studio Ghibli inspired,
+   hand-painted texture, lofi cozy aesthetic`.
+6. **Ratio** — adapté au contenu, OpenArt cap à 16:9.
+7. **Négatif explicite** — `no text, no letters, no watermark, no characters,
+   no scene around`.
+8. **Cohérence interne** — palette warm honey browns + cream + soft amber +
+   hint of dusty rose.
 
-Toutes les anims utilisent `lib/data/anim_metrics.dart` :
-- `heroHeight = h * kHeroBaseHeight * m.scale` (wagon base = 0.36)
-- `heroWidth = heroHeight * m.aspect`
-- `top = feetY - heroHeight * m.feet`
-- Loco utilise `_kLocoHeroBase = 0.572` au lieu de `kHeroBaseHeight`.
-- Anims avec mobilier (read, pet_dog, cook) → scale capé plus bas
-  car la bbox englobe le meuble.
-- `noMirror = true` pour les anims à composition fixe (read, dance,
-  sleep, cook, warm_hands, etc.).
-- Pour recalibrer : `python3 tools/measure_sprite_bboxes.py`, puis
-  `scale = 0.974 / h_ratio`.
+---
 
-### Constantes critiques
+## Architecture côté code
 
-- Hero bounds : `heroXMin = 0.22`, `heroXMax = 0.86`.
-- Bed : `_bedLeft = 0.194`, `_bedTop = 0.448`, `_bedWidth = 0.280`.
-- Horizon clip : `_horizonBottom = 0.179`.
-- Stove prop : `left=0.640, top=0.590, height=0.200` (réglable via
-  long-press en jeu).
-- Chien : `_dogXMin=0.35`, `_dogXMax=0.70`.
-- Loco : woodpile x=0.70, firebox x=0.30.
-- Door push : 15 frames × 33ms = ~0.5s (raccourci).
-- FAB lit : marche vers le lit + dort dessus (pas de sleep par terre).
-- FAB cook : marche vers le poêle + anim cook (25 frames).
-  Le prop gazinière est masqué pendant l'anim cook.
+- `lib/main.dart` (586 l.) — App + `WagonScreen` qui héberge tout (state
+  machine entre wagon / locomotive / map, FABs droite pour toggles + actions,
+  HUD survie hunger/thirst/fatigue).
+- `lib/widgets/side_scroll_scene.dart` (1958 l.) — Scène wagon (parallax
+  sky/horizon/rails, wagon image, héroïne + chien avec state machine, bed
+  adjust mode, horizon adjust mode, action buttons contextuels).
+- `lib/widgets/locomotive_scene.dart` (575 l.) — Cabine locomotive avec
+  script de ramassage de bûches (idle → walk to woodpile → pickup → carry →
+  throw → warm_hands près du feu).
+- `lib/widgets/map_screen.dart` (50 l.) — Carte du monde, ultra-minimal
+  (image + close button).
+- `lib/widgets/location_event_screen.dart` (363 l.) — Dialog full-screen
+  avec question + choices + outcome.
+- `lib/widgets/atmosphere.dart` (848 l.) — DustParticles, Fireflies,
+  FireGlow, HangingVines, CharacterHalo, DistantZombie, FootstepDust,
+  WindowRain, ThoughtBubble, FireboxFlames (tous procéduraux, CustomPaint).
+- `lib/widgets/train_rocking.dart` (122 l.) — Roulis subtil de toute la
+  scène.
+- `lib/widgets/wardrobe_screen.dart` (195 l.) — Sélection de tenues.
+  Framework prêt, 1 outfit actif (chemise blanche). Structure pensée pour
+  49 frames par tenue.
+- `lib/models/game_state.dart` (182 l.) — Singleton `ChangeNotifier` :
+  énergie (max 5, refill +1/min), barres survie (hunger vide en 30 min,
+  thirst 20 min, fatigue 45 min), météo auto (cycle 30 s), lampe toggle,
+  inventaire map, flags set, unlocked locations set.
+- `lib/services/audio_service.dart` (129 l.) — Singleton audio. Wrappers
+  `_safe()` qui swallow les exceptions sur asset manquant. Fonctionnel
+  quand les fichiers audio sont présents, silencieux sinon.
+- `lib/data/world.dart` (261 l.) — 3 Locations (station_abandonnee débloquée
+  par défaut, depot_ferroviaire, village_fantome). `backgrounds: [null, null,
+  null]` partout = placeholders procéduraux, pas d'images de lieu.
+  Question/Choice/Location models avec grants items/flags/unlock.
 
-### Outils Python (`tools/`)
+### Précisions side-scroll
 
-- `key_out_black.py` — chroma-key fond noir → transparence.
-- `generate_app_icons.py` — redimensionne app_icon.png aux 15 tailles.
-- `measure_sprite_bboxes.py` — mesure les bboxes des sprites héroïne,
-  sort les scale/feet/aspect recommandés pour `anim_metrics.dart`.
+- Heroine bounds : `heroXMin = 0.22`, `heroXMax = 0.86`.
+- Bed dialé : `_bedLeft = 0.194`, `_bedTop = 0.448`, `_bedWidth = 0.280`.
+  **NE PAS toucher**, réglé via l'adjust mode.
+- Horizon adjust mode accessible via FAB landscape. Défauts bakés :
+  `_horizonTop = 0.0`, `_horizonBottom = 0.179`.
+- 49 frames par anim, **13 anims héroïne câblées** : walk_right, idle_right,
+  sleep_right, dance, pickup, yawn, stretch, look_window, read, wake_up,
+  door_push, warm_hands, carry_walk.
+- **5 anims assets-only** (PNGs dans `assets/characters/` mais pas encore
+  branchées dans la state machine `side_scroll_scene.dart`) : cook, drink,
+  garden_tend, pet_dog, wake_up_clean.
+- `newSquareSprites` (yawn/stretch/look_window/read/wake_up/door_push/
+  warm_hands/carry_walk) sont 512x512 avec `feetRatio = 0.86`.
+- `sourceFacesLeft = {'warm_hands'}` en locomotive : ces sprites face déjà
+  à gauche, ne PAS mirror.
+- door_push en wagon est rendu sans mirror.
+- **Chien** : 8 anims (bark, eat, head_tilt, idle, lay_down, sleep,
+  stretch_yawn, wag_tail, walk). Frames dans `assets/objects/dog_*.png`.
 
-### Plume — 9 anims (`assets/objects/dog_*`)
+### Locomotive
 
-`dog_idle.png` (1 img) + `dog_walk` (49) + `dog_sleep` / `dog_lay_down`
-/ `dog_wag_tail` / `dog_bark` / `dog_stretch_yawn` / `dog_head_tilt` /
-`dog_eat` (25 chacune).
+- Background `assets/background/locomotive.png` hard-mask keyé.
+- Heroine height : `h * 0.44`.
+- Woodpile à x=0.70, firebox à x=0.30.
+- `FireboxFlames + FireGlow` à `(0.17, 0.66)` puis `(0.17, 0.72)`.
 
-### Héroïne — anims
+---
 
-13 anims 49 frames : `walk_right`, `idle_right`, `sleep_right`,
-`dance`, `pickup`, `yawn`, `stretch`, `look_window`, `read`, `wake_up`,
-`door_push`, `warm_hands`, `carry_walk`.
-5 anims 25 frames : `drink` (clean), `cook` (nouveau, avec gazinière
-bakée), `pet_dog`, `garden_tend`, `wake_up_clean`.
-`look_window` retiré des idle-breaks (seul `yawn` reste).
+## Outils Python (`tools/`)
 
-### Gazinière animée
+- `key_out_black.py` — chroma-key fond noir → transparence. Tolérance douce
+  (brightness < 18 → 0, > 60 → 255, interpolation entre les deux).
+- `split_character_sheet.py` — découpe une sheet horizontale en N PNGs +
+  key_out chaque cellule.
+- `trim_character_dividers.py` — retire les bandes grises (1-2 px) entre
+  panneaux.
+- `generate_app_icons.py` — redimensionne `app_icon.png` aux 15 tailles iOS.
+- `generate_placeholders.py` — placeholders rectangles colorés.
+- `measure_sprite_bboxes.py` — calcul bbox / feetRatio pour les sprites.
 
-Prop `stove` = 25 frames (`assets/objects/stove_1..25.png`), vapeur
-qui monte en boucle. Splittée depuis `cook-spritesheet.png`.
-Pendant l'anim `cook` du perso, le prop est masqué (la gazinière est
-bakée dans le sprite du perso).
+---
 
-## Audio à drop quand prêts
+## État du contenu
 
+**Animations héroïne 49-frames — 13 câblées** : walk_right, idle_right,
+sleep_right, dance, pickup, yawn, stretch, look_window, read, wake_up,
+door_push, warm_hands, carry_walk.
+
+**Animations héroïne — 5 assets prêts, non intégrées** : cook, drink,
+garden_tend, pet_dog, wake_up_clean. PNGs dans `assets/characters/` mais
+pas dans le precache ni la state machine. Le code dit « à venir ».
+
+**Animations chien (8)** : bark (25 fr), eat (25 fr), head_tilt (25 fr),
+lay_down (25 fr), sleep (25 fr), stretch_yawn (25 fr), wag_tail (25 fr),
+walk (49 fr). + idle statique.
+
+**Backgrounds** : wagon variants (dirty / swept / windowed / clean), sky /
+sky_night, horizon_a / horizon_b / horizon_c / horizon_night (rotate toutes
+les 45 s avec crossfade 2 s), locomotive (cab vue de côté), wagon_rails,
+foreground_band, map.
+
+**Objets statiques** : bed, bowl_empty, bowl_full, commode, dog_idle,
+firstaid, garden, notebook, plaid, plant, rug, table.
+
+**Objets animés (49 frames)** : filter, hydro, lamp, lights, stove.
+
+**Icon** : `assets/icon/app_icon.png` (+ tailles générées).
+
+**Audio** : **zéro fichier**. Code fonctionnel mais silencieux. À dropper :
 `ambient_train.mp3`, `music_day.mp3`, `music_night.mp3`, `sfx_<id>.mp3`
-(door_open/close, clean, footstep, pickup, log_throw, fire_crackle...).
+(door_open, door_close, footstep, pickup, log_throw, fire_crackle, etc.).
 
-## Communication
+---
+
+## Ce qui reste à faire
+
+### Priorité haute — mécaniques core
+
+1. **Sauvegarde d'état (SharedPreferences)**. `GameState` est 100% en mémoire.
+   Tout reset à chaque lancement. Implémenter `save()` / `load()` avec
+   sérialisation JSON. Zéro code de persistance à ce jour.
+2. **Cycle jour/nuit narratif**. Le cycle météo actuel (30 s) est un
+   placeholder dev. Passer à un vrai rythme jour/nuit (5-10 min réelles)
+   avec transition visuelle sky/sky_night + comportements héroïne liés.
+3. **Audio assets**. Dropper les fichiers dans `assets/audio/`. Le code est
+   prêt (`audio_service.dart`), il attend juste les mp3.
+4. **Brancher les 5 anims en attente**. cook, drink, garden_tend, pet_dog,
+   wake_up_clean : assets dans `assets/characters/` mais pas dans le
+   precache ni la state machine de `side_scroll_scene.dart`. Le drink a
+   un bouton action dans `main.dart` qui restore thirst sans jouer l'anim.
+
+### Priorité moyenne — gameplay loop
+
+5. **Système de déblocage progressif**. Mécanisme structuré pour gater
+   objets/locations/tenues derrière des flags/items.
+6. **Schedule d'actions narratives auto**. Héroïne suit un planning (réveil →
+   stretch → idle → cuisine → etc.) plutôt que de rester figée.
+7. **Mécanique vêtements**. Wardrobe screen existe (1 tenue, sprite
+   statique front). Ajouter les assets de tenues supplémentaires (chaque =
+   49 frames × N anims) + logique de déblocage.
+8. **Plus de Locations + chaînes de Questions**. 3 locations actuelles avec
+   `backgrounds: [null]` (placeholders procéduraux, pas d'images). Écrire
+   le contenu narratif + générer les images de fond par lieu.
+
+### Priorité basse — polish & contenu
+
+9. **Journal / monologue intérieur**. `ThoughtBubble` dans `atmosphere.dart`
+   affiche un emoji au-dessus de l'héroïne (aléatoire toutes les ~30 s).
+   Pas de système narratif contextuel lié aux événements / temps / état.
+10. **Événements aléatoires nuit**. `DistantZombie` existe déjà dans
+    `atmosphere.dart` (silhouette qui passe devant les fenêtres, night only).
+    Manque : mécanique zombie → `crackWindow()`, bruits suspects, vrais
+    événements procéduraux nocturnes avec conséquences gameplay.
+11. **Transparence locomotive sur wagon_swept.png**. Zones transparentes à
+    l'arrière de la locomotive qui laissent voir l'horizon. Asset à fixer.
+12. **Objets encore absents de la roadmap**. Radio à manivelle, sac à dos,
+    jarres de germination, bocaux.
+13. **Close-ground parallax** — **abandonné définitivement**, ne PAS ramener.
+
+---
+
+## Communication avec l'utilisateur
 
 - **Langue** : français, ton décontracté direct.
-- **Style** : cash, pas de blabla, pas de flatterie.
-- **TOUJOURS NUMÉROTER les listes/propositions** (1, 2, 3...).
-- **Analyse visuelle** : vraiment regarder l'image. Pas survoler.
-- **Décisions UX/esthétiques** : toujours proposer, ne jamais décider.
-- **Pas d'estimations de temps**.
-- **Outils interdits** : pas de modif iOS hors `Info.plist`/
-  `project.pbxproj`. Pas de manipulation Xcode Cloud.
+- **Style** : cash, pas de blabla, pas de flatterie. Quand quelque chose ne
+  va pas, lui dire. Quand quelque chose est cool, lui dire aussi.
+- **TOUJOURS NUMÉROTER les listes / propositions / options** (1, 2, 3...).
+  L'utilisateur répond par numéros. Bullets `-` à proscrire pour les listes
+  de choix. Aussi valable pour les sous-listes : 1.1, 1.2, etc.
+- **Analyse visuelle** : ne pas survoler (proportions, intégration, échelle).
+  Vraiment regarder l'image qu'il envoie.
+- **Délégations explicites** :
+  - Commit : OUI à chaque modification.
+  - Décisions UX / esthétiques : NON, toujours proposer.
+  - Génération d'assets via OpenArt / AutoSprite : c'est LUI qui génère,
+    je fournis les prompts.
+  - Drop de fichiers dans le repo : lui (Mac terminal ou iPad GitHub web).
+- **Outils interdits** : pas de Xcode Cloud manipulation (pas d'API), pas
+  de modifications iOS hors `Info.plist` / `project.pbxproj` standards
+  Flutter.
+- **Pas d'estimations de temps** : l'utilisateur a dit que tout ce que je dis
+  sur les délais est faux, donc je n'en donne plus.
 
-## En cours (session 2026-05-25)
+---
 
-- Build TestFlight actuel : `0.11.40+41`.
-- **Gazinière** : mode adjust live ajouté (long-press sur le prop).
-  À dialer en jeu puis bake les valeurs dans `_propPos`.
-- **Read** : scale baissé à 0.90 (était trop grande). À valider.
-- **Cook** : nouvelle anim 25 frames (fille 3/4 dos + gazinière bakée).
-  Walk-to-stove câblé via `cookToken`. Prop masqué pendant l'anim.
-- **Locomotive** : chroma key vert/bleu dans le PNG. Plus de ClipPath.
-  FireboxFlames animé 30× plus rapide, derrière le PNG. Fond braises
-  gradient ambré dans le poêle.
-- **Taille du perso** : table `kAnimMetrics` recalibrée pour les 18
-  anims. Toujours à affiner certaines (read, pet_dog).
+## Références d'inspiration
 
-## Inspirations
-
-Lexploratrice2025 (réf clé). Studio Ghibli (Chihiro, Château Ambulant,
-Mononoke). Stardew Valley, Spiritfarer, Disco Elysium.
+- **Lexploratrice2025** (YouTube wallpaper) — la réf clé.
+- **Studio Ghibli** — Voyage de Chihiro (train), Château Ambulant
+  (intérieurs cosy), Princesse Mononoke (palette).
+- **Genre cosy post-apo** — Stardew Valley (rythme), Spiritfarer (ton
+  mélancolique-doux), Disco Elysium (monologue intérieur).
