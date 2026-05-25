@@ -1344,7 +1344,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           const SizedBox(height: 4),
           row('left  ', pos.left, (d) => pos.left += d),
           row('top   ', pos.top, (d) => pos.top += d),
-          row('height', pos.height, (d) => pos.height += d),
+          row('taille', pos.height, (d) => pos.height += d, step: 0.01),
         ],
       ),
     );
