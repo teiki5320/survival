@@ -187,7 +187,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   final Map<String, _PropPos> _propPos = {
     'hydro':    _PropPos(0.805, 0.412, 0.326),
     'lamp':     _PropPos(0.415, 0.323, 0.104),
-    'stove':    _PropPos(0.629, 0.445, 0.263),
+    'stove':    _PropPos(0.640, 0.590, 0.200),
     'filter':   _PropPos(0.727, 0.514, 0.200),
     'table':    _PropPos(0.479, 0.557, 0.151),
     'notebook': _PropPos(0.249, 0.670, 0.070),
