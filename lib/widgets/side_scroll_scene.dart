@@ -421,6 +421,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'door_push',
       'warm_hands',
       'carry_walk',
+      'cook',
     ];
     for (final anim in animations) {
       for (int i = 1; i <= _heroFrameCount; i++) {
@@ -1448,7 +1449,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     final m = animMetricsFor(prefix);
-    final heroHeight = h * kHeroBaseHeight * m.scale;
+    final bool deepInWagon = prefix == 'cook';
+    final depthScale = deepInWagon ? 0.78 : 1.0;
+    final heroHeight = h * kHeroBaseHeight * m.scale * depthScale;
     final heroWidth = heroHeight * m.aspect;
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
@@ -1467,22 +1470,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
       shouldMirror = !_heroFacingRight;
     }
 
+    final adjustedFeetY = deepInWagon ? feetY - h * 0.06 : feetY;
+    Widget sprite = Image.asset(asset, fit: BoxFit.contain);
+    if (shouldMirror) {
+      sprite = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+        child: sprite,
+      );
+    }
+    sprite = _nightTint(sprite);
+
     return Positioned(
       left: anchorX - heroWidth / 2,
-      top: feetY - heroHeight * m.feet,
+      top: adjustedFeetY - heroHeight * m.feet,
       width: heroWidth,
       height: heroHeight,
-      child: IgnorePointer(
-        child: _nightTint(
-          Transform(
-            alignment: Alignment.center,
-            transform: shouldMirror
-                ? (Matrix4.identity()..scale(-1.0, 1.0, 1.0))
-                : Matrix4.identity(),
-            child: Image.asset(asset, fit: BoxFit.contain),
-          ),
-        ),
-      ),
+      child: IgnorePointer(child: sprite),
     );
   }
 
