@@ -18,13 +18,12 @@ class GameState extends ChangeNotifier {
       const Duration(seconds: 60),
       (_) => _tickRefill(),
     );
-    // Drain hunger/thirst/fatigue toutes les 5s (granularité fine pour
-    // que la jauge bouge visiblement plutôt que de sauter d'un palier).
     _drainTimer = Timer.periodic(
       const Duration(seconds: 5),
       (_) => _tickDrain(),
     );
     _initWeatherCycle();
+    _initTrainRoute();
   }
   static final GameState instance = GameState._();
 
@@ -134,6 +133,75 @@ class GameState extends ChangeNotifier {
     });
   }
 
+  // --- Train route ---
+  // Le train parcourt un circuit ovale en boucle. Position 0→1 qui
+  // avance en continu. Zone froide = 0.00→0.40, tempérée = 0.45→0.95,
+  // transitions entre les deux.
+  static const int loopDurationSeconds = 3600; // 60 min pour un tour
+  static const double _coldStart = 0.0;
+  static const double _coldEnd = 0.40;
+  static const double _transitionWidth = 0.05;
+
+  double _trainPosition = 0.10; // départ en zone froide
+  double get trainPosition => _trainPosition;
+  Timer? _trainTimer;
+  DateTime _lastTrainTick = DateTime.now();
+
+  TrainZone get trainZone {
+    final p = _trainPosition;
+    // Zone froide pure
+    if (p >= _coldStart + _transitionWidth && p < _coldEnd - _transitionWidth) {
+      return TrainZone.cold;
+    }
+    // Transition entrée froid (chaud → froid)
+    if (p >= 1.0 - _transitionWidth || p < _coldStart + _transitionWidth) {
+      return TrainZone.transitionToCold;
+    }
+    // Transition sortie froid (froid → chaud)
+    if (p >= _coldEnd - _transitionWidth && p < _coldEnd + _transitionWidth) {
+      return TrainZone.transitionToWarm;
+    }
+    // Zone tempérée
+    return TrainZone.warm;
+  }
+
+  bool get inColdZone =>
+      trainZone == TrainZone.cold || trainZone == TrainZone.transitionToCold;
+
+  void _initTrainRoute() {
+    _trainTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _tickTrain();
+    });
+  }
+
+  void _tickTrain() {
+    final now = DateTime.now();
+    final dt = now.difference(_lastTrainTick).inMilliseconds / 1000.0;
+    if (dt <= 0) return;
+    _lastTrainTick = now;
+    final advance = dt / loopDurationSeconds;
+    final old = _trainPosition;
+    _trainPosition = (_trainPosition + advance) % 1.0;
+    final oldZone = _zoneFor(old);
+    final newZone = trainZone;
+    if (oldZone != newZone || (_trainPosition - old).abs() > 0.001) {
+      notifyListeners();
+    }
+  }
+
+  TrainZone _zoneFor(double p) {
+    if (p >= _coldStart + _transitionWidth && p < _coldEnd - _transitionWidth) {
+      return TrainZone.cold;
+    }
+    if (p >= 1.0 - _transitionWidth || p < _coldStart + _transitionWidth) {
+      return TrainZone.transitionToCold;
+    }
+    if (p >= _coldEnd - _transitionWidth && p < _coldEnd + _transitionWidth) {
+      return TrainZone.transitionToWarm;
+    }
+    return TrainZone.warm;
+  }
+
   // --- Inventory ---
   // Loose typed: item id → count. Items granted by choices accumulate.
   final Map<String, int> _items = {};
@@ -173,10 +241,11 @@ class GameState extends ChangeNotifier {
     _refillTimer?.cancel();
     _drainTimer?.cancel();
     _weatherTimer?.cancel();
+    _trainTimer?.cancel();
     super.dispose();
   }
 }
 
-/// État météo global. Pilote l'overlay visuel de la scène wagon (teinte
-/// + particules pluie/brouillard) et plus tard les sounds ambient.
 enum Weather { clear, cloudy, rainy, foggy }
+
+enum TrainZone { cold, warm, transitionToCold, transitionToWarm }

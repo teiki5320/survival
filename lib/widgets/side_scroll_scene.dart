@@ -213,18 +213,70 @@ class _SideScrollSceneState extends State<SideScrollScene>
   double _horizonTop = 0.0;
   double _horizonBottom = 0.179;
 
-  // Horizon parallax cycles through these in sequence with a slow
-  // cross-fade so the train passes through varied scenery instead of
-  // staring at the same skyline forever.
-  static const List<String> _horizonAssets = [
+  static const List<String> _horizonWarm = [
     'assets/background/horizon_a.png',
     'assets/background/horizon_b.png',
     'assets/background/horizon_c.png',
   ];
+  static const List<String> _horizonCold = [
+    'assets/background/horizon_snow_a.png',
+    'assets/background/horizon_snow_b.png',
+    'assets/background/horizon_snow_c.png',
+    'assets/background/horizon_snow_d.png',
+    'assets/background/horizon_snow_e.png',
+    'assets/background/horizon_snow_f.png',
+    'assets/background/horizon_snow_g.png',
+  ];
+  static const List<String> _horizonTransition = [
+    'assets/background/horizon_transition_a.png',
+    'assets/background/horizon_transition_b.png',
+    'assets/background/horizon_transition_c.png',
+    'assets/background/horizon_transition_d.png',
+  ];
+
+  List<String> get _horizonAssets {
+    final zone = GameState.instance.trainZone;
+    switch (zone) {
+      case TrainZone.cold:
+        return _horizonCold;
+      case TrainZone.warm:
+        return _horizonWarm;
+      case TrainZone.transitionToCold:
+      case TrainZone.transitionToWarm:
+        return _horizonTransition;
+    }
+  }
+
+  String get _skyAsset {
+    if (GameState.instance.inColdZone) {
+      return widget.night
+          ? 'assets/background/sky_snow_night.png'
+          : 'assets/background/sky_snow.png';
+    }
+    return widget.night
+        ? 'assets/background/sky_night.png'
+        : 'assets/background/sky.png';
+  }
+
+  String get _foregroundAsset {
+    if (GameState.instance.inColdZone) {
+      return 'assets/background/foreground_snow.png';
+    }
+    return 'assets/background/foreground_band.png';
+  }
+
+  String get _horizonNightAsset {
+    if (GameState.instance.inColdZone) {
+      return 'assets/background/horizon_snow_night.png';
+    }
+    return 'assets/background/horizon_night.png';
+  }
+
   static const Duration _horizonRotatePeriod = Duration(seconds: 45);
   static const Duration _horizonCrossFade = Duration(seconds: 2);
   int _horizonIndex = 0;
   Timer? _horizonRotateTimer;
+  TrainZone? _lastZone;
 
   late final Ticker _heroTicker;
   double _heroX = 0.5;
@@ -309,12 +361,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
+    _lastZone = GameState.instance.trainZone;
     _horizonRotateTimer = Timer.periodic(_horizonRotatePeriod, (_) {
       if (!mounted) return;
-      setState(() {
+      final currentZone = GameState.instance.trainZone;
+      if (currentZone != _lastZone) {
+        _lastZone = currentZone;
+        _horizonIndex = 0;
+      } else {
         _horizonIndex = (_horizonIndex + 1) % _horizonAssets.length;
-      });
+      }
+      setState(() {});
     });
+    GameState.instance.addListener(_onGameStateChanged);
     _thoughtTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (!mounted) return;
       // 50 % chance to skip — so they don't appear like clockwork.
@@ -326,6 +385,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
         if (mounted) setState(() => _thoughtEmoji = null);
       });
     });
+  }
+
+  void _onGameStateChanged() {
+    if (!mounted) return;
+    final zone = GameState.instance.trainZone;
+    if (zone != _lastZone) {
+      _lastZone = zone;
+      _horizonIndex = _horizonIndex % _horizonAssets.length;
+      setState(() {});
+    }
   }
 
   bool _precached = false;
@@ -406,16 +475,33 @@ class _SideScrollSceneState extends State<SideScrollScene>
     for (final asset in const [
       'assets/background/sky.png',
       'assets/background/sky_night.png',
+      'assets/background/sky_snow.png',
+      'assets/background/sky_snow_night.png',
       'assets/background/horizon_a.png',
       'assets/background/horizon_b.png',
       'assets/background/horizon_c.png',
       'assets/background/horizon_night.png',
+      'assets/background/horizon_snow_a.png',
+      'assets/background/horizon_snow_b.png',
+      'assets/background/horizon_snow_c.png',
+      'assets/background/horizon_snow_d.png',
+      'assets/background/horizon_snow_e.png',
+      'assets/background/horizon_snow_f.png',
+      'assets/background/horizon_snow_g.png',
+      'assets/background/horizon_snow_night.png',
+      'assets/background/horizon_transition_a.png',
+      'assets/background/horizon_transition_b.png',
+      'assets/background/horizon_transition_c.png',
+      'assets/background/horizon_transition_d.png',
+      'assets/background/foreground_band.png',
+      'assets/background/foreground_snow.png',
       'assets/background/wagon_dirty.png',
       'assets/background/wagon_swept.png',
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
       'assets/background/wagon_rails.png',
       'assets/objects/bed.png',
+      'assets/objects/frost_overlay.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -503,6 +589,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   @override
   void dispose() {
+    GameState.instance.removeListener(_onGameStateChanged);
     _heroTicker.dispose();
     _horizonRotateTimer?.cancel();
     _thoughtTimer?.cancel();
@@ -814,7 +901,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             opacity: widget.night ? 0.18 : 0.30,
                             child: _ParallaxLayer(
                               controller: _sky,
-                              asset: 'assets/background/sky.png',
+                              asset: _skyAsset,
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -866,7 +953,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           child: _nightTint(
                             _ParallaxLayer(
                               controller: _foreground,
-                              asset: 'assets/background/foreground_band.png',
+                              asset: _foregroundAsset,
                               fit: BoxFit.cover,
                               alignment: Alignment.bottomCenter,
                             ),
@@ -885,6 +972,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 4a. Frost overlay on windows in cold zone.
+                      if (GameState.instance.inColdZone)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: AnimatedOpacity(
+                              duration: const Duration(seconds: 5),
+                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.6 : 0.3,
+                              child: Image.asset(
+                                'assets/objects/frost_overlay.png',
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          ),
+                        ),
                       // 4b. Bed — placed at floor level on the left of
                       //     the wagon interior. Position + size are
                       //     normalised state so the in-app adjustment
@@ -1398,13 +1499,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// Multiplies a child by a cool blue-grey when [widget.night] is on, so
   /// daylit assets read as nighttime without needing redrawn variants.
   Widget _nightTint(Widget child) {
-    if (!widget.night) return child;
+    Widget result = child;
+    if (GameState.instance.inColdZone) {
+      result = ColorFiltered(
+        colorFilter: const ColorFilter.mode(
+          Color(0xFFD0D8E8),
+          BlendMode.modulate,
+        ),
+        child: result,
+      );
+    }
+    if (!widget.night) return result;
     return ColorFiltered(
       colorFilter: const ColorFilter.mode(
         Color(0xFF4A5C82),
         BlendMode.modulate,
       ),
-      child: child,
+      child: result,
     );
   }
 }
