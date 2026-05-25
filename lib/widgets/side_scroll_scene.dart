@@ -1163,12 +1163,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 ),
               ),
               ),
-              if (_stoveAdjust)
+              if (_stoveAdjust) ...[
                 Positioned(
-                  bottom: 16,
+                  top: 16,
                   left: 16,
                   child: SafeArea(child: _buildStoveAdjustHud()),
                 ),
+                Positioned(
+                  top: 16,
+                  right: 16,
+                  child: SafeArea(
+                    child: FloatingActionButton(
+                      heroTag: 'stove_done',
+                      backgroundColor: const Color(0xFFFF6B00),
+                      onPressed: () => setState(() => _stoveAdjust = false),
+                      child: const Icon(Icons.check, color: Colors.white),
+                    ),
+                  ),
+                ),
+              ],
               ],
             );
           },
@@ -1280,7 +1293,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
     if (def.key == 'stove') {
-      if (_stoveAdjust) {
+      if (!_stoveAdjust) {
         return Positioned(
           left: left,
           top: top,
@@ -1288,22 +1301,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           height: propH,
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onDoubleTap: () => setState(() => _stoveAdjust = false),
-            onScaleUpdate: (d) {
-              setState(() {
-                pos.left += d.focalPointDelta.dx / w;
-                pos.top += d.focalPointDelta.dy / h;
-                if (d.scale != 1.0) {
-                  pos.height = (pos.height * d.scale).clamp(0.05, 0.60);
-                }
-              });
-            },
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFFF6B00), width: 2),
-              ),
-              child: wrapped,
-            ),
+            onDoubleTap: () => setState(() => _stoveAdjust = true),
+            child: wrapped,
           ),
         );
       }
@@ -1314,8 +1313,40 @@ class _SideScrollSceneState extends State<SideScrollScene>
         height: propH,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onDoubleTap: () => setState(() => _stoveAdjust = true),
-          child: wrapped,
+          onPanUpdate: (d) => setState(() {
+            pos.left += d.delta.dx / w;
+            pos.top += d.delta.dy / h;
+          }),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFFF6B00), width: 2),
+                ),
+                child: wrapped,
+              ),
+              Positioned(
+                right: -16,
+                bottom: -16,
+                child: GestureDetector(
+                  onPanUpdate: (d) => setState(() {
+                    pos.height += d.delta.dy / h;
+                    pos.height = pos.height.clamp(0.05, 0.60);
+                  }),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF6B00),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.open_in_full, color: Colors.white, size: 16),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -1365,25 +1396,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Gazinière', style: TextStyle(
-                color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold,
-              )),
-              const SizedBox(width: 8),
-              GestureDetector(
-                onTap: () => setState(() => _stoveAdjust = false),
-                child: const Icon(Icons.close, color: Colors.white, size: 18),
-              ),
-            ],
+          Text(
+            'left: ${pos.left.toStringAsFixed(3)}',
+            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
           ),
-          const SizedBox(height: 4),
-          const Text('Drag le poêle pour le placer', style: TextStyle(
-            color: Color(0xFFFFD9A0), fontSize: 11,
-          )),
-          const SizedBox(height: 4),
-          row('taille', pos.height, (d) => pos.height += d, step: 0.01),
+          Text(
+            'top:  ${pos.top.toStringAsFixed(3)}',
+            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
+          ),
+          Text(
+            'width:${pos.height.toStringAsFixed(3)}',
+            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
+          ),
         ],
       ),
     );
