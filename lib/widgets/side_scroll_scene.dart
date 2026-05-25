@@ -1280,6 +1280,33 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
     if (def.key == 'stove') {
+      if (_stoveAdjust) {
+        return Positioned(
+          left: left,
+          top: top,
+          width: propW,
+          height: propH,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onDoubleTap: () => setState(() => _stoveAdjust = false),
+            onScaleUpdate: (d) {
+              setState(() {
+                pos.left += d.focalPointDelta.dx / w;
+                pos.top += d.focalPointDelta.dy / h;
+                if (d.scale != 1.0) {
+                  pos.height = (pos.height * d.scale).clamp(0.05, 0.60);
+                }
+              });
+            },
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: const Color(0xFFFF6B00), width: 2),
+              ),
+              child: wrapped,
+            ),
+          ),
+        );
+      }
       return Positioned(
         left: left,
         top: top,
@@ -1287,23 +1314,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         height: propH,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onDoubleTap: () => setState(() => _stoveAdjust = !_stoveAdjust),
-          onPanUpdate: _stoveAdjust
-              ? (d) {
-                  setState(() {
-                    pos.left += d.delta.dx / w;
-                    pos.top += d.delta.dy / h;
-                  });
-                }
-              : null,
-          child: _stoveAdjust
-              ? Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFFFF6B00), width: 2),
-                  ),
-                  child: wrapped,
-                )
-              : wrapped,
+          onDoubleTap: () => setState(() => _stoveAdjust = true),
+          child: wrapped,
         ),
       );
     }
