@@ -193,15 +193,15 @@ par-dessus : tracé des rails, icône train, marqueurs de gares.
 
 ```
 Top-down bird's eye view illustrated map, looking straight down,
-post-apocalyptic terrain, oval-shaped landscape with a clear
-oval path running through it, northern 40% of the oval covered
-in snow ice and frozen lakes, southern 60% has dry brown earth
-sparse dead vegetation and dried rivers, scattered ruined city
-clusters visible from above (3 large clusters 5 small), cracked
-highways crossing the terrain, warm parchment paper texture,
-hand-drawn cartography style, Studio Ghibli map aesthetic like
-Nausicaa valley maps, muted earth tones with cold blue-white
-in the snow zone,
+post-apocalyptic terrain, oval railway track loop clearly visible
+running through the landscape, old rusty rails on the oval path,
+northern 40% of the oval covered in snow ice and frozen lakes,
+southern 60% has dry brown earth sparse dead vegetation and dried
+rivers, scattered ruined city clusters visible from above along
+the tracks (3 large clusters 5 small), cracked highways crossing
+the terrain, warm parchment paper texture, hand-drawn cartography
+style, Studio Ghibli map aesthetic like Nausicaa valley maps,
+muted earth tones with cold blue-white in the snow zone,
 no text, no letters, no labels, no markers, no watermark,
 no perspective, no horizon, strictly top-down view
 ```
