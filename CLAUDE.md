@@ -16,13 +16,12 @@ honey browns / cream / amber dedans, cold blue / pale fog dehors.
   (pas de PR, pas de branche `claude/*`).
 - **Commit + push à chaque modification** sans demander validation.
 - Bundle iOS `com.teiki5320.trainCosy`. Xcode Cloud watch `main`.
-- **Bump `version:` dans `pubspec.yaml`** à chaque push si build a déjà
-  uploadé une version (ex `0.11.0+1` → `0.11.1+2`). Sinon l'archive
-  fail avec "Preparing build for App Store Connect failed". Les .ipa
-  sont quand même générés (artefacts dispos).
+- **Bump `version:` dans `pubspec.yaml`** à chaque push. Sinon
+  l'archive fail avec "Preparing build for App Store Connect failed".
+- **Toujours `flutter analyze`** avant de push pour vérifier qu'il n'y
+  a pas d'erreur de compilation (exit-code 65 sur xcloud sinon).
 - Dev local : Mac mini `/Users/jeanperraudeau/survival`, iPhone 16 Plus,
-  iOS 26.5 beta + Xcode 26.5. **Toujours `flutter run --release`** (debug
-  crash JIT sur iOS 26 beta).
+  iOS 26.5 beta + Xcode 26.5. **Toujours `flutter run --release`**.
 - Hook stop : si je laisse uncommitted, le hook me force à push.
 
 ## Workflow assets
@@ -31,15 +30,19 @@ honey browns / cream / amber dedans, cold blue / pale fog dehors.
 PNG dans le repo. Fond noir baked-in → je key avec
 `tools/key_out_black.py`.
 
-**AutoSprite (anims 49-frame)** = je peux lancer via HTTPS (`curl -k
--H 'Authorization: Bearer vspk_...'`) depuis la sandbox web. Règles :
+**Chroma key vert/bleu** = pour la locomotive, l'utilisateur génère le
+PNG avec fond vert (= paysage visible) et fond bleu (= feu animé).
+Je key les deux couleurs → alpha=0. Le PNG gère tout le masking, pas
+de ClipPath runtime.
+
+**AutoSprite (anims)** = l'utilisateur lance depuis le Mac CLI. Règles :
 
 - **JAMAIS de preview** (`generate_asset_preview`). Toujours direct.
-- **Valider le coût AVANT** chaque dépense. `animate_asset` /
-  `regenerate_spritesheet` legendary 49 frames = 5 cred. `create_asset`
-  + `remove_asset_background` = gratuit.
-- **Asset statique nouveau** = pas faisable sans preview sur AutoSprite.
-  L'utilisateur génère sur OpenArt à la place. Je donne le prompt.
+- **Valider le coût AVANT** chaque dépense.
+- **Asset statique nouveau** = l'utilisateur génère sur OpenArt.
+- **Prompt AutoSprite** : NE PAS décrire le personnage. Juste l'action
+  et la vue. Ex: `Back view, right arm stirring, subtle shoulder
+  movement. Solid black background.`
 - MCP AutoSprite installé sur le Mac CLI uniquement (pas sur web).
 
 ### Pattern prompt OpenArt
@@ -56,62 +59,87 @@ PNG dans le repo. Fond noir baked-in → je key avec
 
 - `lib/main.dart` — `WagonScreen` + routing wagon/locomotive/map/
   wardrobe. HUD top-left (heroX live + barres + météo). FAB action
-  contextuel rond (lit / portes / lampe / lire / boire selon zone).
-  Cycle jour/nuit auto 6 min.
+  contextuel rond (lit / portes / lampe / lire / boire / cuisiner
+  selon zone). Cycle jour/nuit auto 6 min.
+- `lib/data/anim_metrics.dart` — **Table unifiée** `kAnimMetrics` des
+  métriques de rendu héroïne (scale/aspect/feet/noMirror) partagée
+  entre wagon et loco. Calibrée via `tools/measure_sprite_bboxes.py`.
+  Pour ajuster une anim : modifier scale/feet dans cette table.
 - `lib/widgets/side_scroll_scene.dart` — Scène wagon. State machine
-  héroïne (idle/walk/sleep/dance/...). Props animés via
-  `_AnimatedSprite` (ResizeImage 256 pour économiser mémoire). Chien
-  `_DogActor` (state machine autonome idle/walk/sleep/lay_down/wagTail/
-  bark/headTilt/eat avec position de la gamelle). Système anim spéciale
-  via param `specialAnim` + token (drink/read câblés).
-- `lib/widgets/locomotive_scene.dart` — Cabine loco. Script bûches
-  (walk woodpile → pickup → carry → throw). Mode adjust live des 3
-  trous (porte + 2 fenêtres) via ClipPath+HoleClipper (FAB
-  `crop_free`).
-- `lib/widgets/map_screen.dart` — Map ultra-minimaliste actuellement
-  (image plein écran + bouton close). Pins + HUD énergie à
-  rebrancher.
-- `lib/widgets/wardrobe_screen.dart` — Plein écran perso de face
-  (`heroine_front.png`) + flèches G/D pour cycler les tenues.
+  héroïne (idle/walk/sleep/dance/cook/drink/read/...). Props animés
+  via `_AnimatedSprite` (ResizeImage 256). Chien `_DogActor`. Système
+  anim spéciale via `specialAnim` + token (drink) ou `cookToken`
+  (walk-to-stove + cook). Mode adjust gazinière (long-press).
+- `lib/widgets/locomotive_scene.dart` — Cabine loco. PNG avec chroma
+  key (vert=paysage, bleu=feu). `FireboxFlames` DERRIÈRE le PNG
+  (visible à travers le trou du poêle). Fond braises (gradient ambré)
+  bloque le paysage derrière le poêle. Script bûches intact.
+- `lib/widgets/map_screen.dart` — Map ultra-minimaliste.
+- `lib/widgets/wardrobe_screen.dart` — Outfit picker plein écran.
 - `lib/widgets/atmosphere.dart` — DustParticles, Fireflies, FireGlow,
   CharacterHalo, DistantZombie, FootstepDust, ThoughtBubble,
-  FireboxFlames (procéduraux). HangingVines + WindowRain retirés du
-  wagon.
-- `lib/models/game_state.dart` — Singleton ChangeNotifier. Énergie
-  (5 max, +1/min), hunger/thirst/fatigue (drain 30/20/45 min,
-  restore via interactions), inventaire, flags, locations,
-  `lampOn`, `weather` (cycle 30s clear/cloudy/rainy/foggy).
-- `lib/services/audio_service.dart` — Wrappers safe. Pas de fichier
-  audio committé pour l'instant, code no-op.
+  FireboxFlames (flammes 30× plus rapides que le cycle sky).
+- `lib/models/game_state.dart` — Singleton ChangeNotifier. Énergie,
+  hunger/thirst/fatigue, inventaire, flags, locations, lampOn, weather.
+- `lib/services/audio_service.dart` — Wrappers safe, code no-op.
 - `lib/data/world.dart` — 3 Locations + Question/Choice models.
 
-### Constantes critiques (déjà bakées)
+### Système de taille du perso
+
+Toutes les anims utilisent `lib/data/anim_metrics.dart` :
+- `heroHeight = h * kHeroBaseHeight * m.scale` (wagon base = 0.36)
+- `heroWidth = heroHeight * m.aspect`
+- `top = feetY - heroHeight * m.feet`
+- Loco utilise `_kLocoHeroBase = 0.572` au lieu de `kHeroBaseHeight`.
+- Anims avec mobilier (read, pet_dog, cook) → scale capé plus bas
+  car la bbox englobe le meuble.
+- `noMirror = true` pour les anims à composition fixe (read, dance,
+  sleep, cook, warm_hands, etc.).
+- Pour recalibrer : `python3 tools/measure_sprite_bboxes.py`, puis
+  `scale = 0.974 / h_ratio`.
+
+### Constantes critiques
 
 - Hero bounds : `heroXMin = 0.22`, `heroXMax = 0.86`.
 - Bed : `_bedLeft = 0.194`, `_bedTop = 0.448`, `_bedWidth = 0.280`.
-  Centre baked → `bedCenterX = 0.334`.
 - Horizon clip : `_horizonBottom = 0.179`.
-- Props bakés dans `_propPos` (hydro 0.805/0.412/0.326,
-  bowl 0.481/0.669/0.080, etc.).
-- Chien : `_dogXMin=0.35`, `_dogXMax=0.70`, taille via slider HUD.
-- Loco woodpile x=0.70, firebox x=0.30. Hero h*0.44 (carry_walk
-  scale=1.55, pickup scale=1.30 feet=0.92).
+- Stove prop : `left=0.640, top=0.590, height=0.200` (réglable via
+  long-press en jeu).
+- Chien : `_dogXMin=0.35`, `_dogXMax=0.70`.
+- Loco : woodpile x=0.70, firebox x=0.30.
+- Door push : 15 frames × 33ms = ~0.5s (raccourci).
+- FAB lit : marche vers le lit + dort dessus (pas de sleep par terre).
+- FAB cook : marche vers le poêle + anim cook (25 frames).
+  Le prop gazinière est masqué pendant l'anim cook.
 
-### Plume — 9 anims (folder `assets/objects/dog_*`)
+### Outils Python (`tools/`)
 
-`dog_idle.png` (statique 1 img) + `dog_walk` (49) + `dog_sleep` /
-`dog_lay_down` / `dog_wag_tail` / `dog_bark` / `dog_stretch_yawn` /
-`dog_head_tilt` / `dog_eat` (25 chacune).
+- `key_out_black.py` — chroma-key fond noir → transparence.
+- `generate_app_icons.py` — redimensionne app_icon.png aux 15 tailles.
+- `measure_sprite_bboxes.py` — mesure les bboxes des sprites héroïne,
+  sort les scale/feet/aspect recommandés pour `anim_metrics.dart`.
+
+### Plume — 9 anims (`assets/objects/dog_*`)
+
+`dog_idle.png` (1 img) + `dog_walk` (49) + `dog_sleep` / `dog_lay_down`
+/ `dog_wag_tail` / `dog_bark` / `dog_stretch_yawn` / `dog_head_tilt` /
+`dog_eat` (25 chacune).
 
 ### Héroïne — anims
 
-13 anims originales 49 frames : `walk_right`, `idle_right`, `sleep`,
+13 anims 49 frames : `walk_right`, `idle_right`, `sleep_right`,
 `dance`, `pickup`, `yawn`, `stretch`, `look_window`, `read`, `wake_up`,
-`door_push`, `warm_hands`, `carry_walk`. + 5 nouvelles 25 frames :
-`drink` (clean) + `cook` / `pet_dog` / `garden_tend` / `wake_up_clean`
-(artefacts visibles dans les sprites, regen à valider).
+`door_push`, `warm_hands`, `carry_walk`.
+5 anims 25 frames : `drink` (clean), `cook` (nouveau, avec gazinière
+bakée), `pet_dog`, `garden_tend`, `wake_up_clean`.
+`look_window` retiré des idle-breaks (seul `yawn` reste).
 
-`heroine_front.png` = pose statique de face (utilisée par wardrobe).
+### Gazinière animée
+
+Prop `stove` = 25 frames (`assets/objects/stove_1..25.png`), vapeur
+qui monte en boucle. Splittée depuis `cook-spritesheet.png`.
+Pendant l'anim `cook` du perso, le prop est masqué (la gazinière est
+bakée dans le sprite du perso).
 
 ## Audio à drop quand prêts
 
@@ -122,30 +150,26 @@ PNG dans le repo. Fond noir baked-in → je key avec
 
 - **Langue** : français, ton décontracté direct.
 - **Style** : cash, pas de blabla, pas de flatterie.
-- **TOUJOURS NUMÉROTER les listes/propositions** (1, 2, 3...) pour que
-  l'utilisateur réponde par numéros. Sous-listes 1.1, 1.2 etc.
-- **Analyse visuelle** : vraiment regarder l'image (proportions,
-  intégration, échelle). Pas survoler.
-- **Décisions UX/esthétiques** : toujours proposer plusieurs options
-  numérotées, ne jamais décider seul.
+- **TOUJOURS NUMÉROTER les listes/propositions** (1, 2, 3...).
+- **Analyse visuelle** : vraiment regarder l'image. Pas survoler.
+- **Décisions UX/esthétiques** : toujours proposer, ne jamais décider.
 - **Pas d'estimations de temps**.
 - **Outils interdits** : pas de modif iOS hors `Info.plist`/
-  `project.pbxproj` Flutter standards. Pas de manipulation Xcode Cloud
-  (pas d'API).
+  `project.pbxproj`. Pas de manipulation Xcode Cloud.
 
-## En cours (dernière session, à reprendre)
+## En cours (session 2026-05-25)
 
-- Build TestFlight actuel : `0.11.15+16` (commit `0788dd8`).
-- **À tester en jeu** : mode adjust loco (FAB `crop_free` icon), 3
-  rectangles draggables (porte + 2 fenêtres). L'utilisateur calibre,
-  me file les valeurs finales, je bake dans `_maskHoles`.
-- **En attente validation** : regen 4 anims hero foireuses (artefacts
-  d'objets bakés dans le sprite) — `cook` / `pet_dog` / `garden_tend` /
-  `wake_up_clean`. Coût 20 cred AutoSprite. Prompts v2 ajustés (perso
-  seul, objet invisible).
-- **Drink** est la seule des 5 nouvelles anims qui est clean et
-  branchée (action FAB près du filtre).
-- **AutoSprite** : ~223 crédits restants.
+- Build TestFlight actuel : `0.11.40+41`.
+- **Gazinière** : mode adjust live ajouté (long-press sur le prop).
+  À dialer en jeu puis bake les valeurs dans `_propPos`.
+- **Read** : scale baissé à 0.90 (était trop grande). À valider.
+- **Cook** : nouvelle anim 25 frames (fille 3/4 dos + gazinière bakée).
+  Walk-to-stove câblé via `cookToken`. Prop masqué pendant l'anim.
+- **Locomotive** : chroma key vert/bleu dans le PNG. Plus de ClipPath.
+  FireboxFlames animé 30× plus rapide, derrière le PNG. Fond braises
+  gradient ambré dans le poêle.
+- **Taille du perso** : table `kAnimMetrics` recalibrée pour les 18
+  anims. Toujours à affiner certaines (read, pet_dog).
 
 ## Inspirations
 
