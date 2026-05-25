@@ -972,39 +972,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 4a. Frost on left window (cold zone).
-                      if (GameState.instance.inColdZone)
-                        Positioned(
-                          left: w * 0.28,
-                          top: h * 0.18,
-                          width: w * 0.18,
-                          height: h * 0.38,
-                          child: IgnorePointer(
-                            child: Opacity(
-                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.08 : 0.04,
-                              child: Image.asset(
-                                'assets/objects/frost_overlay.png',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
-                      if (GameState.instance.inColdZone)
-                        Positioned(
-                          left: w * 0.70,
-                          top: h * 0.18,
-                          width: w * 0.18,
-                          height: h * 0.38,
-                          child: IgnorePointer(
-                            child: Opacity(
-                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.08 : 0.04,
-                              child: Image.asset(
-                                'assets/objects/frost_overlay.png',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                        ),
                       // 4b. Bed — placed at floor level on the left of
                       //     the wagon interior. Position + size are
                       //     normalised state so the in-app adjustment
