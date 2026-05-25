@@ -26,19 +26,21 @@ Remplacent `horizon_a/b/c.png` en zone froide. Même bande verticale
 **Fichiers** : `horizon_snow_a.png`, `horizon_snow_b.png`,
 `horizon_snow_c.png`.
 
-### 1.1 — Plaine enneigée
+### 1.1 — Plaine enneigée + ruines urbaines
 
 ```
 Seamless horizontal parallax background, side-scrolling game,
-extreme wide shot, very far away perspective, vast endless
-snowy plain stretching to the far horizon, tiny ruined buildings
-barely visible in the far distance, atmospheric haze and light
-snowfall softening everything, huge overcast pale grey sky taking
-most of the image, cold blue-white palette, depth through aerial
-perspective, anime illustration, Studio Ghibli inspired,
-hand-painted texture,
+extreme wide shot, very far away perspective, vast snowy plain
+with a dense ruined city skyline on the far horizon, dozens of
+crumbling skyscrapers and collapsed towers silhouetted against
+the sky, broken highway overpasses, fallen cranes, antenna masts,
+smoke rising from scattered points in the ruins, snow covering
+everything, atmospheric haze softening the details with distance,
+huge overcast pale grey sky taking most of the image, cold
+blue-white palette, depth through aerial perspective,
+anime illustration, Studio Ghibli inspired, hand-painted texture,
 no text, no watermark, no characters, no train, no rails,
-no close-up details, no foreground elements
+no foreground elements
 ```
 
 ### 1.2 — Forêt de sapins
