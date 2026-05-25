@@ -124,26 +124,7 @@ no ground, no landscape, no characters, no text, no watermark
 
 ---
 
-## 4. Rails neige (×1) — décor parallax premier plan
-
-Variante enneigée de `wagon_rails.png`. Scrolle vite (même vitesse
-que les rails actuels). Bande étroite sous le wagon (y=0.83→0.92).
-
-**Ratio** : 16:9. **Fond noir** pour keying.
-**Fichier** : `wagon_rails_snow.png`.
-
-```
-Seamless horizontal parallax foreground strip, side-scrolling game,
-old railway tracks seen from the side, rusty rails on wooden
-sleepers, snow between sleepers, ice on rail edges, cold blue-white
-tones, solid black background (#000000) on top and bottom,
-anime illustration, Studio Ghibli inspired, hand-painted texture,
-no text, no watermark, no characters, no train
-```
-
----
-
-## 5. Sol neige (×1) — décor parallax premier plan
+## 4. Sol neige (×1) — décor parallax premier plan
 
 Remplace `foreground_band.png` en zone froide. Bande sous les rails
 (y=0.92→1.0), scrolle au même rythme.
@@ -204,20 +185,25 @@ no close-up details, no foreground elements
 ## 7. Carte du monde (×1)
 
 Pas du parallax — image fixe scrollable (plus grande que l'écran).
-Le code dessine par-dessus : tracé du parcours, icône train, gares.
+Vue du dessus (top-down), parcours **ovale**. Le code dessine
+par-dessus : tracé des rails, icône train, marqueurs de gares.
 
 **Ratio** : 3:4 (portrait). **Résolution** : 2048×2732 minimum.
 **Fichier** : `map_route.png`.
 
 ```
-Top-down illustrated map, post-apocalyptic landscape, circular
-railway route as worn iron track loop, northern 40% covered in
-snow and ice, southern 60% dry brown earth and sparse vegetation,
-ruined city clusters (3 large, 5 small) along the route, rivers,
-dried lakes, cracked highways, warm parchment paper texture,
-hand-drawn cartography style, Studio Ghibli map aesthetic
-(Nausicaa / Howl's Moving Castle maps),
-no text, no letters, no labels, no markers, no watermark
+Top-down bird's eye view illustrated map, looking straight down,
+post-apocalyptic terrain, oval-shaped landscape with a clear
+oval path running through it, northern 40% of the oval covered
+in snow ice and frozen lakes, southern 60% has dry brown earth
+sparse dead vegetation and dried rivers, scattered ruined city
+clusters visible from above (3 large clusters 5 small), cracked
+highways crossing the terrain, warm parchment paper texture,
+hand-drawn cartography style, Studio Ghibli map aesthetic like
+Nausicaa valley maps, muted earth tones with cold blue-white
+in the snow zone,
+no text, no letters, no labels, no markers, no watermark,
+no perspective, no horizon, strictly top-down view
 ```
 
 ---
@@ -279,22 +265,24 @@ inspired, hand-painted texture, no text, no watermark
 
 ## Récap
 
-| # | Fichier | Type | Outil | Coût |
-|---|---------|------|-------|------|
-| 1 | `horizon_snow_a.png` | parallax lointain | OpenArt | 0 |
-| 2 | `horizon_snow_b.png` | parallax lointain | OpenArt | 0 |
-| 3 | `horizon_snow_c.png` | parallax lointain | OpenArt | 0 |
-| 4 | `horizon_snow_night.png` | parallax lointain | OpenArt | 0 |
-| 5 | `sky_snow.png` | parallax haut | OpenArt | 0 |
-| 6 | `sky_snow_night.png` | parallax haut | OpenArt | 0 |
-| 7 | `wagon_rails_snow.png` | parallax premier plan | OpenArt | 0 |
-| 8 | `foreground_snow.png` | parallax premier plan | OpenArt | 0 |
-| 9 | `horizon_transition_a.png` | parallax lointain | OpenArt | 0 |
-| 10 | `horizon_transition_b.png` | parallax lointain | OpenArt | 0 |
-| 11 | `map_route.png` | carte scrollable | OpenArt | 0 |
-| 12 | `frost_overlay.png` | overlay vitre | OpenArt | 0 |
-| 13 | `shiver` (49 fr) | anim personnage | AutoSprite | 5 |
-| 14 | `blow_hands` (49 fr) | anim personnage | AutoSprite | 5 |
-| 15 | `look_window_snow` (49 fr) | anim personnage | AutoSprite | 5 |
+| # | Fichier | Type | Statut |
+|---|---------|------|--------|
+| 1 | `horizon_snow_a.png` | parallax lointain | DONE |
+| 2 | `horizon_snow_b.png` | parallax lointain | DONE |
+| 3 | `horizon_snow_c.png` | parallax lointain | DONE |
+| 4 | `horizon_snow_d/e/f/g.png` | parallax lointain (variantes) | DONE |
+| 5 | `horizon_snow_night.png` + `_b` | parallax lointain nuit | DONE |
+| 6 | `sky_snow.png` + `_b` | parallax haut jour | DONE |
+| 7 | `sky_snow_night.png` + `_b` | parallax haut nuit | DONE |
+| 8 | `foreground_snow.png` + `_b` | parallax premier plan | DONE |
+| 9 | `horizon_transition_a/b/c/d.png` | parallax transition | DONE |
+| 10 | `frost_overlay.png` + `_round` | overlay vitre | DONE (keyé) |
+| 11 | `map_route.png` | carte scrollable | À FAIRE |
+| 12 | `shiver` (49 fr) | anim personnage | À FAIRE (5 cred) |
+| 13 | `blow_hands` (49 fr) | anim personnage | À FAIRE (5 cred) |
+| 14 | `look_window_snow` (49 fr) | anim personnage | À FAIRE (5 cred) |
 
-**Total** : 12 images OpenArt (gratuit) + 3 anims AutoSprite (15 cred).
+**Rails** : on garde les rails actuels (`wagon_rails.png`), pas de variante neige.
+
+**Fait** : 21 images triées (10 backgrounds + 11 variantes + 2 frost overlays).
+**Reste** : 1 carte + 3 anims AutoSprite (15 cred).
