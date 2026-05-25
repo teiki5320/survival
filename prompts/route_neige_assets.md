@@ -143,7 +143,7 @@ no text, no watermark, no characters, no rails
 
 ---
 
-## 6. Horizons de transition (×2) — décor parallax lointain
+## 5. Horizons de transition (×2) — décor parallax lointain
 
 Affichés pendant le passage entre zone tempérée et zone froide.
 
@@ -182,33 +182,25 @@ no close-up details, no foreground elements
 
 ---
 
-## 7. Carte du monde (×1)
+## 6. Carte du monde (×1)
 
-Pas du parallax — image fixe scrollable (plus grande que l'écran).
-Vue du dessus (top-down), parcours **ovale**. Le code dessine
-par-dessus : tracé des rails, icône train, marqueurs de gares.
+Image fixe scrollable, vue du dessus, parcours **ovale**.
 
 **Ratio** : 3:4 (portrait). **Résolution** : 2048×2732 minimum.
 **Fichier** : `map_route.png`.
 
 ```
-Top-down bird's eye view illustrated map, looking straight down,
-post-apocalyptic terrain, oval railway track loop clearly visible
-running through the landscape, old rusty rails on the oval path,
-northern 40% of the oval covered in snow ice and frozen lakes,
-southern 60% has dry brown earth sparse dead vegetation and dried
-rivers, scattered ruined city clusters visible from above along
-the tracks (3 large clusters 5 small), cracked highways crossing
-the terrain, warm parchment paper texture, hand-drawn cartography
-style, Studio Ghibli map aesthetic like Nausicaa valley maps,
-muted earth tones with cold blue-white in the snow zone,
-no text, no letters, no labels, no markers, no watermark,
-no perspective, no horizon, strictly top-down view
+Top-down bird's eye view map, looking straight down,
+post-apocalyptic terrain, oval railway track running through
+the landscape, top 40% covered in snow and ice, bottom 60%
+dry brown earth, ruined cities along the tracks,
+hand-drawn cartography style, Studio Ghibli inspired,
+parchment paper texture, no text, no labels, no watermark
 ```
 
 ---
 
-## 8. Givre sur vitre (×1)
+## 7. Givre sur vitre (×1)
 
 Overlay plaqué sur les fenêtres du wagon en zone froide. Le code
 contrôle l'opacité (0 → 1 progressivement).
@@ -227,7 +219,7 @@ no text, no watermark, no characters
 
 ---
 
-## 9. Animations personnage — zone froide
+## 8. Animations personnage — zone froide
 
 49 frames chacune, **AutoSprite** (5 cred / anim). Style identique
 aux 13 anims existantes. Vue de profil, face à droite.
