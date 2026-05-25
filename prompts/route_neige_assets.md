@@ -30,35 +30,45 @@ Remplacent `horizon_a/b/c.png` en zone froide. Même bande verticale
 
 ```
 Seamless horizontal parallax background, side-scrolling game,
-post-apocalyptic snowy plain, dead trees with snow, abandoned
-utility poles half-buried, distant ruined buildings in light
-snowfall, overcast pale grey sky, cold blue-white palette,
-anime illustration, Studio Ghibli inspired, hand-painted texture,
-no text, no watermark, no characters, no train, no rails
+extreme wide shot, very far away perspective, vast endless
+snowy plain stretching to the far horizon, tiny ruined buildings
+barely visible in the far distance, atmospheric haze and light
+snowfall softening everything, huge overcast pale grey sky taking
+most of the image, cold blue-white palette, depth through aerial
+perspective, anime illustration, Studio Ghibli inspired,
+hand-painted texture,
+no text, no watermark, no characters, no train, no rails,
+no close-up details, no foreground elements
 ```
 
 ### 1.2 — Forêt de sapins
 
 ```
 Seamless horizontal parallax background, side-scrolling game,
-post-apocalyptic frozen forest, snow-covered pines and bare
-birch trunks, fog between trees, abandoned cabin roof behind
-tree line, pale grey-blue sky with low clouds, cold silver
-palette, anime illustration, Studio Ghibli inspired,
+extreme wide shot, very far away perspective, vast frozen forest
+seen from great distance, tiny snow-covered pines forming a
+dense tree line far on the horizon, soft fog and atmospheric
+haze between layers, huge pale grey-blue sky with low clouds,
+cold silver palette, everything small and distant, depth through
+aerial perspective, anime illustration, Studio Ghibli inspired,
 hand-painted texture,
-no text, no watermark, no characters, no train, no rails
+no text, no watermark, no characters, no train, no rails,
+no close-up details, no foreground elements
 ```
 
 ### 1.3 — Montagnes lointaines
 
 ```
 Seamless horizontal parallax background, side-scrolling game,
-post-apocalyptic snowy mountain range, jagged peaks in
-background, frozen lake mid-ground, collapsed bridge pillars,
-low sun behind clouds, pale blue-grey and white palette with
-hints of dusty rose, anime illustration, Studio Ghibli inspired,
-hand-painted texture,
-no text, no watermark, no characters, no train, no rails
+extreme wide shot, very far away perspective, vast snowy mountain
+range far on the horizon, tiny jagged peaks fading into haze,
+frozen lake as a small pale shape in the far distance, enormous
+sky with low sun behind clouds casting cold diffused light,
+pale blue-grey and white palette with hints of dusty rose on
+distant peaks, strong atmospheric perspective, anime illustration,
+Studio Ghibli inspired, hand-painted texture,
+no text, no watermark, no characters, no train, no rails,
+no close-up details, no foreground elements
 ```
 
 ---
@@ -69,12 +79,16 @@ no text, no watermark, no characters, no train, no rails
 
 ```
 Seamless horizontal parallax background, side-scrolling game,
-post-apocalyptic frozen wasteland at night, deep blue-black sky
-with stars and crescent moon, snow glowing under moonlight,
-dark silhouettes of dead trees and ruins, subtle northern lights
-(green-teal band low), cold deep blue and silver palette,
-anime illustration, Studio Ghibli inspired, hand-painted texture,
-no text, no watermark, no characters, no train, no rails
+extreme wide shot, very far away perspective, vast frozen
+wasteland at night seen from great distance, deep blue-black
+sky with stars and crescent moon taking most of the image,
+snow-covered land glowing faintly under moonlight far below,
+tiny dark silhouettes of ruins on the far horizon, subtle
+northern lights (green-teal band low), cold deep blue and silver
+palette, strong atmospheric perspective, anime illustration,
+Studio Ghibli inspired, hand-painted texture,
+no text, no watermark, no characters, no train, no rails,
+no close-up details, no foreground elements
 ```
 
 ---
@@ -157,24 +171,30 @@ Affichés pendant le passage entre zone tempérée et zone froide.
 
 ```
 Seamless horizontal parallax background, side-scrolling game,
-post-apocalyptic landscape transitioning from autumn to winter,
-left side dry brown grass and bare trees with last orange leaves,
-right side patches of snow and frosted ground, overcast sky
-getting colder rightward, muted amber blending into pale blue-grey,
-anime illustration, Studio Ghibli inspired, hand-painted texture,
-no text, no watermark, no characters, no train, no rails
+extreme wide shot, very far away perspective, vast post-apocalyptic
+landscape seen from great distance transitioning from autumn to
+winter, left side warm brown earth fading into haze, right side
+white snow covering the far horizon, enormous overcast sky getting
+colder rightward, muted amber blending into pale blue-grey,
+strong atmospheric perspective, anime illustration, Studio Ghibli
+inspired, hand-painted texture,
+no text, no watermark, no characters, no train, no rails,
+no close-up details, no foreground elements
 ```
 
 ### 6.2 — Sortie du froid
 
 ```
 Seamless horizontal parallax background, side-scrolling game,
-post-apocalyptic landscape transitioning from winter to spring,
-left side melting snow and mud puddles, right side green-brown
-grass returning and budding trees, sky clearing from grey to warm,
-cold silver blending into warm honey light,
-anime illustration, Studio Ghibli inspired, hand-painted texture,
-no text, no watermark, no characters, no train, no rails
+extreme wide shot, very far away perspective, vast post-apocalyptic
+landscape seen from great distance transitioning from winter to
+spring, left side white snow fading into haze, right side warm
+brown-green earth returning on the far horizon, enormous sky
+clearing from grey to warm light, cold silver blending into warm
+honey, strong atmospheric perspective, anime illustration, Studio
+Ghibli inspired, hand-painted texture,
+no text, no watermark, no characters, no train, no rails,
+no close-up details, no foreground elements
 ```
 
 ---
