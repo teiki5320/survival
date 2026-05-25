@@ -18,9 +18,11 @@ paysage défile latéralement derrière, la locomotive est à gauche.
 honey browns / cream / soft amber dedans, cold blue / pale fog dehors.
 
 **État actuel** : prototype visuel solide + boucle CI/CD opérationnelle.
-Animations 49-frames en place (18 héroïne + 8 chien). Locomotive scène + carte
-du monde + events narratifs câblés. HUD survie (hunger/thirst/fatigue) + cycle
-météo auto. Mécaniques de progression / sauvegarde à construire.
+Animations 49-frames : 13 héroïne câblées dans le code + 5 assets prêts non
+intégrés (cook, drink, garden_tend, pet_dog, wake_up_clean) + 8 anims chien.
+Locomotive scène + carte du monde + events narratifs câblés. HUD survie
+(hunger/thirst/fatigue) + cycle météo auto. Mécaniques de progression /
+sauvegarde à construire.
 
 ---
 
@@ -151,20 +153,23 @@ the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
   `_safe()` qui swallow les exceptions sur asset manquant. Fonctionnel
   quand les fichiers audio sont présents, silencieux sinon.
 - `lib/data/world.dart` (261 l.) — 3 Locations (station_abandonnee débloquée
-  par défaut, depot_ferroviaire, village_fantome). 5 Location objects total
-  (dont 2 non visibles dans les grep). Question/Choice/Location models.
+  par défaut, depot_ferroviaire, village_fantome). `backgrounds: [null, null,
+  null]` partout = placeholders procéduraux, pas d'images de lieu.
+  Question/Choice/Location models avec grants items/flags/unlock.
 
 ### Précisions side-scroll
 
-- Heroine bounds : `heroXMin = 0.20`, `heroXMax = 0.82`.
+- Heroine bounds : `heroXMin = 0.22`, `heroXMax = 0.86`.
 - Bed dialé : `_bedLeft = 0.194`, `_bedTop = 0.448`, `_bedWidth = 0.280`.
   **NE PAS toucher**, réglé via l'adjust mode.
 - Horizon adjust mode accessible via FAB landscape. Défauts bakés :
   `_horizonTop = 0.0`, `_horizonBottom = 0.179`.
-- 49 frames par anim, **18 anims héroïne** : walk_right, idle_right,
+- 49 frames par anim, **13 anims héroïne câblées** : walk_right, idle_right,
   sleep_right, dance, pickup, yawn, stretch, look_window, read, wake_up,
-  wake_up_clean, door_push, warm_hands, carry_walk, cook, drink,
-  garden_tend, pet_dog.
+  door_push, warm_hands, carry_walk.
+- **5 anims assets-only** (PNGs dans `assets/characters/` mais pas encore
+  branchées dans la state machine `side_scroll_scene.dart`) : cook, drink,
+  garden_tend, pet_dog, wake_up_clean.
 - `newSquareSprites` (yawn/stretch/look_window/read/wake_up/door_push/
   warm_hands/carry_walk) sont 512x512 avec `feetRatio = 0.86`.
 - `sourceFacesLeft = {'warm_hands'}` en locomotive : ces sprites face déjà
@@ -198,9 +203,13 @@ the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
 
 ## État du contenu
 
-**Animations héroïne 49-frames (18)** : walk_right, idle_right, sleep_right,
-dance, pickup, yawn, stretch, look_window, read, wake_up, wake_up_clean,
-door_push, warm_hands, carry_walk, cook, drink, garden_tend, pet_dog.
+**Animations héroïne 49-frames — 13 câblées** : walk_right, idle_right,
+sleep_right, dance, pickup, yawn, stretch, look_window, read, wake_up,
+door_push, warm_hands, carry_walk.
+
+**Animations héroïne — 5 assets prêts, non intégrées** : cook, drink,
+garden_tend, pet_dog, wake_up_clean. PNGs dans `assets/characters/` mais
+pas dans le precache ni la state machine. Le code dit « à venir ».
 
 **Animations chien (8)** : bark (25 fr), eat (25 fr), head_tilt (25 fr),
 lay_down (25 fr), sleep (25 fr), stretch_yawn (25 fr), wag_tail (25 fr),
@@ -230,36 +239,44 @@ firstaid, garden, notebook, plaid, plant, rug, table.
 
 1. **Sauvegarde d'état (SharedPreferences)**. `GameState` est 100% en mémoire.
    Tout reset à chaque lancement. Implémenter `save()` / `load()` avec
-   sérialisation JSON.
+   sérialisation JSON. Zéro code de persistance à ce jour.
 2. **Cycle jour/nuit narratif**. Le cycle météo actuel (30 s) est un
    placeholder dev. Passer à un vrai rythme jour/nuit (5-10 min réelles)
    avec transition visuelle sky/sky_night + comportements héroïne liés.
 3. **Audio assets**. Dropper les fichiers dans `assets/audio/`. Le code est
-   prêt, il attend juste les mp3.
+   prêt (`audio_service.dart`), il attend juste les mp3.
+4. **Brancher les 5 anims en attente**. cook, drink, garden_tend, pet_dog,
+   wake_up_clean : assets dans `assets/characters/` mais pas dans le
+   precache ni la state machine de `side_scroll_scene.dart`. Le drink a
+   un bouton action dans `main.dart` qui restore thirst sans jouer l'anim.
 
 ### Priorité moyenne — gameplay loop
 
-4. **Système de déblocage progressif**. Mécanisme structuré pour gater
+5. **Système de déblocage progressif**. Mécanisme structuré pour gater
    objets/locations/tenues derrière des flags/items.
-5. **Schedule d'actions narratives auto**. Héroïne suit un planning (réveil →
+6. **Schedule d'actions narratives auto**. Héroïne suit un planning (réveil →
    stretch → idle → cuisine → etc.) plutôt que de rester figée.
-6. **Mécanique vêtements**. Wardrobe screen existe (1 tenue). Ajouter les
-   assets de tenues supplémentaires (chaque = 49 frames × N anims) + logique
-   de déblocage.
-7. **Plus de Locations + chaînes de Questions**. 3 locations actuelles, la
-   roadmap en vise bien plus. Écrire le contenu narratif.
+7. **Mécanique vêtements**. Wardrobe screen existe (1 tenue, sprite
+   statique front). Ajouter les assets de tenues supplémentaires (chaque =
+   49 frames × N anims) + logique de déblocage.
+8. **Plus de Locations + chaînes de Questions**. 3 locations actuelles avec
+   `backgrounds: [null]` (placeholders procéduraux, pas d'images). Écrire
+   le contenu narratif + générer les images de fond par lieu.
 
 ### Priorité basse — polish & contenu
 
-8. **Journal / monologue intérieur**. Bulles narratives contextuelles liées
-   au temps / événements / état.
-9. **Événements aléatoires nuit**. Zombie → `crackWindow()`, bruits
-   suspects, etc. Mécanique procédurale nocturne.
-10. **Transparence locomotive sur wagon_swept.png**. Zones transparentes à
+9. **Journal / monologue intérieur**. `ThoughtBubble` dans `atmosphere.dart`
+   affiche un emoji au-dessus de l'héroïne (aléatoire toutes les ~30 s).
+   Pas de système narratif contextuel lié aux événements / temps / état.
+10. **Événements aléatoires nuit**. `DistantZombie` existe déjà dans
+    `atmosphere.dart` (silhouette qui passe devant les fenêtres, night only).
+    Manque : mécanique zombie → `crackWindow()`, bruits suspects, vrais
+    événements procéduraux nocturnes avec conséquences gameplay.
+11. **Transparence locomotive sur wagon_swept.png**. Zones transparentes à
     l'arrière de la locomotive qui laissent voir l'horizon. Asset à fixer.
-11. **Objets encore absents de la roadmap**. Radio à manivelle, sac à dos,
+12. **Objets encore absents de la roadmap**. Radio à manivelle, sac à dos,
     jarres de germination, bocaux.
-12. **Close-ground parallax** — **abandonné définitivement**, ne PAS ramener.
+13. **Close-ground parallax** — **abandonné définitivement**, ne PAS ramener.
 
 ---
 
