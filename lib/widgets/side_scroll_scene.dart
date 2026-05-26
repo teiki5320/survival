@@ -961,6 +961,29 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 3c. Fond bois derrière le wagon pour masquer
+                      //     les trous dans le plancher (dirty/swept).
+                      if (widget.wagonStage <= 1)
+                        Positioned(
+                          left: w * 0.12,
+                          right: w * 0.08,
+                          top: h * 0.50,
+                          bottom: h * 0.14,
+                          child: _nightTint(
+                            const DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Color(0xFF3D2B1A),
+                                    Color(0xFF2E1F12),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       // 4. Wagon — fixed in the centre, picked from the
                       //    progression stage (dirty → swept → windowed →
                       //    clean). Night ColorFilter tints all four the
