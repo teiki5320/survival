@@ -1299,15 +1299,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ? (_bowlFull ? 'assets/objects/bowl_full.png'
                      : 'assets/objects/bowl_empty.png')
         : 'assets/objects/${def.key}.png';
+    final boxFit = (def.key == 'stove') ? BoxFit.fill : BoxFit.contain;
     final Widget sprite = def.animated
         ? _AnimatedSprite(
             prefix: def.key,
             frameCount: def.frameCount,
             durationMs: def.frameDurationMs * def.frameCount,
+            fit: boxFit,
           )
         : Image.asset(
             staticAsset,
-            fit: BoxFit.contain,
+            fit: boxFit,
           );
     Widget wrapped = _nightTint(sprite);
     // Lampe à pétrole : dim quand éteinte (GameState.lampOn = false).
@@ -1714,11 +1716,13 @@ class _AnimatedSprite extends StatefulWidget {
     required this.prefix,
     required this.frameCount,
     required this.durationMs,
+    this.fit = BoxFit.contain,
   });
 
   final String prefix;
   final int frameCount;
   final int durationMs;
+  final BoxFit fit;
 
   @override
   State<_AnimatedSprite> createState() => _AnimatedSpriteState();
@@ -1762,7 +1766,7 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
             ),
             width: 256,
           ),
-          fit: BoxFit.contain,
+          fit: widget.fit,
         );
       },
     );

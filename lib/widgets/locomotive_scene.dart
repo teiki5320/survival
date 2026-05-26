@@ -312,7 +312,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     final m = animMetricsFor(prefix);
     final bool shouldMirror;
     if (prefix == 'pickup') {
-      shouldMirror = _action == _LocoAction.pickingUp;
+      shouldMirror = _action == _LocoAction.throwing;
     } else if (m.noMirror) {
       shouldMirror = false;
     } else {
