@@ -1326,24 +1326,49 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 ),
                 child: wrapped,
               ),
+              // Poignée droite → largeur
               Positioned(
-                right: -16,
-                bottom: -16,
-                child: GestureDetector(
-                  onPanUpdate: (d) => setState(() {
-                    pos.width += d.delta.dx / w;
-                    pos.width = pos.width.clamp(0.03, 0.50);
-                    pos.height += d.delta.dy / h;
-                    pos.height = pos.height.clamp(0.03, 0.50);
-                  }),
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF6B00),
-                      shape: BoxShape.circle,
+                right: -14,
+                top: 0,
+                bottom: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onPanUpdate: (d) => setState(() {
+                      pos.width += d.delta.dx / w;
+                      pos.width = pos.width.clamp(0.03, 0.50);
+                    }),
+                    child: Container(
+                      width: 28,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B00),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.swap_horiz, color: Colors.white, size: 16),
                     ),
-                    child: const Icon(Icons.open_in_full, color: Colors.white, size: 16),
+                  ),
+                ),
+              ),
+              // Poignée bas → hauteur
+              Positioned(
+                bottom: -14,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onPanUpdate: (d) => setState(() {
+                      pos.height += d.delta.dy / h;
+                      pos.height = pos.height.clamp(0.03, 0.50);
+                    }),
+                    child: Container(
+                      width: 40,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF6B00),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.swap_vert, color: Colors.white, size: 16),
+                    ),
                   ),
                 ),
               ),
