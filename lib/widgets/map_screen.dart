@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../constants.dart';
 import '../models/game_state.dart';
 
 class _Station {
@@ -142,7 +143,6 @@ class _MapScreenState extends State<MapScreen>
       ),
     );
   }
-}
 
   Widget _buildAdjustableMap() {
     return LayoutBuilder(
@@ -428,7 +428,7 @@ class _TrainZoneHUD extends StatelessWidget {
         nextStation = s;
       }
     }
-    final etaSeconds = (minDist * GameState.loopDurationSeconds).round();
+    final etaSeconds = (minDist * kLoopDurationSeconds).round();
     final etaMin = etaSeconds ~/ 60;
     final etaSec = etaSeconds % 60;
 

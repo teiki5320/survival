@@ -123,7 +123,6 @@ class SideScrollScene extends StatefulWidget {
   static const double stoveCenterX = 0.629;
   static const double filterCenterX = 0.727;
   static const double hydroCenterX = 0.805;
-  static const double hydroCenterX = 0.805;
   static const double bowlCenterX = 0.481;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
