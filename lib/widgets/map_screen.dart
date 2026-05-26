@@ -6,21 +6,23 @@ import 'package:flutter/scheduler.dart';
 import '../models/game_state.dart';
 
 class _Station {
-  _Station(this.name, this.position, {this.big = false});
+  _Station(this.name, this.position, {this.big = false, this.locationId});
   final String name;
-  double position; // 0→1 sur l'ovale
+  double position;
   final bool big;
+  final String? locationId;
 }
 
 final List<_Station> _stations = [
-  _Station('Norilsk', 0.08, big: true),
+  _Station('Station abandonnée', 0.08, big: true, locationId: 'station_abandonnee'),
   _Station('Halte 47', 0.18),
-  _Station('Vorkuta', 0.32, big: true),
+  _Station('Dépôt ferroviaire', 0.32, big: true, locationId: 'depot_ferroviaire'),
   _Station('Halte 12', 0.48),
-  _Station('Ashford', 0.58, big: true),
+  _Station('Village fantôme', 0.58, big: true, locationId: 'village_fantome'),
   _Station('Halte 83', 0.68),
-  _Station('Halte 9', 0.78),
-  _Station('Dustwell', 0.90),
+  _Station('Camp-refuge', 0.75, locationId: 'camp_refuge'),
+  _Station('Pont suspendu', 0.85, locationId: 'pont_suspendu'),
+  _Station('Halte 9', 0.93),
 ];
 
 class MapScreen extends StatefulWidget {
@@ -293,8 +295,8 @@ class _MapOverlayPainter extends CustomPainter {
   void _drawStations(Canvas canvas, Size size) {
     for (final s in _stations) {
       final p = _ovalPoint(size, s.position);
-      final unlocked =
-          GameState.instance.isLocationUnlocked(s.name.toLowerCase().replaceAll(' ', '_'));
+      final unlocked = s.locationId != null &&
+          GameState.instance.isLocationUnlocked(s.locationId!);
 
       // Cercle gare
       final radius = s.big ? 8.0 : 5.0;

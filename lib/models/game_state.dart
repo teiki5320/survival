@@ -1,21 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Centralised game state: energy, inventory, story flags, and which
-/// world locations the player has unlocked. Single source of truth so
-/// every screen reads from the same place via [ChangeNotifier].
-///
-/// Energy mechanics:
-///   - Max 5 "energy points" — one is spent per location event.
-///   - Refills slowly: +1 every [energyRefillSeconds]. Internal timer
-///     wakes the notifier when a point comes back.
-///   - At 0 energy the wagon door action is blocked (the player has to
-///     wait it out).
+import '../constants.dart';
+
 class GameState extends ChangeNotifier {
   GameState._() {
     _refillTimer = Timer.periodic(
-      const Duration(seconds: 60),
+      Duration(seconds: kEnergyRefillSeconds),
       (_) => _tickRefill(),
     );
     _drainTimer = Timer.periodic(
@@ -24,15 +18,70 @@ class GameState extends ChangeNotifier {
     );
     _initWeatherCycle();
     _initTrainRoute();
+    load();
   }
   static final GameState instance = GameState._();
 
+  // --- Persistence ---
+  static const _saveKey = 'train_cosy_state';
+
+  Future<void> save() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = <String, dynamic>{
+      'energy': _energy,
+      'hunger': _hunger,
+      'thirst': _thirst,
+      'fatigue': _fatigue,
+      'lampOn': _lampOn,
+      'trainPosition': _trainPosition,
+      'items': _items,
+      'flags': _flags.toList(),
+      'unlocked': _unlocked.toList(),
+      'wagonStage': wagonStage,
+    };
+    await prefs.setString(_saveKey, jsonEncode(data));
+  }
+
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_saveKey);
+    if (raw == null) return;
+    try {
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      _energy = (data['energy'] as num?)?.toInt() ?? kMaxEnergy;
+      _hunger = (data['hunger'] as num?)?.toDouble() ?? 1.0;
+      _thirst = (data['thirst'] as num?)?.toDouble() ?? 1.0;
+      _fatigue = (data['fatigue'] as num?)?.toDouble() ?? 1.0;
+      _lampOn = data['lampOn'] as bool? ?? true;
+      _trainPosition = (data['trainPosition'] as num?)?.toDouble() ?? kTrainStartPosition;
+      _items.clear();
+      if (data['items'] is Map) {
+        (data['items'] as Map).forEach((k, v) {
+          _items[k as String] = (v as num).toInt();
+        });
+      }
+      _flags.clear();
+      if (data['flags'] is List) {
+        _flags.addAll((data['flags'] as List).cast<String>());
+      }
+      _unlocked.clear();
+      _unlocked.add('station_abandonnee');
+      if (data['unlocked'] is List) {
+        _unlocked.addAll((data['unlocked'] as List).cast<String>());
+      }
+      wagonStage = (data['wagonStage'] as num?)?.toInt() ?? 0;
+      notifyListeners();
+    } catch (_) {}
+  }
+
+  int _saveCounter = 0;
+  void _autoSave() {
+    _saveCounter++;
+    if (_saveCounter % 30 == 0) save();
+  }
+
   // --- Energy ---
-  static const int maxEnergy = 5;
-  // For dev iteration: 1 point per minute. Bump up to 300 s (5 min)
-  // for production.
-  static const int energyRefillSeconds = 60;
-  int _energy = maxEnergy;
+  int _energy = kMaxEnergy;
   int get energy => _energy;
   bool get canLeaveTrain => _energy > 0;
 
@@ -42,28 +91,26 @@ class GameState extends ChangeNotifier {
   void _tickRefill() {
     final now = DateTime.now();
     final elapsed = now.difference(_lastRefillTick).inSeconds;
-    final gained = elapsed ~/ energyRefillSeconds;
+    final gained = elapsed ~/ kEnergyRefillSeconds;
     if (gained <= 0) return;
     _lastRefillTick = now;
     final before = _energy;
-    _energy = (_energy + gained).clamp(0, maxEnergy);
+    _energy = (_energy + gained).clamp(0, kMaxEnergy);
     if (_energy != before) notifyListeners();
   }
 
   void spendEnergy([int amount = 1]) {
-    _energy = (_energy - amount).clamp(0, maxEnergy);
+    _energy = (_energy - amount).clamp(0, kMaxEnergy);
     notifyListeners();
+    save();
   }
 
   void grantEnergy(int amount) {
-    _energy = (_energy + amount).clamp(0, maxEnergy);
+    _energy = (_energy + amount).clamp(0, kMaxEnergy);
     notifyListeners();
   }
 
-  // --- Survival bars (faim / soif / fatigue) ---
-  // Toutes de 0.0 (vide / épuisé) à 1.0 (rassasié / reposé). Décroissent
-  // lentement avec le temps ; restored par interactions (eat → +faim,
-  // drink → +soif, sleep dans le lit → +fatigue).
+  // --- Survival bars ---
   double _hunger = 1.0;
   double _thirst = 1.0;
   double _fatigue = 1.0;
@@ -71,10 +118,9 @@ class GameState extends ChangeNotifier {
   double get thirst => _thirst;
   double get fatigue => _fatigue;
 
-  // Décroissance par seconde réelle.
-  static const double _hungerDrainPerSec = 1.0 / (60 * 30); // vide en 30 min
-  static const double _thirstDrainPerSec = 1.0 / (60 * 20); // 20 min
-  static const double _fatigueDrainPerSec = 1.0 / (60 * 45); // 45 min
+  static final double _hungerDrainPerSec = 1.0 / kHungerFullDrainSeconds;
+  static final double _thirstDrainPerSec = 1.0 / kThirstFullDrainSeconds;
+  static final double _fatigueDrainPerSec = 1.0 / kFatigueFullDrainSeconds;
 
   Timer? _drainTimer;
   DateTime _lastDrainTick = DateTime.now();
@@ -90,6 +136,7 @@ class GameState extends ChangeNotifier {
     _fatigue = (_fatigue - _fatigueDrainPerSec * dt).clamp(0.0, 1.0);
     if (_hunger != h0 || _thirst != t0 || _fatigue != f0) {
       notifyListeners();
+      _autoSave();
     }
   }
 
@@ -108,60 +155,54 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // --- Wagon ambient state ---
+  // --- Wagon state ---
   bool _lampOn = true;
   bool get lampOn => _lampOn;
   void toggleLamp() {
     _lampOn = !_lampOn;
     notifyListeners();
+    save();
   }
 
-  // --- Météo --- (cycle automatique).
+  int wagonStage = 0;
+
+  // --- Météo (liée à la zone) ---
   Weather _weather = Weather.clear;
   Weather get weather => _weather;
-  // Toutes les 30s pour l'instant (visualiser vite). Passer à plusieurs
-  // minutes en prod pour un rythme atmosphérique plus calme.
-  static const Duration _weatherPeriod = Duration(minutes: 5);
   Timer? _weatherTimer;
+
   void _initWeatherCycle() {
-    _weatherTimer ??= Timer.periodic(_weatherPeriod, (_) {
-      // Pick au hasard mais évite de répéter le même.
-      final pool =
-          Weather.values.where((w) => w != _weather).toList();
+    _weatherTimer ??= Timer.periodic(kWeatherPeriod, (_) {
+      final zone = trainZone;
+      List<Weather> pool;
+      if (zone == TrainZone.cold || zone == TrainZone.transitionToCold) {
+        pool = [Weather.clear, Weather.cloudy, Weather.foggy, Weather.snowy];
+      } else {
+        pool = [Weather.clear, Weather.clear, Weather.cloudy, Weather.rainy];
+      }
+      pool.removeWhere((w) => w == _weather);
       _weather = pool[DateTime.now().millisecondsSinceEpoch % pool.length];
       notifyListeners();
     });
   }
 
   // --- Train route ---
-  // Le train parcourt un circuit ovale en boucle. Position 0→1 qui
-  // avance en continu. Zone froide = 0.00→0.40, tempérée = 0.45→0.95,
-  // transitions entre les deux.
-  static const int loopDurationSeconds = 3600; // 60 min pour un tour
-  static const double _coldStart = 0.0;
-  static const double _coldEnd = 0.40;
-  static const double _transitionWidth = 0.05;
-
-  double _trainPosition = 0.10; // départ en zone froide
+  double _trainPosition = kTrainStartPosition;
   double get trainPosition => _trainPosition;
   Timer? _trainTimer;
   DateTime _lastTrainTick = DateTime.now();
 
   TrainZone get trainZone {
     final p = _trainPosition;
-    // Zone froide pure
-    if (p >= _coldStart + _transitionWidth && p < _coldEnd - _transitionWidth) {
+    if (p >= kColdZoneStart + kTransitionWidth && p < kColdZoneEnd - kTransitionWidth) {
       return TrainZone.cold;
     }
-    // Transition entrée froid (chaud → froid)
-    if (p >= 1.0 - _transitionWidth || p < _coldStart + _transitionWidth) {
+    if (p >= 1.0 - kTransitionWidth || p < kColdZoneStart + kTransitionWidth) {
       return TrainZone.transitionToCold;
     }
-    // Transition sortie froid (froid → chaud)
-    if (p >= _coldEnd - _transitionWidth && p < _coldEnd + _transitionWidth) {
+    if (p >= kColdZoneEnd - kTransitionWidth && p < kColdZoneEnd + kTransitionWidth) {
       return TrainZone.transitionToWarm;
     }
-    // Zone tempérée
     return TrainZone.warm;
   }
 
@@ -179,7 +220,7 @@ class GameState extends ChangeNotifier {
     final dt = now.difference(_lastTrainTick).inMilliseconds / 1000.0;
     if (dt <= 0) return;
     _lastTrainTick = now;
-    final advance = dt / loopDurationSeconds;
+    final advance = dt / kLoopDurationSeconds;
     final old = _trainPosition;
     _trainPosition = (_trainPosition + advance) % 1.0;
     final oldZone = _zoneFor(old);
@@ -190,48 +231,60 @@ class GameState extends ChangeNotifier {
   }
 
   TrainZone _zoneFor(double p) {
-    if (p >= _coldStart + _transitionWidth && p < _coldEnd - _transitionWidth) {
+    if (p >= kColdZoneStart + kTransitionWidth && p < kColdZoneEnd - kTransitionWidth) {
       return TrainZone.cold;
     }
-    if (p >= 1.0 - _transitionWidth || p < _coldStart + _transitionWidth) {
+    if (p >= 1.0 - kTransitionWidth || p < kColdZoneStart + kTransitionWidth) {
       return TrainZone.transitionToCold;
     }
-    if (p >= _coldEnd - _transitionWidth && p < _coldEnd + _transitionWidth) {
+    if (p >= kColdZoneEnd - kTransitionWidth && p < kColdZoneEnd + kTransitionWidth) {
       return TrainZone.transitionToWarm;
     }
     return TrainZone.warm;
   }
 
+  // --- Thought bubble context ---
+  String get contextualThought {
+    if (_hunger < 0.2) return '🍖';
+    if (_thirst < 0.2) return '💧';
+    if (_fatigue < 0.15) return '💤';
+    if (inColdZone) return '❄️';
+    const neutral = ['☕', '💭', '🌿', '📖', '🎵'];
+    return neutral[DateTime.now().second % neutral.length];
+  }
+
   // --- Inventory ---
-  // Loose typed: item id → count. Items granted by choices accumulate.
   final Map<String, int> _items = {};
   Map<String, int> get items => Map.unmodifiable(_items);
 
   void grantItem(String id, [int qty = 1]) {
     _items[id] = (_items[id] ?? 0) + qty;
     notifyListeners();
+    save();
   }
 
   // --- Story flags ---
-  // Choices set named flags that gate later content (unlock locations,
-  // open new questions, change dialogue, etc.).
   final Set<String> _flags = {};
   Set<String> get flags => Set.unmodifiable(_flags);
 
   void setFlag(String flag) {
-    if (_flags.add(flag)) notifyListeners();
+    if (_flags.add(flag)) {
+      notifyListeners();
+      save();
+    }
   }
 
   bool hasFlag(String flag) => _flags.contains(flag);
 
   // --- Locations ---
-  // Which world locations the player has unlocked. Maps to IDs from
-  // [data/world.dart]. The first one is open by default.
   final Set<String> _unlocked = {'station_abandonnee'};
   Set<String> get unlockedLocations => Set.unmodifiable(_unlocked);
 
   void unlockLocation(String id) {
-    if (_unlocked.add(id)) notifyListeners();
+    if (_unlocked.add(id)) {
+      notifyListeners();
+      save();
+    }
   }
 
   bool isLocationUnlocked(String id) => _unlocked.contains(id);
@@ -246,6 +299,6 @@ class GameState extends ChangeNotifier {
   }
 }
 
-enum Weather { clear, cloudy, rainy, foggy }
+enum Weather { clear, cloudy, rainy, foggy, snowy }
 
 enum TrainZone { cold, warm, transitionToCold, transitionToWarm }

@@ -236,6 +236,81 @@ const List<Location> world = [
       ),
     ],
   ),
+  Location(
+    id: 'camp_refuge',
+    name: 'Camp-refuge',
+    mapX: 0.45,
+    mapY: 0.35,
+    backgrounds: [null, null],
+    questions: [
+      Question(
+        text:
+            'Un campement sous un viaduc. Des tentes rapiécées, un feu '
+            'presque éteint. Quelqu\'un a laissé une note sur un bidon.',
+        choices: [
+          Choice(
+            label: 'Lire la note.',
+            outcomeText:
+                '"Si tu lis ça, prends le bois, laisse de la nourriture. '
+                'On revient demain." Tu prends le bois.',
+            grantItems: {'wood': 4},
+            setFlags: ['read_camp_note'],
+          ),
+          Choice(
+            label: 'Fouiller les tentes.',
+            outcomeText:
+                'Un sac de couchage en bon état et une gourde pleine.',
+            grantItems: {'sleeping_bag': 1, 'water': 1},
+          ),
+          Choice(
+            label: 'Laisser de la nourriture et repartir.',
+            outcomeText:
+                'Tu laisses une boîte de conserve près du feu.',
+            energyDelta: 1,
+            setFlags: ['generous_camp'],
+          ),
+        ],
+      ),
+    ],
+  ),
+  Location(
+    id: 'pont_suspendu',
+    name: 'Pont suspendu',
+    mapX: 0.60,
+    mapY: 0.75,
+    backgrounds: [null, null],
+    questions: [
+      Question(
+        text:
+            'Un pont métallique au-dessus d\'un ravin. Le vent siffle '
+            'entre les câbles. Au milieu, une caisse coincée dans les '
+            'garde-fous.',
+        choices: [
+          Choice(
+            label: 'Traverser jusqu\'à la caisse.',
+            outcomeText:
+                'Le pont tangue, mais tu atteins la caisse. Dedans : '
+                'des outils rouillés mais utilisables.',
+            grantItems: {'tools': 2},
+            energyDelta: -1,
+          ),
+          Choice(
+            label: 'Couper un câble pour récupérer la caisse.',
+            outcomeText:
+                'Le câble cède, la caisse glisse vers toi. Tu '
+                'récupères du fil de fer et une lampe frontale.',
+            grantItems: {'wire': 3, 'headlamp': 1},
+            setFlags: ['cut_bridge_cable'],
+          ),
+          Choice(
+            label: 'Faire demi-tour, c\'est trop risqué.',
+            outcomeText:
+                'Le pont grince derrière toi. Sage décision.',
+          ),
+        ],
+      ),
+    ],
+  ),
 ];
 
 /// Lookup helper.

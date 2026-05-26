@@ -123,6 +123,7 @@ class SideScrollScene extends StatefulWidget {
   static const double stoveCenterX = 0.629;
   static const double filterCenterX = 0.727;
   static const double hydroCenterX = 0.805;
+  static const double hydroCenterX = 0.805;
   static const double bowlCenterX = 0.481;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
@@ -177,11 +178,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
     _PropDef('stove',    'Poele',     animated: true,  frameCount: 25),
     _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
+    _PropDef('lights',   'Guirlande', animated: true,  frameCount: 49),
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
     _PropDef('firstaid', 'Secours',   animated: false),
     _PropDef('commode',  'Commode',   animated: false),
     _PropDef('bowl',     'Gamelle',   animated: false),
+    _PropDef('rug',      'Tapis',     animated: false),
+    _PropDef('plant',    'Plante',    animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -193,7 +197,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
     'commode':  _PropPos(0.539, 0.571, 0.139),
+    'lights':   _PropPos(0.500, 0.155, 0.080),
     'bowl':     _PropPos(0.481, 0.669, 0.080),
+    'rug':      _PropPos(0.500, 0.780, 0.080),
+    'plant':    _PropPos(0.870, 0.500, 0.120),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
@@ -378,8 +385,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       if (!mounted) return;
       // 50 % chance to skip — so they don't appear like clockwork.
       if (math.Random().nextDouble() < 0.5) return;
-      const moods = ['☕', '💭', '🌧', '💤', '🌿', '📖', '🎵'];
-      setState(() => _thoughtEmoji = moods[math.Random().nextInt(moods.length)]);
+      setState(() => _thoughtEmoji = GameState.instance.contextualThought);
       _thoughtClearTimer?.cancel();
       _thoughtClearTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _thoughtEmoji = null);
@@ -418,10 +424,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'look_window',
       'read',
       'wake_up',
-      'door_push',
       'warm_hands',
       'carry_walk',
       'cook',
+      'drink',
+      'pet_dog',
+      'garden_tend',
     ];
     for (final anim in animations) {
       for (int i = 1; i <= _heroFrameCount; i++) {
@@ -996,6 +1004,31 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 4a. Frost edges when cold (procédural).
+                      if (GameState.instance.inColdZone)
+                        Positioned(
+                          left: w * 0.10,
+                          right: w * 0.06,
+                          top: h * 0.13,
+                          bottom: h * 0.18,
+                          child: IgnorePointer(
+                            child: Opacity(
+                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.12 : 0.06,
+                              child: const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.center,
+                                    colors: [
+                                      Color(0xFFD0E8F0),
+                                      Color(0x00D0E8F0),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       // 4b. Bed — placed at floor level on the left of
                       //     the wagon interior. Position + size are
                       //     normalised state so the in-app adjustment
@@ -1047,6 +1080,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
                       ),
+                      // 4f-bis. Window rain/snow on rainy/snowy weather.
+                      if (GameState.instance.weather == Weather.rainy ||
+                          GameState.instance.weather == Weather.snowy)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: h * 0.18,
+                          height: h * 0.45,
+                          child: WindowRain(
+                            animation: _sky,
+                            density: GameState.instance.weather == Weather.snowy ? 15 : 25,
+                          ),
+                        ),
                       // 4g. Props installés dans le wagon (tour hydro,
                       //     lampe, poêle, filtre eau, chien, table,
                       //     carnet, trousse). Rendus avant la fille pour
@@ -1129,13 +1175,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                   return const SizedBox.shrink();
                                 case Weather.cloudy:
                                   tint = const Color(0x0D2A3A4A);
-                                  break;
                                 case Weather.rainy:
                                   tint = const Color(0x151E2A3A);
-                                  break;
                                 case Weather.foggy:
                                   tint = const Color(0x1AD8D2C8);
-                                  break;
+                                case Weather.snowy:
+                                  tint = const Color(0x15D0D8E8);
                               }
                               return DecoratedBox(
                                 decoration: BoxDecoration(color: tint),

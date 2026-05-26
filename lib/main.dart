@@ -110,6 +110,8 @@ class _WagonScreenState extends State<WagonScreen> {
   bool get _atFilter => _near(SideScrollScene.filterCenterX);
   bool get _atLamp => _near(SideScrollScene.lampCenterX);
   bool get _atStove => _near(SideScrollScene.stoveCenterX);
+  bool get _atHydro => _near(SideScrollScene.hydroCenterX);
+  bool get _atDog => _near(0.525, 0.10);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -246,6 +248,8 @@ class _WagonScreenState extends State<WagonScreen> {
               final wasF = _atFilter;
               final wasLamp = _atLamp;
               final wasStove = _atStove;
+              final wasDog = _atDog;
+              final wasHydro = _atHydro;
               _heroX = x;
               if (wasL != _atLeftDoor ||
                   wasR != _atRightDoor ||
@@ -253,7 +257,9 @@ class _WagonScreenState extends State<WagonScreen> {
                   wasN != _atNotebook ||
                   wasF != _atFilter ||
                   wasLamp != _atLamp ||
-                  wasStove != _atStove) {
+                  wasStove != _atStove ||
+                  wasDog != _atDog ||
+                  wasHydro != _atHydro) {
                 setState(() {});
               }
             },
@@ -298,6 +304,7 @@ class _WagonScreenState extends State<WagonScreen> {
                         Weather.cloudy: '☁ cloudy',
                         Weather.rainy: '🌧 rainy',
                         Weather.foggy: '🌫 foggy',
+                        Weather.snowy: '❄ snowy',
                       };
                       return Text(
                         labels[GameState.instance.weather] ?? '',
@@ -484,9 +491,20 @@ class _WagonScreenState extends State<WagonScreen> {
         _triggerSpecial('drink', frames: 25);
         GameState.instance.restoreThirst(0.20);
       };
+    } else if (_atDog) {
+      icon = Icons.pets;
+      action = () {
+        _triggerSpecial('pet_dog', frames: 25);
+        GameState.instance.restoreFatigue(0.05);
+      };
     } else if (_atStove) {
       icon = Icons.soup_kitchen;
       action = () => setState(() => _cookToken++);
+    } else if (_atHydro) {
+      icon = Icons.yard;
+      action = () {
+        _triggerSpecial('garden_tend', frames: 25);
+      };
     } else if (_atLamp) {
       icon = GameState.instance.lampOn
           ? Icons.lightbulb
