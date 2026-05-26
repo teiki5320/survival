@@ -121,7 +121,7 @@ class GameState extends ChangeNotifier {
   Weather get weather => _weather;
   // Toutes les 30s pour l'instant (visualiser vite). Passer à plusieurs
   // minutes en prod pour un rythme atmosphérique plus calme.
-  static const Duration _weatherPeriod = Duration(seconds: 30);
+  static const Duration _weatherPeriod = Duration(minutes: 5);
   Timer? _weatherTimer;
   void _initWeatherCycle() {
     _weatherTimer ??= Timer.periodic(_weatherPeriod, (_) {

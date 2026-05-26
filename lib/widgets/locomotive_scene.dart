@@ -236,9 +236,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
 
   Widget _nightTint(Widget child) {
     Widget result = child;
-    if (GameState.instance.inColdZone) {
+    if (!widget.night && GameState.instance.inColdZone) {
       result = ColorFiltered(
-        colorFilter: const ColorFilter.mode(Color(0xFFD0D8E8), BlendMode.modulate),
+        colorFilter: const ColorFilter.mode(Color(0xFFDDE3EE), BlendMode.modulate),
         child: result,
       );
     }

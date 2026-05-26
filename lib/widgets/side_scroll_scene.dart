@@ -1105,13 +1105,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                 case Weather.clear:
                                   return const SizedBox.shrink();
                                 case Weather.cloudy:
-                                  tint = const Color(0x1A2A3A4A);
+                                  tint = const Color(0x0D2A3A4A);
                                   break;
                                 case Weather.rainy:
-                                  tint = const Color(0x2A1E2A3A);
+                                  tint = const Color(0x151E2A3A);
                                   break;
                                 case Weather.foggy:
-                                  tint = const Color(0x33D8D2C8);
+                                  tint = const Color(0x1AD8D2C8);
                                   break;
                               }
                               return DecoratedBox(
@@ -1599,10 +1599,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// daylit assets read as nighttime without needing redrawn variants.
   Widget _nightTint(Widget child) {
     Widget result = child;
-    if (GameState.instance.inColdZone) {
+    if (!widget.night && GameState.instance.inColdZone) {
       result = ColorFiltered(
         colorFilter: const ColorFilter.mode(
-          Color(0xFFD0D8E8),
+          Color(0xFFDDE3EE),
           BlendMode.modulate,
         ),
         child: result,
