@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -84,6 +85,14 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   double _shake = 0;
 
 
+  static const List<String> _coldHorizons = [
+    'assets/background/horizon_snow_a.png',
+    'assets/background/horizon_snow_b.png',
+    'assets/background/horizon_snow_c.png',
+  ];
+  int _coldHorizonIndex = 0;
+  Timer? _horizonTimer;
+
   @override
   void initState() {
     super.initState();
@@ -92,10 +101,20 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 28))
       ..repeat();
     _heroTicker = createTicker(_onHeroTick)..start();
+    _horizonTimer = Timer.periodic(const Duration(seconds: 45), (_) {
+      if (!mounted) return;
+      setState(() => _coldHorizonIndex = (_coldHorizonIndex + 1) % _coldHorizons.length);
+    });
+  }
+
+  String get _locoHorizonAsset {
+    if (GameState.instance.inColdZone) return _coldHorizons[_coldHorizonIndex];
+    return 'assets/background/horizon_a.png';
   }
 
   @override
   void dispose() {
+    _horizonTimer?.cancel();
     _heroTicker.dispose();
     _sky.dispose();
     _horizon.dispose();
@@ -371,9 +390,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         child: _nightTint(
                           _ParallaxLayer(
                             controller: _horizon,
-                            asset: GameState.instance.inColdZone
-                                ? 'assets/background/horizon_snow_a.png'
-                                : 'assets/background/horizon_a.png',
+                            asset: _locoHorizonAsset,
                             fit: BoxFit.fitWidth,
                             alignment: Alignment.topCenter,
                           ),
