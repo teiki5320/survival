@@ -967,7 +967,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         Positioned(
                           left: w * 0.12,
                           right: w * 0.08,
-                          top: h * 0.50,
+                          top: h * 0.65,
                           bottom: h * 0.14,
                           child: _nightTint(
                             const DecoratedBox(
@@ -1329,75 +1329,69 @@ class _SideScrollSceneState extends State<SideScrollScene>
           ),
         );
       }
-      return Positioned(
-        left: left,
-        top: top,
-        width: propW,
-        height: propH,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (d) => setState(() {
-            pos.left += d.delta.dx / w;
-            pos.top += d.delta.dy / h;
-          }),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: left,
+            top: top,
+            width: propW,
+            height: propH,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanUpdate: (d) => setState(() {
+                pos.left += d.delta.dx / w;
+                pos.top += d.delta.dy / h;
+              }),
+              child: Container(
                 decoration: BoxDecoration(
                   border: Border.all(color: const Color(0xFFFF6B00), width: 2),
                 ),
                 child: wrapped,
               ),
-              // Poignée droite → largeur
-              Positioned(
-                right: -14,
-                top: 0,
-                bottom: 0,
-                child: Center(
-                  child: GestureDetector(
-                    onPanUpdate: (d) => setState(() {
-                      pos.width += d.delta.dx / w;
-                      pos.width = pos.width.clamp(0.03, 0.50);
-                    }),
-                    child: Container(
-                      width: 28,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF6B00),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(Icons.swap_horiz, color: Colors.white, size: 16),
-                    ),
-                  ),
-                ),
-              ),
-              // Poignée bas → hauteur
-              Positioned(
-                bottom: -14,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: GestureDetector(
-                    onPanUpdate: (d) => setState(() {
-                      pos.height += d.delta.dy / h;
-                      pos.height = pos.height.clamp(0.03, 0.50);
-                    }),
-                    child: Container(
-                      width: 40,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFF6B00),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Icon(Icons.swap_vert, color: Colors.white, size: 16),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          // Poignée droite → largeur (hors du GestureDetector parent)
+          Positioned(
+            left: left + propW - 2,
+            top: top + propH / 2 - 20,
+            child: GestureDetector(
+              onPanUpdate: (d) => setState(() {
+                pos.width += d.delta.dx / w;
+                pos.width = pos.width.clamp(0.02, 0.50);
+              }),
+              child: Container(
+                width: 28,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6B00),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.swap_horiz, color: Colors.white, size: 16),
+              ),
+            ),
+          ),
+          // Poignée bas → hauteur (hors du GestureDetector parent)
+          Positioned(
+            left: left + propW / 2 - 20,
+            top: top + propH - 2,
+            child: GestureDetector(
+              onPanUpdate: (d) => setState(() {
+                pos.height += d.delta.dy / h;
+                pos.height = pos.height.clamp(0.02, 0.50);
+              }),
+              child: Container(
+                width: 40,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF6B00),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.swap_vert, color: Colors.white, size: 16),
+              ),
+            ),
+          ),
+        ],
       );
     }
     return Positioned(
