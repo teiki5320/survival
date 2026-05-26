@@ -1191,10 +1191,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               painter: _SmokePainter(
                                 _smoke.value,
                                 running: widget.running,
-                                // Lighter baseline so daytime smoke
-                                // doesn't read as oppressive; each
-                                // log nudges intensity up.
-                                intensity: 0.65 + 0.08 * widget.logsThrown.clamp(0, 8),
+                                intensity: (widget.night ? 0.35 : 0.65) +
+                                    0.08 * widget.logsThrown.clamp(0, 8),
                               ),
                             ),
                           ),
@@ -1312,6 +1310,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
             fit: boxFit,
           );
     Widget wrapped = _nightTint(sprite);
+    if (def.key == 'stove' && (pos.animDx != 0 || pos.animDy != 0)) {
+      wrapped = Transform.translate(
+        offset: Offset(w * pos.animDx, h * pos.animDy),
+        child: wrapped,
+      );
+    }
     // Lampe à pétrole : dim quand éteinte (GameState.lampOn = false).
     if (def.key == 'lamp') {
       wrapped = AnimatedBuilder(
@@ -1496,6 +1500,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
             'height:${pos.height.toStringAsFixed(3)}',
             style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
           ),
+          const SizedBox(height: 4),
+          row('animDx', pos.animDx, (d) => pos.animDx += d, step: 0.003),
+          row('animDy', pos.animDy, (d) => pos.animDy += d, step: 0.003),
         ],
       ),
     );
@@ -1706,6 +1713,8 @@ class _PropPos {
   double top;
   double height;
   double width;
+  double animDx = 0;
+  double animDy = 0;
 }
 
 /// Joue une animation `assets/objects/<prefix>_<i>.png` en boucle via un
