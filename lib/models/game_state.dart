@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../constants.dart';
 
@@ -22,32 +22,45 @@ class GameState extends ChangeNotifier {
   }
   static final GameState instance = GameState._();
 
-  // --- Persistence ---
-  static const _saveKey = 'train_cosy_state';
+  // --- Persistence (pur dart:io, zéro plugin natif) ---
+  static String? _savePath;
+
+  static String _getSavePathSync() {
+    if (_savePath != null) return _savePath!;
+    // Sur iOS, le home directory pointe vers le sandbox de l'app.
+    // Documents/ est persisté entre les sessions.
+    final home = Platform.environment['HOME'] ?? Directory.systemTemp.path;
+    final docs = Directory('$home/Documents');
+    if (!docs.existsSync()) docs.createSync(recursive: true);
+    _savePath = '${docs.path}/train_cosy_save.json';
+    return _savePath!;
+  }
 
   Future<void> save() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = <String, dynamic>{
-      'energy': _energy,
-      'hunger': _hunger,
-      'thirst': _thirst,
-      'fatigue': _fatigue,
-      'lampOn': _lampOn,
-      'trainPosition': _trainPosition,
-      'items': _items,
-      'flags': _flags.toList(),
-      'unlocked': _unlocked.toList(),
-      'wagonStage': wagonStage,
-    };
-    await prefs.setString(_saveKey, jsonEncode(data));
+    try {
+      final path = _getSavePathSync();
+      final data = jsonEncode({
+        'energy': _energy,
+        'hunger': _hunger,
+        'thirst': _thirst,
+        'fatigue': _fatigue,
+        'lampOn': _lampOn,
+        'trainPosition': _trainPosition,
+        'items': _items,
+        'flags': _flags.toList(),
+        'unlocked': _unlocked.toList(),
+        'wagonStage': wagonStage,
+      });
+      await File(path).writeAsString(data);
+    } catch (_) {}
   }
 
   Future<void> load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_saveKey);
-    if (raw == null) return;
     try {
-      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final path = _getSavePathSync();
+      final file = File(path);
+      if (!file.existsSync()) return;
+      final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _energy = (data['energy'] as num?)?.toInt() ?? kMaxEnergy;
       _hunger = (data['hunger'] as num?)?.toDouble() ?? 1.0;
       _thirst = (data['thirst'] as num?)?.toDouble() ?? 1.0;
