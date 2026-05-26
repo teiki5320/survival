@@ -177,29 +177,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
     _PropDef('stove',    'Poele',     animated: true,  frameCount: 25),
     _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
-    _PropDef('lights',   'Guirlande', animated: true,  frameCount: 49),
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
     _PropDef('firstaid', 'Secours',   animated: false),
     _PropDef('commode',  'Commode',   animated: false),
     _PropDef('bowl',     'Gamelle',   animated: false),
-    _PropDef('rug',      'Tapis',     animated: false),
-    _PropDef('plant',    'Plante',    animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
     'hydro':    _PropPos(0.805, 0.412, 0.326),
     'lamp':     _PropPos(0.415, 0.323, 0.104),
-    'stove':    _PropPos(0.640, 0.590, 0.200),
+    'stove':    _PropPos(0.640, 0.510, 0.290, 0.120),
     'filter':   _PropPos(0.727, 0.514, 0.200),
     'table':    _PropPos(0.479, 0.557, 0.151),
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
     'commode':  _PropPos(0.539, 0.571, 0.139),
-    'lights':   _PropPos(0.500, 0.155, 0.080),
     'bowl':     _PropPos(0.481, 0.669, 0.080),
-    'rug':      _PropPos(0.500, 0.780, 0.080),
-    'plant':    _PropPos(0.870, 0.500, 0.120),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap

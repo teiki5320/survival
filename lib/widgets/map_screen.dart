@@ -22,16 +22,21 @@ class _Station {
 final List<_Station> _stations = [
   _Station('Station abandonnée', 0.19, 0.22,
       big: true, locationId: 'station_abandonnee'),
-  _Station('Halte 47', 0.35, 0.13),
-  _Station('Dépôt ferroviaire', 0.56, 0.12,
+  _Station('Halte 47', 0.30, 0.13),
+  _Station('Dépôt ferroviaire', 0.46, 0.10,
       big: true, locationId: 'depot_ferroviaire'),
-  _Station('Halte 12', 0.78, 0.25),
-  _Station('Village fantôme', 0.87, 0.48,
+  _Station('Halte 12', 0.62, 0.12),
+  _Station('Village fantôme', 0.78, 0.22,
       big: true, locationId: 'village_fantome'),
-  _Station('Halte 83', 0.78, 0.72),
-  _Station('Camp-refuge', 0.50, 0.82, locationId: 'camp_refuge'),
-  _Station('Pont suspendu', 0.22, 0.72, locationId: 'pont_suspendu'),
-  _Station('Halte 9', 0.12, 0.45),
+  _Station('Halte 83', 0.88, 0.38),
+  _Station('Camp-refuge', 0.90, 0.55, locationId: 'camp_refuge'),
+  _Station('Pont suspendu', 0.85, 0.72, locationId: 'pont_suspendu'),
+  _Station('Halte 9', 0.72, 0.82),
+  _Station('Oasis perdue', 0.55, 0.85, locationId: 'oasis_perdue'),
+  _Station('Halte 31', 0.38, 0.82),
+  _Station('Tour de guet', 0.22, 0.72, locationId: 'tour_de_guet'),
+  _Station('Halte 6', 0.10, 0.58),
+  _Station('Tunnel nord', 0.08, 0.40, locationId: 'tunnel_nord'),
 ];
 
 // ---------------------------------------------------------------------------
@@ -401,20 +406,11 @@ class _MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Background animations (behind track)
-    _drawDriftingClouds(canvas, size);
-    _drawSnowfall(canvas, size);
-    _drawDustParticles(canvas, size);
-    _drawRuinSmoke(canvas, size);
-    _drawWaterWaves(canvas, size);
-    _drawWindVegetation(canvas, size);
+    // Shadow silhouettes behind track
+    _drawShadowSilhouettes(canvas, size);
 
     // Track
     _drawTrack(canvas, size);
-
-    // Foreground animations
-    _drawBirds(canvas, size);
-    _drawFireGlows(canvas, size);
 
     // Stations + train
     if (!hideStationLabels) _drawStations(canvas, size);
@@ -439,19 +435,19 @@ class _MapPainter extends CustomPainter {
     canvas.drawPath(
       trackPath,
       Paint()
-        ..color = const Color(0x33000000)
+        ..color = const Color(0x44000000)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 14
+        ..strokeWidth = 18
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
-    // Rail bed
+    // Rail bed (bois)
     canvas.drawPath(
       trackPath,
       Paint()
-        ..color = const Color(0xFF7A6548)
+        ..color = const Color(0xFF6B4226)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 8
+        ..strokeWidth = 11
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
@@ -459,18 +455,18 @@ class _MapPainter extends CustomPainter {
     canvas.drawPath(
       trackPath,
       Paint()
-        ..color = const Color(0xFFAA9070)
+        ..color = const Color(0xFF8B6914)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
+        ..strokeWidth = 3
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round,
     );
 
     // Ties
-    final tieCount = 80;
+    final tieCount = 100;
     final tiePaint = Paint()
-      ..color = const Color(0xFF5A4A38)
-      ..strokeWidth = 2.5
+      ..color = const Color(0xFF4A3520)
+      ..strokeWidth = 3
       ..strokeCap = StrokeCap.round;
     for (int i = 0; i < tieCount; i++) {
       final t = i / tieCount;
@@ -584,231 +580,159 @@ class _MapPainter extends CustomPainter {
   }
 
   // ===========================================================================
-  // 8 animated background layers
+  // Shadow silhouettes — zombies (cold zone) + animals (warm zone)
   // ===========================================================================
 
-  // 1. Drifting clouds — cold zone (top)
-  void _drawDriftingClouds(Canvas canvas, Size size) {
+  void _drawShadowSilhouettes(Canvas canvas, Size size) {
     final t = elapsed;
+    _drawZombieSilhouettes(canvas, size, t);
+    _drawAnimalSilhouettes(canvas, size, t);
+  }
+
+  void _drawZombieSilhouettes(Canvas canvas, Size size, double t) {
+    // 6 zombies shambling across the cold zone (top half)
     for (int i = 0; i < 6; i++) {
-      final seed = i * 137.0;
-      final baseX = ((seed * 0.37 + t * (0.008 + i * 0.003)) % 1.3) - 0.15;
-      final baseY = 0.05 + (seed * 0.23 % 0.25);
-      final w = 0.08 + (seed * 0.17 % 0.06);
-      final h = 0.03 + (seed * 0.13 % 0.02);
-      final opacity = 0.08 + (seed * 0.11 % 0.07);
-      canvas.drawOval(
-        Rect.fromCenter(
-          center: Offset(baseX * size.width, baseY * size.height),
-          width: w * size.width,
-          height: h * size.height,
-        ),
-        Paint()
-          ..color = Color.fromRGBO(200, 210, 220, opacity)
-          ..maskFilter =
-              MaskFilter.blur(BlurStyle.normal, h * size.height * 0.8),
-      );
-    }
-  }
-
-  // 2. Snowfall — cold zone (y < 0.40)
-  void _drawSnowfall(Canvas canvas, Size size) {
-    final t = elapsed;
-    for (int i = 0; i < 40; i++) {
-      final seed = i * 73.0;
-      final x = (seed * 0.41 + t * 0.01 * (1 + (seed % 3))) % 1.0;
-      final y = (seed * 0.29 + t * 0.03 * (1 + (seed % 2) * 0.5)) % 0.40;
-      final r = 1.0 + (seed % 3);
-      final opacity = 0.3 + (seed * 0.17 % 0.3);
-      canvas.drawCircle(
-        Offset(x * size.width, y * size.height),
-        r,
-        Paint()..color = Color.fromRGBO(240, 245, 255, opacity),
-      );
-    }
-  }
-
-  // 3. Dust / sand — warm zone (y > 0.55)
-  void _drawDustParticles(Canvas canvas, Size size) {
-    final t = elapsed;
-    for (int i = 0; i < 30; i++) {
-      final seed = i * 97.0;
-      final x = (seed * 0.37 + t * 0.02 * (1 + seed % 4)) % 1.0;
-      final y = 0.55 + (seed * 0.31 % 0.35);
-      final r = 0.5 + (seed % 2);
-      final opacity = 0.15 + (seed * 0.13 % 0.15);
-      canvas.drawCircle(
-        Offset(x * size.width, y * size.height),
-        r,
-        Paint()..color = Color.fromRGBO(180, 160, 120, opacity),
-      );
-    }
-  }
-
-  // 4. Ruin smoke — rising from factory/ruin locations
-  static const _ruinPoints = [
-    Offset(0.35, 0.20),
-    Offset(0.48, 0.15),
-    Offset(0.62, 0.18),
-    Offset(0.75, 0.22),
-    Offset(0.30, 0.28),
-  ];
-
-  void _drawRuinSmoke(Canvas canvas, Size size) {
-    final t = elapsed;
-    for (int r = 0; r < _ruinPoints.length; r++) {
-      final base = _ruinPoints[r];
-      for (int p = 0; p < 5; p++) {
-        final seed = r * 51.0 + p * 17.0;
-        final phase = seed * 0.73;
-        final life = ((t * 0.3 + phase) % 3.0) / 3.0;
-        final x = base.dx + math.sin(t * 0.5 + seed) * 0.01;
-        final y = base.dy - life * 0.06;
-        final radius = 2.0 + life * 4.0;
-        final opacity = (1.0 - life) * 0.2;
-        canvas.drawCircle(
-          Offset(x * size.width, y * size.height),
-          radius,
-          Paint()
-            ..color = Color.fromRGBO(140, 130, 120, opacity)
-            ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.7),
-        );
-      }
-    }
-  }
-
-  // 5. Birds / crows circling
-  static const _flockCenters = [
-    Offset(0.40, 0.18),
-    Offset(0.65, 0.15),
-    Offset(0.55, 0.22),
-  ];
-
-  void _drawBirds(Canvas canvas, Size size) {
-    final t = elapsed;
-    for (int f = 0; f < _flockCenters.length; f++) {
-      final center = _flockCenters[f];
-      for (int b = 0; b < 4; b++) {
-        final seed = f * 37.0 + b * 19.0;
-        final angle = t * 0.4 + seed;
-        final radius = 0.03 + (seed * 0.11 % 0.02);
-        final x = center.dx + math.cos(angle) * radius;
-        final y = center.dy + math.sin(angle) * radius * 0.5;
-        final px = x * size.width;
-        final py = y * size.height;
-        final wingPhase = math.sin(t * 8 + seed) * 2;
-        final birdPath = Path()
-          ..moveTo(px - 4, py + wingPhase)
-          ..lineTo(px, py)
-          ..lineTo(px + 4, py + wingPhase);
-        canvas.drawPath(
-          birdPath,
-          Paint()
-            ..color = const Color(0xAA2A2A2A)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.2
-            ..strokeCap = StrokeCap.round,
-        );
-      }
-    }
-  }
-
-  // 6. Fire glows — pulsing orange in ruins
-  static const _firePoints = [
-    Offset(0.38, 0.26),
-    Offset(0.52, 0.18),
-    Offset(0.70, 0.24),
-    Offset(0.25, 0.62),
-    Offset(0.72, 0.67),
-    Offset(0.58, 0.75),
-  ];
-
-  void _drawFireGlows(Canvas canvas, Size size) {
-    final t = elapsed;
-    for (int i = 0; i < _firePoints.length; i++) {
-      final pos = _firePoints[i];
-      final pulse = 0.5 + 0.5 * math.sin(t * 2.5 + i * 1.7);
-      final r = 3.0 + pulse * 3.0;
-      final p = Offset(pos.dx * size.width, pos.dy * size.height);
-      canvas.drawCircle(
-        p,
-        r * 2.5,
-        Paint()
-          ..color = Color.fromRGBO(255, 120, 30, 0.08 + pulse * 0.06)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 2),
-      );
-      canvas.drawCircle(
-        p,
-        r,
-        Paint()..color = Color.fromRGBO(255, 160, 50, 0.3 + pulse * 0.3),
-      );
-    }
-  }
-
-  // 7. Water waves — bottom-right area
-  void _drawWaterWaves(Canvas canvas, Size size) {
-    final t = elapsed;
-    for (int i = 0; i < 8; i++) {
-      final seed = i * 53.0;
-      final baseX = 0.82 + (seed * 0.17 % 0.14);
-      final baseY = 0.72 + (seed * 0.23 % 0.15);
-      final wave = math.sin(t * 1.5 + seed * 0.5) * 0.005;
-      final px = (baseX + wave) * size.width;
+      final seed = i * 127.0;
+      final speed = 0.012 + (seed * 0.17 % 0.008);
+      final x = ((seed * 0.41 + t * speed) % 1.4) - 0.2;
+      final baseY = 0.12 + (seed * 0.23 % 0.22);
+      final h = 14.0 + (seed % 8);
+      final px = x * size.width;
       final py = baseY * size.height;
-      final waveLen = 8.0 + (seed % 5);
-      final wavePath = Path();
-      for (double dx = -waveLen; dx <= waveLen; dx += 1) {
-        final wy = math.sin((dx + t * 20) * 0.3 + seed) * 1.5;
-        if (dx == -waveLen) {
-          wavePath.moveTo(px + dx, py + wy);
-        } else {
-          wavePath.lineTo(px + dx, py + wy);
-        }
-      }
-      canvas.drawPath(
-        wavePath,
-        Paint()
-          ..color = Color.fromRGBO(130, 170, 200, 0.2 + (seed * 0.11 % 0.15))
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.8,
-      );
+      final opacity = 0.15 + (seed * 0.11 % 0.15);
+
+      // Bob up/down while walking
+      final bob = math.sin(t * 2.5 + seed) * 1.5;
+      // Lean slightly
+      final lean = math.sin(t * 1.2 + seed * 0.7) * 0.08;
+
+      final paint = Paint()
+        ..color = Color.fromRGBO(20, 20, 30, opacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
+
+      canvas.save();
+      canvas.translate(px, py + bob);
+      canvas.skew(lean, 0);
+
+      // Head
+      canvas.drawCircle(Offset(0, -h), h * 0.2, paint);
+      // Body
+      canvas.drawLine(Offset(0, -h + h * 0.2), Offset(0, -h * 0.35), paint..strokeWidth = 2.5);
+      // Arms (asymmetric, one drooping)
+      final armSway = math.sin(t * 2.0 + seed) * 3;
+      canvas.drawLine(Offset(0, -h * 0.7), Offset(-5 + armSway, -h * 0.35), paint);
+      canvas.drawLine(Offset(0, -h * 0.7), Offset(6, -h * 0.2), paint);
+      // Legs (shuffling)
+      final legPhase = math.sin(t * 3.0 + seed) * 2.5;
+      canvas.drawLine(Offset(0, -h * 0.35), Offset(-3 + legPhase, 0), paint);
+      canvas.drawLine(Offset(0, -h * 0.35), Offset(3 - legPhase, 0), paint);
+
+      canvas.restore();
     }
   }
 
-  // 8. Wind in vegetation — warm zone swaying grass
-  static const _vegPoints = [
-    Offset(0.15, 0.65),
-    Offset(0.30, 0.75),
-    Offset(0.45, 0.80),
-    Offset(0.60, 0.78),
-    Offset(0.10, 0.55),
-    Offset(0.85, 0.60),
-  ];
+  void _drawAnimalSilhouettes(Canvas canvas, Size size, double t) {
+    // Wolves — 3, prowling across the warm zone
+    for (int i = 0; i < 3; i++) {
+      final seed = i * 193.0;
+      final speed = 0.018 + (seed * 0.13 % 0.01);
+      final facingLeft = i.isEven;
+      final rawX = (seed * 0.37 + t * speed) % 1.4;
+      final x = facingLeft ? 1.2 - rawX : rawX - 0.2;
+      final baseY = 0.58 + (seed * 0.19 % 0.22);
+      final px = x * size.width;
+      final py = baseY * size.height;
+      final opacity = 0.18 + (seed * 0.11 % 0.12);
+      final dir = facingLeft ? -1.0 : 1.0;
 
-  void _drawWindVegetation(Canvas canvas, Size size) {
-    final t = elapsed;
-    for (int i = 0; i < _vegPoints.length; i++) {
-      final pos = _vegPoints[i];
-      final px = pos.dx * size.width;
-      final py = pos.dy * size.height;
-      final sway = math.sin(t * 1.2 + i * 2.1) * 3;
-      final sway2 = math.sin(t * 0.8 + i * 1.3) * 2;
-      for (int b = 0; b < 5; b++) {
-        final bx = px + (b - 2) * 4.0;
-        final tipX = bx + sway + (b.isEven ? sway2 : -sway2);
-        final blade = Path()
-          ..moveTo(bx, py)
-          ..quadraticBezierTo(
-              tipX, py - 8, tipX + sway * 0.3, py - 14 - b % 3 * 2);
-        canvas.drawPath(
-          blade,
-          Paint()
-            ..color = Color.fromRGBO(80 + b * 10, 110 + b * 8, 60, 0.4)
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.2
-            ..strokeCap = StrokeCap.round,
-        );
-      }
+      final paint = Paint()
+        ..color = Color.fromRGBO(30, 20, 15, opacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2)
+        ..strokeWidth = 2
+        ..strokeCap = StrokeCap.round;
+
+      // Trot animation
+      final legF = math.sin(t * 4.0 + seed) * 3;
+      final legB = math.sin(t * 4.0 + seed + math.pi) * 3;
+      final headBob = math.sin(t * 2.0 + seed) * 1;
+
+      canvas.save();
+      canvas.translate(px, py);
+
+      // Body line
+      canvas.drawLine(Offset(-10 * dir, 0), Offset(10 * dir, -1 + headBob), paint);
+      // Head
+      canvas.drawCircle(Offset(12 * dir, -3 + headBob), 3, paint);
+      // Ears
+      canvas.drawLine(Offset(11 * dir, -3 + headBob), Offset(10 * dir, -7 + headBob), paint..strokeWidth = 1.5);
+      canvas.drawLine(Offset(13 * dir, -3 + headBob), Offset(14 * dir, -7 + headBob), paint);
+      // Front legs
+      paint.strokeWidth = 1.8;
+      canvas.drawLine(Offset(6 * dir, 0), Offset(6 * dir + legF * dir * 0.3, 6), paint);
+      canvas.drawLine(Offset(8 * dir, 0), Offset(8 * dir - legF * dir * 0.3, 6), paint);
+      // Back legs
+      canvas.drawLine(Offset(-6 * dir, 0), Offset(-6 * dir + legB * dir * 0.3, 6), paint);
+      canvas.drawLine(Offset(-8 * dir, 0), Offset(-8 * dir - legB * dir * 0.3, 6), paint);
+      // Tail
+      final tailWag = math.sin(t * 3.0 + seed) * 2;
+      canvas.drawLine(Offset(-10 * dir, -1), Offset(-15 * dir, -4 + tailWag),
+          paint..strokeWidth = 1.5);
+
+      canvas.restore();
+    }
+
+    // Rats — 4, scurrying fast
+    for (int i = 0; i < 4; i++) {
+      final seed = i * 83.0 + 500;
+      final speed = 0.04 + (seed * 0.11 % 0.02);
+      final x = ((seed * 0.43 + t * speed) % 1.6) - 0.3;
+      final baseY = 0.42 + (seed * 0.31 % 0.45);
+      final px = x * size.width;
+      final py = baseY * size.height;
+      final opacity = 0.12 + (seed * 0.07 % 0.1);
+
+      final paint = Paint()
+        ..color = Color.fromRGBO(25, 20, 20, opacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8);
+
+      // Tiny body
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(px, py), width: 6, height: 3),
+        paint,
+      );
+      // Tail
+      final tailCurve = math.sin(t * 10 + seed) * 2;
+      canvas.drawLine(
+        Offset(px - 3, py),
+        Offset(px - 8, py - 1 + tailCurve),
+        paint..strokeWidth = 0.8,
+      );
+    }
+
+    // Crows — 5, circling in the sky
+    for (int i = 0; i < 5; i++) {
+      final seed = i * 67.0 + 300;
+      final cx = 0.15 + (seed * 0.23 % 0.70);
+      final cy = 0.08 + (seed * 0.17 % 0.20);
+      final radius = 0.04 + (seed * 0.11 % 0.03);
+      final angle = t * (0.3 + i * 0.1) + seed;
+      final x = (cx + math.cos(angle) * radius) * size.width;
+      final y = (cy + math.sin(angle) * radius * 0.4) * size.height;
+      final wingPhase = math.sin(t * 6 + seed) * 3;
+      final opacity = 0.2 + (seed * 0.07 % 0.15);
+
+      final birdPath = Path()
+        ..moveTo(x - 5, y + wingPhase)
+        ..lineTo(x, y)
+        ..lineTo(x + 5, y + wingPhase);
+      canvas.drawPath(
+        birdPath,
+        Paint()
+          ..color = Color.fromRGBO(15, 15, 20, opacity)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round,
+      );
     }
   }
 

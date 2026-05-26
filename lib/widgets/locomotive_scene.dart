@@ -309,13 +309,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     }
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
-    // pickup source bends RIGHT par défaut. Firebox à gauche = mirror
-    // (pencher à gauche, donc à throwing). warm_hands.noMirror=true
-    // dans la table partagée → jamais flippée (face au feu à gauche).
     final m = animMetricsFor(prefix);
     final bool shouldMirror;
     if (prefix == 'pickup') {
-      shouldMirror = _action == _LocoAction.throwing;
+      shouldMirror = _action == _LocoAction.pickingUp;
     } else if (m.noMirror) {
       shouldMirror = false;
     } else {
