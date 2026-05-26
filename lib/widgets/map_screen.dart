@@ -5,15 +5,14 @@ import 'package:flutter/scheduler.dart';
 
 import '../models/game_state.dart';
 
-// Gares sur le parcours ovale. position = 0→1 sur l'ovale.
 class _Station {
-  const _Station(this.name, this.position, {this.big = false});
+  _Station(this.name, this.position, {this.big = false});
   final String name;
-  final double position;
+  double position; // 0→1 sur l'ovale
   final bool big;
 }
 
-const _stations = [
+final List<_Station> _stations = [
   _Station('Norilsk', 0.08, big: true),
   _Station('Halte 47', 0.18),
   _Station('Vorkuta', 0.32, big: true),
@@ -37,6 +36,8 @@ class _MapScreenState extends State<MapScreen>
   final TransformationController _transformCtrl = TransformationController();
   late final Ticker _ticker;
   double _displayPosition = GameState.instance.trainPosition;
+  bool _stationAdjust = false;
+  int? _dragIndex;
 
   @override
   void initState() {
@@ -65,45 +66,63 @@ class _MapScreenState extends State<MapScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          InteractiveViewer(
-            transformationController: _transformCtrl,
-            minScale: 0.5,
-            maxScale: 3.0,
-            boundaryMargin: const EdgeInsets.all(200),
-            child: Center(
-              child: Stack(
-                children: [
-                  Image.asset(
-                    'assets/background/map_route.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (_, e, __) {
-                      debugPrint('map_route.png load failed: $e');
-                      return const ColoredBox(color: Color(0xFFB8945C));
-                    },
-                  ),
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _MapOverlayPainter(
-                        trainPosition: _displayPosition,
-                      ),
+          _stationAdjust
+              ? _buildAdjustableMap()
+              : InteractiveViewer(
+                  transformationController: _transformCtrl,
+                  minScale: 0.5,
+                  maxScale: 3.0,
+                  boundaryMargin: const EdgeInsets.all(200),
+                  child: Center(
+                    child: Stack(
+                      children: [
+                        Image.asset(
+                          'assets/background/map_route.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, e, __) {
+                            debugPrint('map_route.png load failed: $e');
+                            return const ColoredBox(color: Color(0xFFB8945C));
+                          },
+                        ),
+                        Positioned.fill(
+                          child: CustomPaint(
+                            painter: _MapOverlayPainter(
+                              trainPosition: _displayPosition,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ),
+                ),
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
                 padding: const EdgeInsets.all(12),
-                child: FloatingActionButton.small(
-                  heroTag: 'map_close',
-                  tooltip: 'Retour au train',
-                  backgroundColor: const Color(0xFFB85522),
-                  foregroundColor: Colors.white,
-                  onPressed: widget.onClose,
-                  child: const Icon(Icons.close),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FloatingActionButton.small(
+                      heroTag: 'map_close',
+                      tooltip: 'Retour au train',
+                      backgroundColor: const Color(0xFFB85522),
+                      foregroundColor: Colors.white,
+                      onPressed: widget.onClose,
+                      child: const Icon(Icons.close),
+                    ),
+                    const SizedBox(height: 8),
+                    FloatingActionButton.small(
+                      heroTag: 'map_adjust',
+                      tooltip: 'Placer les gares',
+                      backgroundColor: _stationAdjust
+                          ? const Color(0xFFFF6B00)
+                          : const Color(0xFF6A5A4A),
+                      foregroundColor: Colors.white,
+                      onPressed: () => setState(() => _stationAdjust = !_stationAdjust),
+                      child: Icon(_stationAdjust ? Icons.check : Icons.edit_location_alt),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -121,6 +140,125 @@ class _MapScreenState extends State<MapScreen>
       ),
     );
   }
+}
+
+  Widget _buildAdjustableMap() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final mapW = constraints.maxWidth;
+        final mapH = constraints.maxHeight;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Image.asset(
+                'assets/background/map_route.png',
+                fit: BoxFit.contain,
+              ),
+            ),
+            Positioned.fill(
+              child: CustomPaint(
+                painter: _MapOverlayPainter(
+                  trainPosition: _displayPosition,
+                  hideStations: true,
+                ),
+              ),
+            ),
+            for (int i = 0; i < _stations.length; i++)
+              Builder(builder: (_) {
+                final s = _stations[i];
+                final p = _ovalPoint(Size(mapW, mapH), s.position);
+                return Positioned(
+                  left: p.dx - 20,
+                  top: p.dy - 20,
+                  child: GestureDetector(
+                    onPanStart: (_) => _dragIndex = i,
+                    onPanUpdate: (d) {
+                      setState(() {
+                        final newX = (p.dx + d.delta.dx).clamp(0.0, mapW);
+                        final newY = (p.dy + d.delta.dy).clamp(0.0, mapH);
+                        s.position = _closestOvalPosition(
+                          Size(mapW, mapH),
+                          Offset(newX, newY),
+                        );
+                      });
+                    },
+                    onPanEnd: (_) => _dragIndex = null,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: _dragIndex == i
+                            ? const Color(0xCCFF6B00)
+                            : const Color(0x99D4A55A),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Center(
+                        child: Text(
+                          s.big ? '★' : '•',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            Positioned(
+              left: 12,
+              top: 12,
+              child: SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Placement gares',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      for (final s in _stations)
+                        Text(
+                          '${s.name.padRight(12)} ${s.position.toStringAsFixed(3)}',
+                          style: const TextStyle(
+                            color: Color(0xFFFFD9A0),
+                            fontSize: 11,
+                            fontFamily: 'Courier',
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+double _closestOvalPosition(Size size, Offset point) {
+  final cx = size.width * 0.50;
+  final cy = size.height * 0.46;
+  final rx = size.width * 0.38;
+  final ry = size.height * 0.34;
+  final angle = math.atan2((point.dy - cy) / ry, (point.dx - cx) / rx);
+  double pos = (angle + math.pi / 2) / (2 * math.pi);
+  if (pos < 0) pos += 1.0;
+  return pos % 1.0;
 }
 
 // Calcule un point sur l'ovale pour une position 0→1.
@@ -141,12 +279,13 @@ double _ovalTangent(Size size, double position) {
 }
 
 class _MapOverlayPainter extends CustomPainter {
-  _MapOverlayPainter({required this.trainPosition});
+  _MapOverlayPainter({required this.trainPosition, this.hideStations = false});
   final double trainPosition;
+  final bool hideStations;
 
   @override
   void paint(Canvas canvas, Size size) {
-    _drawStations(canvas, size);
+    if (!hideStations) _drawStations(canvas, size);
     _drawSmokeTrail(canvas, size);
     _drawTrain(canvas, size);
   }
