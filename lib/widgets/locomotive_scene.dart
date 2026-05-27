@@ -78,7 +78,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // centre of the warm-hands proximity zone — used by both _fireProximity
   // and the scripted walk target so the two stay in sync.
   static const double _woodpileX = 0.70;
-  static const double _fireboxX = 0.30;
+  static const double _fireboxX = 0.38;
 
   // Brief shake offset applied to the whole scene right after a log
   // thuds into the firebox. Decays to zero over ~400 ms.
