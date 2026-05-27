@@ -433,7 +433,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           Image.asset(
                             'assets/background/locomotive.png',
                             fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) => _placeholder(),
+                            errorBuilder: (_, __, ___) =>
+                                const ColoredBox(color: Color(0xFF1A1410)),
                           ),
                         ),
                       ),
@@ -529,25 +530,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     );
   }
 
-  Widget _placeholder() {
-    return Container(
-      color: const Color(0xFF1A1410),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.local_fire_department, size: 64, color: Color(0xFFB85522)),
-            SizedBox(height: 16),
-            Text(
-              'Locomotive\n(image à venir)',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFFFFD9A0), fontSize: 20, height: 1.4),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _ParallaxLayer extends StatelessWidget {

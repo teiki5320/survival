@@ -290,7 +290,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // the double-tap-on-bed handler so she walks over before lying down).
   bool _walkingToBed = false;
   bool _walkingToStove = false;
-  bool _stoveAdjust = false;
   // Lie-down transition: plays pickup frames in reverse (upright → bent
   // over), then snaps into the sleep loop on the floor.
   bool _heroLyingDown = false;
@@ -503,7 +502,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/wagon_clean.png',
       'assets/background/wagon_rails.png',
       'assets/objects/bed.png',
-      'assets/objects/frost_overlay.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -1198,25 +1196,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 ),
               ),
               ),
-              if (_stoveAdjust) ...[
-                Positioned(
-                  top: 16,
-                  left: 16,
-                  child: SafeArea(child: _buildStoveAdjustHud()),
-                ),
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: SafeArea(
-                    child: FloatingActionButton(
-                      heroTag: 'stove_done',
-                      backgroundColor: const Color(0xFFFF6B00),
-                      onPressed: () => setState(() => _stoveAdjust = false),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                  ),
-                ),
-              ],
               ],
             );
           },
@@ -1335,85 +1314,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ),
       );
     }
-    if (def.key == 'stove') {
-      if (!_stoveAdjust) {
-        return Positioned(
-          left: left,
-          top: top,
-          width: propW,
-          height: propH,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onDoubleTap: () => setState(() => _stoveAdjust = true),
-            child: wrapped,
-          ),
-        );
-      }
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: left,
-            top: top,
-            width: propW,
-            height: propH,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onPanUpdate: (d) => setState(() {
-                pos.left += d.delta.dx / w;
-                pos.top += d.delta.dy / h;
-              }),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFFF6B00), width: 2),
-                ),
-                child: wrapped,
-              ),
-            ),
-          ),
-          // Poignée droite → largeur (hors du GestureDetector parent)
-          Positioned(
-            left: left + propW - 2,
-            top: top + propH / 2 - 20,
-            child: GestureDetector(
-              onPanUpdate: (d) => setState(() {
-                pos.width += d.delta.dx / w;
-                pos.width = pos.width.clamp(0.02, 0.50);
-              }),
-              child: Container(
-                width: 28,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B00),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.swap_horiz, color: Colors.white, size: 16),
-              ),
-            ),
-          ),
-          // Poignée bas → hauteur (hors du GestureDetector parent)
-          Positioned(
-            left: left + propW / 2 - 20,
-            top: top + propH - 2,
-            child: GestureDetector(
-              onPanUpdate: (d) => setState(() {
-                pos.height += d.delta.dy / h;
-                pos.height = pos.height.clamp(0.02, 0.50);
-              }),
-              child: Container(
-                width: 40,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF6B00),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Icon(Icons.swap_vert, color: Colors.white, size: 16),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
     return Positioned(
       left: left,
       top: top,
@@ -1423,80 +1323,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
-  Widget _buildStoveAdjustHud() {
-    final pos = _propPos['stove']!;
-    Widget row(String label, double value, void Function(double) apply,
-        {double step = 0.005}) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              width: 110,
-              child: Text(
-                '$label ${value.toStringAsFixed(3)}',
-                style: const TextStyle(
-                  color: Color(0xFFFFD9A0),
-                  fontSize: 12,
-                  fontFamily: 'Courier',
-                ),
-              ),
-            ),
-            _adjustBtn(Icons.remove, () => setState(() => apply(-step))),
-            const SizedBox(width: 4),
-            _adjustBtn(Icons.add, () => setState(() => apply(step))),
-          ],
-        ),
-      );
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.80),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'left:  ${pos.left.toStringAsFixed(3)}',
-            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
-          ),
-          Text(
-            'top:   ${pos.top.toStringAsFixed(3)}',
-            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
-          ),
-          Text(
-            'width: ${pos.width.toStringAsFixed(3)}',
-            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
-          ),
-          Text(
-            'height:${pos.height.toStringAsFixed(3)}',
-            style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 13, fontFamily: 'Courier'),
-          ),
-          const SizedBox(height: 4),
-          row('animDx', pos.animDx, (d) => pos.animDx += d, step: 0.003),
-          row('animDy', pos.animDy, (d) => pos.animDy += d, step: 0.003),
-        ],
-      ),
-    );
-  }
-
-  Widget _adjustBtn(IconData icon, VoidCallback onTap) => InkResponse(
-    onTap: onTap,
-    radius: 18,
-    child: Container(
-      width: 28,
-      height: 28,
-      decoration: const BoxDecoration(
-        color: Color(0xFFB85522),
-        shape: BoxShape.circle,
-      ),
-      child: Icon(icon, color: Colors.white, size: 16),
-    ),
-  );
 
   Widget _buildHeroine(double w, double h) {
     // Wagon's interior floor sits roughly at this Y.

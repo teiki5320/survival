@@ -265,100 +265,38 @@ class _WagonScreenState extends State<WagonScreen> {
             },
           ),
         ),
-        // HUD top-left : coord live du perso + taille du chien (slider).
+        // HUD survie — jauges compactes hunger/thirst/fatigue.
         Positioned(
           top: 8,
           left: 8,
           child: SafeArea(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ValueListenableBuilder = se met à jour sans rebuild
-                  // du Stack parent → pas de saccade live.
-                  ValueListenableBuilder<double>(
-                    valueListenable: _heroXNotifier,
-                    builder: (_, x, __) => Text(
-                      'heroX = ${x.toStringAsFixed(3)}  '
-                      'L=${_atLeftDoor ? "✓" : "·"}  '
-                      'R=${_atRightDoor ? "✓" : "·"}',
-                      style: const TextStyle(
-                        color: Color(0xFFFFD9A0),
-                        fontSize: 12,
-                        fontFamily: 'Courier',
-                      ),
-                    ),
+            child: AnimatedBuilder(
+              animation: GameState.instance,
+              builder: (_, __) {
+                final gs = GameState.instance;
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  AnimatedBuilder(
-                    animation: GameState.instance,
-                    builder: (_, __) {
-                      const labels = {
-                        Weather.clear: '☀ clear',
-                        Weather.cloudy: '☁ cloudy',
-                        Weather.rainy: '🌧 rainy',
-                        Weather.foggy: '🌫 foggy',
-                        Weather.snowy: '❄ snowy',
-                      };
-                      return Text(
-                        labels[GameState.instance.weather] ?? '',
-                        style: const TextStyle(
-                          color: Color(0xFFFFD9A0),
-                          fontSize: 12,
-                          fontFamily: 'Courier',
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 6),
-                  // Jauges hunger / thirst / fatigue (live via GameState).
-                  AnimatedBuilder(
-                    animation: GameState.instance,
-                    builder: (_, __) {
-                      final gs = GameState.instance;
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _statBar(Icons.restaurant, gs.hunger,
-                              const Color(0xFFE89B5C)),
-                          const SizedBox(height: 2),
-                          _statBar(Icons.water_drop, gs.thirst,
-                              const Color(0xFF6FAEDF)),
-                          const SizedBox(height: 2),
-                          _statBar(Icons.bedtime, gs.fatigue,
-                              const Color(0xFFB385D9)),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'chien ${_dogHeight.toStringAsFixed(3)}  ',
-                        style: const TextStyle(
-                          color: Color(0xFFFFD9A0),
-                          fontSize: 12,
-                          fontFamily: 'Courier',
-                        ),
-                      ),
-                      _tinyBtn(Icons.remove, () => setState(() =>
-                          _dogHeight = (_dogHeight - 0.005).clamp(0.04, 0.20))),
-                      const SizedBox(width: 4),
-                      _tinyBtn(Icons.add, () => setState(() =>
-                          _dogHeight = (_dogHeight + 0.005).clamp(0.04, 0.20))),
+                      _statBar(Icons.restaurant, gs.hunger,
+                          const Color(0xFFE89B5C)),
+                      const SizedBox(height: 2),
+                      _statBar(Icons.water_drop, gs.thirst,
+                          const Color(0xFF6FAEDF)),
+                      const SizedBox(height: 2),
+                      _statBar(Icons.bedtime, gs.fatigue,
+                          const Color(0xFFB385D9)),
                     ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -448,20 +386,6 @@ class _WagonScreenState extends State<WagonScreen> {
     );
   }
 
-  /// Petit bouton +/- 26x26 utilisé dans le HUD top-left.
-  Widget _tinyBtn(IconData icon, VoidCallback onTap) => InkResponse(
-        onTap: onTap,
-        radius: 18,
-        child: Container(
-          width: 26,
-          height: 26,
-          decoration: const BoxDecoration(
-            color: Color(0xFFB85522),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: Colors.white, size: 16),
-        ),
-      );
 
   /// Gros bouton rond contextuel — remplace les 3 anciens FABs (porte
   /// loco, porte map, lit). Icône + action dépendent de la position
