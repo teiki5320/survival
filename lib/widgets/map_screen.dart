@@ -489,36 +489,23 @@ class _MapPainter extends CustomPainter {
 
   void _drawTrain(Canvas canvas, Size size) {
     final p = _px(path.at(trainPosition), size);
-    final tangent = path.tangent(trainPosition);
 
     canvas.drawCircle(
       p,
-      28,
+      20,
       Paint()
         ..color = const Color(0x55FF6B00)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
     );
-    canvas.save();
-    canvas.translate(p.dx, p.dy);
-    canvas.rotate(tangent);
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-          const Rect.fromLTWH(-20, -9, 40, 18), const Radius.circular(4)),
-      Paint()..color = const Color(0xFFD4440F),
-    );
-    canvas.drawRect(
-        const Rect.fromLTWH(-20, -9, 14, 18), Paint()..color = const Color(0xFF8B2500));
-    canvas.drawRect(
-        const Rect.fromLTWH(12, -14, 5, 5), Paint()..color = const Color(0xFF2A2A2A));
-    final wp = Paint()..color = const Color(0xFF1A1A1A);
-    canvas.drawCircle(const Offset(-12, 9), 4, wp);
-    canvas.drawCircle(const Offset(0, 9), 4, wp);
-    canvas.drawCircle(const Offset(12, 9), 4, wp);
-    canvas.drawRect(
-        const Rect.fromLTWH(-17, -6, 8, 8), Paint()..color = const Color(0xFFFFD080));
-
-    canvas.restore();
+    final tp = TextPainter(
+      text: const TextSpan(
+        text: '🚂',
+        style: TextStyle(fontSize: 26),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(p.dx - tp.width / 2, p.dy - tp.height / 2));
   }
 
   // ===========================================================================

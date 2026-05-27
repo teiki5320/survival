@@ -468,6 +468,32 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         Positioned.fill(
                           child: Fireflies(animation: _horizon, count: 4),
                         ),
+                      // Birds visible through the door opening (day).
+                      Positioned(
+                        left: 0,
+                        right: w * 0.5,
+                        top: h * 0.15,
+                        height: h * 0.35,
+                        child: DaytimeBirds(
+                          animation: _horizon,
+                          enabled: !widget.night,
+                        ),
+                      ),
+                      // Steam wisps drifting in through the door.
+                      Positioned(
+                        left: 0,
+                        right: w * 0.4,
+                        top: h * 0.2,
+                        height: h * 0.5,
+                        child: DoorSteam(animation: _sky),
+                      ),
+                      // Flying embers from the firebox.
+                      Positioned.fill(
+                        child: FlyingEmbers(
+                          animation: _sky,
+                          intensity: widget.logsThrown.clamp(0, 8) / 8.0,
+                        ),
+                      ),
                     ],
                   ),
                 ),

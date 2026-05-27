@@ -960,6 +960,35 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 3b-bis. Animated grass, rail sparks, scurrying animals
+                      //     on the foreground strip.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.88,
+                        bottom: 0,
+                        child: AnimatedGrass(animation: _foreground),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.83,
+                        height: h * 0.10,
+                        child: RailSparks(
+                          animation: _foreground,
+                          running: widget.running,
+                        ),
+                      ),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.88,
+                        bottom: 0,
+                        child: ScurryingAnimal(
+                          animation: _foreground,
+                          running: widget.running,
+                        ),
+                      ),
                       // 3c. Fond bois derrière le wagon pour masquer
                       //     les trous dans le plancher (dirty/swept).
                       if (widget.wagonStage <= 1)
@@ -1046,6 +1075,28 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         top: h * 0.30,
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
+                      ),
+                      // 4f-bis. Daytime birds visible through windows.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.25,
+                        height: h * 0.35,
+                        child: DaytimeBirds(
+                          animation: _horizon,
+                          enabled: !widget.night,
+                        ),
+                      ),
+                      // 4f-ter. Rare distant animal silhouette (day only).
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.30,
+                        height: h * 0.30,
+                        child: DistantAnimal(
+                          animation: _horizon,
+                          enabled: !widget.night,
+                        ),
                       ),
                       // 4f-bis. Window rain/snow on rainy/snowy weather.
                       if (GameState.instance.weather == Weather.rainy ||

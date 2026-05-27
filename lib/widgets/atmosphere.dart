@@ -846,3 +846,406 @@ class _Dot extends StatelessWidget {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Daytime birds — silhouettes crossing the window band (right to left)
+// ---------------------------------------------------------------------------
+
+class DaytimeBirds extends StatelessWidget {
+  const DaytimeBirds({super.key, required this.animation, this.enabled = true});
+  final Animation<double> animation;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _DaytimeBirdsPainter(animation.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _DaytimeBirdsPainter extends CustomPainter {
+  _DaytimeBirdsPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int group = 0; group < 3; group++) {
+      final seed = group * 197.0;
+      final speed = 0.06 + (seed * 0.13 % 0.03);
+      final baseX = 1.2 - ((seed * 0.31 + t * speed) % 1.6);
+      final baseY = 0.2 + (seed * 0.17 % 0.5);
+      final count = 2 + (group % 2);
+
+      for (int b = 0; b < count; b++) {
+        final bSeed = b * 53.0 + seed;
+        final ox = baseX + (bSeed * 0.07 % 0.04) - 0.02;
+        final oy = baseY + (bSeed * 0.11 % 0.06) - 0.03;
+        final x = ox * size.width;
+        final y = oy * size.height;
+        final wing = math.sin(t * 8 + bSeed) * 4;
+        final opacity = 0.25 + (bSeed * 0.07 % 0.15);
+
+        final path = Path()
+          ..moveTo(x - 6, y + wing)
+          ..lineTo(x, y)
+          ..lineTo(x + 6, y + wing);
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = Color.fromRGBO(20, 20, 30, opacity)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DaytimeBirdsPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Distant animal — rare silhouette crossing slowly (day only)
+// ---------------------------------------------------------------------------
+
+class DistantAnimal extends StatelessWidget {
+  const DistantAnimal({super.key, required this.animation, this.enabled = true});
+  final Animation<double> animation;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _DistantAnimalPainter(animation.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _DistantAnimalPainter extends CustomPainter {
+  _DistantAnimalPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final speed = 0.008;
+    final x = 1.1 - ((t * speed) % 1.4);
+    final y = 0.55;
+    final px = x * size.width;
+    final py = y * size.height;
+    const opacity = 0.18;
+    final legPhase = math.sin(t * 2.5) * 2;
+
+    final paint = Paint()
+      ..color = const Color.fromRGBO(30, 25, 20, opacity)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.0)
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    canvas.save();
+    canvas.translate(px, py);
+    canvas.drawLine(const Offset(-8, 0), const Offset(8, -2), paint);
+    canvas.drawCircle(const Offset(10, -5), 2.5, paint);
+    canvas.drawLine(const Offset(9, -5), const Offset(8, -9), paint..strokeWidth = 1);
+    canvas.drawLine(const Offset(11, -5), const Offset(12, -9), paint);
+    paint.strokeWidth = 1.3;
+    canvas.drawLine(const Offset(-4, 0), Offset(-4 + legPhase, 6), paint);
+    canvas.drawLine(const Offset(-6, 0), Offset(-6 - legPhase, 6), paint);
+    canvas.drawLine(const Offset(4, -1), Offset(4 + legPhase * 0.8, 5), paint);
+    canvas.drawLine(const Offset(6, -1), Offset(6 - legPhase * 0.8, 5), paint);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_DistantAnimalPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Animated grass tufts on the foreground rail band
+// ---------------------------------------------------------------------------
+
+class AnimatedGrass extends StatelessWidget {
+  const AnimatedGrass({super.key, required this.animation});
+  final Animation<double> animation;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _GrassPainter(animation.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _GrassPainter extends CustomPainter {
+  _GrassPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i < 18; i++) {
+      final seed = i * 89.0;
+      final bx = (seed * 0.071) % 1.0;
+      final by = 0.3 + (seed * 0.13 % 0.5);
+      final x = bx * size.width;
+      final y = by * size.height;
+      final sway = math.sin(t * 2.0 + seed) * 3;
+      final h = 6.0 + (seed % 6);
+      final opacity = 0.25 + (seed * 0.03 % 0.15);
+
+      paint.color = Color.fromRGBO(50, 65, 30, opacity);
+      canvas.drawLine(Offset(x, y), Offset(x + sway, y - h), paint);
+      canvas.drawLine(Offset(x + 2, y), Offset(x + 2 + sway * 0.7, y - h * 0.8), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GrassPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Rail sparks — occasional orange particles from the rails
+// ---------------------------------------------------------------------------
+
+class RailSparks extends StatelessWidget {
+  const RailSparks({super.key, required this.animation, this.running = true});
+  final Animation<double> animation;
+  final bool running;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!running) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _RailSparksPainter(animation.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _RailSparksPainter extends CustomPainter {
+  _RailSparksPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int i = 0; i < 8; i++) {
+      final seed = i * 137.0;
+      final cycle = (t * 3.0 + seed) % 4.0;
+      if (cycle > 1.0) continue;
+
+      final x = (0.3 + (seed * 0.17 % 0.4)) * size.width;
+      final baseY = 0.15 * size.height;
+      final sparkY = baseY - cycle * 12;
+      final sparkX = x + (cycle * 6 * (i.isEven ? 1 : -1));
+      final opacity = (1.0 - cycle) * 0.8;
+      final r = 1.0 + (1.0 - cycle) * 1.5;
+
+      canvas.drawCircle(
+        Offset(sparkX, sparkY),
+        r,
+        Paint()..color = Color.fromRGBO(255, 160, 40, opacity),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RailSparksPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Scurrying animal — small critter crossing the rail band fast
+// ---------------------------------------------------------------------------
+
+class ScurryingAnimal extends StatelessWidget {
+  const ScurryingAnimal({super.key, required this.animation, this.running = true});
+  final Animation<double> animation;
+  final bool running;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!running) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _ScurryingAnimalPainter(animation.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScurryingAnimalPainter extends CustomPainter {
+  _ScurryingAnimalPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int i = 0; i < 2; i++) {
+      final seed = i * 311.0;
+      final speed = 0.12 + (seed * 0.07 % 0.05);
+      final x = ((seed * 0.41 + t * speed) % 2.0) - 0.5;
+      if (x < -0.1 || x > 1.1) continue;
+      final y = 0.4 + (seed * 0.19 % 0.3);
+      final px = x * size.width;
+      final py = y * size.height;
+      const opacity = 0.3;
+      final legPhase = math.sin(t * 12 + seed) * 2;
+
+      final paint = Paint()
+        ..color = const Color.fromRGBO(30, 25, 20, opacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.6);
+
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(px, py), width: 8, height: 4),
+        paint,
+      );
+      final tailWag = math.sin(t * 10 + seed) * 2;
+      canvas.drawLine(
+        Offset(px + 4, py),
+        Offset(px + 10, py - 1 + tailWag),
+        paint..strokeWidth = 0.8,
+      );
+      canvas.drawLine(Offset(px - 2, py + 2), Offset(px - 2 + legPhase, py + 5),
+          paint..strokeWidth = 0.8);
+      canvas.drawLine(Offset(px + 2, py + 2), Offset(px + 2 - legPhase, py + 5),
+          paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ScurryingAnimalPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Door steam — vapour wisps drifting in through the locomotive door
+// ---------------------------------------------------------------------------
+
+class DoorSteam extends StatelessWidget {
+  const DoorSteam({super.key, required this.animation, this.running = true});
+  final Animation<double> animation;
+  final bool running;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!running) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _DoorSteamPainter(animation.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _DoorSteamPainter extends CustomPainter {
+  _DoorSteamPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int i = 0; i < 6; i++) {
+      final seed = i * 71.0;
+      final cycle = (t * 0.5 + seed * 0.3) % 3.0;
+      final life = (cycle / 3.0).clamp(0.0, 1.0);
+      final x = size.width * (0.3 + life * 0.5);
+      final y = size.height * (0.3 + (seed * 0.11 % 0.3)) - life * size.height * 0.1;
+      final r = 4.0 + life * 12;
+      final opacity = (1.0 - life) * 0.12;
+
+      canvas.drawCircle(
+        Offset(x, y),
+        r,
+        Paint()
+          ..color = Color.fromRGBO(200, 200, 210, opacity)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.6),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DoorSteamPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Flying embers — orange sparks flying out from the firebox
+// ---------------------------------------------------------------------------
+
+class FlyingEmbers extends StatelessWidget {
+  const FlyingEmbers({super.key, required this.animation, this.intensity = 0.5});
+  final Animation<double> animation;
+  final double intensity;
+
+  @override
+  Widget build(BuildContext context) {
+    if (intensity <= 0) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _FlyingEmbersPainter(animation.value, intensity),
+        ),
+      ),
+    );
+  }
+}
+
+class _FlyingEmbersPainter extends CustomPainter {
+  _FlyingEmbersPainter(this.t, this.intensity);
+  final double t;
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final count = (6 * intensity).round().clamp(2, 10);
+    for (int i = 0; i < count; i++) {
+      final seed = i * 97.0;
+      final cycle = (t * 1.5 + seed * 0.4) % 2.5;
+      final life = (cycle / 2.5).clamp(0.0, 1.0);
+      final startX = size.width * 0.35;
+      final startY = size.height * 0.55;
+      final dx = life * size.width * 0.4;
+      final dy = -life * size.height * 0.3 + math.sin(t * 3 + seed) * 8;
+      final x = startX + dx;
+      final y = startY + dy;
+      final opacity = (1.0 - life) * 0.7;
+      final r = 1.0 + (1.0 - life) * 1.5;
+
+      canvas.drawCircle(
+        Offset(x, y),
+        r,
+        Paint()..color = Color.fromRGBO(255, 140, 20, opacity),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FlyingEmbersPainter old) => true;
+}
