@@ -193,47 +193,7 @@ class _MapScreenState extends State<MapScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          _stationAdjust
-              ? _buildAdjustableMap(path)
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    return InteractiveViewer(
-                      transformationController: _transformCtrl,
-                      minScale: 0.5,
-                      maxScale: 3.0,
-                      boundaryMargin: const EdgeInsets.all(200),
-                      child: SizedBox(
-                        width: constraints.maxWidth,
-                        height: constraints.maxHeight,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: Image.asset(
-                                'assets/background/map_route.png',
-                                fit: BoxFit.contain,
-                                errorBuilder: (_, e, __) {
-                                  debugPrint('map_route.png load failed: $e');
-                                  return const ColoredBox(
-                                      color: Color(0xFFB8945C));
-                                },
-                              ),
-                            ),
-                            Positioned.fill(
-                              child: CustomPaint(
-                                painter: _MapPainter(
-                                  path: path,
-                                  stations: _stations,
-                                  trainPosition: _displayPosition,
-                                  elapsed: _elapsed,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
+          _buildMap(path),
           SafeArea(
             child: Align(
               alignment: Alignment.topRight,
@@ -283,7 +243,7 @@ class _MapScreenState extends State<MapScreen>
     );
   }
 
-  Widget _buildAdjustableMap(_ArcPath path) {
+  Widget _buildMap(_ArcPath path) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final mapW = constraints.maxWidth;
@@ -294,6 +254,10 @@ class _MapScreenState extends State<MapScreen>
               child: Image.asset(
                 'assets/background/map_route.png',
                 fit: BoxFit.contain,
+                errorBuilder: (_, e, __) {
+                  debugPrint('map_route.png load failed: $e');
+                  return const ColoredBox(color: Color(0xFFB8945C));
+                },
               ),
             ),
             Positioned.fill(
@@ -303,88 +267,90 @@ class _MapScreenState extends State<MapScreen>
                   stations: _stations,
                   trainPosition: _displayPosition,
                   elapsed: _elapsed,
-                  hideStationLabels: true,
+                  hideStationLabels: _stationAdjust,
                 ),
               ),
             ),
-            for (int i = 0; i < _stations.length; i++)
-              Builder(builder: (_) {
-                final s = _stations[i];
-                final px = s.x * mapW;
-                final py = s.y * mapH;
-                return Positioned(
-                  left: px - 22,
-                  top: py - 22,
-                  child: GestureDetector(
-                    onPanStart: (_) => _dragIndex = i,
-                    onPanUpdate: (d) {
-                      setState(() {
-                        s.x = ((s.x * mapW + d.delta.dx) / mapW)
-                            .clamp(0.02, 0.98);
-                        s.y = ((s.y * mapH + d.delta.dy) / mapH)
-                            .clamp(0.02, 0.98);
-                        _invalidatePath();
-                      });
-                    },
-                    onPanEnd: (_) => _dragIndex = null,
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: _dragIndex == i
-                            ? const Color(0xCCFF6B00)
-                            : const Color(0x99D4A55A),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          s.big ? '★' : '•',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 16),
+            if (_stationAdjust) ...[
+              for (int i = 0; i < _stations.length; i++)
+                Builder(builder: (_) {
+                  final s = _stations[i];
+                  final px = s.x * mapW;
+                  final py = s.y * mapH;
+                  return Positioned(
+                    left: px - 22,
+                    top: py - 22,
+                    child: GestureDetector(
+                      onPanStart: (_) => _dragIndex = i,
+                      onPanUpdate: (d) {
+                        setState(() {
+                          s.x = ((s.x * mapW + d.delta.dx) / mapW)
+                              .clamp(0.02, 0.98);
+                          s.y = ((s.y * mapH + d.delta.dy) / mapH)
+                              .clamp(0.02, 0.98);
+                          _invalidatePath();
+                        });
+                      },
+                      onPanEnd: (_) => _dragIndex = null,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: _dragIndex == i
+                              ? const Color(0xCCFF6B00)
+                              : const Color(0x99D4A55A),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Center(
+                          child: Text(
+                            s.big ? '★' : '•',
+                            style: const TextStyle(
+                                color: Colors.white, fontSize: 16),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }),
-            Positioned(
-              left: 12,
-              top: 12,
-              child: SafeArea(
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Placement gares',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      for (final s in _stations)
-                        Text(
-                          '${s.name.padRight(20)} (${s.x.toStringAsFixed(3)}, ${s.y.toStringAsFixed(3)})',
-                          style: const TextStyle(
-                            color: Color(0xFFFFD9A0),
-                            fontSize: 10,
-                            fontFamily: 'Courier',
+                  );
+                }),
+              Positioned(
+                left: 12,
+                top: 12,
+                child: SafeArea(
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Placement gares',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                    ],
+                        const SizedBox(height: 4),
+                        for (final s in _stations)
+                          Text(
+                            '${s.name.padRight(20)} (${s.x.toStringAsFixed(3)}, ${s.y.toStringAsFixed(3)})',
+                            style: const TextStyle(
+                              color: Color(0xFFFFD9A0),
+                              fontSize: 10,
+                              fontFamily: 'Courier',
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
           ],
         );
       },
