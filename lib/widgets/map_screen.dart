@@ -195,35 +195,44 @@ class _MapScreenState extends State<MapScreen>
         children: [
           _stationAdjust
               ? _buildAdjustableMap(path)
-              : InteractiveViewer(
-                  transformationController: _transformCtrl,
-                  minScale: 0.5,
-                  maxScale: 3.0,
-                  boundaryMargin: const EdgeInsets.all(200),
-                  child: Center(
-                    child: Stack(
-                      children: [
-                        Image.asset(
-                          'assets/background/map_route.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, e, __) {
-                            debugPrint('map_route.png load failed: $e');
-                            return const ColoredBox(color: Color(0xFFB8945C));
-                          },
-                        ),
-                        Positioned.fill(
-                          child: CustomPaint(
-                            painter: _MapPainter(
-                              path: path,
-                              stations: _stations,
-                              trainPosition: _displayPosition,
-                              elapsed: _elapsed,
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    return InteractiveViewer(
+                      transformationController: _transformCtrl,
+                      minScale: 0.5,
+                      maxScale: 3.0,
+                      boundaryMargin: const EdgeInsets.all(200),
+                      child: SizedBox(
+                        width: constraints.maxWidth,
+                        height: constraints.maxHeight,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
+                              child: Image.asset(
+                                'assets/background/map_route.png',
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, e, __) {
+                                  debugPrint('map_route.png load failed: $e');
+                                  return const ColoredBox(
+                                      color: Color(0xFFB8945C));
+                                },
+                              ),
                             ),
-                          ),
+                            Positioned.fill(
+                              child: CustomPaint(
+                                painter: _MapPainter(
+                                  path: path,
+                                  stations: _stations,
+                                  trainPosition: _displayPosition,
+                                  elapsed: _elapsed,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 ),
           SafeArea(
             child: Align(
