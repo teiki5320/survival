@@ -39,24 +39,6 @@ final List<_Station> _stations = [
   _Station('Tunnel nord', 0.169, 0.553, locationId: 'tunnel_nord'),
 ];
 
-// Fixed track control points — rails stay locked to these positions.
-const List<Offset> _trackPoints = [
-  Offset(0.173, 0.448),
-  Offset(0.281, 0.368),
-  Offset(0.447, 0.350),
-  Offset(0.603, 0.353),
-  Offset(0.718, 0.372),
-  Offset(0.802, 0.418),
-  Offset(0.838, 0.516),
-  Offset(0.803, 0.598),
-  Offset(0.737, 0.643),
-  Offset(0.579, 0.660),
-  Offset(0.448, 0.663),
-  Offset(0.300, 0.651),
-  Offset(0.216, 0.612),
-  Offset(0.169, 0.553),
-];
-
 // ---------------------------------------------------------------------------
 // Catmull-Rom closed spline
 // ---------------------------------------------------------------------------
@@ -77,9 +59,10 @@ Offset _catmullRom(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
   );
 }
 
-List<Offset> _buildSpline(List<Offset> pts, {int stepsPerSeg = 50}) {
-  final n = pts.length;
-  if (n < 2) return List.of(pts);
+List<Offset> _buildSpline(List<_Station> stations, {int stepsPerSeg = 50}) {
+  final n = stations.length;
+  if (n < 2) return stations.map((s) => Offset(s.x, s.y)).toList();
+  final pts = stations.map((s) => Offset(s.x, s.y)).toList();
   final result = <Offset>[];
   for (int i = 0; i < n; i++) {
     final p0 = pts[(i - 1 + n) % n];
@@ -171,9 +154,14 @@ class _MapScreenState extends State<MapScreen>
   double _elapsed = 0;
   bool _stationAdjust = false;
   int? _dragIndex;
-  late final _ArcPath _trackPath = _ArcPath(_buildSpline(_trackPoints));
+  _ArcPath? _cachedPath;
 
-  _ArcPath _getPath() => _trackPath;
+  _ArcPath _getPath() {
+    _cachedPath ??= _ArcPath(_buildSpline(_stations));
+    return _cachedPath!;
+  }
+
+  void _invalidatePath() => _cachedPath = null;
 
   @override
   void initState() {
@@ -326,6 +314,7 @@ class _MapScreenState extends State<MapScreen>
                             .clamp(0.02, 0.98);
                         s.y = ((s.y * mapH + d.delta.dy) / mapH)
                             .clamp(0.02, 0.98);
+                        _invalidatePath();
                       });
                     },
                     onPanEnd: (_) => _dragIndex = null,
