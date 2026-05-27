@@ -317,7 +317,8 @@ class _MapScreenState extends State<MapScreen>
                 left: 12,
                 top: 12,
                 child: SafeArea(
-                  child: Container(
+                  child: IgnorePointer(
+                    child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.85),
@@ -347,6 +348,7 @@ class _MapScreenState extends State<MapScreen>
                           ),
                       ],
                     ),
+                  ),
                   ),
                 ),
               ),
