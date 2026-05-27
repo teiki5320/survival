@@ -66,6 +66,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inWardrobe = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   double _dogHeight = 0.136;
+  int _dogInteractCount = 0;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -436,7 +437,12 @@ class _WagonScreenState extends State<WagonScreen> {
     } else if (_atDog) {
       icon = Icons.pets;
       action = () {
-        _triggerSpecial('pet_dog', frames: 25);
+        _dogInteractCount++;
+        if (_dogInteractCount.isOdd) {
+          _triggerSpecial('pet_dog', frames: 49);
+        } else {
+          _triggerSpecial('crouch', frames: 49);
+        }
         GameState.instance.restoreFatigue(0.05);
       };
     } else if (_atStove) {

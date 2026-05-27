@@ -1120,22 +1120,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     qu'elle puisse passer devant.
                       for (final def in _propDefs)
                         _buildProp(def: def, w: w, h: h),
-                      // 4g-bis. Chien autonome : sa propre state machine
-                      //     (idle → walk → sleep → ...) qui choisit sa
-                      //     prochaine action toutes les quelques secondes.
-                      _DogActor(
-                        w: w,
-                        h: h,
-                        height: widget.dogHeight,
-                        topFrac: _dogTop,
-                        xMin: _dogXMin,
-                        xMax: _dogXMax,
-                        tint: _nightTint,
-                        bowlX: _propPos['bowl']!.left,
-                        isBowlFull: () => _bowlFull,
-                        onAteFromBowl: () =>
-                            setState(() => _bowlFull = false),
-                      ),
+                      // 4g-bis. Chien statique (dog_idle) ou animé
+                      //     pendant les interactions (crouch → wag_tail).
+                      if (_activeSpecial != 'pet_dog')
+                        _buildStaticDog(w, h),
                       // 4c. Lamp glow when lamp is on.
                       if (GameState.instance.lampOn)
                         Positioned.fill(
@@ -1377,6 +1365,38 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
+
+  int _dogAnimFrame = 0;
+
+  Widget _buildStaticDog(double w, double h) {
+    final dogH = h * widget.dogHeight;
+    final dogW = dogH;
+    final dogX = 0.525 * w;
+    final feetY = h * 0.79;
+
+    if (_activeSpecial == 'crouch') {
+      _dogAnimFrame = (_dogAnimFrame + 1) % 25;
+      final frame = _dogAnimFrame + 1;
+      final asset = 'assets/objects/dog_wag_tail_$frame.png';
+      return Positioned(
+        left: dogX - dogW * 0.3,
+        top: feetY - dogH * 0.8,
+        width: dogW,
+        height: dogH,
+        child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+      );
+    }
+
+    return Positioned(
+      left: dogX - dogW / 2,
+      top: feetY - dogH * 0.75,
+      width: dogW,
+      height: dogH,
+      child: _nightTint(
+        Image.asset('assets/objects/dog_idle.png', fit: BoxFit.contain),
+      ),
+    );
+  }
 
   Widget _buildHeroine(double w, double h) {
     // Wagon's interior floor sits roughly at this Y.
