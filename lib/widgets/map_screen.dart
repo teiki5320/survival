@@ -303,8 +303,8 @@ class _MapScreenState extends State<MapScreen>
                   final px = pos.dx * mapW;
                   final py = pos.dy * mapH;
                   return Positioned(
-                    left: px - 22,
-                    top: py - 22,
+                    left: px - 16,
+                    top: py - 16,
                     child: GestureDetector(
                       onPanStart: (_) => _dragIndex = i,
                       onPanUpdate: (d) {
@@ -320,8 +320,8 @@ class _MapScreenState extends State<MapScreen>
                       },
                       onPanEnd: (_) => _dragIndex = null,
                       child: Container(
-                        width: 44,
-                        height: 44,
+                        width: 32,
+                        height: 32,
                         decoration: BoxDecoration(
                           color: _dragIndex == i
                               ? const Color(0xCCFF6B00)
@@ -410,80 +410,11 @@ class _MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Shadow silhouettes behind track
     _drawShadowSilhouettes(canvas, size);
 
-    // Track
-    _drawTrack(canvas, size);
-
-    // Stations + train
     if (!hideStationLabels) _drawStations(canvas, size);
     _drawSmokeTrail(canvas, size);
     _drawTrain(canvas, size);
-  }
-
-  // ---- Track (spline rails) ----
-
-  void _drawTrack(Canvas canvas, Size size) {
-    if (path.points.length < 2) return;
-    final trackPath = Path();
-    final first = _px(path.points.first, size);
-    trackPath.moveTo(first.dx, first.dy);
-    for (int i = 1; i < path.points.length; i++) {
-      final p = _px(path.points[i], size);
-      trackPath.lineTo(p.dx, p.dy);
-    }
-    trackPath.close();
-
-    // Rail bed shadow
-    canvas.drawPath(
-      trackPath,
-      Paint()
-        ..color = const Color(0x44000000)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 18
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-    // Rail bed (bois)
-    canvas.drawPath(
-      trackPath,
-      Paint()
-        ..color = const Color(0xFF6B4226)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 11
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-    // Rails
-    canvas.drawPath(
-      trackPath,
-      Paint()
-        ..color = const Color(0xFF8B6914)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round,
-    );
-
-    // Ties
-    final tieCount = 100;
-    final tiePaint = Paint()
-      ..color = const Color(0xFF4A3520)
-      ..strokeWidth = 3
-      ..strokeCap = StrokeCap.round;
-    for (int i = 0; i < tieCount; i++) {
-      final t = i / tieCount;
-      final p = _px(path.at(t), size);
-      final angle = path.tangent(t);
-      final perpX = math.cos(angle + math.pi / 2) * 6;
-      final perpY = math.sin(angle + math.pi / 2) * 6;
-      canvas.drawLine(
-        Offset(p.dx - perpX, p.dy - perpY),
-        Offset(p.dx + perpX, p.dy + perpY),
-        tiePaint,
-      );
-    }
   }
 
   // ---- Stations ----
@@ -493,7 +424,7 @@ class _MapPainter extends CustomPainter {
       final p = _px(path.at(s.t), size);
       final unlocked = s.locationId != null &&
           GameState.instance.isLocationUnlocked(s.locationId!);
-      final radius = s.big ? 8.0 : 5.0;
+      final radius = s.big ? 10.0 : 6.0;
 
       canvas.drawCircle(p, radius + 2, Paint()..color = const Color(0x44000000));
       canvas.drawCircle(
@@ -517,14 +448,21 @@ class _MapPainter extends CustomPainter {
           text: s.name,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.9),
-            fontSize: s.big ? 11 : 9,
+            fontSize: s.big ? 13 : 11,
             fontWeight: s.big ? FontWeight.bold : FontWeight.normal,
-            shadows: const [Shadow(color: Colors.black, blurRadius: 4)],
+            shadows: const [
+              Shadow(color: Colors.black, blurRadius: 4),
+              Shadow(color: Colors.black, blurRadius: 8),
+            ],
           ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
-      tp.paint(canvas, Offset(p.dx - tp.width / 2, p.dy + radius + 4));
+      final labelAbove = p.dy > size.height * 0.55;
+      final labelY = labelAbove
+          ? p.dy - radius - 4 - tp.height
+          : p.dy + radius + 4;
+      tp.paint(canvas, Offset(p.dx - tp.width / 2, labelY));
     }
   }
 
@@ -555,10 +493,10 @@ class _MapPainter extends CustomPainter {
 
     canvas.drawCircle(
       p,
-      20,
+      28,
       Paint()
-        ..color = const Color(0x44FF6B00)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+        ..color = const Color(0x55FF6B00)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16),
     );
     canvas.save();
     canvas.translate(p.dx, p.dy);
@@ -566,19 +504,19 @@ class _MapPainter extends CustomPainter {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-          const Rect.fromLTWH(-14, -6, 28, 12), const Radius.circular(3)),
+          const Rect.fromLTWH(-20, -9, 40, 18), const Radius.circular(4)),
       Paint()..color = const Color(0xFFD4440F),
     );
     canvas.drawRect(
-        const Rect.fromLTWH(-14, -6, 10, 12), Paint()..color = const Color(0xFF8B2500));
+        const Rect.fromLTWH(-20, -9, 14, 18), Paint()..color = const Color(0xFF8B2500));
     canvas.drawRect(
-        const Rect.fromLTWH(8, -10, 4, 4), Paint()..color = const Color(0xFF2A2A2A));
+        const Rect.fromLTWH(12, -14, 5, 5), Paint()..color = const Color(0xFF2A2A2A));
     final wp = Paint()..color = const Color(0xFF1A1A1A);
-    canvas.drawCircle(const Offset(-8, 6), 3, wp);
-    canvas.drawCircle(const Offset(0, 6), 3, wp);
-    canvas.drawCircle(const Offset(8, 6), 3, wp);
+    canvas.drawCircle(const Offset(-12, 9), 4, wp);
+    canvas.drawCircle(const Offset(0, 9), 4, wp);
+    canvas.drawCircle(const Offset(12, 9), 4, wp);
     canvas.drawRect(
-        const Rect.fromLTWH(-12, -4, 6, 6), Paint()..color = const Color(0xFFFFD080));
+        const Rect.fromLTWH(-17, -6, 8, 8), Paint()..color = const Color(0xFFFFD080));
 
     canvas.restore();
   }
@@ -594,12 +532,11 @@ class _MapPainter extends CustomPainter {
   }
 
   void _drawZombieSilhouettes(Canvas canvas, Size size, double t) {
-    // 6 zombies shambling across the cold zone (top half)
     for (int i = 0; i < 6; i++) {
       final seed = i * 127.0;
       final speed = 0.012 + (seed * 0.17 % 0.008);
       final x = ((seed * 0.41 + t * speed) % 1.4) - 0.2;
-      final baseY = 0.12 + (seed * 0.23 % 0.22);
+      final baseY = 0.32 + (seed * 0.23 % 0.12);
       final h = 14.0 + (seed % 8);
       final px = x * size.width;
       final py = baseY * size.height;
@@ -643,7 +580,7 @@ class _MapPainter extends CustomPainter {
       final facingLeft = i.isEven;
       final rawX = (seed * 0.37 + t * speed) % 1.4;
       final x = facingLeft ? 1.2 - rawX : rawX - 0.2;
-      final baseY = 0.58 + (seed * 0.19 % 0.22);
+      final baseY = 0.62 + (seed * 0.19 % 0.12);
       final px = x * size.width;
       final py = baseY * size.height;
       final opacity = 0.18 + (seed * 0.11 % 0.12);
@@ -690,7 +627,7 @@ class _MapPainter extends CustomPainter {
       final seed = i * 83.0 + 500;
       final speed = 0.04 + (seed * 0.11 % 0.02);
       final x = ((seed * 0.43 + t * speed) % 1.6) - 0.3;
-      final baseY = 0.42 + (seed * 0.31 % 0.45);
+      final baseY = 0.55 + (seed * 0.31 % 0.25);
       final px = x * size.width;
       final py = baseY * size.height;
       final opacity = 0.12 + (seed * 0.07 % 0.1);
@@ -716,8 +653,8 @@ class _MapPainter extends CustomPainter {
     // Crows — 5, circling in the sky
     for (int i = 0; i < 5; i++) {
       final seed = i * 67.0 + 300;
-      final cx = 0.15 + (seed * 0.23 % 0.70);
-      final cy = 0.08 + (seed * 0.17 % 0.20);
+      final cx = 0.25 + (seed * 0.23 % 0.50);
+      final cy = 0.15 + (seed * 0.17 % 0.12);
       final radius = 0.04 + (seed * 0.11 % 0.03);
       final angle = t * (0.3 + i * 0.1) + seed;
       final x = (cx + math.cos(angle) * radius) * size.width;
