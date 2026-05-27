@@ -20,9 +20,9 @@ honey browns / cream / soft amber dedans, cold blue / pale fog dehors.
 **État actuel** : prototype visuel solide + boucle CI/CD opérationnelle.
 Animations 49-frames : 13 héroïne câblées dans le code + 5 assets prêts non
 intégrés (cook, drink, garden_tend, pet_dog, wake_up_clean) + 8 anims chien.
-Locomotive scène + carte du monde + events narratifs câblés. HUD survie
-(hunger/thirst/fatigue) + cycle météo auto. Mécaniques de progression /
-sauvegarde à construire.
+Locomotive scène + carte du monde (spline libre + 14 gares + silhouettes
+ombres animées) + events narratifs câblés. HUD survie (hunger/thirst/fatigue)
++ cycle météo auto zonée (chaud/froid). Sauvegarde dart:io JSON implémentée.
 
 ---
 
@@ -33,15 +33,17 @@ sauvegarde à construire.
 - **Branche** : **`main` uniquement**. L'utilisateur a explicitement dit de
   bosser direct sur main, pas de branches Claude. **NE PAS** créer de branche
   `claude/<feature>`.
-- **CI** : Xcode Cloud watchait `main` (build + upload TestFlight auto). À
-  date l'utilisateur a **désactivé** la distribution auto sur xcloud pour
-  économiser les quotas TestFlight.
+- **CI** : Xcode Cloud watch `main` (build auto à chaque push). La
+  distribution TestFlight auto est **désactivée** pour économiser les quotas.
 - **Xcode Cloud "Archive - iOS" en rouge** : ouvrir l'onglet **Erreur**
   pour voir le message. Si c'est **"Preparing build for App Store
   Connect failed"** → c'est l'étape d'upload TestFlight qui rejette
   (version déjà présente). Fix : **bump `version:` dans `pubspec.yaml`**
-  (incrémenter le `+N` au minimum, ex `0.11.10+11` → `0.11.11+12`) puis
+  (incrémenter le `+N` au minimum, ex `0.12.4+46` → `0.12.5+47`) puis
   re-push.
+- Si c'est **"Command PhaseScriptExecution failed"** → c'est une erreur
+  de compilation Dart. Ouvrir les **Journaux** (logs complets) et chercher
+  les lignes `Error:` du Dart compiler. Fixer le code et re-push.
 - **Bundle ID iOS** : `com.teiki5320.trainCosy`.
 - **App Store Connect** : app créée, TestFlight Internal Testing actif.
 - **Flutter** : projet scaffold via `flutter create`, dossier `ios/` committé.
@@ -52,8 +54,10 @@ sauvegarde à construire.
 - **iOS 26 beta + debug mode** : crash `EXC_BAD_ACCESS` au launch (JIT). La
   parade c'est **toujours `flutter run --release`**. Le release mode AOT
   fonctionne sans souci.
-- **Version actuelle** : `0.11.10+11` dans `pubspec.yaml`.
+- **Version actuelle** : `0.12.5+47` dans `pubspec.yaml`.
 - **Dépendances** : `audioplayers: ^6.1.0`, `cupertino_icons: ^1.0.6`.
+  **Pas de shared_preferences** — la sauvegarde utilise `dart:io` pur
+  (File JSON dans `~/Documents/train_cosy_save.json`).
 
 ## Règles de commit / push
 
@@ -63,6 +67,8 @@ sauvegarde à construire.
 - Si t'enchaînes plusieurs petits fixes liés sur le même sujet, empile dans
   un seul commit.
 - Push direct sur `main` (`git push -u origin main`), pas de PR à créer.
+- **Toujours bumper la version** (`+N` au minimum) à chaque push pour éviter
+  les rejets Xcode Cloud.
 
 ---
 
@@ -124,17 +130,20 @@ the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
 
 ## Architecture côté code
 
-- `lib/main.dart` (586 l.) — App + `WagonScreen` qui héberge tout (state
+- `lib/main.dart` (~630 l.) — App + `WagonScreen` qui héberge tout (state
   machine entre wagon / locomotive / map, FABs droite pour toggles + actions,
   HUD survie hunger/thirst/fatigue).
-- `lib/widgets/side_scroll_scene.dart` (1958 l.) — Scène wagon (parallax
+- `lib/widgets/side_scroll_scene.dart` (~2280 l.) — Scène wagon (parallax
   sky/horizon/rails, wagon image, héroïne + chien avec state machine, bed
-  adjust mode, horizon adjust mode, action buttons contextuels).
-- `lib/widgets/locomotive_scene.dart` (575 l.) — Cabine locomotive avec
+  adjust mode, horizon adjust mode, stove adjust mode avec animDx/animDy,
+  action buttons contextuels).
+- `lib/widgets/locomotive_scene.dart` (~600 l.) — Cabine locomotive avec
   script de ramassage de bûches (idle → walk to woodpile → pickup → carry →
   throw → warm_hands près du feu).
-- `lib/widgets/map_screen.dart` (50 l.) — Carte du monde, ultra-minimal
-  (image + close button).
+- `lib/widgets/map_screen.dart` (~820 l.) — Carte du monde : 14 gares en
+  placement libre (x,y), tracé Catmull-Rom fermé arc-length paramétrisé,
+  silhouettes ombres animées (zombies zone froide, loups/rats zone chaude,
+  corbeaux ciel), mode adjust drag libre, HUD zone/ETA.
 - `lib/widgets/location_event_screen.dart` (363 l.) — Dialog full-screen
   avec question + choices + outcome.
 - `lib/widgets/atmosphere.dart` (848 l.) — DustParticles, Fireflies,
@@ -145,10 +154,12 @@ the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
 - `lib/widgets/wardrobe_screen.dart` (195 l.) — Sélection de tenues.
   Framework prêt, 1 outfit actif (chemise blanche). Structure pensée pour
   49 frames par tenue.
-- `lib/models/game_state.dart` (182 l.) — Singleton `ChangeNotifier` :
+- `lib/models/game_state.dart` (~320 l.) — Singleton `ChangeNotifier` :
   énergie (max 5, refill +1/min), barres survie (hunger vide en 30 min,
-  thirst 20 min, fatigue 45 min), météo auto (cycle 30 s), lampe toggle,
-  inventaire map, flags set, unlocked locations set.
+  thirst 20 min, fatigue 45 min), météo auto zonée (chaud/froid, cycle
+  5 min), train route (position 0→1, boucle 60 min), lampe toggle,
+  inventaire map, flags set, unlocked locations set. **Sauvegarde** via
+  `dart:io` File JSON (zéro plugin natif), auto-save toutes les ~150s.
 - `lib/services/audio_service.dart` (129 l.) — Singleton audio. Wrappers
   `_safe()` qui swallow les exceptions sur asset manquant. Fonctionnel
   quand les fichiers audio sont présents, silencieux sinon.
@@ -164,6 +175,10 @@ the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
   **NE PAS toucher**, réglé via l'adjust mode.
 - Horizon adjust mode accessible via FAB landscape. Défauts bakés :
   `_horizonTop = 0.0`, `_horizonBottom = 0.179`.
+- **Stove adjust mode** : double-tap sur la gazinière. Contrôles
+  left/top/width/height + **animDx/animDy** pour décaler l'animation
+  sans bouger la hitbox. La stove utilise `BoxFit.fill` (les autres props
+  utilisent `BoxFit.contain`) pour permettre un ratio non-carré.
 - 49 frames par anim, **13 anims héroïne câblées** : walk_right, idle_right,
   sleep_right, dance, pickup, yawn, stretch, look_window, read, wake_up,
   door_push, warm_hands, carry_walk.
@@ -175,6 +190,9 @@ the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
 - `sourceFacesLeft = {'warm_hands'}` en locomotive : ces sprites face déjà
   à gauche, ne PAS mirror.
 - door_push en wagon est rendu sans mirror.
+- **Props actifs dans le wagon** (9) : hydro, lamp, stove, filter, table,
+  notebook, firstaid, commode, bowl. **Retirés** (2026-05-27) : plant,
+  lights (guirlande), rug (tapis).
 - **Chien** : 8 anims (bark, eat, head_tilt, idle, lay_down, sleep,
   stretch_yawn, wag_tail, walk). Frames dans `assets/objects/dog_*.png`.
 
@@ -184,6 +202,24 @@ the web** n'y a pas accès. Ne pas reproposer l'install MCP côté web.
 - Heroine height : `h * 0.44`.
 - Woodpile à x=0.70, firebox à x=0.30.
 - `FireboxFlames + FireGlow` à `(0.17, 0.66)` puis `(0.17, 0.72)`.
+- Pickup mirror : `shouldMirror = _action == _LocoAction.throwing`.
+  Le sprite pickup se penche à droite par défaut (vers le woodpile).
+  Mirror seulement pour le throw (pencher à gauche vers le firebox).
+
+### Carte du monde (map_screen.dart)
+
+- **14 gares** en placement libre (x,y normalisés 0→1). Mode adjust :
+  drag libre + HUD coordonnées. Les positions ne sont PAS persistées
+  (reset au relancement), c'est un outil de placement dev.
+- **Tracé** : Catmull-Rom fermée à travers les gares dans l'ordre,
+  arc-length parameterization pour vitesse constante. Rails marron
+  bois (#6B4226), largeur 11px, traverses 100 unités.
+- **Silhouettes ombres animées** : 6 zombies (zone froide, titubent),
+  3 loups + 4 rats (zone chaude), 5 corbeaux (ciel). Tout en
+  CustomPaint procédural, rendu à chaque frame via Ticker.
+- **HUD** : zone (froide/chaude/transition) + prochaine gare + ETA.
+- Le train avance à trainPosition (0→1) sur la spline. La position
+  vient de `GameState.trainPosition` (boucle 60 min = kLoopDurationSeconds).
 
 ---
 
@@ -218,12 +254,15 @@ walk (49 fr). + idle statique.
 **Backgrounds** : wagon variants (dirty / swept / windowed / clean), sky /
 sky_night, horizon_a / horizon_b / horizon_c / horizon_night (rotate toutes
 les 45 s avec crossfade 2 s), locomotive (cab vue de côté), wagon_rails,
-foreground_band, map.
+foreground_band, map_route.
 
 **Objets statiques** : bed, bowl_empty, bowl_full, commode, dog_idle,
-firstaid, garden, notebook, plaid, plant, rug, table.
+firstaid, garden, notebook, table.
+**Assets retirés de la scène** (2026-05-27) : plant, rug, lights
+(guirlande). Les PNGs existent toujours dans assets/objects/.
 
-**Objets animés (49 frames)** : filter, hydro, lamp, lights, stove.
+**Objets animés** : filter (49 fr), hydro (49 fr), lamp (49 fr),
+stove (25 fr).
 
 **Icon** : `assets/icon/app_icon.png` (+ tailles générées).
 
@@ -237,12 +276,13 @@ firstaid, garden, notebook, plaid, plant, rug, table.
 
 ### Priorité haute — mécaniques core
 
-1. **Sauvegarde d'état (SharedPreferences)**. `GameState` est 100% en mémoire.
-   Tout reset à chaque lancement. Implémenter `save()` / `load()` avec
-   sérialisation JSON. Zéro code de persistance à ce jour.
-2. **Cycle jour/nuit narratif**. Le cycle météo actuel (30 s) est un
-   placeholder dev. Passer à un vrai rythme jour/nuit (5-10 min réelles)
-   avec transition visuelle sky/sky_night + comportements héroïne liés.
+1. **Sauvegarde d'état** — ✅ FAIT (2026-05-27). `dart:io` File JSON pur,
+   zéro plugin natif. Save auto + save sur actions clés. À améliorer :
+   sauvegarder aussi les positions de props (stove adjust, etc.).
+2. **Cycle jour/nuit narratif**. Le cycle météo actuel (5 min) est couplé
+   aux zones chaudes/froides du train. Manque un vrai rythme jour/nuit
+   (5-10 min réelles) avec transition visuelle sky/sky_night +
+   comportements héroïne liés.
 3. **Audio assets**. Dropper les fichiers dans `assets/audio/`. Le code est
    prêt (`audio_service.dart`), il attend juste les mp3.
 4. **Brancher les 5 anims en attente**. cook, drink, garden_tend, pet_dog,
@@ -259,9 +299,10 @@ firstaid, garden, notebook, plaid, plant, rug, table.
 7. **Mécanique vêtements**. Wardrobe screen existe (1 tenue, sprite
    statique front). Ajouter les assets de tenues supplémentaires (chaque =
    49 frames × N anims) + logique de déblocage.
-8. **Plus de Locations + chaînes de Questions**. 3 locations actuelles avec
-   `backgrounds: [null]` (placeholders procéduraux, pas d'images). Écrire
-   le contenu narratif + générer les images de fond par lieu.
+8. **Plus de Locations + chaînes de Questions**. 3 locations dans world.dart +
+   5 nouvelles gares ajoutées à la carte (oasis_perdue, tour_de_guet,
+   tunnel_nord, camp_refuge, pont_suspendu). `backgrounds: [null]` partout
+   = placeholders procéduraux. Écrire le contenu narratif + images de fond.
 
 ### Priorité basse — polish & contenu
 
@@ -277,6 +318,9 @@ firstaid, garden, notebook, plaid, plant, rug, table.
 12. **Objets encore absents de la roadmap**. Radio à manivelle, sac à dos,
     jarres de germination, bocaux.
 13. **Close-ground parallax** — **abandonné définitivement**, ne PAS ramener.
+14. **Persistance positions gares carte**. Les positions (x,y) des 14 gares
+    sont hard-codées et reset au relancement. À sauvegarder si on veut
+    garder le placement custom de l'utilisateur.
 
 ---
 
