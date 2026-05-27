@@ -70,8 +70,7 @@ class _WagonScreenState extends State<WagonScreen> {
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
   bool _doorPushing = false;
-  // Bumped on door-action tap; the wagon scene plays door_push and
-  // calls back when done, at which point we cross-fade to locomotive.
+  bool _doorPushRight = false;
   int _doorPushToken = 0;
   // Mirror of the heroine's X position. `_heroX` change quand le perso
   // bouge (60Hz) — pour éviter un setState à chaque tick qui rebuild
@@ -152,6 +151,17 @@ class _WagonScreenState extends State<WagonScreen> {
     if (_doorPushing) return;
     setState(() {
       _doorPushing = true;
+      _doorPushRight = false;
+      _doorPushToken++;
+    });
+    _audio.playSfx('door_open');
+  }
+
+  void _openMapDoor() {
+    if (_doorPushing) return;
+    setState(() {
+      _doorPushing = true;
+      _doorPushRight = true;
       _doorPushToken++;
     });
     _audio.playSfx('door_open');
@@ -159,11 +169,18 @@ class _WagonScreenState extends State<WagonScreen> {
 
   void _onDoorPushDone() {
     if (!mounted) return;
-    setState(() {
-      _doorPushing = false;
-      _inLocomotive = true;
-    });
-    _audio.startFire();
+    if (_doorPushRight) {
+      setState(() {
+        _doorPushing = false;
+        _onMap = true;
+      });
+    } else {
+      setState(() {
+        _doorPushing = false;
+        _inLocomotive = true;
+      });
+      _audio.startFire();
+    }
   }
 
   void _exitLocomotive() {
@@ -229,6 +246,7 @@ class _WagonScreenState extends State<WagonScreen> {
             cookToken: _cookToken,
             logsThrown: _logsThrown,
             doorPushToken: _doorPushToken,
+            doorPushRight: _doorPushRight,
             onDoorPushDone: _onDoorPushDone,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
             dogHeight: _dogHeight,
@@ -397,9 +415,9 @@ class _WagonScreenState extends State<WagonScreen> {
     if (_atLeftDoor && !_doorPushing) {
       icon = Icons.meeting_room;
       action = _enterLocomotive;
-    } else if (_atRightDoor) {
+    } else if (_atRightDoor && !_doorPushing) {
       icon = Icons.map;
-      action = () => setState(() => _onMap = true);
+      action = _openMapDoor;
     } else if (_atBed) {
       icon = Icons.bed;
       action = () => setState(() => _lieDownToken++);

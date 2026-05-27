@@ -34,6 +34,7 @@ class SideScrollScene extends StatefulWidget {
     this.onHeroXChanged,
     this.logsThrown = 0,
     this.doorPushToken = 0,
+    this.doorPushRight = false,
     this.onDoorPushDone,
     this.onOpenWardrobe,
     this.dogHeight = 0.136,
@@ -74,8 +75,8 @@ class SideScrollScene extends StatefulWidget {
   /// once and calls [onDoorPushDone] when it finishes — at which point
   /// the parent transitions to the locomotive screen.
   final int doorPushToken;
+  final bool doorPushRight;
 
-  /// Fired when the door-push animation completes — see [doorPushToken].
   final VoidCallback? onDoorPushDone;
 
   /// Fired when the user taps the commode (wardrobe). The parent opens
@@ -335,10 +336,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Door-push: short one-shot animation played when entering the
   // locomotive. Fires onDoorPushDone when complete.
   bool _doorPushing = false;
+  bool _doorPushRight = false;
   int _doorFrame = 0;
   int _doorAccumMs = 0;
-  static const int _doorFrameMs = 33;
-  static const int _doorMaxFrames = 15;
+  static const int _doorFrameMs = 50;
+  static const int _doorMaxFrames = 20;
   int _sleepFrame = 0;
   int _danceFrame = 0;
   Duration _lastTick = Duration.zero;
@@ -564,6 +566,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (oldWidget.doorPushToken != widget.doorPushToken) {
       setState(() {
         _doorPushing = true;
+        _doorPushRight = widget.doorPushRight;
         _doorFrame = 0;
         _doorAccumMs = 0;
         _heroTarget = null;
@@ -1434,7 +1437,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       prefix = _activeSpecial!;
       frame = _specialFrame;
     } else if (_doorPushing) {
-      prefix = 'door_push';
+      prefix = 'open_door';
       frame = _doorFrame;
     } else if (_waking) {
       prefix = _wakingPhase == 0 ? 'wake_up' : 'stretch';
@@ -1473,8 +1476,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     //    jamais flippés.
     //  - sinon : mirror quand le perso regarde à gauche.
     final bool shouldMirror;
-    if (prefix == 'door_push') {
-      shouldMirror = true;
+    if (prefix == 'open_door') {
+      shouldMirror = !_doorPushRight;
     } else if (m.noMirror) {
       shouldMirror = false;
     } else {

@@ -135,12 +135,13 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // Drive the scripted log-loading sequence first; falls through to
     // free-walk + idle below when _action is idle.
     if (_action == _LocoAction.pickingUp || _action == _LocoAction.throwing) {
+      const actionMaxFrames = 20;
       setState(() {
         _actionAccumMs += dtMs;
         while (_actionAccumMs >= _actionFrameMs) {
           _actionAccumMs -= _actionFrameMs;
           _actionFrame++;
-          if (_actionFrame >= _heroFrameCount) {
+          if (_actionFrame >= actionMaxFrames) {
             _onActionAnimDone();
             return;
           }
@@ -281,13 +282,12 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     int frame;
     switch (_action) {
       case _LocoAction.pickingUp:
-        prefix = 'pickup';
-        frame = _actionFrame;
+        prefix = 'open_door';
+        frame = _actionFrame.clamp(0, 19);
         break;
       case _LocoAction.throwing:
-        // Reverse the pickup frames so it reads as "stand up + drop".
-        prefix = 'pickup';
-        frame = _heroFrameCount - 1 - _actionFrame;
+        prefix = 'open_door';
+        frame = (19 - _actionFrame).clamp(0, 19);
         break;
       case _LocoAction.carryingToFire:
         prefix = 'carry_walk';
@@ -311,7 +311,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
 
     final m = animMetricsFor(prefix);
     final bool shouldMirror;
-    if (prefix == 'pickup') {
+    if (prefix == 'open_door') {
       shouldMirror = _action == _LocoAction.throwing;
     } else if (m.noMirror) {
       shouldMirror = false;
