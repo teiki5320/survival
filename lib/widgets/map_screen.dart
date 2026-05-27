@@ -253,7 +253,7 @@ class _MapScreenState extends State<MapScreen>
             Positioned.fill(
               child: Image.asset(
                 'assets/background/map_route.png',
-                fit: BoxFit.contain,
+                fit: BoxFit.fill,
                 errorBuilder: (_, e, __) {
                   debugPrint('map_route.png load failed: $e');
                   return const ColoredBox(color: Color(0xFFB8945C));
