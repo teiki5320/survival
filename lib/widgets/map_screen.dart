@@ -20,23 +20,23 @@ class _Station {
 }
 
 final List<_Station> _stations = [
-  _Station('Station abandonnée', 0.264, 0.372,
+  _Station('Station abandonnée', 0.239, 0.291,
       big: true, locationId: 'station_abandonnee'),
-  _Station('Halte 47', 0.374, 0.350),
-  _Station('Dépôt ferroviaire', 0.479, 0.354,
+  _Station('Halte 47', 0.337, 0.248),
+  _Station('Dépôt ferroviaire', 0.492, 0.246,
       big: true, locationId: 'depot_ferroviaire'),
-  _Station('Halte 12', 0.625, 0.356),
-  _Station('Village fantôme', 0.737, 0.377,
+  _Station('Halte 12', 0.636, 0.251),
+  _Station('Village fantôme', 0.769, 0.312,
       big: true, locationId: 'village_fantome'),
   _Station('Halte 83', 0.816, 0.427),
-  _Station('Camp-refuge', 0.836, 0.531, locationId: 'camp_refuge'),
-  _Station('Pont suspendu', 0.762, 0.630, locationId: 'pont_suspendu'),
-  _Station('Halte 9', 0.656, 0.656),
-  _Station('Oasis perdue', 0.523, 0.659, locationId: 'oasis_perdue'),
-  _Station('Halte 31', 0.396, 0.660),
-  _Station('Tour de guet', 0.271, 0.642, locationId: 'tour_de_guet'),
+  _Station('Camp-refuge', 0.830, 0.630, locationId: 'camp_refuge'),
+  _Station('Pont suspendu', 0.734, 0.738, locationId: 'pont_suspendu'),
+  _Station('Halte 9', 0.629, 0.760),
+  _Station('Oasis perdue', 0.515, 0.778, locationId: 'oasis_perdue'),
+  _Station('Halte 31', 0.370, 0.778),
+  _Station('Tour de guet', 0.248, 0.732, locationId: 'tour_de_guet'),
   _Station('Halte 6', 0.163, 0.547),
-  _Station('Tunnel nord', 0.178, 0.438, locationId: 'tunnel_nord'),
+  _Station('Tunnel nord', 0.177, 0.377, locationId: 'tunnel_nord'),
 ];
 
 // ---------------------------------------------------------------------------
