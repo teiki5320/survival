@@ -135,7 +135,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // Drive the scripted log-loading sequence first; falls through to
     // free-walk + idle below when _action is idle.
     if (_action == _LocoAction.pickingUp || _action == _LocoAction.throwing) {
-      const actionMaxFrames = 20;
+      const actionMaxFrames = 14;
       setState(() {
         _actionAccumMs += dtMs;
         while (_actionAccumMs >= _actionFrameMs) {
@@ -283,11 +283,11 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     switch (_action) {
       case _LocoAction.pickingUp:
         prefix = 'open_door';
-        frame = _actionFrame.clamp(0, 19);
+        frame = _actionFrame.clamp(0, 13);
         break;
       case _LocoAction.throwing:
         prefix = 'open_door';
-        frame = (19 - _actionFrame).clamp(0, 19);
+        frame = (13 - _actionFrame).clamp(0, 13);
         break;
       case _LocoAction.carryingToFire:
         prefix = 'carry_walk';
