@@ -997,31 +997,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 4a. Frost edges when cold (procédural).
-                      if (GameState.instance.inColdZone)
-                        Positioned(
-                          left: w * 0.10,
-                          right: w * 0.06,
-                          top: h * 0.13,
-                          bottom: h * 0.18,
-                          child: IgnorePointer(
-                            child: Opacity(
-                              opacity: GameState.instance.trainZone == TrainZone.cold ? 0.12 : 0.06,
-                              child: const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.center,
-                                    colors: [
-                                      Color(0xFFD0E8F0),
-                                      Color(0x00D0E8F0),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
+                      // 4a. Frost edges — désactivé (rectangle visible).
                       // 4b. Bed — placed at floor level on the left of
                       //     the wagon interior. Position + size are
                       //     normalised state so the in-app adjustment
