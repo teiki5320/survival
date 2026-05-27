@@ -7,36 +7,49 @@ import '../constants.dart';
 import '../models/game_state.dart';
 
 // ---------------------------------------------------------------------------
-// Data — stations with free (x, y) placement
+// Data — fixed track + stations that slide along the track
 // ---------------------------------------------------------------------------
 
+const List<Offset> _trackPoints = [
+  Offset(0.239, 0.291),
+  Offset(0.337, 0.248),
+  Offset(0.492, 0.246),
+  Offset(0.650, 0.246),
+  Offset(0.769, 0.312),
+  Offset(0.832, 0.433),
+  Offset(0.826, 0.628),
+  Offset(0.734, 0.738),
+  Offset(0.642, 0.771),
+  Offset(0.515, 0.778),
+  Offset(0.370, 0.778),
+  Offset(0.230, 0.725),
+  Offset(0.160, 0.543),
+  Offset(0.182, 0.387),
+];
+
 class _Station {
-  _Station(this.name, this.x, this.y, {this.big = false, this.locationId});
+  _Station(this.name, this.t, {this.big = false, this.locationId});
   final String name;
-  double x;
-  double y;
+  double t; // 0→1 position along the spline
   final bool big;
   final String? locationId;
 }
 
 final List<_Station> _stations = [
-  _Station('Station abandonnée', 0.239, 0.291,
-      big: true, locationId: 'station_abandonnee'),
-  _Station('Halte 47', 0.337, 0.248),
-  _Station('Dépôt ferroviaire', 0.492, 0.246,
-      big: true, locationId: 'depot_ferroviaire'),
-  _Station('Halte 12', 0.636, 0.251),
-  _Station('Village fantôme', 0.769, 0.312,
-      big: true, locationId: 'village_fantome'),
-  _Station('Halte 83', 0.816, 0.427),
-  _Station('Camp-refuge', 0.830, 0.630, locationId: 'camp_refuge'),
-  _Station('Pont suspendu', 0.734, 0.738, locationId: 'pont_suspendu'),
-  _Station('Halte 9', 0.629, 0.760),
-  _Station('Oasis perdue', 0.515, 0.778, locationId: 'oasis_perdue'),
-  _Station('Halte 31', 0.370, 0.778),
-  _Station('Tour de guet', 0.248, 0.732, locationId: 'tour_de_guet'),
-  _Station('Halte 6', 0.163, 0.547),
-  _Station('Tunnel nord', 0.177, 0.377, locationId: 'tunnel_nord'),
+  _Station('Station abandonnée', 0 / 14, big: true, locationId: 'station_abandonnee'),
+  _Station('Halte 47', 1 / 14),
+  _Station('Dépôt ferroviaire', 2 / 14, big: true, locationId: 'depot_ferroviaire'),
+  _Station('Halte 12', 3 / 14),
+  _Station('Village fantôme', 4 / 14, big: true, locationId: 'village_fantome'),
+  _Station('Halte 83', 5 / 14),
+  _Station('Camp-refuge', 6 / 14, locationId: 'camp_refuge'),
+  _Station('Pont suspendu', 7 / 14, locationId: 'pont_suspendu'),
+  _Station('Halte 9', 8 / 14),
+  _Station('Oasis perdue', 9 / 14, locationId: 'oasis_perdue'),
+  _Station('Halte 31', 10 / 14),
+  _Station('Tour de guet', 11 / 14, locationId: 'tour_de_guet'),
+  _Station('Halte 6', 12 / 14),
+  _Station('Tunnel nord', 13 / 14, locationId: 'tunnel_nord'),
 ];
 
 // ---------------------------------------------------------------------------
@@ -59,10 +72,9 @@ Offset _catmullRom(Offset p0, Offset p1, Offset p2, Offset p3, double t) {
   );
 }
 
-List<Offset> _buildSpline(List<_Station> stations, {int stepsPerSeg = 50}) {
-  final n = stations.length;
-  if (n < 2) return stations.map((s) => Offset(s.x, s.y)).toList();
-  final pts = stations.map((s) => Offset(s.x, s.y)).toList();
+List<Offset> _buildSpline(List<Offset> pts, {int stepsPerSeg = 50}) {
+  final n = pts.length;
+  if (n < 2) return List.of(pts);
   final result = <Offset>[];
   for (int i = 0; i < n; i++) {
     final p0 = pts[(i - 1 + n) % n];
@@ -132,6 +144,23 @@ class _ArcPath {
     final idx = (i * stepsPerSeg).clamp(0, points.length - 1);
     return totalLen > 0 ? _cumLen[idx] / totalLen : 0;
   }
+
+  double closestT(Offset target, Size screenSize) {
+    if (points.isEmpty) return 0;
+    final tx = target.dx / screenSize.width;
+    final ty = target.dy / screenSize.height;
+    final norm = Offset(tx, ty);
+    double bestDist = double.infinity;
+    int bestIdx = 0;
+    for (int i = 0; i < points.length; i++) {
+      final d = (points[i] - norm).distanceSquared;
+      if (d < bestDist) {
+        bestDist = d;
+        bestIdx = i;
+      }
+    }
+    return totalLen > 0 ? _cumLen[bestIdx] / totalLen : 0;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -154,14 +183,9 @@ class _MapScreenState extends State<MapScreen>
   double _elapsed = 0;
   bool _stationAdjust = false;
   int? _dragIndex;
-  _ArcPath? _cachedPath;
+  late final _ArcPath _trackPath = _ArcPath(_buildSpline(_trackPoints));
 
-  _ArcPath _getPath() {
-    _cachedPath ??= _ArcPath(_buildSpline(_stations));
-    return _cachedPath!;
-  }
-
-  void _invalidatePath() => _cachedPath = null;
+  _ArcPath _getPath() => _trackPath;
 
   @override
   void initState() {
@@ -275,8 +299,9 @@ class _MapScreenState extends State<MapScreen>
               for (int i = 0; i < _stations.length; i++)
                 Builder(builder: (_) {
                   final s = _stations[i];
-                  final px = s.x * mapW;
-                  final py = s.y * mapH;
+                  final pos = path.at(s.t);
+                  final px = pos.dx * mapW;
+                  final py = pos.dy * mapH;
                   return Positioned(
                     left: px - 22,
                     top: py - 22,
@@ -284,11 +309,13 @@ class _MapScreenState extends State<MapScreen>
                       onPanStart: (_) => _dragIndex = i,
                       onPanUpdate: (d) {
                         setState(() {
-                          s.x = ((s.x * mapW + d.delta.dx) / mapW)
-                              .clamp(0.02, 0.98);
-                          s.y = ((s.y * mapH + d.delta.dy) / mapH)
-                              .clamp(0.02, 0.98);
-                          _invalidatePath();
+                          final currentPos = path.at(s.t);
+                          final newScreenX = currentPos.dx * mapW + d.delta.dx;
+                          final newScreenY = currentPos.dy * mapH + d.delta.dy;
+                          s.t = path.closestT(
+                            Offset(newScreenX, newScreenY),
+                            Size(mapW, mapH),
+                          );
                         });
                       },
                       onPanEnd: (_) => _dragIndex = null,
@@ -339,7 +366,7 @@ class _MapScreenState extends State<MapScreen>
                         const SizedBox(height: 4),
                         for (final s in _stations)
                           Text(
-                            '${s.name.padRight(20)} (${s.x.toStringAsFixed(3)}, ${s.y.toStringAsFixed(3)})',
+                            '${s.name.padRight(20)} t=${s.t.toStringAsFixed(4)}',
                             style: const TextStyle(
                               color: Color(0xFFFFD9A0),
                               fontSize: 10,
@@ -463,7 +490,7 @@ class _MapPainter extends CustomPainter {
 
   void _drawStations(Canvas canvas, Size size) {
     for (final s in stations) {
-      final p = _px(Offset(s.x, s.y), size);
+      final p = _px(path.at(s.t), size);
       final unlocked = s.locationId != null &&
           GameState.instance.isLocationUnlocked(s.locationId!);
       final radius = s.big ? 8.0 : 5.0;
@@ -732,13 +759,12 @@ class _TrainZoneHUD extends StatelessWidget {
 
     _Station? nextStation;
     double minDist = 2.0;
-    for (int i = 0; i < _stations.length; i++) {
-      final stationT = path.stationT(i, _stations.length);
-      double dist = stationT - displayPosition;
+    for (final s in _stations) {
+      double dist = s.t - displayPosition;
       if (dist < 0) dist += 1.0;
       if (dist < minDist) {
         minDist = dist;
-        nextStation = _stations[i];
+        nextStation = s;
       }
     }
     final etaSeconds = (minDist * kLoopDurationSeconds).round();
