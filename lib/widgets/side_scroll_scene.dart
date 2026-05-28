@@ -782,8 +782,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         }
         if (arriveTriggerssCook) {
           _walkingToStove = false;
-          _activeSpecial = 'cook';
-          _activeSpecialFrames = 25;
+          _activeSpecial = 'use_back';
+          _activeSpecialFrames = 49;
           _activeSpecialLoops = false;
           _specialFrame = 0;
           _specialAccumMs = 0;
@@ -1277,11 +1277,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     required double w,
     required double h,
   }) {
-    // Stove masqué pendant l'anim cook (la gazinière est bakée dans
-    // le sprite du perso qui cuisine).
-    if (def.key == 'stove' && _activeSpecial == 'cook') {
-      return const SizedBox.shrink();
-    }
 
     final pos = _propPos[def.key]!;
     final propH = h * pos.height;
@@ -1483,8 +1478,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     final m = animMetricsFor(prefix);
-    final bool deepInWagon = prefix == 'cook';
-    final depthScale = deepInWagon ? 0.78 : 1.0;
+    final bool deepInWagon = prefix == 'cook' || prefix == 'use_back';
+    final depthScale = deepInWagon ? 0.85 : 1.0;
     final heroHeight = h * kHeroBaseHeight * m.scale * depthScale;
     final heroWidth = heroHeight * m.aspect;
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
