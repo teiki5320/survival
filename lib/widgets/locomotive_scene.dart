@@ -479,17 +479,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           enabled: !widget.night,
                         ),
                       ),
-                      // Human silhouettes visible through the door.
-                      Positioned(
-                        left: 0,
-                        right: w * 0.4,
-                        top: h * 0.25,
-                        height: h * 0.45,
-                        child: HumanSilhouettes(
-                          animation: _horizon,
-                          night: widget.night,
-                        ),
-                      ),
                       // Steam wisps drifting in through the door.
                       Positioned(
                         left: 0,
