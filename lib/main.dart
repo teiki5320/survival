@@ -458,7 +458,7 @@ class _WagonScreenState extends State<WagonScreen> {
     } else if (_atHydro) {
       icon = Icons.yard;
       action = () {
-        _triggerSpecial('garden_tend', frames: 25);
+        _triggerSpecial('use_back', frames: 49);
       };
     } else if (_atLamp) {
       icon = GameState.instance.lampOn
