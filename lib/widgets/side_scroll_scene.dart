@@ -44,6 +44,7 @@ class SideScrollScene extends StatefulWidget {
     this.specialAnimToken = 0,
     this.specialAnimNext,
     this.specialAnimNextFrames = 25,
+    this.initialHeroX = 0.5,
   });
 
   /// Wagon visual progression, 0..3:
@@ -100,6 +101,7 @@ class SideScrollScene extends StatefulWidget {
   final int specialAnimToken;
   final String? specialAnimNext;
   final int specialAnimNextFrames;
+  final double initialHeroX;
 
   /// Fired the first time the user taps the wagon floor, so the parent
   /// can drop any "she's dancing" state it was holding.
@@ -284,7 +286,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   TrainZone? _lastZone;
 
   late final Ticker _heroTicker;
-  double _heroX = 0.5;
+  late double _heroX = widget.initialHeroX;
   double? _heroTarget;
   // She has only two facing options: the walk_right sheet, or its
   // horizontal mirror for going left.

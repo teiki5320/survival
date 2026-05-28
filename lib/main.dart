@@ -63,6 +63,7 @@ class _WagonScreenState extends State<WagonScreen> {
 
   bool _inLocomotive = false;
   bool _onMap = false;
+  double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   double _dogHeight = 0.136;
@@ -189,9 +190,19 @@ class _WagonScreenState extends State<WagonScreen> {
   }
 
   void _exitLocomotive() {
-    setState(() => _inLocomotive = false);
+    setState(() {
+      _inLocomotive = false;
+      _heroSpawnX = SideScrollScene.heroXMin;
+    });
     _audio.stopFire();
     _audio.playSfx('door_close');
+  }
+
+  void _exitMap() {
+    setState(() {
+      _onMap = false;
+      _heroSpawnX = SideScrollScene.heroXMax;
+    });
   }
 
   void _toggleRun() {
@@ -222,7 +233,7 @@ class _WagonScreenState extends State<WagonScreen> {
             : _onMap
             ? MapScreen(
                 key: const ValueKey('map'),
-                onClose: () => setState(() => _onMap = false),
+                onClose: _exitMap,
               )
             : _inLocomotive
                 ? LocomotiveScene(
@@ -243,6 +254,7 @@ class _WagonScreenState extends State<WagonScreen> {
       children: [
         Positioned.fill(
           child: SideScrollScene(
+            initialHeroX: _heroSpawnX,
             wagonStage: _wagonStage,
             running: _running,
             night: _night,
