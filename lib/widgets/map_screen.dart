@@ -510,56 +510,97 @@ class _MapPainter extends CustomPainter {
     canvas.translate(p.dx, p.dy);
     canvas.rotate(tangent);
 
-    // Wash shadow under the train.
+    // Wash shadow under the whole train.
     canvas.drawOval(
-      Rect.fromCenter(center: const Offset(0, 4), width: 22, height: 5),
+      Rect.fromCenter(center: const Offset(-3, 5), width: 38, height: 5),
       Paint()
         ..color = const Color(0x33000000)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
     );
 
-    // Train body — warm brown ink fill.
-    final body = Path()
-      ..moveTo(-9, 2)
-      ..lineTo(-9, -3)
-      ..lineTo(-5, -3)
-      ..lineTo(-5, -6)
-      ..lineTo(2, -6)
-      ..lineTo(2, -3)
-      ..lineTo(9, -3)
-      ..lineTo(9, 2)
-      ..close();
+    final ink = Paint()
+      ..color = const Color(0xFF2A1A0E)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.7;
+    final wheel = Paint()..color = const Color(0xFF2A1A0E);
+
+    // === Wagon (behind, left side) ===
+    final wagonBody = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-19, -4, 14, 6),
+        const Radius.circular(1),
+      ));
     canvas.drawPath(
-      body,
-      Paint()..color = const Color(0xFF7A3A1A),
+      wagonBody,
+      Paint()..color = const Color(0xFF6B5536),
+    );
+    // Wagon roof.
+    canvas.drawRect(
+      const Rect.fromLTWH(-19, -5, 14, 1.5),
+      Paint()..color = const Color(0xFF2E1F12),
+    );
+    // Wagon windows.
+    final win = Paint()..color = const Color(0xFFF0DDB0);
+    canvas.drawRect(const Rect.fromLTWH(-17.5, -3, 2.5, 2.5), win);
+    canvas.drawRect(const Rect.fromLTWH(-13.5, -3, 2.5, 2.5), win);
+    canvas.drawRect(const Rect.fromLTWH(-9.5, -3, 2.5, 2.5), win);
+    // Wagon wheels.
+    canvas.drawCircle(const Offset(-16, 3), 1.6, wheel);
+    canvas.drawCircle(const Offset(-8, 3), 1.6, wheel);
+    canvas.drawPath(wagonBody, ink);
+
+    // === Coupling between wagon and locomotive ===
+    canvas.drawRect(
+      const Rect.fromLTWH(-5, -0.5, 2, 1),
+      Paint()..color = const Color(0xFF2A1A0E),
     );
 
-    // Cab window.
-    canvas.drawRect(
-      const Rect.fromLTWH(-4, -5, 5, 3),
-      Paint()..color = const Color(0xFFF0DDB0),
-    );
+    // === Locomotive (front, right side) ===
+    // Cabin (back of loco).
+    final cabin = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-3, -7, 6, 9),
+        const Radius.circular(1),
+      ));
+    canvas.drawPath(cabin, Paint()..color = const Color(0xFF8B3A1A));
+    // Cabin window.
+    canvas.drawRect(const Rect.fromLTWH(-2, -5.5, 4, 3), win);
+    canvas.drawPath(cabin, ink);
 
-    // Smokestack.
+    // Boiler (front of loco).
+    final boiler = Path()
+      ..addRRect(RRect.fromRectAndRadius(
+        const Rect.fromLTWH(3, -4, 9, 6),
+        const Radius.circular(2),
+      ));
+    canvas.drawPath(boiler, Paint()..color = const Color(0xFFB8451A));
+    canvas.drawPath(boiler, ink);
+    // Boiler band.
     canvas.drawRect(
-      const Rect.fromLTWH(5, -8, 3, 4),
+      const Rect.fromLTWH(7, -4, 1, 6),
       Paint()..color = const Color(0xFF3A2010),
     );
-
-    // Wheels — three small dark circles.
-    final wheel = Paint()..color = const Color(0xFF2A1A0E);
-    canvas.drawCircle(const Offset(-6, 3), 1.8, wheel);
-    canvas.drawCircle(const Offset(0, 3), 1.8, wheel);
-    canvas.drawCircle(const Offset(6, 3), 1.8, wheel);
-
-    // Ink outline around the body for a hand-drawn look.
-    canvas.drawPath(
-      body,
-      Paint()
-        ..color = const Color(0xFF2A1A0E)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8,
+    // Headlight.
+    canvas.drawCircle(
+      const Offset(12, -1),
+      1.2,
+      Paint()..color = const Color(0xFFFFD680),
     );
+
+    // Smokestack on top of boiler.
+    canvas.drawRect(
+      const Rect.fromLTWH(8.5, -8, 2.5, 4),
+      Paint()..color = const Color(0xFF3A2010),
+    );
+    // Smokestack rim.
+    canvas.drawRect(
+      const Rect.fromLTWH(8, -8.5, 3.5, 0.8),
+      Paint()..color = const Color(0xFF2A1A0E),
+    );
+
+    // Locomotive wheels — bigger than wagon wheels.
+    canvas.drawCircle(const Offset(4, 3), 2.0, wheel);
+    canvas.drawCircle(const Offset(10, 3), 2.0, wheel);
 
     canvas.restore();
   }
