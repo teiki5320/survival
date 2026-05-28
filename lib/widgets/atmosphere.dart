@@ -876,32 +876,32 @@ class _DaytimeBirdsPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (int group = 0; group < 3; group++) {
+    for (int group = 0; group < 4; group++) {
       final seed = group * 197.0;
-      final speed = 0.06 + (seed * 0.13 % 0.03);
+      final speed = 0.15 + (seed * 0.13 % 0.05);
       final baseX = 1.2 - ((seed * 0.31 + t * speed) % 1.6);
-      final baseY = 0.2 + (seed * 0.17 % 0.5);
-      final count = 2 + (group % 2);
+      final baseY = 0.15 + (seed * 0.17 % 0.55);
+      final count = 3 + (group % 2);
 
       for (int b = 0; b < count; b++) {
         final bSeed = b * 53.0 + seed;
-        final ox = baseX + (bSeed * 0.07 % 0.04) - 0.02;
+        final ox = baseX + (bSeed * 0.07 % 0.05) - 0.025;
         final oy = baseY + (bSeed * 0.11 % 0.06) - 0.03;
         final x = ox * size.width;
         final y = oy * size.height;
-        final wing = math.sin(t * 8 + bSeed) * 4;
-        final opacity = 0.25 + (bSeed * 0.07 % 0.15);
+        final wing = math.sin(t * 8 + bSeed) * 5;
+        final opacity = 0.55 + (bSeed * 0.07 % 0.25);
 
         final path = Path()
-          ..moveTo(x - 6, y + wing)
+          ..moveTo(x - 9, y + wing)
           ..lineTo(x, y)
-          ..lineTo(x + 6, y + wing);
+          ..lineTo(x + 9, y + wing);
         canvas.drawPath(
           path,
           Paint()
-            ..color = Color.fromRGBO(20, 20, 30, opacity)
+            ..color = Color.fromRGBO(15, 15, 25, opacity)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.5
+            ..strokeWidth = 2.2
             ..strokeCap = StrokeCap.round,
         );
       }
@@ -941,31 +941,31 @@ class _DistantAnimalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final speed = 0.008;
+    final speed = 0.025;
     final x = 1.1 - ((t * speed) % 1.4);
     final y = 0.55;
     final px = x * size.width;
     final py = y * size.height;
-    const opacity = 0.18;
-    final legPhase = math.sin(t * 2.5) * 2;
+    const opacity = 0.50;
+    final legPhase = math.sin(t * 3.0) * 3;
 
     final paint = Paint()
-      ..color = const Color.fromRGBO(30, 25, 20, opacity)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.0)
-      ..strokeWidth = 1.5
+      ..color = const Color.fromRGBO(20, 15, 10, opacity)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8)
+      ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round;
 
     canvas.save();
     canvas.translate(px, py);
-    canvas.drawLine(const Offset(-8, 0), const Offset(8, -2), paint);
-    canvas.drawCircle(const Offset(10, -5), 2.5, paint);
-    canvas.drawLine(const Offset(9, -5), const Offset(8, -9), paint..strokeWidth = 1);
-    canvas.drawLine(const Offset(11, -5), const Offset(12, -9), paint);
-    paint.strokeWidth = 1.3;
-    canvas.drawLine(const Offset(-4, 0), Offset(-4 + legPhase, 6), paint);
-    canvas.drawLine(const Offset(-6, 0), Offset(-6 - legPhase, 6), paint);
-    canvas.drawLine(const Offset(4, -1), Offset(4 + legPhase * 0.8, 5), paint);
-    canvas.drawLine(const Offset(6, -1), Offset(6 - legPhase * 0.8, 5), paint);
+    canvas.drawLine(const Offset(-14, 0), const Offset(14, -3), paint);
+    canvas.drawCircle(const Offset(16, -8), 4, paint);
+    canvas.drawLine(const Offset(15, -8), const Offset(13, -14), paint..strokeWidth = 1.8);
+    canvas.drawLine(const Offset(18, -8), const Offset(20, -14), paint);
+    paint.strokeWidth = 2.2;
+    canvas.drawLine(const Offset(-7, 0), Offset(-7 + legPhase, 10), paint);
+    canvas.drawLine(const Offset(-10, 0), Offset(-10 - legPhase, 10), paint);
+    canvas.drawLine(const Offset(7, -2), Offset(7 + legPhase * 0.8, 8), paint);
+    canvas.drawLine(const Offset(10, -2), Offset(10 - legPhase * 0.8, 8), paint);
     canvas.restore();
   }
 
@@ -1053,22 +1053,32 @@ class _RailSparksPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (int i = 0; i < 8; i++) {
+    for (int i = 0; i < 14; i++) {
       final seed = i * 137.0;
-      final cycle = (t * 3.0 + seed) % 4.0;
-      if (cycle > 1.0) continue;
+      final cycle = (t * 4.0 + seed) % 3.0;
+      if (cycle > 1.5) continue;
 
-      final x = (0.3 + (seed * 0.17 % 0.4)) * size.width;
-      final baseY = 0.15 * size.height;
-      final sparkY = baseY - cycle * 12;
-      final sparkX = x + (cycle * 6 * (i.isEven ? 1 : -1));
-      final opacity = (1.0 - cycle) * 0.8;
-      final r = 1.0 + (1.0 - cycle) * 1.5;
+      final x = (0.15 + (seed * 0.11 % 0.7)) * size.width;
+      final baseY = 0.4 * size.height;
+      final lifeT = (cycle / 1.5).clamp(0.0, 1.0);
+      final sparkY = baseY - lifeT * 30;
+      final sparkX = x + (lifeT * 14 * (i.isEven ? 1 : -1));
+      final opacity = (1.0 - lifeT) * 1.0;
+      final r = 1.6 + (1.0 - lifeT) * 2.8;
 
+      // Glow halo.
+      canvas.drawCircle(
+        Offset(sparkX, sparkY),
+        r * 2.2,
+        Paint()
+          ..color = Color.fromRGBO(255, 130, 30, opacity * 0.35)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 1.5),
+      );
+      // Core.
       canvas.drawCircle(
         Offset(sparkX, sparkY),
         r,
-        Paint()..color = Color.fromRGBO(255, 160, 40, opacity),
+        Paint()..color = Color.fromRGBO(255, 200, 80, opacity),
       );
     }
   }
@@ -1106,34 +1116,34 @@ class _ScurryingAnimalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 3; i++) {
       final seed = i * 311.0;
-      final speed = 0.12 + (seed * 0.07 % 0.05);
+      final speed = 0.25 + (seed * 0.07 % 0.08);
       final x = ((seed * 0.41 + t * speed) % 2.0) - 0.5;
       if (x < -0.1 || x > 1.1) continue;
-      final y = 0.4 + (seed * 0.19 % 0.3);
+      final y = 0.4 + (seed * 0.19 % 0.4);
       final px = x * size.width;
       final py = y * size.height;
-      const opacity = 0.3;
-      final legPhase = math.sin(t * 12 + seed) * 2;
+      const opacity = 0.75;
+      final legPhase = math.sin(t * 14 + seed) * 4;
 
       final paint = Paint()
-        ..color = const Color.fromRGBO(30, 25, 20, opacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.6);
+        ..color = const Color.fromRGBO(15, 12, 8, opacity)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.5);
 
       canvas.drawOval(
-        Rect.fromCenter(center: Offset(px, py), width: 8, height: 4),
+        Rect.fromCenter(center: Offset(px, py), width: 16, height: 8),
         paint,
       );
-      final tailWag = math.sin(t * 10 + seed) * 2;
+      final tailWag = math.sin(t * 10 + seed) * 3;
       canvas.drawLine(
-        Offset(px + 4, py),
-        Offset(px + 10, py - 1 + tailWag),
-        paint..strokeWidth = 0.8,
+        Offset(px + 8, py),
+        Offset(px + 18, py - 2 + tailWag),
+        paint..strokeWidth = 1.8,
       );
-      canvas.drawLine(Offset(px - 2, py + 2), Offset(px - 2 + legPhase, py + 5),
-          paint..strokeWidth = 0.8);
-      canvas.drawLine(Offset(px + 2, py + 2), Offset(px + 2 - legPhase, py + 5),
+      canvas.drawLine(Offset(px - 4, py + 3), Offset(px - 4 + legPhase, py + 10),
+          paint..strokeWidth = 1.6);
+      canvas.drawLine(Offset(px + 4, py + 3), Offset(px + 4 - legPhase, py + 10),
           paint);
     }
   }
@@ -1224,24 +1234,33 @@ class _FlyingEmbersPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final count = (6 * intensity).round().clamp(2, 10);
+    final count = (10 * intensity).round().clamp(5, 14);
     for (int i = 0; i < count; i++) {
       final seed = i * 97.0;
-      final cycle = (t * 1.5 + seed * 0.4) % 2.5;
+      final cycle = (t * 1.8 + seed * 0.4) % 2.5;
       final life = (cycle / 2.5).clamp(0.0, 1.0);
       final startX = size.width * 0.35;
       final startY = size.height * 0.55;
-      final dx = life * size.width * 0.4;
-      final dy = -life * size.height * 0.3 + math.sin(t * 3 + seed) * 8;
+      final dx = life * size.width * 0.45;
+      final dy = -life * size.height * 0.35 + math.sin(t * 3 + seed) * 12;
       final x = startX + dx;
       final y = startY + dy;
-      final opacity = (1.0 - life) * 0.7;
-      final r = 1.0 + (1.0 - life) * 1.5;
+      final opacity = (1.0 - life) * 1.0;
+      final r = 1.8 + (1.0 - life) * 2.5;
 
+      // Glow halo.
+      canvas.drawCircle(
+        Offset(x, y),
+        r * 2.5,
+        Paint()
+          ..color = Color.fromRGBO(255, 100, 20, opacity * 0.3)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 1.8),
+      );
+      // Core.
       canvas.drawCircle(
         Offset(x, y),
         r,
-        Paint()..color = Color.fromRGBO(255, 140, 20, opacity),
+        Paint()..color = Color.fromRGBO(255, 190, 60, opacity),
       );
     }
   }

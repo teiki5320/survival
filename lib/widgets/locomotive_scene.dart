@@ -491,7 +491,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       Positioned.fill(
                         child: FlyingEmbers(
                           animation: _sky,
-                          intensity: widget.logsThrown.clamp(0, 8) / 8.0,
+                          intensity:
+                              (0.3 + widget.logsThrown.clamp(0, 8) / 8.0 * 0.7)
+                                  .clamp(0.3, 1.0),
                         ),
                       ),
                     ],
