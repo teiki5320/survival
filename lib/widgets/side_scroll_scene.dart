@@ -42,6 +42,8 @@ class SideScrollScene extends StatefulWidget {
     this.specialAnimFrames = 25,
     this.specialAnimLoops = false,
     this.specialAnimToken = 0,
+    this.specialAnimNext,
+    this.specialAnimNextFrames = 25,
   });
 
   /// Wagon visual progression, 0..3:
@@ -96,6 +98,8 @@ class SideScrollScene extends StatefulWidget {
   final bool specialAnimLoops;
   /// Increment pour (re)déclencher la même anim.
   final int specialAnimToken;
+  final String? specialAnimNext;
+  final int specialAnimNextFrames;
 
   /// Fired the first time the user taps the wagon floor, so the parent
   /// can drop any "she's dancing" state it was holding.
@@ -332,6 +336,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _specialFrame = 0;
   int _specialAccumMs = 0;
   static const int _specialFrameMs = 70;
+  // Optional follow-up anim that plays right after the current special
+  // ends — used to chain "turn back" + "drink" at the filter.
+  String? _nextSpecial;
+  int _nextSpecialFrames = 25;
 
   // Door-push: short one-shot animation played when entering the
   // locomotive. Fires onDoorPushDone when complete.
@@ -523,6 +531,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _activeSpecialLoops = widget.specialAnimLoops;
         _specialFrame = 0;
         _specialAccumMs = 0;
+        _nextSpecial = widget.specialAnimNext;
+        _nextSpecialFrames = widget.specialAnimNextFrames;
         // Couper les autres états qui pourraient interférer.
         _heroSleeping = false;
         _heroDancing = false;
@@ -636,6 +646,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
           if (_specialFrame >= _activeSpecialFrames) {
             if (_activeSpecialLoops) {
               _specialFrame = 0;
+            } else if (_nextSpecial != null) {
+              _activeSpecial = _nextSpecial;
+              _activeSpecialFrames = _nextSpecialFrames;
+              _activeSpecialLoops = false;
+              _specialFrame = 0;
+              _specialAccumMs = 0;
+              _nextSpecial = null;
+              return;
             } else {
               _activeSpecial = null;
               return;

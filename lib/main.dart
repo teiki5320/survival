@@ -89,13 +89,17 @@ class _WagonScreenState extends State<WagonScreen> {
   int _specialAnimFrames = 25;
   bool _specialAnimLoops = false;
   int _specialAnimToken = 0;
+  String? _specialAnimNext;
+  int _specialAnimNextFrames = 25;
 
   void _triggerSpecial(String name,
-      {int frames = 25, bool loops = false}) {
+      {int frames = 25, bool loops = false, String? next, int nextFrames = 25}) {
     setState(() {
       _specialAnim = name;
       _specialAnimFrames = frames;
       _specialAnimLoops = loops;
+      _specialAnimNext = next;
+      _specialAnimNextFrames = nextFrames;
       _specialAnimToken++;
     });
   }
@@ -255,6 +259,8 @@ class _WagonScreenState extends State<WagonScreen> {
             specialAnimFrames: _specialAnimFrames,
             specialAnimLoops: _specialAnimLoops,
             specialAnimToken: _specialAnimToken,
+            specialAnimNext: _specialAnimNext,
+            specialAnimNextFrames: _specialAnimNextFrames,
             onUserInteract: () {
               if (_dancing) setState(() => _dancing = false);
             },
@@ -431,7 +437,8 @@ class _WagonScreenState extends State<WagonScreen> {
     } else if (_atFilter) {
       icon = Icons.local_drink;
       action = () {
-        _triggerSpecial('drink', frames: 25);
+        _triggerSpecial('use_back', frames: 24,
+            next: 'drink', nextFrames: 25);
         GameState.instance.restoreThirst(0.20);
       };
     } else if (_atDog) {
