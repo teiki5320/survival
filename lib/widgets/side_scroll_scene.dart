@@ -248,9 +248,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
         return _horizonCold;
       case TrainZone.warm:
         return _horizonWarm;
-      case TrainZone.transitionToCold:
       case TrainZone.transitionToWarm:
+        // Quitter le froid : neige dominante → terre dominante.
         return _horizonTransition;
+      case TrainZone.transitionToCold:
+        // Entrer dans le froid : terre dominante → neige dominante.
+        return _horizonTransition.reversed.toList();
     }
   }
 
@@ -839,6 +842,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _heroLyingDown = false;
       _walkingToBed = false;
       _walkingToStove = false;
+      _idleBreak = null;
+      _idleBreakFrame = 0;
+      _idleBreakAccumMs = 0;
+      _idleStillMs = 0;
       _heroTarget = clamped;
       if (wasSleeping) {
         if (_sleepOnBed) {
