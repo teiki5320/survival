@@ -489,23 +489,79 @@ class _MapPainter extends CustomPainter {
 
   void _drawTrain(Canvas canvas, Size size) {
     final p = _px(path.at(trainPosition), size);
+    final tangent = path.tangent(trainPosition);
 
-    canvas.drawCircle(
-      p,
-      20,
+    // Smoke puffs trailing behind the train.
+    for (int i = 0; i < 5; i++) {
+      final age = i / 5.0;
+      final puffPos = _px(path.at(trainPosition - 0.012 * (i + 1)), size);
+      final r = 2.5 + age * 4.0;
+      final opacity = (1.0 - age) * 0.35;
+      canvas.drawCircle(
+        Offset(puffPos.dx, puffPos.dy - 4 - age * 6),
+        r,
+        Paint()
+          ..color = Color.fromRGBO(90, 75, 60, opacity)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.7),
+      );
+    }
+
+    canvas.save();
+    canvas.translate(p.dx, p.dy);
+    canvas.rotate(tangent);
+
+    // Wash shadow under the train.
+    canvas.drawOval(
+      Rect.fromCenter(center: const Offset(0, 4), width: 22, height: 5),
       Paint()
-        ..color = const Color(0x55FF6B00)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+        ..color = const Color(0x33000000)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
     );
 
-    final tp = TextPainter(
-      text: const TextSpan(
-        text: '🚂',
-        style: TextStyle(fontSize: 26),
-      ),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    tp.paint(canvas, Offset(p.dx - tp.width / 2, p.dy - tp.height / 2));
+    // Train body — warm brown ink fill.
+    final body = Path()
+      ..moveTo(-9, 2)
+      ..lineTo(-9, -3)
+      ..lineTo(-5, -3)
+      ..lineTo(-5, -6)
+      ..lineTo(2, -6)
+      ..lineTo(2, -3)
+      ..lineTo(9, -3)
+      ..lineTo(9, 2)
+      ..close();
+    canvas.drawPath(
+      body,
+      Paint()..color = const Color(0xFF7A3A1A),
+    );
+
+    // Cab window.
+    canvas.drawRect(
+      const Rect.fromLTWH(-4, -5, 5, 3),
+      Paint()..color = const Color(0xFFF0DDB0),
+    );
+
+    // Smokestack.
+    canvas.drawRect(
+      const Rect.fromLTWH(5, -8, 3, 4),
+      Paint()..color = const Color(0xFF3A2010),
+    );
+
+    // Wheels — three small dark circles.
+    final wheel = Paint()..color = const Color(0xFF2A1A0E);
+    canvas.drawCircle(const Offset(-6, 3), 1.8, wheel);
+    canvas.drawCircle(const Offset(0, 3), 1.8, wheel);
+    canvas.drawCircle(const Offset(6, 3), 1.8, wheel);
+
+    // Ink outline around the body for a hand-drawn look.
+    canvas.drawPath(
+      body,
+      Paint()
+        ..color = const Color(0xFF2A1A0E)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8,
+    );
+
+    canvas.restore();
   }
 
   // ===========================================================================
