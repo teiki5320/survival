@@ -1372,7 +1372,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final dogH = h * widget.dogHeight;
     final dogW = dogH;
     final dogX = 0.525 * w;
-    final feetY = h * 0.79;
+    final feetY = h * 0.74;
 
     if (_activeSpecial == 'crouch') {
       _dogAnimFrame = (_dogAnimFrame + 1) % 25;
@@ -1400,7 +1400,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   Widget _buildHeroine(double w, double h) {
     // Wagon's interior floor sits roughly at this Y.
-    final feetY = h * 0.79;
+    final feetY = h * 0.74;
     final anchorX = _heroX * w;
 
     // Cas spéciaux ancrés sur le lit : la fille n'est pas sur le sol,
