@@ -176,7 +176,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static final List<_PropDef> _propDefs = [
     _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
-    _PropDef('stove',    'Poele',     animated: true,  frameCount: 25),
+    _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
     _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
@@ -188,7 +188,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   final Map<String, _PropPos> _propPos = {
     'hydro':    _PropPos(0.805, 0.412, 0.326),
     'lamp':     _PropPos(0.415, 0.323, 0.104),
-    'stove':    _PropPos(0.640, 0.510, 0.290, 0.120),
+    'stove':    _PropPos(0.640, 0.555, 0.180, 0.190),
     'filter':   _PropPos(0.727, 0.514, 0.200),
     'table':    _PropPos(0.479, 0.557, 0.151),
     'notebook': _PropPos(0.249, 0.670, 0.070),
@@ -1294,7 +1294,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ? (_bowlFull ? 'assets/objects/bowl_full.png'
                      : 'assets/objects/bowl_empty.png')
         : 'assets/objects/${def.key}.png';
-    final boxFit = (def.key == 'stove') ? BoxFit.fill : BoxFit.contain;
+    const boxFit = BoxFit.contain;
     final Widget sprite = def.animated
         ? _AnimatedSprite(
             prefix: def.key,
