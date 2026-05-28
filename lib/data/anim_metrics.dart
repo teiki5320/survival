@@ -115,7 +115,7 @@ const Map<String, AnimMetrics> kAnimMetrics = {
     scale: 1.38, aspect: 1.0, feet: 0.859, noMirror: true,
   ),
   'use_back':      AnimMetrics(
-    scale: 1.30, aspect: 1.0, feet: 0.92, noMirror: true,
+    scale: 1.00, aspect: 1.0, feet: 0.96, noMirror: true,
   ),
   'garden_tend':   AnimMetrics(
     scale: 1.30, aspect: 1.0, feet: 0.871, noMirror: true,
