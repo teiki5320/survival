@@ -420,9 +420,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         child: FireboxFlames(
                           animation: _sky,
                           x: 0.17,
-                          y: 0.70,
-                          width: 0.10,
-                          height: 0.12,
+                          y: 0.78,
+                          width: 0.14,
+                          height: 0.16,
                         ),
                       ),
                       // Locomotive cab — la transparence est bakée dans
@@ -494,6 +494,20 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           intensity:
                               (0.3 + widget.logsThrown.clamp(0, 8) / 8.0 * 0.7)
                                   .clamp(0.3, 1.0),
+                        ),
+                      ),
+                      // Animated gauges on the left wall.
+                      Positioned.fill(
+                        child: AnimatedGauges(active: !widget.night),
+                      ),
+                      // Floating ashes near the firebox floor.
+                      const Positioned.fill(child: FloatingAshes()),
+                      // Pipe steam from valves (intensity grows with logs).
+                      Positioned.fill(
+                        child: PipeSteam(
+                          intensity: (0.4 +
+                                  widget.logsThrown.clamp(0, 8) / 8.0 * 0.6)
+                              .clamp(0.4, 1.0),
                         ),
                       ),
                     ],

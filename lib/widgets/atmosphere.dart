@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -1858,4 +1859,483 @@ class _ForegroundLifePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ForegroundLifePainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Animated curtains — gentle sway over wagon windows
+// ---------------------------------------------------------------------------
+
+class AnimatedCurtains extends StatefulWidget {
+  const AnimatedCurtains({super.key, this.intensity = 1.0});
+  final double intensity;
+
+  @override
+  State<AnimatedCurtains> createState() => _AnimatedCurtainsState();
+}
+
+class _AnimatedCurtainsState extends State<AnimatedCurtains>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _t = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker((d) {
+      setState(() => _t = d.inMicroseconds / 1e6);
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _CurtainsPainter(_t, widget.intensity),
+      ),
+    );
+  }
+}
+
+class _CurtainsPainter extends CustomPainter {
+  _CurtainsPainter(this.t, this.intensity);
+  final double t;
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 6 curtain panels (3 windows × 2 sides).
+    const curtainXs = [0.265, 0.305, 0.465, 0.505, 0.665, 0.705];
+    for (int i = 0; i < curtainXs.length; i++) {
+      final cx = curtainXs[i] * size.width;
+      final topY = size.height * 0.40;
+      final bottomY = size.height * 0.58;
+      final sway = math.sin(t * 1.2 + i * 0.7) * 3 * intensity;
+      final width = 14.0;
+      final path = Path()
+        ..moveTo(cx - width / 2, topY)
+        ..quadraticBezierTo(
+          cx - width / 2 + sway * 0.5, (topY + bottomY) / 2,
+          cx - width / 2 + sway, bottomY,
+        )
+        ..lineTo(cx + width / 2 + sway, bottomY)
+        ..quadraticBezierTo(
+          cx + width / 2 + sway * 0.5, (topY + bottomY) / 2,
+          cx + width / 2, topY,
+        )
+        ..close();
+      // Inkfold lines for texture.
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = const Color(0x33000000)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CurtainsPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Window frost — ice crystals on the glass when cold
+// ---------------------------------------------------------------------------
+
+class WindowFrost extends StatelessWidget {
+  const WindowFrost({super.key, this.intensity = 1.0});
+  final double intensity;
+
+  @override
+  Widget build(BuildContext context) {
+    if (intensity <= 0) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _WindowFrostPainter(intensity),
+      ),
+    );
+  }
+}
+
+class _WindowFrostPainter extends CustomPainter {
+  _WindowFrostPainter(this.intensity);
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 3 windows in the wagon back wall.
+    const windows = [
+      [0.235, 0.395, 0.105, 0.180], // x, y, w, h (normalised)
+      [0.435, 0.395, 0.105, 0.180],
+      [0.635, 0.395, 0.105, 0.180],
+    ];
+    for (final w in windows) {
+      final rect = Rect.fromLTWH(
+        w[0] * size.width,
+        w[1] * size.height,
+        w[2] * size.width,
+        w[3] * size.height,
+      );
+      // White gradient at the edges of each window pane.
+      canvas.save();
+      canvas.clipRect(rect);
+      // Top/bottom frost.
+      for (int edge = 0; edge < 4; edge++) {
+        final isVertical = edge < 2;
+        final p = Paint()
+          ..shader = ui.Gradient.linear(
+            isVertical
+                ? Offset(rect.center.dx,
+                    edge == 0 ? rect.top : rect.bottom)
+                : Offset(edge == 2 ? rect.left : rect.right, rect.center.dy),
+            isVertical
+                ? Offset(rect.center.dx,
+                    edge == 0
+                        ? rect.top + rect.height * 0.4
+                        : rect.bottom - rect.height * 0.4)
+                : Offset(
+                    edge == 2
+                        ? rect.left + rect.width * 0.4
+                        : rect.right - rect.width * 0.4,
+                    rect.center.dy),
+            [
+              Color.fromRGBO(230, 240, 250, 0.55 * intensity),
+              Color.fromRGBO(230, 240, 250, 0.0),
+            ],
+          );
+        canvas.drawRect(rect, p);
+      }
+      // Sparse ice crystals.
+      for (int i = 0; i < 8; i++) {
+        final cx = rect.left +
+            (i * 41 % 1000) / 1000.0 * rect.width;
+        final cy = rect.top +
+            (i * 73 % 1000) / 1000.0 * rect.height;
+        canvas.drawCircle(
+          Offset(cx, cy),
+          0.6,
+          Paint()..color = Color.fromRGBO(255, 255, 255, 0.5 * intensity),
+        );
+      }
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_WindowFrostPainter old) =>
+      old.intensity != intensity;
+}
+
+// ---------------------------------------------------------------------------
+// Cobwebs — animated spider webs in the corners
+// ---------------------------------------------------------------------------
+
+class Cobwebs extends StatefulWidget {
+  const Cobwebs({super.key});
+
+  @override
+  State<Cobwebs> createState() => _CobwebsState();
+}
+
+class _CobwebsState extends State<Cobwebs>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _t = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker((d) {
+      setState(() => _t = d.inMicroseconds / 1e6);
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(painter: _CobwebsPainter(_t)),
+    );
+  }
+}
+
+class _CobwebsPainter extends CustomPainter {
+  _CobwebsPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 4 corners: top-left, top-right, low-left, low-right inside wagon.
+    final corners = <Offset>[
+      Offset(size.width * 0.15, size.height * 0.36),
+      Offset(size.width * 0.83, size.height * 0.36),
+      Offset(size.width * 0.20, size.height * 0.62),
+      Offset(size.width * 0.80, size.height * 0.62),
+    ];
+    final p = Paint()
+      ..color = const Color(0x66E0E0E0)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6;
+    for (int c = 0; c < corners.length; c++) {
+      final corner = corners[c];
+      final dirX = c.isEven ? 1.0 : -1.0;
+      final dirY = c < 2 ? 1.0 : -1.0;
+      final sway = math.sin(t * 0.8 + c) * 1.2;
+      // Radial threads.
+      const radial = 4;
+      for (int i = 0; i < radial; i++) {
+        final ang = (i + 1) * (math.pi / 2 / (radial + 1));
+        final dx = math.cos(ang) * 18 * dirX;
+        final dy = math.sin(ang) * 18 * dirY;
+        canvas.drawLine(corner, Offset(corner.dx + dx, corner.dy + dy + sway), p);
+      }
+      // Spiral threads.
+      for (int s = 1; s <= 3; s++) {
+        final r = s * 5.0;
+        final path = Path();
+        for (int i = 0; i <= radial; i++) {
+          final ang = i * (math.pi / 2 / radial);
+          final px = corner.dx + math.cos(ang) * r * dirX;
+          final py = corner.dy + math.sin(ang) * r * dirY + sway * 0.5;
+          if (i == 0) {
+            path.moveTo(px, py);
+          } else {
+            path.lineTo(px, py);
+          }
+        }
+        canvas.drawPath(path, p);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_CobwebsPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Animated gauges — needles that wobble based on running state
+// ---------------------------------------------------------------------------
+
+class AnimatedGauges extends StatefulWidget {
+  const AnimatedGauges({super.key, this.active = true});
+  final bool active;
+
+  @override
+  State<AnimatedGauges> createState() => _AnimatedGaugesState();
+}
+
+class _AnimatedGaugesState extends State<AnimatedGauges>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _t = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker((d) {
+      setState(() => _t = d.inMicroseconds / 1e6);
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(painter: _GaugesPainter(_t, widget.active)),
+    );
+  }
+}
+
+class _GaugesPainter extends CustomPainter {
+  _GaugesPainter(this.t, this.active);
+  final double t;
+  final bool active;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 2 gauges on left wall of the locomotive cabin.
+    const gauges = [
+      [0.123, 0.265, 0.85], // x, y, baseAngle (radians of needle)
+      [0.165, 0.310, 0.65],
+    ];
+    for (final g in gauges) {
+      final cx = g[0] * size.width;
+      final cy = g[1] * size.height;
+      const r = 16.0;
+      final wobble = active ? math.sin(t * 3 + g[2] * 7) * 0.15 : 0.0;
+      final needleAngle = g[2] + wobble;
+      final p = Paint()
+        ..color = const Color(0xFFE85518)
+        ..strokeWidth = 1.6
+        ..strokeCap = StrokeCap.round;
+      canvas.drawLine(
+        Offset(cx, cy),
+        Offset(cx + math.cos(needleAngle) * r * 0.7,
+            cy + math.sin(needleAngle) * r * 0.7),
+        p,
+      );
+      canvas.drawCircle(Offset(cx, cy), 1.5, Paint()..color = const Color(0xFF3A2010));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_GaugesPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Floating ashes — soft grey particles drifting near the firebox
+// ---------------------------------------------------------------------------
+
+class FloatingAshes extends StatefulWidget {
+  const FloatingAshes({super.key, this.active = true});
+  final bool active;
+
+  @override
+  State<FloatingAshes> createState() => _FloatingAshesState();
+}
+
+class _FloatingAshesState extends State<FloatingAshes>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _t = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker((d) {
+      setState(() => _t = d.inMicroseconds / 1e6);
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.active) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: CustomPaint(painter: _AshesPainter(_t)),
+    );
+  }
+}
+
+class _AshesPainter extends CustomPainter {
+  _AshesPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (int i = 0; i < 14; i++) {
+      final seed = i * 47.0;
+      final cycle = (t * 0.2 + seed * 0.13) % 1.0;
+      final x = (0.12 + (seed * 0.07 % 0.15)) * size.width +
+          math.sin(t * 0.8 + seed) * 8;
+      final y = (0.85 - cycle * 0.30) * size.height;
+      final opacity = (1.0 - cycle) * 0.5;
+      canvas.drawCircle(
+        Offset(x, y),
+        1.5,
+        Paint()
+          ..color = Color.fromRGBO(180, 170, 160, opacity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.0),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_AshesPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Pipe steam — wisps from valves / joints in the locomotive
+// ---------------------------------------------------------------------------
+
+class PipeSteam extends StatefulWidget {
+  const PipeSteam({super.key, this.intensity = 1.0});
+  final double intensity;
+
+  @override
+  State<PipeSteam> createState() => _PipeSteamState();
+}
+
+class _PipeSteamState extends State<PipeSteam>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _t = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker((d) {
+      setState(() => _t = d.inMicroseconds / 1e6);
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.intensity <= 0) return const SizedBox.shrink();
+    return IgnorePointer(
+      child: CustomPaint(painter: _PipeSteamPainter(_t, widget.intensity)),
+    );
+  }
+}
+
+class _PipeSteamPainter extends CustomPainter {
+  _PipeSteamPainter(this.t, this.intensity);
+  final double t;
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 2 pipe vents on the left side near gauges.
+    const vents = [
+      [0.075, 0.35],
+      [0.110, 0.42],
+    ];
+    for (final v in vents) {
+      final vx = v[0] * size.width;
+      final vy = v[1] * size.height;
+      for (int i = 0; i < 5; i++) {
+        final cycle = (t * 0.6 + i * 0.2) % 1.0;
+        final r = 3.0 + cycle * 10;
+        final x = vx + math.sin(cycle * 3 + i) * 4;
+        final y = vy - cycle * 25;
+        final opacity = (1.0 - cycle) * 0.35 * intensity;
+        canvas.drawCircle(
+          Offset(x, y),
+          r,
+          Paint()
+            ..color = Color.fromRGBO(200, 200, 210, opacity)
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * 0.7),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_PipeSteamPainter old) => true;
 }
