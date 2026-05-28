@@ -1010,6 +1010,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           running: widget.running,
                         ),
                       ),
+                      // 3b-ter. Foreground life (tumbleweed, paper, dust,
+                      //     fox, snake, lizard, bottles, footprints, bones,
+                      //     wildflowers) — cycled.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.84,
+                        bottom: 0,
+                        child: ForegroundLife(
+                          animation: _foreground,
+                          running: widget.running,
+                        ),
+                      ),
                       // 3c. Fond bois derrière le wagon pour masquer
                       //     les trous dans le plancher (dirty/swept).
                       if (widget.wagonStage <= 1)
@@ -1096,6 +1109,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         top: h * 0.30,
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
+                      ),
+                      // 4f-zero. Cycled post-apo human silhouettes on the
+                      //     horizon (wanderer, refugees, limper, mother+child,
+                      //     watcher, cart, scavenger, fire group, waver,
+                      //     couple). Visible through wagon windows.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.28,
+                        height: h * 0.34,
+                        child: HumanSilhouettes(
+                          animation: _horizon,
+                          night: widget.night,
+                        ),
                       ),
                       // 4f-bis. Daytime birds visible through windows.
                       Positioned(

@@ -1268,3 +1268,553 @@ class _FlyingEmbersPainter extends CustomPainter {
   @override
   bool shouldRepaint(_FlyingEmbersPainter old) => true;
 }
+
+// ---------------------------------------------------------------------------
+// Human silhouettes — cycled post-apo figures crossing the horizon
+// ---------------------------------------------------------------------------
+
+class HumanSilhouettes extends StatelessWidget {
+  const HumanSilhouettes({
+    super.key,
+    required this.animation,
+    this.night = false,
+  });
+  final Animation<double> animation;
+  final bool night;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _HumanSilhouettesPainter(animation.value, night),
+        ),
+      ),
+    );
+  }
+}
+
+class _HumanSilhouettesPainter extends CustomPainter {
+  _HumanSilhouettesPainter(this.t, this.night);
+  final double t;
+  final bool night;
+
+  Paint _ink(double opacity) => Paint()
+    ..color = Color.fromRGBO(15, 12, 18, opacity)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.0)
+    ..strokeWidth = 1.6
+    ..strokeCap = StrokeCap.round;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 4 cycling slots; each slot picks a silhouette type based on time/seed.
+    for (int slot = 0; slot < 4; slot++) {
+      final seed = slot * 67.0;
+      final cycle = (t * 0.04 + seed * 0.13) % 10.0;
+      final type = cycle.floor();
+      final localT = cycle - type;
+      _drawByType(canvas, size, type, seed, localT);
+    }
+  }
+
+  void _drawByType(Canvas canvas, Size size, int type, double seed, double lt) {
+    // localT goes 0 → 1 over one cycle. Use it to drive horizontal crossing
+    // or to gate appearance.
+    switch (type) {
+      case 0: _drawLoneWanderer(canvas, size, seed, lt); break;
+      case 1: _drawRefugeeGroup(canvas, size, seed, lt); break;
+      case 2: _drawLimper(canvas, size, seed, lt); break;
+      case 3: _drawMotherChild(canvas, size, seed, lt); break;
+      case 4: _drawWatcher(canvas, size, seed, lt); break;
+      case 5: _drawCartPusher(canvas, size, seed, lt); break;
+      case 6: _drawScavenger(canvas, size, seed, lt); break;
+      case 7: if (night) _drawFireGroup(canvas, size, seed, lt); break;
+      case 8: _drawWaver(canvas, size, seed, lt); break;
+      case 9: _drawCouple(canvas, size, seed, lt); break;
+    }
+  }
+
+  void _drawHumanStick(Canvas canvas, double x, double y, double h, double opacity,
+      {double armSway = 0, double legPhase = 0, double lean = 0, bool hood = false}) {
+    final p = _ink(opacity);
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.skew(lean, 0);
+    canvas.drawCircle(Offset(0, -h), h * 0.18, p);
+    if (hood) {
+      canvas.drawArc(
+        Rect.fromCenter(center: Offset(0, -h), width: h * 0.5, height: h * 0.5),
+        math.pi, math.pi, false, p..strokeWidth = 2.0,
+      );
+    }
+    p.strokeWidth = 2.2;
+    canvas.drawLine(Offset(0, -h + h * 0.18), Offset(0, -h * 0.4), p);
+    p.strokeWidth = 1.8;
+    canvas.drawLine(Offset(0, -h * 0.75), Offset(-4 + armSway, -h * 0.4), p);
+    canvas.drawLine(Offset(0, -h * 0.75), Offset(4 - armSway, -h * 0.4), p);
+    canvas.drawLine(Offset(0, -h * 0.4), Offset(-3 + legPhase, 0), p);
+    canvas.drawLine(Offset(0, -h * 0.4), Offset(3 - legPhase, 0), p);
+    canvas.restore();
+  }
+
+  // 0. Lone wanderer — slow, with a stick/cane.
+  void _drawLoneWanderer(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.3) * size.width;
+    final y = (0.55 + (seed * 0.07 % 0.10)) * size.height;
+    final h = 22.0;
+    final bob = math.sin(t * 1.5) * 0.8;
+    final legPhase = math.sin(t * 1.5) * 2;
+    _drawHumanStick(canvas, x, y + bob, h, 0.45,
+        legPhase: legPhase, lean: 0.06, hood: true);
+    // Cane / stick.
+    final p = _ink(0.45)..strokeWidth = 1.4;
+    canvas.drawLine(Offset(x + 5, y - h * 0.45), Offset(x + 6, y), p);
+  }
+
+  // 1. Refugee group — 3-4 figures in a line carrying bags.
+  void _drawRefugeeGroup(Canvas canvas, Size size, double seed, double lt) {
+    final groupX = (1.2 - lt * 1.4) * size.width;
+    final y = (0.58 + (seed * 0.11 % 0.08)) * size.height;
+    final h = 20.0;
+    for (int i = 0; i < 4; i++) {
+      final x = groupX - i * 16.0;
+      final legPhase = math.sin(t * 2 + i) * 2;
+      _drawHumanStick(canvas, x, y, h, 0.45, legPhase: legPhase);
+      // Bag on back — small bump behind head.
+      final p = _ink(0.45);
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(x - 3, y - h * 0.75), width: 5, height: 7),
+        p,
+      );
+    }
+  }
+
+  // 2. Limping injured person.
+  void _drawLimper(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.3) * size.width;
+    final y = (0.56 + (seed * 0.09 % 0.10)) * size.height;
+    final h = 21.0;
+    final limp = math.sin(t * 1.8) * 4;
+    final bob = (math.sin(t * 1.8) + 1) * 1.2;
+    _drawHumanStick(canvas, x, y - bob, h, 0.45,
+        legPhase: limp.abs(), lean: 0.1);
+  }
+
+  // 3. Mother + child.
+  void _drawMotherChild(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.3) * size.width;
+    final y = (0.58 + (seed * 0.13 % 0.08)) * size.height;
+    final legPhase = math.sin(t * 2.0) * 2;
+    _drawHumanStick(canvas, x, y, 22, 0.45, legPhase: legPhase);
+    _drawHumanStick(canvas, x + 8, y, 12, 0.45, legPhase: -legPhase);
+    // Connecting line for held hand.
+    final p = _ink(0.4)..strokeWidth = 1.0;
+    canvas.drawLine(Offset(x + 2, y - 8), Offset(x + 7, y - 5), p);
+  }
+
+  // 4. Watcher on ruins — stationary on top of a column.
+  void _drawWatcher(Canvas canvas, Size size, double seed, double lt) {
+    // Fades in/out over the cycle.
+    final fade = math.sin(lt * math.pi).clamp(0.0, 1.0);
+    final x = (0.2 + (seed * 0.07 % 0.6)) * size.width;
+    final ruinTop = (0.45 + (seed * 0.11 % 0.10)) * size.height;
+    // Tiny ruin pillar.
+    final p = _ink(0.40 * fade);
+    canvas.drawRect(
+      Rect.fromLTWH(x - 3, ruinTop, 6, 20),
+      p,
+    );
+    // Person on top, turning head slowly.
+    final headTurn = math.sin(t * 0.7) * 0.4;
+    _drawHumanStick(canvas, x, ruinTop, 14, 0.45 * fade, lean: headTurn * 0.2);
+  }
+
+  // 5. Cart pusher.
+  void _drawCartPusher(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.0) * size.width;
+    final y = (0.58 + (seed * 0.09 % 0.08)) * size.height;
+    final h = 22.0;
+    final legPhase = math.sin(t * 1.6) * 2;
+    _drawHumanStick(canvas, x, y, h, 0.45, legPhase: legPhase, lean: 0.12);
+    final p = _ink(0.45);
+    // Cart wheel + box.
+    canvas.drawRect(Rect.fromLTWH(x + 5, y - 10, 10, 8), p);
+    p.style = PaintingStyle.stroke;
+    p.strokeWidth = 1.6;
+    canvas.drawCircle(Offset(x + 7, y), 2.5, p);
+    canvas.drawCircle(Offset(x + 13, y), 2.5, p);
+    p.style = PaintingStyle.fill;
+    canvas.drawLine(Offset(x + 2, y - 8), Offset(x + 5, y - 8), p);
+  }
+
+  // 6. Scavenger digging in rubble.
+  void _drawScavenger(Canvas canvas, Size size, double seed, double lt) {
+    final fade = math.sin(lt * math.pi).clamp(0.0, 1.0);
+    final x = (0.15 + (seed * 0.13 % 0.7)) * size.width;
+    final y = (0.65 + (seed * 0.07 % 0.07)) * size.height;
+    // Bent-over silhouette.
+    final p = _ink(0.45 * fade);
+    final crouchHeight = 12.0;
+    canvas.drawCircle(Offset(x, y - crouchHeight * 0.7), 3, p);
+    p.strokeWidth = 2.2;
+    canvas.drawLine(Offset(x, y - crouchHeight * 0.5), Offset(x + 6, y - 4), p);
+    final digMotion = math.sin(t * 4) * 3;
+    canvas.drawLine(Offset(x + 4, y - 6), Offset(x + 8 + digMotion, y - 2), p);
+    p.strokeWidth = 1.8;
+    canvas.drawLine(Offset(x - 1, y - crouchHeight * 0.5), Offset(x - 3, y), p);
+    canvas.drawLine(Offset(x + 1, y - crouchHeight * 0.5), Offset(x + 3, y), p);
+    // Rubble dots.
+    for (int i = 0; i < 4; i++) {
+      canvas.drawCircle(
+        Offset(x + 4 + i * 2, y),
+        1.0,
+        Paint()..color = Color.fromRGBO(15, 12, 18, 0.3 * fade),
+      );
+    }
+  }
+
+  // 7. Group around a campfire (night only).
+  void _drawFireGroup(Canvas canvas, Size size, double seed, double lt) {
+    final fade = math.sin(lt * math.pi).clamp(0.0, 1.0);
+    final cx = (0.2 + (seed * 0.13 % 0.6)) * size.width;
+    final cy = (0.55 + (seed * 0.09 % 0.15)) * size.height;
+    // Fire flicker.
+    final flick = math.sin(t * 8) * 1.0;
+    canvas.drawCircle(
+      Offset(cx, cy),
+      5 + flick,
+      Paint()
+        ..color = Color.fromRGBO(255, 130, 30, 0.6 * fade)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+    );
+    canvas.drawCircle(
+      Offset(cx, cy),
+      2.5,
+      Paint()..color = Color.fromRGBO(255, 200, 100, fade),
+    );
+    // 5 silhouettes around it.
+    for (int i = 0; i < 5; i++) {
+      final ang = i * (math.pi * 2 / 5) + 0.3;
+      final r = 11.0;
+      final px = cx + math.cos(ang) * r;
+      final py = cy + math.sin(ang) * r * 0.5;
+      _drawHumanStick(canvas, px, py, 11, 0.50 * fade);
+    }
+  }
+
+  // 8. Waver — desperate person waving at the train.
+  void _drawWaver(Canvas canvas, Size size, double seed, double lt) {
+    final fade = math.sin(lt * math.pi * 1.5).clamp(0.0, 1.0);
+    final x = (0.2 + (seed * 0.11 % 0.6)) * size.width;
+    final y = (0.65 + (seed * 0.09 % 0.05)) * size.height;
+    final h = 20.0;
+    final wave = math.sin(t * 6) * 5;
+    final p = _ink(0.50 * fade);
+    canvas.drawCircle(Offset(x, y - h), h * 0.18, p);
+    p.strokeWidth = 2.2;
+    canvas.drawLine(Offset(x, y - h + h * 0.18), Offset(x, y - h * 0.4), p);
+    p.strokeWidth = 1.8;
+    // Arms raised waving.
+    canvas.drawLine(Offset(x, y - h * 0.75), Offset(x - 5 + wave, y - h * 1.05), p);
+    canvas.drawLine(Offset(x, y - h * 0.75), Offset(x + 5 + wave, y - h * 1.0), p);
+    canvas.drawLine(Offset(x, y - h * 0.4), Offset(x - 2, y), p);
+    canvas.drawLine(Offset(x, y - h * 0.4), Offset(x + 2, y), p);
+  }
+
+  // 9. Entwined couple walking slowly together.
+  void _drawCouple(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.2) * size.width;
+    final y = (0.58 + (seed * 0.13 % 0.08)) * size.height;
+    final legPhase = math.sin(t * 1.5) * 2;
+    _drawHumanStick(canvas, x, y, 21, 0.45, legPhase: legPhase, lean: 0.05);
+    _drawHumanStick(canvas, x + 6, y, 20, 0.45, legPhase: -legPhase, lean: -0.05);
+    // Embrace line.
+    final p = _ink(0.4)..strokeWidth = 1.2;
+    canvas.drawLine(Offset(x + 1, y - 13), Offset(x + 6, y - 13), p);
+  }
+
+  @override
+  bool shouldRepaint(_HumanSilhouettesPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Foreground life — debris, critters, and decay on/near the rails
+// ---------------------------------------------------------------------------
+
+class ForegroundLife extends StatelessWidget {
+  const ForegroundLife({super.key, required this.animation, this.running = true});
+  final Animation<double> animation;
+  final bool running;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _ForegroundLifePainter(animation.value, running),
+        ),
+      ),
+    );
+  }
+}
+
+class _ForegroundLifePainter extends CustomPainter {
+  _ForegroundLifePainter(this.t, this.running);
+  final double t;
+  final bool running;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 3 cycling slots for moving things, plus static-ish background bits.
+    for (int slot = 0; slot < 3; slot++) {
+      final seed = slot * 113.0;
+      final cycle = (t * 0.08 + seed * 0.09) % 10.0;
+      final type = cycle.floor();
+      final localT = cycle - type;
+      _drawByType(canvas, size, type, seed, localT);
+    }
+    // Always-on static layer (bones, flowers, footprints).
+    _drawStaticDecay(canvas, size);
+  }
+
+  void _drawByType(Canvas canvas, Size size, int type, double seed, double lt) {
+    if (!running && type < 7) return;
+    switch (type) {
+      case 0: _drawTumbleweed(canvas, size, seed, lt); break;
+      case 1: _drawPaperDebris(canvas, size, seed, lt); break;
+      case 2: _drawDustDevil(canvas, size, seed, lt); break;
+      case 3: _drawFox(canvas, size, seed, lt); break;
+      case 4: _drawSnake(canvas, size, seed, lt); break;
+      case 5: _drawLizard(canvas, size, seed, lt); break;
+      case 6: _drawRollingBottle(canvas, size, seed, lt); break;
+      case 7: _drawFootprintTrail(canvas, size, seed, lt); break;
+      case 8: break; // bones handled in static
+      case 9: break; // flowers handled in static
+    }
+  }
+
+  // 0. Tumbleweed bouncing across.
+  void _drawTumbleweed(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.3) * size.width;
+    final baseY = 0.65 * size.height;
+    final bounce = (math.sin(lt * 12) * 0.5 + 0.5) * 8;
+    final y = baseY - bounce;
+    final rot = lt * 30;
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.rotate(rot);
+    final p = Paint()
+      ..color = const Color.fromRGBO(120, 95, 50, 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    for (int i = 0; i < 6; i++) {
+      final a = i * math.pi / 3;
+      canvas.drawLine(
+        Offset(math.cos(a) * 2, math.sin(a) * 2),
+        Offset(math.cos(a) * 8, math.sin(a) * 8),
+        p,
+      );
+    }
+    canvas.drawCircle(Offset.zero, 6, p..strokeWidth = 0.8);
+    canvas.restore();
+  }
+
+  // 1. Paper / plastic debris flying past.
+  void _drawPaperDebris(Canvas canvas, Size size, double seed, double lt) {
+    for (int i = 0; i < 3; i++) {
+      final iSeed = seed + i * 23;
+      final x = (1.1 - lt * 1.6 - i * 0.04) * size.width;
+      final y = (0.45 + (iSeed * 0.07 % 0.30)) * size.height +
+          math.sin(t * 3 + iSeed) * 6;
+      final flap = math.sin(t * 5 + iSeed);
+      final path = Path()
+        ..moveTo(x - 4, y)
+        ..lineTo(x, y - 2 + flap)
+        ..lineTo(x + 4, y)
+        ..lineTo(x + 2, y + 3);
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = const Color.fromRGBO(220, 215, 200, 0.55)
+          ..style = PaintingStyle.fill,
+      );
+    }
+  }
+
+  // 2. Small dust devil.
+  void _drawDustDevil(Canvas canvas, Size size, double seed, double lt) {
+    final fade = math.sin(lt * math.pi).clamp(0.0, 1.0);
+    final x = (0.2 + (seed * 0.13 % 0.6)) * size.width;
+    final baseY = 0.75 * size.height;
+    for (int i = 0; i < 10; i++) {
+      final h = i / 10.0;
+      final spinR = (1.0 - h) * 6 + 2;
+      final ang = t * 8 + h * 6;
+      final px = x + math.cos(ang) * spinR;
+      final py = baseY - h * 30;
+      canvas.drawCircle(
+        Offset(px, py),
+        2 + h * 1.5,
+        Paint()
+          ..color = Color.fromRGBO(180, 150, 110, (1 - h) * 0.5 * fade)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+      );
+    }
+  }
+
+  // 3. Fox / coyote trotting.
+  void _drawFox(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.0) * size.width;
+    final y = (0.7 + (seed * 0.07 % 0.05)) * size.height;
+    final legPhase = math.sin(t * 5) * 3;
+    final p = Paint()
+      ..color = const Color.fromRGBO(120, 65, 30, 0.75)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.5)
+      ..strokeWidth = 2.5
+      ..strokeCap = StrokeCap.round;
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset.zero, width: 18, height: 7),
+      p,
+    );
+    canvas.drawCircle(const Offset(-10, -2), 3.5, p);
+    p.strokeWidth = 1.5;
+    canvas.drawLine(const Offset(-11, -4), const Offset(-13, -7), p);
+    canvas.drawLine(const Offset(-9, -4), const Offset(-7, -7), p);
+    p.strokeWidth = 2.0;
+    canvas.drawLine(Offset(-5, 3), Offset(-5 + legPhase, 9), p);
+    canvas.drawLine(Offset(-2, 3), Offset(-2 - legPhase, 9), p);
+    canvas.drawLine(Offset(4, 3), Offset(4 + legPhase, 9), p);
+    canvas.drawLine(Offset(7, 3), Offset(7 - legPhase, 9), p);
+    final tail = math.sin(t * 3) * 3;
+    canvas.drawLine(const Offset(9, 0), Offset(15, -3 + tail), p);
+    canvas.restore();
+  }
+
+  // 4. Snake slithering.
+  void _drawSnake(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.5) * size.width;
+    final y = (0.75 + (seed * 0.07 % 0.05)) * size.height;
+    final p = Paint()
+      ..color = const Color.fromRGBO(60, 50, 30, 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0
+      ..strokeCap = StrokeCap.round;
+    final path = Path()..moveTo(x, y);
+    for (int i = 0; i < 6; i++) {
+      final phase = t * 4 + i * 0.8;
+      final dx = x + i * 4;
+      final dy = y + math.sin(phase) * 3;
+      path.lineTo(dx, dy);
+    }
+    canvas.drawPath(path, p);
+  }
+
+  // 5. Lizard darting in zig-zag.
+  void _drawLizard(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.05 - lt * 2.0) * size.width;
+    final y = (0.7 + (seed * 0.07 % 0.08)) * size.height +
+        math.sin(lt * 14) * 6;
+    final p = Paint()
+      ..color = const Color.fromRGBO(50, 70, 40, 0.6);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(x, y), width: 9, height: 3),
+      p,
+    );
+    p.strokeWidth = 1.2;
+    p.style = PaintingStyle.stroke;
+    canvas.drawLine(Offset(x - 5, y), Offset(x - 10, y + 1), p);
+  }
+
+  // 6. Rolling bottle.
+  void _drawRollingBottle(Canvas canvas, Size size, double seed, double lt) {
+    final x = (1.1 - lt * 1.4) * size.width;
+    final y = (0.78 + (seed * 0.05 % 0.04)) * size.height;
+    canvas.save();
+    canvas.translate(x, y);
+    canvas.rotate(lt * 20);
+    final p = Paint()
+      ..color = const Color.fromRGBO(70, 110, 90, 0.65);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(-5, -1.5, 10, 3),
+        const Radius.circular(1.5),
+      ),
+      p,
+    );
+    canvas.drawRect(
+      const Rect.fromLTWH(4, -0.8, 2, 1.6),
+      p,
+    );
+    canvas.restore();
+  }
+
+  // 7. Footprint trail fading.
+  void _drawFootprintTrail(Canvas canvas, Size size, double seed, double lt) {
+    final y = (0.78 + (seed * 0.05 % 0.05)) * size.height;
+    for (int i = 0; i < 8; i++) {
+      final age = (lt * 2 - i * 0.12).clamp(0.0, 1.0);
+      if (age >= 1.0) continue;
+      final x = (1.0 - i * 0.09 - lt * 0.5) * size.width;
+      final opacity = (1.0 - age) * 0.4;
+      canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(x, y + (i.isEven ? -3 : 3)),
+            width: 5, height: 3),
+        Paint()
+          ..color = Color.fromRGBO(40, 30, 20, opacity)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8),
+      );
+    }
+  }
+
+  // 8 + 9 baked into static layer: bones half-buried + wildflowers.
+  void _drawStaticDecay(Canvas canvas, Size size) {
+    // Bones (skull silhouette, 1 fixed-ish spot).
+    final boneSeed = 71.0;
+    final bx = (0.18 + (boneSeed * 0.07 % 0.5)) * size.width;
+    final by = (0.82 + (boneSeed * 0.05 % 0.05)) * size.height;
+    final bp = Paint()
+      ..color = const Color.fromRGBO(220, 210, 190, 0.55);
+    canvas.drawCircle(Offset(bx, by), 3, bp);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(bx + 4, by), width: 6, height: 2),
+      bp,
+    );
+    // Dark eye sockets.
+    final eye = Paint()..color = const Color.fromRGBO(20, 15, 10, 0.7);
+    canvas.drawCircle(Offset(bx - 1, by - 0.5), 0.7, eye);
+    canvas.drawCircle(Offset(bx + 1, by - 0.5), 0.7, eye);
+
+    // Wildflowers — small yellow/pink touches.
+    for (int i = 0; i < 8; i++) {
+      final seed = i * 41.0 + 200;
+      final fx = (seed * 0.071 % 1.0) * size.width;
+      final fy = (0.55 + (seed * 0.13 % 0.30)) * size.height;
+      final sway = math.sin(t * 1.5 + seed) * 1.5;
+      final color = (i.isEven)
+          ? const Color.fromRGBO(240, 200, 80, 0.7)
+          : const Color.fromRGBO(220, 140, 160, 0.7);
+      // Stem.
+      canvas.drawLine(
+        Offset(fx, fy),
+        Offset(fx + sway, fy - 5),
+        Paint()
+          ..color = const Color.fromRGBO(50, 70, 30, 0.6)
+          ..strokeWidth = 0.8,
+      );
+      // Flower head.
+      canvas.drawCircle(
+        Offset(fx + sway, fy - 5),
+        1.6,
+        Paint()..color = color,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ForegroundLifePainter old) => true;
+}
