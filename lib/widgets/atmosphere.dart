@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Floating dust motes inside the wagon — slow drift, gentle bob.
 /// Renders nothing when `running` is false (train stopped = air still).
@@ -1273,23 +1274,43 @@ class _FlyingEmbersPainter extends CustomPainter {
 // Human silhouettes — cycled post-apo figures crossing the horizon
 // ---------------------------------------------------------------------------
 
-class HumanSilhouettes extends StatelessWidget {
+class HumanSilhouettes extends StatefulWidget {
   const HumanSilhouettes({
     super.key,
-    required this.animation,
+    this.animation,
     this.night = false,
   });
-  final Animation<double> animation;
+  final Animation<double>? animation;
   final bool night;
+
+  @override
+  State<HumanSilhouettes> createState() => _HumanSilhouettesState();
+}
+
+class _HumanSilhouettesState extends State<HumanSilhouettes>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _t = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker((d) {
+      setState(() => _t = d.inMicroseconds / 1e6);
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: animation,
-        builder: (_, __) => CustomPaint(
-          painter: _HumanSilhouettesPainter(animation.value, night),
-        ),
+      child: CustomPaint(
+        painter: _HumanSilhouettesPainter(_t, widget.night),
       ),
     );
   }
@@ -1311,7 +1332,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
     // 4 cycling slots; each slot picks a silhouette type based on time/seed.
     for (int slot = 0; slot < 4; slot++) {
       final seed = slot * 67.0;
-      final cycle = (t * 0.04 + seed * 0.13) % 10.0;
+      final cycle = (t * 0.15 + seed * 0.31) % 10.0;
       final type = cycle.floor();
       final localT = cycle - type;
       _drawByType(canvas, size, type, seed, localT);
@@ -1542,19 +1563,39 @@ class _HumanSilhouettesPainter extends CustomPainter {
 // Foreground life — debris, critters, and decay on/near the rails
 // ---------------------------------------------------------------------------
 
-class ForegroundLife extends StatelessWidget {
-  const ForegroundLife({super.key, required this.animation, this.running = true});
-  final Animation<double> animation;
+class ForegroundLife extends StatefulWidget {
+  const ForegroundLife({super.key, this.animation, this.running = true});
+  final Animation<double>? animation;
   final bool running;
+
+  @override
+  State<ForegroundLife> createState() => _ForegroundLifeState();
+}
+
+class _ForegroundLifeState extends State<ForegroundLife>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  double _t = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Ticker((d) {
+      setState(() => _t = d.inMicroseconds / 1e6);
+    })..start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: animation,
-        builder: (_, __) => CustomPaint(
-          painter: _ForegroundLifePainter(animation.value, running),
-        ),
+      child: CustomPaint(
+        painter: _ForegroundLifePainter(_t, widget.running),
       ),
     );
   }
@@ -1570,7 +1611,7 @@ class _ForegroundLifePainter extends CustomPainter {
     // 3 cycling slots for moving things, plus static-ish background bits.
     for (int slot = 0; slot < 3; slot++) {
       final seed = slot * 113.0;
-      final cycle = (t * 0.08 + seed * 0.09) % 10.0;
+      final cycle = (t * 0.30 + seed * 0.27) % 10.0;
       final type = cycle.floor();
       final localT = cycle - type;
       _drawByType(canvas, size, type, seed, localT);
