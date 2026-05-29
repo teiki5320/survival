@@ -2339,3 +2339,139 @@ class _PipeSteamPainter extends CustomPainter {
   @override
   bool shouldRepaint(_PipeSteamPainter old) => true;
 }
+
+// ---------------------------------------------------------------------------
+// Horizon figures — painted post-apo silhouettes that scroll across the
+// distant horizon at a slow pace. Random selection + position from the
+// 13 silhouette_*.png assets.
+// ---------------------------------------------------------------------------
+
+class HorizonFigures extends StatefulWidget {
+  const HorizonFigures({super.key, this.density = 3});
+  final int density;
+
+  @override
+  State<HorizonFigures> createState() => _HorizonFiguresState();
+}
+
+class _HorizonFigure {
+  _HorizonFigure({
+    required this.asset,
+    required this.x,
+    required this.yFrac,
+    required this.scale,
+    required this.speed,
+    required this.opacity,
+  });
+  final String asset;
+  double x;
+  final double yFrac;
+  final double scale;
+  final double speed;
+  final double opacity;
+}
+
+class _HorizonFiguresState extends State<HorizonFigures>
+    with SingleTickerProviderStateMixin {
+  late final Ticker _ticker;
+  final List<_HorizonFigure> _figures = [];
+  final _rng = math.Random();
+  Duration _last = Duration.zero;
+
+  static const _assets = [
+    'assets/characters/silhouette_1.png',
+    'assets/characters/silhouette_2.png',
+    'assets/characters/silhouette_3.png',
+    'assets/characters/silhouette_4.png',
+    'assets/characters/silhouette_5.png',
+    'assets/characters/silhouette_6.png',
+    'assets/characters/silhouette_7.png',
+    'assets/characters/silhouette_8.png',
+    'assets/characters/silhouette_9.png',
+    'assets/characters/silhouette_10.png',
+    'assets/characters/silhouette_11.png',
+    'assets/characters/silhouette_12.png',
+    'assets/characters/silhouette_13.png',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _spawnInitial();
+    _ticker = Ticker(_onTick)..start();
+  }
+
+  void _spawnInitial() {
+    for (int i = 0; i < widget.density; i++) {
+      _figures.add(_makeFigure(initial: true));
+    }
+  }
+
+  _HorizonFigure _makeFigure({bool initial = false}) {
+    final asset = _assets[_rng.nextInt(_assets.length)];
+    final x = initial ? _rng.nextDouble() * 1.4 - 0.2 : 1.05;
+    final yFrac = 0.55 + _rng.nextDouble() * 0.18;
+    final scale = 0.45 + _rng.nextDouble() * 0.35;
+    final speed = 0.005 + _rng.nextDouble() * 0.010;
+    final opacity = 0.55 + _rng.nextDouble() * 0.25;
+    return _HorizonFigure(
+      asset: asset,
+      x: x,
+      yFrac: yFrac,
+      scale: scale,
+      speed: speed,
+      opacity: opacity,
+    );
+  }
+
+  void _onTick(Duration d) {
+    final dtMicros = (d - _last).inMicroseconds;
+    _last = d;
+    if (dtMicros <= 0) return;
+    final dt = dtMicros / 1e6;
+    bool changed = false;
+    for (int i = _figures.length - 1; i >= 0; i--) {
+      _figures[i].x -= _figures[i].speed * dt;
+      if (_figures[i].x < -0.20) {
+        _figures[i] = _makeFigure();
+        changed = true;
+      } else {
+        changed = true;
+      }
+    }
+    if (changed && mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final w = constraints.maxWidth;
+          final h = constraints.maxHeight;
+          return Stack(
+            children: [
+              for (final f in _figures)
+                Positioned(
+                  left: f.x * w,
+                  top: f.yFrac * h - 40 * f.scale,
+                  width: 60 * f.scale,
+                  height: 80 * f.scale,
+                  child: Opacity(
+                    opacity: f.opacity,
+                    child: Image.asset(f.asset, fit: BoxFit.contain),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}

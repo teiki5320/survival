@@ -1113,6 +1113,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
                       ),
+                      // 4f-zero. Horizon figures — painted post-apo
+                      //     silhouettes scrolling slowly through the
+                      //     window band.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.36,
+                        height: h * 0.20,
+                        child: const HorizonFigures(density: 4),
+                      ),
                       // 4f-bis. Daytime birds visible through windows.
                       Positioned(
                         left: 0,

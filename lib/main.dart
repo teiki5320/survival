@@ -8,6 +8,7 @@ import 'services/audio_service.dart';
 import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
+import 'widgets/title_screen.dart';
 import 'widgets/wardrobe_screen.dart';
 
 Future<void> main() async {
@@ -39,7 +40,33 @@ class TrainCosyApp extends StatelessWidget {
         colorSchemeSeed: const Color(0xFF8B6F4E),
         brightness: Brightness.dark,
       ),
-      home: const WagonScreen(),
+      home: const RootScreen(),
+    );
+  }
+}
+
+class RootScreen extends StatefulWidget {
+  const RootScreen({super.key});
+
+  @override
+  State<RootScreen> createState() => _RootScreenState();
+}
+
+class _RootScreenState extends State<RootScreen> {
+  bool _showTitle = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 800),
+      child: _showTitle
+          ? TitleScreen(
+              key: const ValueKey('title'),
+              onStart: ({required fromScratch}) {
+                setState(() => _showTitle = false);
+              },
+            )
+          : const WagonScreen(key: ValueKey('wagon_root')),
     );
   }
 }
