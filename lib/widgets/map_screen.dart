@@ -168,8 +168,9 @@ class _ArcPath {
 // ---------------------------------------------------------------------------
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.onClose});
+  const MapScreen({super.key, required this.onClose, this.onOpenWoodPoint});
   final VoidCallback onClose;
+  final VoidCallback? onOpenWoodPoint;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -295,6 +296,43 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
             ),
+            // Wood points : entre les villes, hors zones cités.
+            if (widget.onOpenWoodPoint != null) ...[
+              for (final p in const [
+                Offset(0.205, 0.500),
+                Offset(0.385, 0.310),
+                Offset(0.585, 0.310),
+                Offset(0.880, 0.475),
+                Offset(0.420, 0.730),
+              ])
+                Positioned(
+                  left: p.dx * mapW - 14,
+                  top: p.dy * mapH - 14,
+                  child: GestureDetector(
+                    onTap: widget.onOpenWoodPoint,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: const Color(0xCCB85522),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0x55000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.park,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
             if (_stationAdjust) ...[
               for (int i = 0; i < _stations.length; i++)
                 Builder(builder: (_) {

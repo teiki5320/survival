@@ -8,6 +8,9 @@ import 'services/audio_service.dart';
 import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
+import 'widgets/games/hydro_game.dart';
+import 'widgets/games/water_game.dart';
+import 'widgets/games/wood_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/wardrobe_screen.dart';
 
@@ -92,6 +95,9 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _onMap = false;
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
+  bool _inWaterGame = false;
+  bool _inHydroGame = false;
+  bool _inWoodGame = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   double _dogHeight = 0.136;
   int _dogInteractCount = 0;
@@ -262,7 +268,22 @@ class _WagonScreenState extends State<WagonScreen> {
       backgroundColor: Colors.black,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 600),
-        child: _inWardrobe
+        child: _inWaterGame
+            ? WaterGameTier1(
+                key: const ValueKey('water_game'),
+                onClose: () => setState(() => _inWaterGame = false),
+              )
+            : _inHydroGame
+            ? HydroGameTier1(
+                key: const ValueKey('hydro_game'),
+                onClose: () => setState(() => _inHydroGame = false),
+              )
+            : _inWoodGame
+            ? WoodGameTier1(
+                key: const ValueKey('wood_game'),
+                onClose: () => setState(() => _inWoodGame = false),
+              )
+            : _inWardrobe
             ? WardrobeScreen(
                 key: const ValueKey('wardrobe'),
                 onClose: () => setState(() => _inWardrobe = false),
@@ -271,6 +292,12 @@ class _WagonScreenState extends State<WagonScreen> {
             ? MapScreen(
                 key: const ValueKey('map'),
                 onClose: _exitMap,
+                onOpenWoodPoint: () {
+                  setState(() {
+                    _onMap = false;
+                    _inWoodGame = true;
+                  });
+                },
               )
             : _inLocomotive
                 ? LocomotiveScene(
@@ -529,12 +556,7 @@ class _WagonScreenState extends State<WagonScreen> {
       };
     } else if (_atFilter) {
       icon = Icons.local_drink;
-      action = () {
-        _triggerSpecial('use_back', frames: 24,
-            next: 'drink', nextFrames: 25);
-        GameState.instance.restoreThirst(0.20);
-        _audio.playSfx('drink');
-      };
+      action = () => setState(() => _inWaterGame = true);
     } else if (_atDog) {
       icon = Icons.pets;
       action = () {
@@ -552,9 +574,7 @@ class _WagonScreenState extends State<WagonScreen> {
       action = () => setState(() => _cookToken++);
     } else if (_atHydro) {
       icon = Icons.yard;
-      action = () {
-        _triggerSpecial('use_back', frames: 49);
-      };
+      action = () => setState(() => _inHydroGame = true);
     } else if (_atLamp) {
       icon = GameState.instance.lampOn
           ? Icons.lightbulb

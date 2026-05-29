@@ -50,6 +50,9 @@ class GameState extends ChangeNotifier {
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
+        'filterTier': filterTier,
+        'hydroTier': hydroTier,
+        'woodTier': woodTier,
       });
       await File(path).writeAsString(data);
     } catch (_) {}
@@ -83,6 +86,9 @@ class GameState extends ChangeNotifier {
         _unlocked.addAll((data['unlocked'] as List).cast<String>());
       }
       wagonStage = (data['wagonStage'] as num?)?.toInt() ?? 0;
+      filterTier = (data['filterTier'] as num?)?.toInt() ?? 1;
+      hydroTier = (data['hydroTier'] as num?)?.toInt() ?? 1;
+      woodTier = (data['woodTier'] as num?)?.toInt() ?? 1;
       notifyListeners();
     } catch (_) {}
   }
@@ -178,6 +184,24 @@ class GameState extends ChangeNotifier {
   }
 
   int wagonStage = 0;
+
+  // --- Equipment tiers (1-4) ---
+  int filterTier = 1;
+  int hydroTier = 1;
+  int woodTier = 1;
+
+  void upgradeTier(String which) {
+    switch (which) {
+      case 'filter':
+        if (filterTier < 4) filterTier++;
+      case 'hydro':
+        if (hydroTier < 4) hydroTier++;
+      case 'wood':
+        if (woodTier < 4) woodTier++;
+    }
+    notifyListeners();
+    save();
+  }
 
   // --- Météo (liée à la zone) ---
   Weather _weather = Weather.clear;
