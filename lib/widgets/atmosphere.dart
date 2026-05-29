@@ -2411,9 +2411,9 @@ class _HorizonFiguresState extends State<HorizonFigures>
     final asset = _assets[_rng.nextInt(_assets.length)];
     final x = initial ? _rng.nextDouble() * 1.4 - 0.2 : 1.05;
     final yFrac = 0.55 + _rng.nextDouble() * 0.18;
-    final scale = 0.45 + _rng.nextDouble() * 0.35;
-    final speed = 0.005 + _rng.nextDouble() * 0.010;
-    final opacity = 0.55 + _rng.nextDouble() * 0.25;
+    final scale = 0.22 + _rng.nextDouble() * 0.18;
+    final speed = 0.004 + _rng.nextDouble() * 0.008;
+    final opacity = 0.65 + _rng.nextDouble() * 0.25;
     return _HorizonFigure(
       asset: asset,
       x: x,

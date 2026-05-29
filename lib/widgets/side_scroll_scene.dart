@@ -920,6 +920,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
+                      // 1a-bis. Horizon figures — silhouettes scrolling
+                      //     across the horizon line. Drawn BEFORE the
+                      //     wagon image so they're masked by it and only
+                      //     visible through the wagon windows.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.55,
+                        height: h * 0.18,
+                        child: const HorizonFigures(density: 5),
+                      ),
                       // 1b. Drifting cloud overlay — sky.png at a low
                       //     opacity, scrolling on its own faster
                       //     controller. Gives the sky a second layer of
@@ -1112,16 +1123,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         top: h * 0.30,
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
-                      ),
-                      // 4f-zero. Horizon figures — painted post-apo
-                      //     silhouettes scrolling slowly through the
-                      //     window band.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.36,
-                        height: h * 0.20,
-                        child: const HorizonFigures(density: 4),
                       ),
                       // 4f-bis. Daytime birds visible through windows.
                       Positioned(
