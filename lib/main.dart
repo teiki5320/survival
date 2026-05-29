@@ -165,6 +165,7 @@ class _WagonScreenState extends State<WagonScreen> {
   /// le joueur veut forcer manuellement.
   static const Duration _dayNightPeriod = Duration(minutes: 6);
   Timer? _dayNightTimer;
+  Timer? _farmTimer;
 
   String _musicMood() {
     if (_night) return 'night';
@@ -188,11 +189,16 @@ class _WagonScreenState extends State<WagonScreen> {
       setState(() => _night = !_night);
       _refreshMusic();
     });
+    // Avance la ferme (hydro + eau) toutes les 10 secondes en session.
+    _farmTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      GameState.instance.advanceFarm();
+    });
   }
 
   @override
   void dispose() {
     _dayNightTimer?.cancel();
+    _farmTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _audio.stopAll();
