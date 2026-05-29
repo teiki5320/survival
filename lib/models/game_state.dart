@@ -272,9 +272,22 @@ class GameState extends ChangeNotifier {
 
   void grantItem(String id, [int qty = 1]) {
     _items[id] = (_items[id] ?? 0) + qty;
+    if ((_items[id] ?? 0) > 1000) _items[id] = 1000;
     notifyListeners();
     save();
   }
+
+  /// Returns true if the consumption succeeded (had enough).
+  bool consumeItem(String id, [int qty = 1]) {
+    final have = _items[id] ?? 0;
+    if (have < qty) return false;
+    _items[id] = have - qty;
+    notifyListeners();
+    save();
+    return true;
+  }
+
+  int itemCount(String id) => _items[id] ?? 0;
 
   // --- Story flags ---
   final Set<String> _flags = {};

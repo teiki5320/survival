@@ -367,6 +367,23 @@ class _WagonScreenState extends State<WagonScreen> {
                       const SizedBox(height: 2),
                       _statBar(Icons.bedtime, gs.fatigue,
                           const Color(0xFFB385D9)),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _resourceChip(Icons.local_fire_department,
+                              gs.itemCount('wood'),
+                              const Color(0xFFD4884A)),
+                          const SizedBox(width: 6),
+                          _resourceChip(Icons.opacity,
+                              gs.itemCount('water'),
+                              const Color(0xFF6FAEDF)),
+                          const SizedBox(width: 6),
+                          _resourceChip(Icons.restaurant_menu,
+                              gs.itemCount('food'),
+                              const Color(0xFFE89B5C)),
+                        ],
+                      ),
                     ],
                   ),
                 );
@@ -460,10 +477,37 @@ class _WagonScreenState extends State<WagonScreen> {
     );
   }
 
+  /// Pastille compteur ressource: icône + nombre (0-1000).
+  Widget _resourceChip(IconData icon, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: color.withValues(alpha: 0.40),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color.withValues(alpha: 0.95)),
+          const SizedBox(width: 3),
+          Text(
+            '$count',
+            style: TextStyle(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Courier',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  /// Gros bouton rond contextuel — remplace les 3 anciens FABs (porte
-  /// loco, porte map, lit). Icône + action dépendent de la position
-  /// du perso. Style cosy : disque brun warm + bordure dorée + ombre.
   Widget _actionFab() {
     IconData icon = Icons.help_outline;
     VoidCallback? action;
