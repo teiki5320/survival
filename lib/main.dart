@@ -133,21 +133,31 @@ class _WagonScreenState extends State<WagonScreen> {
   static const Duration _dayNightPeriod = Duration(minutes: 6);
   Timer? _dayNightTimer;
 
+  String _musicMood() {
+    if (_night) return 'night';
+    if (GameState.instance.inColdZone) return 'cold';
+    return 'day';
+  }
+
+  void _refreshMusic() => _audio.setMusic(_musicMood());
+
   @override
   void initState() {
     super.initState();
     _audio.startAmbientTrain();
-    _audio.setMusic(_night ? 'night' : 'day');
+    _refreshMusic();
+    GameState.instance.addListener(_refreshMusic);
     _dayNightTimer = Timer.periodic(_dayNightPeriod, (_) {
       if (!mounted) return;
       setState(() => _night = !_night);
-      _audio.setMusic(_night ? 'night' : 'day');
+      _refreshMusic();
     });
   }
 
   @override
   void dispose() {
     _dayNightTimer?.cancel();
+    GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _audio.stopAll();
     super.dispose();
@@ -216,7 +226,7 @@ class _WagonScreenState extends State<WagonScreen> {
 
   void _toggleNight() {
     setState(() => _night = !_night);
-    _audio.setMusic(_night ? 'night' : 'day');
+    _refreshMusic();
   }
 
   @override
@@ -452,6 +462,7 @@ class _WagonScreenState extends State<WagonScreen> {
         _triggerSpecial('use_back', frames: 24,
             next: 'drink', nextFrames: 25);
         GameState.instance.restoreThirst(0.20);
+        _audio.playSfx('drink');
       };
     } else if (_atDog) {
       icon = Icons.pets;
@@ -463,6 +474,7 @@ class _WagonScreenState extends State<WagonScreen> {
           _triggerSpecial('crouch', frames: 49);
         }
         GameState.instance.restoreFatigue(0.05);
+        _audio.playSfx('dog_bark');
       };
     } else if (_atStove) {
       icon = Icons.soup_kitchen;
@@ -476,7 +488,10 @@ class _WagonScreenState extends State<WagonScreen> {
       icon = GameState.instance.lampOn
           ? Icons.lightbulb
           : Icons.lightbulb_outline;
-      action = () => setState(() => GameState.instance.toggleLamp());
+      action = () {
+        setState(() => GameState.instance.toggleLamp());
+        _audio.playSfx('lamp_toggle');
+      };
     } else if (_doorPushing) {
       icon = Icons.meeting_room;
     }

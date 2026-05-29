@@ -6,6 +6,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../data/anim_metrics.dart';
 import '../models/game_state.dart';
+import '../services/audio_service.dart';
 import 'atmosphere.dart';
 import 'train_rocking.dart';
 
@@ -826,8 +827,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _walkAccumMs -= _walkFrameMs;
         _walkFrame = (_walkFrame + 1) % _heroFrameCount;
         // Roughly every 6 walk frames a foot is planted — kick a dust
-        // puff at the heroine's feet.
-        if (_walkFrame % 6 == 0) _stepToken++;
+        // puff at the heroine's feet + footstep sound.
+        if (_walkFrame % 6 == 0) {
+          _stepToken++;
+          AudioService().playSfx('footstep', volume: 0.4);
+        }
       }
     });
     widget.onHeroXChanged?.call(_heroX);
