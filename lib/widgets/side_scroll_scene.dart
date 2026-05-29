@@ -1006,16 +1006,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       Positioned(
                         left: 0,
                         right: 0,
-                        top: h * 0.83,
-                        height: h * 0.10,
-                        child: RailSparks(
-                          animation: _foreground,
-                          running: widget.running,
-                        ),
-                      ),
-                      Positioned(
-                        left: 0,
-                        right: 0,
                         top: h * 0.88,
                         bottom: 0,
                         child: ScurryingAnimal(
@@ -1122,20 +1112,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         top: h * 0.30,
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
-                      ),
-                      // 4f-zero. Cycled post-apo human silhouettes on the
-                      //     horizon (wanderer, refugees, limper, mother+child,
-                      //     watcher, cart, scavenger, fire group, waver,
-                      //     couple). Visible through wagon windows.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.28,
-                        height: h * 0.34,
-                        child: HumanSilhouettes(
-                          animation: _horizon,
-                          night: widget.night,
-                        ),
                       ),
                       // 4f-bis. Daytime birds visible through windows.
                       Positioned(
