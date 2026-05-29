@@ -371,11 +371,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Cycle durations tuned so motion is perceptible: sky reads as
     // slow drifting clouds (30s), horizon as a distant moving landscape
     // (28s), foreground as the close ground rushing by (5s).
-    _sky = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
-    _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat();
-    _mid = AnimationController(vsync: this, duration: const Duration(seconds: 7))..repeat();
-    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
-    _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+    _sky = AnimationController(vsync: this, duration: const Duration(seconds: 80))..repeat();
+    _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 20))..repeat();
+    _mid = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
+    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
+    _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
     _lastZone = GameState.instance.trainZone;
