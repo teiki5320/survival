@@ -145,6 +145,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     with TickerProviderStateMixin {
   // World-scroll controllers.
   late final AnimationController _horizon;
+  late final AnimationController _mid;
   late final AnimationController _foreground;
   late final AnimationController _smoke;
   late final AnimationController _sky;
@@ -370,9 +371,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Cycle durations tuned so motion is perceptible: sky reads as
     // slow drifting clouds (30s), horizon as a distant moving landscape
     // (28s), foreground as the close ground rushing by (5s).
-    _sky = AnimationController(vsync: this, duration: const Duration(seconds: 30))..repeat();
-    _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 28))..repeat();
-    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
+    _sky = AnimationController(vsync: this, duration: const Duration(seconds: 60))..repeat();
+    _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 14))..repeat();
+    _mid = AnimationController(vsync: this, duration: const Duration(seconds: 7))..repeat();
+    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 3))..repeat();
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
@@ -594,7 +596,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   void _applyRunning() {
-    final ctrls = [_horizon, _foreground, _smoke, _sky];
+    final ctrls = [_horizon, _mid, _foreground, _smoke, _sky];
     if (widget.running) {
       for (final c in ctrls) {
         if (!c.isAnimating) c.repeat();
@@ -615,6 +617,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _thoughtClearTimer?.cancel();
     _sky.dispose();
     _horizon.dispose();
+    _mid.dispose();
     _foreground.dispose();
     _smoke.dispose();
     super.dispose();
@@ -920,7 +923,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           ),
                         ),
                       ),
-                      // 1a-bis. Horizon figures — silhouettes scrolling
+                      // 1a-bis. Mid-ground parallax — poteaux + arbres
+                      //     morts qui scrollent plus vite que l'horizon.
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.40,
+                        height: h * 0.35,
+                        child: MidgroundParallax(animation: _mid),
+                      ),
+                      // 1a-ter. Horizon figures — silhouettes scrolling
                       //     across the horizon line. Drawn BEFORE the
                       //     wagon image so they're masked by it and only
                       //     visible through the wagon windows.
@@ -930,6 +942,30 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         top: h * 0.55,
                         height: h * 0.18,
                         child: const HorizonFigures(density: 5),
+                      ),
+                      // 1a-ter. Daytime birds drifting in the sky above
+                      //     the wagon, very small + slow (far away).
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.02,
+                        height: h * 0.18,
+                        child: DaytimeBirds(
+                          animation: _sky,
+                          enabled: !widget.night,
+                        ),
+                      ),
+                      // 1a-quater. Distant animal silhouette far on the
+                      //     horizon, rare (day only).
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: h * 0.60,
+                        height: h * 0.12,
+                        child: DistantAnimal(
+                          animation: _sky,
+                          enabled: !widget.night,
+                        ),
                       ),
                       // 1b. Drifting cloud overlay — sky.png at a low
                       //     opacity, scrolling on its own faster
@@ -1123,28 +1159,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         top: h * 0.30,
                         height: h * 0.30,
                         child: DistantZombie(enabled: widget.night),
-                      ),
-                      // 4f-bis. Daytime birds visible through windows.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.25,
-                        height: h * 0.35,
-                        child: DaytimeBirds(
-                          animation: _horizon,
-                          enabled: !widget.night,
-                        ),
-                      ),
-                      // 4f-ter. Rare distant animal silhouette (day only).
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.30,
-                        height: h * 0.30,
-                        child: DistantAnimal(
-                          animation: _horizon,
-                          enabled: !widget.night,
-                        ),
                       ),
                       // 4f-bis. Window rain/snow on rainy/snowy weather.
                       if (GameState.instance.weather == Weather.rainy ||

@@ -880,9 +880,9 @@ class _DaytimeBirdsPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     for (int group = 0; group < 4; group++) {
       final seed = group * 197.0;
-      final speed = 0.15 + (seed * 0.13 % 0.05);
+      final speed = 0.06 + (seed * 0.13 % 0.03);
       final baseX = 1.2 - ((seed * 0.31 + t * speed) % 1.6);
-      final baseY = 0.15 + (seed * 0.17 % 0.55);
+      final baseY = 0.20 + (seed * 0.17 % 0.40);
       final count = 3 + (group % 2);
 
       for (int b = 0; b < count; b++) {
@@ -891,19 +891,19 @@ class _DaytimeBirdsPainter extends CustomPainter {
         final oy = baseY + (bSeed * 0.11 % 0.06) - 0.03;
         final x = ox * size.width;
         final y = oy * size.height;
-        final wing = math.sin(t * 8 + bSeed) * 5;
-        final opacity = 0.55 + (bSeed * 0.07 % 0.25);
+        final wing = math.sin(t * 8 + bSeed) * 2.2;
+        final opacity = 0.45 + (bSeed * 0.07 % 0.20);
 
         final path = Path()
-          ..moveTo(x - 9, y + wing)
+          ..moveTo(x - 4, y + wing)
           ..lineTo(x, y)
-          ..lineTo(x + 9, y + wing);
+          ..lineTo(x + 4, y + wing);
         canvas.drawPath(
           path,
           Paint()
             ..color = Color.fromRGBO(15, 15, 25, opacity)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 2.2
+            ..strokeWidth = 1.2
             ..strokeCap = StrokeCap.round,
         );
       }
@@ -2338,6 +2338,119 @@ class _PipeSteamPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PipeSteamPainter old) => true;
+}
+
+// ---------------------------------------------------------------------------
+// Mid-ground parallax — telephone poles + dead trees that scroll faster
+// than the horizon, creating a layered depth effect.
+// ---------------------------------------------------------------------------
+
+class MidgroundParallax extends StatefulWidget {
+  const MidgroundParallax({super.key, required this.animation});
+  final Animation<double> animation;
+
+  @override
+  State<MidgroundParallax> createState() => _MidgroundParallaxState();
+}
+
+class _MidgroundParallaxState extends State<MidgroundParallax> {
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: widget.animation,
+        builder: (_, __) => CustomPaint(
+          painter: _MidgroundPainter(widget.animation.value),
+        ),
+      ),
+    );
+  }
+}
+
+class _MidgroundPainter extends CustomPainter {
+  _MidgroundPainter(this.t);
+  final double t;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Distribute 8 elements (poles + trees) across 2× the screen width,
+    // scrolling continuously.
+    const slots = 8;
+    for (int i = 0; i < slots; i++) {
+      final seed = i * 137.0;
+      final isPole = (i % 3) != 0; // 2/3 poles, 1/3 trees
+      final xOffset = (seed * 0.31) % 2.0; // 0..2
+      final x = ((xOffset - t * 2.0) % 2.0 - 0.5) * size.width;
+      // Skip if too far off-screen
+      if (x < -80 || x > size.width + 80) continue;
+
+      final yBase = size.height * 0.75;
+      final scaleVar = 0.85 + (seed * 0.07 % 0.30);
+
+      if (isPole) {
+        _drawTelephonePole(canvas, x, yBase, scaleVar);
+      } else {
+        _drawDeadTree(canvas, x, yBase, scaleVar, seed);
+      }
+    }
+  }
+
+  void _drawTelephonePole(Canvas canvas, double x, double yBase, double s) {
+    final p = Paint()
+      ..color = const Color.fromRGBO(20, 18, 16, 0.65)
+      ..strokeWidth = 1.8 * s
+      ..strokeCap = StrokeCap.round;
+    final h = 64.0 * s;
+    // Vertical pole.
+    canvas.drawLine(Offset(x, yBase), Offset(x, yBase - h), p);
+    // Top crossbar.
+    canvas.drawLine(
+      Offset(x - 8 * s, yBase - h + 4 * s),
+      Offset(x + 8 * s, yBase - h + 4 * s),
+      p..strokeWidth = 1.4 * s,
+    );
+    // Insulators.
+    canvas.drawCircle(
+        Offset(x - 8 * s, yBase - h + 2 * s), 0.8 * s, Paint()..color = const Color(0xFF1A1410));
+    canvas.drawCircle(
+        Offset(x + 8 * s, yBase - h + 2 * s), 0.8 * s, Paint()..color = const Color(0xFF1A1410));
+  }
+
+  void _drawDeadTree(Canvas canvas, double x, double yBase, double s, double seed) {
+    final p = Paint()
+      ..color = const Color.fromRGBO(25, 20, 18, 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0 * s
+      ..strokeCap = StrokeCap.round;
+    final h = 50.0 * s;
+    // Trunk.
+    canvas.drawLine(Offset(x, yBase), Offset(x + 2 * s, yBase - h), p);
+    // 4 branches asymmetric.
+    p.strokeWidth = 1.4 * s;
+    canvas.drawLine(
+      Offset(x + 2 * s, yBase - h * 0.7),
+      Offset(x - 8 * s, yBase - h * 1.1),
+      p,
+    );
+    canvas.drawLine(
+      Offset(x + 2 * s, yBase - h * 0.6),
+      Offset(x + 10 * s, yBase - h * 0.95),
+      p,
+    );
+    canvas.drawLine(
+      Offset(x - 1 * s, yBase - h * 0.5),
+      Offset(x - 7 * s, yBase - h * 0.75),
+      p..strokeWidth = 1.0 * s,
+    );
+    canvas.drawLine(
+      Offset(x + 3 * s, yBase - h * 0.4),
+      Offset(x + 8 * s, yBase - h * 0.6),
+      p,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_MidgroundPainter old) => true;
 }
 
 // ---------------------------------------------------------------------------

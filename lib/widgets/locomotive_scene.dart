@@ -393,6 +393,19 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           ),
                         ),
                       ),
+                      // Daytime birds in the sky visible through the
+                      // door opening. Drawn BEFORE the cab so they're
+                      // masked outside the door window.
+                      Positioned(
+                        left: 0,
+                        right: w * 0.4,
+                        top: h * 0.05,
+                        height: h * 0.20,
+                        child: DaytimeBirds(
+                          animation: _sky,
+                          enabled: !widget.night,
+                        ),
+                      ),
                       // Fond chaud derrière le poêle — simule des
                       // braises/parois éclairées. Bloque le paysage
                       // pour que seul le feu soit visible.
@@ -468,17 +481,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         Positioned.fill(
                           child: Fireflies(animation: _horizon, count: 4),
                         ),
-                      // Birds visible through the door opening (day).
-                      Positioned(
-                        left: 0,
-                        right: w * 0.5,
-                        top: h * 0.15,
-                        height: h * 0.35,
-                        child: DaytimeBirds(
-                          animation: _horizon,
-                          enabled: !widget.night,
-                        ),
-                      ),
                       // Steam wisps drifting in through the door.
                       Positioned(
                         left: 0,
