@@ -99,7 +99,7 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   ),
   'door_push':     AnimMetrics(scale: 1.46, aspect: 1.0, feet: 0.857),
   'open_door':     AnimMetrics(scale: 1.40, aspect: 1.0, feet: 0.88),
-  'crouch':        AnimMetrics(scale: 2.26, aspect: 1.0, feet: 0.833, noMirror: true),
+  'crouch':        AnimMetrics(scale: 1.50, aspect: 1.0, feet: 0.833, noMirror: true),
 
   // --- Loco-only ---
   'warm_hands':    AnimMetrics(
@@ -125,7 +125,7 @@ const Map<String, AnimMetrics> kAnimMetrics = {
     scale: 0.90, aspect: 1.0, feet: 0.840, noMirror: true,
   ),
   'pet_dog':       AnimMetrics(
-    scale: 1.20, aspect: 1.0, feet: 0.845, noMirror: true,
+    scale: 0.95, aspect: 1.0, feet: 0.845, noMirror: true,
   ),
 };
 
