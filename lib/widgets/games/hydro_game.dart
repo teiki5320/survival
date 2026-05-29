@@ -15,21 +15,20 @@ class HydroGameTier1 extends StatefulWidget {
 }
 
 class _Pot {
-  int? stage; // null = vide, 0..6 = planted..ripe
+  int? stage; // null = vide, 0..4 = sprout → huge
   bool watered = true;
   int dryCounter = 0;
+  bool showingRipe = false; // anim "récolté" éphémère
 }
 
-const _stages = [
-  'planted', 'sprout', 'small', 'medium', 'large', 'huge', 'ripe'
-];
+const _stages = ['sprout', 'small', 'medium', 'large', 'huge'];
 
 class _HydroGameTier1State extends State<HydroGameTier1> {
   final List<_Pot> _pots = [_Pot(), _Pot()];
 
-  bool get _canSeed => _pots.any((p) => p.stage == null);
+  bool get _canSeed => _pots.any((p) => p.stage == null && !p.showingRipe);
   bool get _canWater => _pots.any((p) => p.stage != null && !p.watered);
-  bool get _canHarvest => _pots.any((p) => p.stage == 6);
+  bool get _canHarvest => _pots.any((p) => p.stage == 4 && !p.showingRipe);
 
   void _seed() {
     final p = _pots.firstWhere((p) => p.stage == null,
@@ -54,22 +53,32 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
   }
 
   void _harvest() {
-    final p = _pots.firstWhere((p) => p.stage == 6,
+    final p = _pots.firstWhere((p) => p.stage == 4,
         orElse: () => _pots.first);
-    if (p.stage != 6) return;
+    if (p.stage != 4) return;
     setState(() {
-      p.stage = null;
-      p.watered = true;
+      p.showingRipe = true;
     });
     GameState.instance.grantItem('food', 15);
+    // Après 1.2s, on vide le pot.
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      setState(() {
+        p.stage = null;
+        p.watered = true;
+        p.dryCounter = 0;
+        p.showingRipe = false;
+      });
+    });
   }
 
   void _passStep() {
     setState(() {
       for (final p in _pots) {
         if (p.stage == null) continue;
+        if (p.showingRipe) continue;
         if (!p.watered) continue;
-        if (p.stage! < 6) {
+        if (p.stage! < 4) {
           p.stage = p.stage! + 1;
         }
         p.dryCounter++;
@@ -185,9 +194,12 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
 
   Widget _potView(_Pot p) {
     final stage = p.stage;
-    final spriteAsset = stage != null
-        ? 'assets/plants/carrot_${_stages[stage]}.png'
-        : null;
+    String? spriteAsset;
+    if (p.showingRipe) {
+      spriteAsset = 'assets/plants/carrot_ripe.png';
+    } else if (stage != null) {
+      spriteAsset = 'assets/plants/carrot_${_stages[stage]}.png';
+    }
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -249,13 +261,15 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
               ),
               const SizedBox(width: 4),
               Text(
-                p.stage == 6
-                    ? 'Mûr !'
-                    : p.watered
-                        ? '${_stages[p.stage!]}'
-                        : 'A soif',
+                p.showingRipe
+                    ? 'Récolté !'
+                    : p.stage == 4
+                        ? 'Mûr !'
+                        : p.watered
+                            ? _stages[p.stage!]
+                            : 'A soif',
                 style: TextStyle(
-                  color: p.stage == 6
+                  color: p.stage == 4 || p.showingRipe
                       ? const Color(0xFFB85522)
                       : p.watered
                           ? const Color(0xFF3A2E1F)
