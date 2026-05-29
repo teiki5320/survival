@@ -139,7 +139,10 @@ class _WagonScreenState extends State<WagonScreen> {
     return 'day';
   }
 
-  void _refreshMusic() => _audio.setMusic(_musicMood());
+  void _refreshMusic() {
+    // Musique désactivée pour l'instant — à refaire plus tard.
+    // _audio.setMusic(_musicMood());
+  }
 
   @override
   void initState() {
@@ -170,7 +173,6 @@ class _WagonScreenState extends State<WagonScreen> {
       _doorPushRight = false;
       _doorPushToken++;
     });
-    _audio.playSfx('door_open');
   }
 
   void _openMapDoor() {
@@ -180,7 +182,6 @@ class _WagonScreenState extends State<WagonScreen> {
       _doorPushRight = true;
       _doorPushToken++;
     });
-    _audio.playSfx('door_open');
   }
 
   void _onDoorPushDone() {
@@ -205,7 +206,6 @@ class _WagonScreenState extends State<WagonScreen> {
       _heroSpawnX = SideScrollScene.heroXMin;
     });
     _audio.stopFire();
-    _audio.playSfx('door_close');
   }
 
   void _exitMap() {

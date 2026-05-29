@@ -1110,19 +1110,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         Positioned.fill(
                           child: Fireflies(animation: _foreground, count: 5),
                         ),
-                      // 4d-bis. Rideaux qui balancent doucement.
-                      const Positioned.fill(child: AnimatedCurtains()),
-                      // 4d-ter. Givre sur les vitres (zone froide).
-                      if (GameState.instance.inColdZone)
-                        Positioned.fill(
-                          child: WindowFrost(
-                            intensity: GameState.instance.trainZone == TrainZone.cold
-                                ? 1.0 : 0.5,
-                          ),
-                        ),
-                      // 4d-quater. Toiles d'araignée dans les coins.
-                      if (widget.wagonStage <= 1)
-                        const Positioned.fill(child: Cobwebs()),
                       // 4e. Hanging vines — short procedural strands
                       //     between the wagon roof and the top edge of
                       //     the back-wall windows, so they don't cover
