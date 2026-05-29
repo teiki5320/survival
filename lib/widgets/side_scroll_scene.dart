@@ -374,8 +374,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _sky = AnimationController(vsync: this, duration: const Duration(seconds: 80))..repeat();
     _horizon = AnimationController(vsync: this, duration: const Duration(seconds: 20))..repeat();
     _mid = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
-    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
-    _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 5))..repeat();
+    _foreground = AnimationController(vsync: this, duration: const Duration(seconds: 8))..repeat();
+    _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
     _lastZone = GameState.instance.trainZone;
