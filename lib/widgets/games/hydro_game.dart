@@ -1,13 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../../models/game_state.dart';
 
-/// Tour hydroponique (tier 1) — vue de côté, 8 emplacements visuels
-/// répartis sur 4 étages. Les plantes poussent en temps réel persistant
-/// (même quand le jeu est fermé). Tap = action courte (semer, arroser,
-/// récolter). C'est de la gestion : tu reviens entre les sessions.
+/// Prototype hydro tier 1 — 2 pots + 4 boutons.
+/// 7 stades de croissance (planted → ripe) via sprites pixel art.
+/// Passer = avance d'un step (uniquement les pots arrosés).
+/// Arroser nécessaire après 2 Passer (sinon stagnation).
 class HydroGameTier1 extends StatefulWidget {
   const HydroGameTier1({super.key, required this.onClose});
   final VoidCallback onClose;
@@ -16,114 +14,81 @@ class HydroGameTier1 extends StatefulWidget {
   State<HydroGameTier1> createState() => _HydroGameTier1State();
 }
 
-class _Seed {
-  const _Seed(this.id, this.label, this.icon, this.color);
-  final String id;
-  final String label;
-  final IconData icon;
-  final Color color;
+class _Pot {
+  int? stage; // null = vide, 0..6 = planted..ripe
+  bool watered = true;
+  int dryCounter = 0;
 }
 
-const _seeds = [
-  _Seed('herb', 'Herbe', Icons.local_florist, Color(0xFF8FAF6C)),
-  _Seed('tomato', 'Tomate', Icons.lunch_dining, Color(0xFFD45A4D)),
-  _Seed('beans', 'Haricots', Icons.spa, Color(0xFF7AAFCC)),
-  _Seed('wheat', 'Blé', Icons.grass, Color(0xFFD4A55A)),
+const _stages = [
+  'planted', 'sprout', 'small', 'medium', 'large', 'huge', 'ripe'
 ];
 
 class _HydroGameTier1State extends State<HydroGameTier1> {
-  Timer? _ticker;
+  final List<_Pot> _pots = [_Pot(), _Pot()];
 
-  @override
-  void initState() {
-    super.initState();
-    // Tick toutes les secondes pour update visuel pendant la session.
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      GameState.instance.advanceFarm();
+  bool get _canSeed => _pots.any((p) => p.stage == null);
+  bool get _canWater => _pots.any((p) => p.stage != null && !p.watered);
+  bool get _canHarvest => _pots.any((p) => p.stage == 6);
+
+  void _seed() {
+    final p = _pots.firstWhere((p) => p.stage == null,
+        orElse: () => _pots.first);
+    if (p.stage != null) return;
+    setState(() {
+      p.stage = 0;
+      p.watered = true;
+      p.dryCounter = 0;
     });
   }
 
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    super.dispose();
+  void _water() {
+    final p = _pots.firstWhere(
+        (p) => p.stage != null && !p.watered,
+        orElse: () => _pots.first);
+    if (p.stage == null || p.watered) return;
+    setState(() {
+      p.watered = true;
+      p.dryCounter = 0;
+    });
   }
 
-  Future<_Seed?> _pickSeed() {
-    return showModalBottomSheet<_Seed>(
-      context: context,
-      backgroundColor: const Color(0xFF1A1410),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                'Semer une graine',
-                style: TextStyle(
-                    color: Color(0xFFFFD9A0),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500),
-              ),
-            ),
-            for (final s in _seeds)
-              ListTile(
-                leading: Icon(s.icon, color: s.color),
-                title: Text(s.label,
-                    style: const TextStyle(color: Color(0xFFFFD9A0))),
-                subtitle: Text(
-                  '${(GameState.hydroGrowSeconds(s.id) / 60).toStringAsFixed(0)} min — +${GameState.hydroYield(s.id)} food',
-                  style: const TextStyle(color: Color(0xFF8B6F4E)),
-                ),
-                onTap: () => Navigator.pop(context, s),
-              ),
-          ],
-        ),
-      ),
-    );
+  void _harvest() {
+    final p = _pots.firstWhere((p) => p.stage == 6,
+        orElse: () => _pots.first);
+    if (p.stage != 6) return;
+    setState(() {
+      p.stage = null;
+      p.watered = true;
+    });
+    GameState.instance.grantItem('food', 15);
   }
 
-  void _onSlotTap(int idx) async {
-    final gs = GameState.instance;
-    final slot = gs.hydroSlots[idx];
-    if (slot['seed'] == null) {
-      final s = await _pickSeed();
-      if (s != null) gs.plantSeed(idx, s.id);
-      return;
-    }
-    final growth = slot['growth'] as double;
-    final hydration = slot['hydration'] as double;
-    if (growth >= 1.0) {
-      gs.harvestSlot(idx);
-      return;
-    }
-    if (hydration < 0.5) {
-      gs.waterSlot(idx);
-      return;
-    }
+  void _passStep() {
+    setState(() {
+      for (final p in _pots) {
+        if (p.stage == null) continue;
+        if (!p.watered) continue;
+        if (p.stage! < 6) {
+          p.stage = p.stage! + 1;
+        }
+        p.dryCounter++;
+        if (p.dryCounter >= 2) {
+          p.watered = false;
+        }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F1410),
+      backgroundColor: const Color(0xFFE8D8B0),
       body: SafeArea(
         child: AnimatedBuilder(
           animation: GameState.instance,
           builder: (_, __) => Stack(
             children: [
-              // Fond paysage du wagon (parchemin sombre).
-              const Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      colors: [Color(0xFF1A2018), Color(0xFF0A0E0A)],
-                      radius: 1.4,
-                    ),
-                  ),
-                ),
-              ),
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -132,31 +97,73 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
                     Row(
                       children: [
                         const Text(
-                          'Tour hydroponique',
+                          'Potager (proto)',
                           style: TextStyle(
-                            color: Color(0xFFFFD9A0),
+                            color: Color(0xFF3A2E1F),
                             fontSize: 22,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const Spacer(),
-                        _label(Icons.opacity,
-                            GameState.instance.itemCount('water'),
-                            const Color(0xFF6FAEDF)),
-                        const SizedBox(width: 12),
-                        _label(Icons.restaurant_menu,
+                        _chip(Icons.restaurant_menu,
                             GameState.instance.itemCount('food'),
-                            const Color(0xFFE89B5C)),
+                            const Color(0xFFB85522)),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Vide → semer • Pousse sèche → arroser • Mûre → récolter',
-                      style:
-                          TextStyle(color: Color(0xFF8B6F4E), fontSize: 11),
+                    const SizedBox(height: 32),
+                    // Les 2 pots.
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          for (final p in _pots) _potView(p),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 20),
-                    Expanded(child: _buildTower()),
+                    const SizedBox(height: 24),
+                    // 3 boutons d'action.
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _actionButton(
+                          label: 'Semer carotte',
+                          icon: Icons.spa,
+                          enabled: _canSeed,
+                          onTap: _seed,
+                        ),
+                        _actionButton(
+                          label: 'Arroser',
+                          icon: Icons.water_drop,
+                          enabled: _canWater,
+                          onTap: _water,
+                        ),
+                        _actionButton(
+                          label: 'Récolter',
+                          icon: Icons.agriculture,
+                          enabled: _canHarvest,
+                          onTap: _harvest,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Bouton Passer.
+                    Center(
+                      child: SizedBox(
+                        width: 200,
+                        child: FilledButton.icon(
+                          onPressed: _passStep,
+                          icon: const Icon(Icons.skip_next),
+                          label: const Text('Passer un step'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF6B4226),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
+                            textStyle:
+                                const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -165,7 +172,7 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
                 right: 12,
                 child: IconButton(
                   icon: const Icon(Icons.close,
-                      color: Color(0xFFFFD9A0), size: 28),
+                      color: Color(0xFF3A2E1F), size: 28),
                   onPressed: widget.onClose,
                 ),
               ),
@@ -176,223 +183,142 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
     );
   }
 
-  Widget _buildTower() {
-    // Tour vue de côté : 4 étages, 2 plants par étage (gauche/droite).
-    final slots = GameState.instance.hydroSlots;
-    return Center(
-      child: LayoutBuilder(
-        builder: (_, c) {
-          final towerW = c.maxWidth * 0.6;
-          final towerH = c.maxHeight;
-          return SizedBox(
-            width: towerW,
-            height: towerH,
-            child: Stack(
-              children: [
-                // Trunk central (la colonne de la tour).
-                Center(
+  Widget _potView(_Pot p) {
+    final stage = p.stage;
+    final spriteAsset = stage != null
+        ? 'assets/plants/carrot_${_stages[stage]}.png'
+        : null;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        // Plante au-dessus du pot.
+        SizedBox(
+          width: 160,
+          height: 160,
+          child: spriteAsset != null
+              ? Image.asset(
+                  spriteAsset,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none, // pixel art = nearest
+                )
+              : Center(
                   child: Container(
-                    width: towerW * 0.18,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF8B4A1A),
-                          Color(0xFF6B3818),
-                          Color(0xFF4A2810),
-                        ],
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x66000000), blurRadius: 12),
-                      ],
+                      color: const Color(0x33000000),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    width: 140,
+                    height: 140,
+                    child: const Center(
+                      child: Icon(Icons.circle_outlined,
+                          color: Color(0x88000000), size: 48),
                     ),
                   ),
                 ),
-                // Réservoir d'eau en bas.
-                Positioned(
-                  left: 0, right: 0, bottom: 0,
-                  height: towerH * 0.10,
-                  child: Center(
-                    child: Container(
-                      width: towerW * 0.85,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2A5A7A),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: const Color(0xFF1A4060), width: 2),
-                      ),
-                    ),
-                  ),
-                ),
-                // 8 emplacements (4 étages × 2).
-                for (int i = 0; i < 8; i++) _slotWidget(
-                  i, slots[i], towerW, towerH,
-                ),
-              ],
+        ),
+        const SizedBox(height: 4),
+        // Pot (juste un rectangle stylisé en attendant un vrai asset).
+        Container(
+          width: 110,
+          height: 60,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF8B4A1A), Color(0xFF4A2810)],
             ),
-          );
-        },
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(14),
+              bottomRight: Radius.circular(14),
+            ),
+            border: Border.all(color: const Color(0xFF2A1A0E), width: 1.6),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Indicateur thirsty / OK.
+        if (p.stage != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                p.watered ? Icons.water_drop : Icons.warning_amber,
+                color: p.watered
+                    ? const Color(0xFF3A78AE)
+                    : const Color(0xFFE05A4D),
+                size: 16,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                p.stage == 6
+                    ? 'Mûr !'
+                    : p.watered
+                        ? '${_stages[p.stage!]}'
+                        : 'A soif',
+                style: TextStyle(
+                  color: p.stage == 6
+                      ? const Color(0xFFB85522)
+                      : p.watered
+                          ? const Color(0xFF3A2E1F)
+                          : const Color(0xFFE05A4D),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _actionButton({
+    required String label,
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return SizedBox(
+      width: 130,
+      child: FilledButton.icon(
+        onPressed: enabled ? onTap : null,
+        icon: Icon(icon, size: 18),
+        label: Text(label,
+            style: const TextStyle(fontSize: 12, letterSpacing: 0)),
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFFB85522),
+          disabledBackgroundColor: const Color(0xFF8B6F4E)
+              .withValues(alpha: 0.4),
+          foregroundColor: Colors.white,
+          padding:
+              const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _slotWidget(int i, Map<String, dynamic> slot, double w, double h) {
-    final floor = i ~/ 2; // 0..3
-    final side = i % 2; // 0 left, 1 right
-    final floorY = h * (0.12 + floor * 0.20);
-    final sideX = side == 0
-        ? w * 0.05
-        : w * 0.95 - w * 0.30;
-    return Positioned(
-      left: sideX,
-      top: floorY,
-      width: w * 0.30,
-      height: h * 0.18,
-      child: GestureDetector(
-        onTap: () => _onSlotTap(i),
-        child: _plantVisual(slot),
-      ),
-    );
-  }
-
-  Widget _plantVisual(Map<String, dynamic> slot) {
-    final seedId = slot['seed'] as String?;
-    final growth = (slot['growth'] as double?) ?? 0.0;
-    final hydration = (slot['hydration'] as double?) ?? 1.0;
-
-    if (seedId == null) {
-      return Container(
-        margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: const Color(0xFF6A5A4A).withValues(alpha: 0.5),
-            style: BorderStyle.solid,
-            width: 1,
-          ),
-        ),
-        child: const Center(
-          child: Icon(
-            Icons.add_circle_outline,
-            color: Color(0xFF6A5A4A),
-            size: 24,
-          ),
-        ),
-      );
-    }
-
-    final seed = _seeds.firstWhere((s) => s.id == seedId,
-        orElse: () => _seeds[0]);
-    final ready = growth >= 1.0;
-    final dry = hydration < 0.5;
-    final dead = hydration <= 0.0;
-
+  Widget _chip(IconData icon, int count, Color color) {
     return Container(
-      margin: const EdgeInsets.all(4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: dead
-              ? const Color(0xFF3A2010)
-              : ready
-                  ? const Color(0xFFFFD9A0)
-                  : dry
-                      ? const Color(0xFFE05A4D)
-                      : seed.color,
-          width: ready ? 2 : 1,
-        ),
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color, width: 1),
       ),
-      child: Stack(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Pot (en bas).
-          Positioned(
-            left: 0, right: 0, bottom: 0,
-            height: 14,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: const Color(0xFF6B4226),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(7),
-                  bottomRight: Radius.circular(7),
-                ),
-                border: Border.all(
-                  color: const Color(0xFF4A2810),
-                  width: 0.6,
-                ),
-              ),
-            ),
-          ),
-          // Plante (animation par taille de l'icône).
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: AnimatedScale(
-                scale: 0.3 + growth * 0.9,
-                duration: const Duration(milliseconds: 600),
-                child: Icon(
-                  seed.icon,
-                  color: dead
-                      ? const Color(0xFF3A2010)
-                      : seed.color.withValues(alpha: hydration.clamp(0.4, 1.0)),
-                  size: 36,
-                ),
-              ),
-            ),
-          ),
-          // Indicateur "mûr".
-          if (ready)
-            const Positioned(
-              top: 4,
-              right: 4,
-              child: Icon(Icons.check_circle,
-                  color: Color(0xFFFFD9A0), size: 16),
-            ),
-          // Indicateur "sec".
-          if (dry && !ready)
-            const Positioned(
-              top: 4,
-              right: 4,
-              child: Icon(Icons.water_drop_outlined,
-                  color: Color(0xFFE05A4D), size: 16),
-            ),
-          // Barre de croissance discrète.
-          if (!ready)
-            Positioned(
-              left: 4, right: 4, bottom: 0,
-              height: 2,
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: growth.clamp(0.0, 1.0),
-                child: Container(
-                  color: const Color(0xFFFFD9A0).withValues(alpha: 0.8),
-                ),
-              ),
-            ),
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 4),
+          Text('$count',
+              style: TextStyle(
+                color: color,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              )),
         ],
       ),
-    );
-  }
-
-  Widget _label(IconData icon, int count, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 16),
-        const SizedBox(width: 4),
-        Text(
-          '$count',
-          style: TextStyle(
-            color: color,
-            fontSize: 16,
-            fontFamily: 'Courier',
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 }
