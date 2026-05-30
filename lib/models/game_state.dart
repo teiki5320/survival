@@ -219,7 +219,7 @@ class GameState extends ChangeNotifier {
   // --- Water tank (filter prop) — 0..5 verres stockés ---
   int waterTankGlasses = 0;
   static const int waterTankMax = 5;
-  static const int waterTankFrames = 12;
+  static const int waterTankFrames = 6;
 
   void setWaterTankGlasses(int n) {
     waterTankGlasses = n.clamp(0, waterTankMax);

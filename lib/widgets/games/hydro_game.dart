@@ -229,10 +229,10 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
     } else if (p.stage != null) {
       spriteAsset = 'assets/plants/carrot_${_stages[p.stage!]}.png';
     }
-    final size = h * 0.50;
+    final size = h * 0.32;
     return Positioned(
       left: pos.dx * w - size / 2,
-      top: pos.dy * h - size * 0.75, // décale vers le haut pour pousser hors du cup
+      top: pos.dy * h - size * 0.70, // décale vers le haut pour pousser hors du cup
       width: size,
       height: size,
       child: Stack(
