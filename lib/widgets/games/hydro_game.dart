@@ -242,15 +242,25 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned.fill(
-              child: Opacity(
-                opacity: _adjustMode && spriteAsset == null ? 0.4 : 1.0,
+            // Sprite: rendu uniquement si plante OU mode ajuster (avec
+            // carrot_huge en placeholder 40% transparent).
+            if (spriteAsset != null)
+              Positioned.fill(
                 child: Image.asset(
-                  _adjustMode ? assetForAdjust : spriteAsset!,
+                  spriteAsset,
                   fit: BoxFit.contain,
                 ),
+              )
+            else if (_adjustMode)
+              Positioned.fill(
+                child: Opacity(
+                  opacity: 0.4,
+                  child: Image.asset(
+                    assetForAdjust,
+                    fit: BoxFit.contain,
+                  ),
+                ),
               ),
-            ),
             if (isSelected)
               Positioned.fill(
                 child: DecoratedBox(
