@@ -9,7 +9,6 @@ import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
 import 'widgets/games/hydro_game.dart';
-import 'widgets/games/wood_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/wardrobe_screen.dart';
 
@@ -95,7 +94,6 @@ class _WagonScreenState extends State<WagonScreen> {
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
   bool _inHydroGame = false;
-  bool _inWoodGame = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   double _dogHeight = 0.136;
   int _dogInteractCount = 0;
@@ -277,11 +275,6 @@ class _WagonScreenState extends State<WagonScreen> {
                 key: const ValueKey('hydro_game'),
                 onClose: () => setState(() => _inHydroGame = false),
               )
-            : _inWoodGame
-            ? WoodGameTier1(
-                key: const ValueKey('wood_game'),
-                onClose: () => setState(() => _inWoodGame = false),
-              )
             : _inWardrobe
             ? WardrobeScreen(
                 key: const ValueKey('wardrobe'),
@@ -291,12 +284,6 @@ class _WagonScreenState extends State<WagonScreen> {
             ? MapScreen(
                 key: const ValueKey('map'),
                 onClose: _exitMap,
-                onOpenWoodPoint: () {
-                  setState(() {
-                    _onMap = false;
-                    _inWoodGame = true;
-                  });
-                },
               )
             : _inLocomotive
                 ? LocomotiveScene(
