@@ -46,12 +46,12 @@ class _Slot {
 }
 
 final List<_Slot> _cupSlots = [
-  _Slot(0.280, 0.340, 0.250),
-  _Slot(0.485, 0.345, 0.250),
-  _Slot(0.685, 0.335, 0.250),
-  _Slot(0.280, 0.640, 0.250),
-  _Slot(0.485, 0.640, 0.250),
-  _Slot(0.685, 0.635, 0.250),
+  _Slot(0.295, 0.383, 0.210),
+  _Slot(0.500, 0.383, 0.210),
+  _Slot(0.704, 0.384, 0.210),
+  _Slot(0.292, 0.676, 0.200),
+  _Slot(0.498, 0.674, 0.210),
+  _Slot(0.706, 0.678, 0.210),
 ];
 
 class _HydroGameTier1State extends State<HydroGameTier1> {
@@ -230,8 +230,8 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
       spriteAsset = 'assets/plants/carrot_$stageKey.png';
     }
     final assetForAdjust = spriteAsset ?? 'assets/plants/carrot_huge.png';
-    final stageMult = _stageScale[stageKey] ?? 1.0;
-    final size = h * slot.size * stageMult;
+    // stageMult retiré: slot.size contrôle directement la taille rendue.
+    final size = h * slot.size;
     final isSelected = _adjustMode && _selectedSlot == i;
     return Positioned(
       left: slot.x * w - size / 2,
