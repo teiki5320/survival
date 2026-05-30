@@ -3,14 +3,13 @@ import 'package:flutter/material.dart';
 import '../../models/game_state.dart';
 
 /// Prototype hydro tier 1 — installation hydroponique vue du dessus
-/// avec 6 emplacements (3×2). 5 stades de croissance via sprites
-/// pixel art carrot_*.png.
+/// avec 6 emplacements (3×2). 4 stades de croissance + ripe pour
+/// l'animation de récolte (sprites carrot_*.png).
 ///
 /// Boutons:
 /// - Semer carotte → premier pot vide
-/// - Arroser → premier pot assoiffé
-/// - Récolter → premier pot mûr (+15 food)
-/// - Passer → avance tous les pots arrosés d'un step
+/// - Passer → avance tous les pots d'un step
+/// Tap sur une plante mûre → récolte (+15 food)
 class HydroGameTier1 extends StatefulWidget {
   const HydroGameTier1({super.key, required this.onClose});
   final VoidCallback onClose;
@@ -20,28 +19,23 @@ class HydroGameTier1 extends StatefulWidget {
 }
 
 class _Pot {
-  int? stage; // null = vide, 0..4 = sprout → huge
-  bool watered = true;
-  int dryCounter = 0;
+  int? stage; // null = vide, 0..3 = small → huge
   bool showingRipe = false;
 }
 
-const _stages = ['sprout', 'small', 'medium', 'large', 'huge'];
+// 4 stades distincts (skip sprout qui ressemblait trop à small).
+const _stages = ['small', 'medium', 'large', 'huge'];
 
-// Positions normalisées des 6 cups dans l'image hydro_tank.png (1376×768).
-// 3 colonnes × 2 rangées.
 const _cupPositions = [
-  Offset(0.27, 0.36), Offset(0.50, 0.36), Offset(0.73, 0.36), // front
-  Offset(0.27, 0.63), Offset(0.50, 0.63), Offset(0.73, 0.63), // back
+  Offset(0.27, 0.36), Offset(0.50, 0.36), Offset(0.73, 0.36),
+  Offset(0.27, 0.63), Offset(0.50, 0.63), Offset(0.73, 0.63),
 ];
 
 class _HydroGameTier1State extends State<HydroGameTier1> {
   final List<_Pot> _pots = List.generate(6, (_) => _Pot());
 
-  bool get _canSeed => _pots.any((p) => p.stage == null && !p.showingRipe);
-  bool get _canWater => _pots.any((p) => p.stage != null && !p.watered);
-  bool get _canHarvest =>
-      _pots.any((p) => p.stage == 4 && !p.showingRipe);
+  bool get _canSeed =>
+      _pots.any((p) => p.stage == null && !p.showingRipe);
 
   void _seed() {
     final p = _pots.firstWhere(
@@ -50,27 +44,12 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
     if (p.stage != null) return;
     setState(() {
       p.stage = 0;
-      p.watered = true;
-      p.dryCounter = 0;
     });
   }
 
-  void _water() {
-    final p = _pots.firstWhere(
-        (p) => p.stage != null && !p.watered,
-        orElse: () => _pots.first);
-    if (p.stage == null || p.watered) return;
-    setState(() {
-      p.watered = true;
-      p.dryCounter = 0;
-    });
-  }
-
-  void _harvest() {
-    final p = _pots.firstWhere(
-        (p) => p.stage == 4 && !p.showingRipe,
-        orElse: () => _pots.first);
-    if (p.stage != 4) return;
+  void _harvestAt(int idx) {
+    final p = _pots[idx];
+    if (p.stage != 3 || p.showingRipe) return;
     setState(() {
       p.showingRipe = true;
     });
@@ -79,8 +58,6 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
       if (!mounted) return;
       setState(() {
         p.stage = null;
-        p.watered = true;
-        p.dryCounter = 0;
         p.showingRipe = false;
       });
     });
@@ -89,14 +66,8 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
   void _passStep() {
     setState(() {
       for (final p in _pots) {
-        if (p.stage == null) continue;
-        if (p.showingRipe) continue;
-        if (!p.watered) continue;
-        if (p.stage! < 4) {
-          p.stage = p.stage! + 1;
-        }
-        p.dryCounter++;
-        if (p.dryCounter >= 2) p.watered = false;
+        if (p.stage == null || p.showingRipe) continue;
+        if (p.stage! < 3) p.stage = p.stage! + 1;
       }
     });
   }
@@ -131,7 +102,13 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
                             const Color(0xFFB85522)),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Sème → Passe les steps → Tap sur la plante mûre pour récolter',
+                      style: TextStyle(
+                          color: Color(0xFF8B6F4E), fontSize: 12),
+                    ),
+                    const SizedBox(height: 12),
                     Expanded(child: _tankView()),
                     const SizedBox(height: 16),
                     Row(
@@ -144,35 +121,13 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
                           onTap: _seed,
                         ),
                         _actionButton(
-                          label: 'Arroser',
-                          icon: Icons.water_drop,
-                          enabled: _canWater,
-                          onTap: _water,
-                        ),
-                        _actionButton(
-                          label: 'Récolter',
-                          icon: Icons.agriculture,
-                          enabled: _canHarvest,
-                          onTap: _harvest,
+                          label: 'Passer un step',
+                          icon: Icons.skip_next,
+                          enabled: true,
+                          onTap: _passStep,
+                          color: const Color(0xFF6B4226),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Center(
-                      child: SizedBox(
-                        width: 200,
-                        child: FilledButton.icon(
-                          onPressed: _passStep,
-                          icon: const Icon(Icons.skip_next),
-                          label: const Text('Passer un step'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF6B4226),
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
-                            textStyle: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                      ),
                     ),
                   ],
                 ),
@@ -203,14 +158,12 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
             final h = c.maxHeight;
             return Stack(
               children: [
-                // Background : la cuve hydroponique vue du dessus.
                 Positioned.fill(
                   child: Image.asset(
                     'assets/background/hydro_tank.png',
                     fit: BoxFit.contain,
                   ),
                 ),
-                // 6 plantes superposées sur les cups.
                 for (int i = 0; i < _pots.length; i++)
                   _plantOverlay(i, _pots[i], w, h),
               ],
@@ -232,51 +185,40 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
     final size = h * 0.32;
     return Positioned(
       left: pos.dx * w - size / 2,
-      top: pos.dy * h - size * 0.70, // décale vers le haut pour pousser hors du cup
+      top: pos.dy * h - size * 0.70,
       width: size,
       height: size,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          if (spriteAsset != null)
-            Positioned.fill(
-              child: Image.asset(
-                spriteAsset,
-                fit: BoxFit.contain,
-                filterQuality: FilterQuality.none, // pixel art net
-              ),
-            ),
-          // Indicateur soif au-dessus du cup.
-          if (p.stage != null && !p.watered && !p.showingRipe)
-            Positioned(
-              top: -8,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFE05A4D),
-                  shape: BoxShape.circle,
+      child: GestureDetector(
+        onTap: p.stage == 3 && !p.showingRipe
+            ? () => _harvestAt(i)
+            : null,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            if (spriteAsset != null)
+              Positioned.fill(
+                child: Image.asset(
+                  spriteAsset,
+                  fit: BoxFit.contain,
                 ),
-                child: const Icon(Icons.warning_amber,
-                    color: Colors.white, size: 14),
               ),
-            ),
-          // Indicateur mûr.
-          if (p.stage == 4 && !p.showingRipe)
-            Positioned(
-              top: -8,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(2),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFB85522),
-                  shape: BoxShape.circle,
+            // Indicateur mûr — pulse léger pour inciter au tap.
+            if (p.stage == 3 && !p.showingRipe)
+              Positioned(
+                top: -8,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFB85522),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.touch_app,
+                      color: Colors.white, size: 16),
                 ),
-                child: const Icon(Icons.check,
-                    color: Colors.white, size: 14),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -286,21 +228,22 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
     required IconData icon,
     required bool enabled,
     required VoidCallback onTap,
+    Color color = const Color(0xFFB85522),
   }) {
     return SizedBox(
-      width: 140,
+      width: 180,
       child: FilledButton.icon(
         onPressed: enabled ? onTap : null,
         icon: Icon(icon, size: 18),
         label: Text(label,
-            style: const TextStyle(fontSize: 12, letterSpacing: 0)),
+            style: const TextStyle(fontSize: 14, letterSpacing: 0)),
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFFB85522),
+          backgroundColor: color,
           disabledBackgroundColor:
               const Color(0xFF8B6F4E).withValues(alpha: 0.4),
           foregroundColor: Colors.white,
           padding:
-              const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(8),
           ),
