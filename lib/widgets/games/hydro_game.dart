@@ -26,6 +26,16 @@ class _Pot {
 // 4 stades distincts (skip sprout qui ressemblait trop à small).
 const _stages = ['small', 'medium', 'large', 'huge'];
 
+// Multiplicateurs de taille par stade (par rapport à la taille du slot).
+// Permet à small d'apparaître petit, huge en grand, ripe en moyen.
+const Map<String, double> _stageScale = {
+  'small': 0.55,
+  'medium': 0.78,
+  'large': 1.00,
+  'huge': 1.00,
+  'ripe': 0.75,
+};
+
 /// Position normalisée + taille (fraction de h) de chaque cup. Modifiable
 /// in-app via le mode ajuster, puis bakable dans le code.
 class _Slot {
@@ -211,15 +221,17 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
   Widget _plantOverlay(int i, _Pot p, double w, double h) {
     final slot = _cupSlots[i];
     String? spriteAsset;
+    String stageKey = 'huge';
     if (p.showingRipe) {
       spriteAsset = 'assets/plants/carrot_ripe.png';
+      stageKey = 'ripe';
     } else if (p.stage != null) {
-      spriteAsset = 'assets/plants/carrot_${_stages[p.stage!]}.png';
+      stageKey = _stages[p.stage!];
+      spriteAsset = 'assets/plants/carrot_$stageKey.png';
     }
-    // En mode ajuster on force un sprite visible (huge) pour pouvoir
-    // caler sur le rendu d'une plante adulte.
     final assetForAdjust = spriteAsset ?? 'assets/plants/carrot_huge.png';
-    final size = h * slot.size;
+    final stageMult = _stageScale[stageKey] ?? 1.0;
+    final size = h * slot.size * stageMult;
     final isSelected = _adjustMode && _selectedSlot == i;
     return Positioned(
       left: slot.x * w - size / 2,
@@ -271,20 +283,6 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
                     ),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                ),
-              ),
-            if (p.stage == 3 && !p.showingRipe && !_adjustMode)
-              Positioned(
-                top: -8,
-                right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFB85522),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.touch_app,
-                      color: Colors.white, size: 16),
                 ),
               ),
           ],
