@@ -46,12 +46,12 @@ class _Slot {
 }
 
 final List<_Slot> _cupSlots = [
-  _Slot(0.27, 0.36, 0.32),
-  _Slot(0.50, 0.36, 0.32),
-  _Slot(0.73, 0.36, 0.32),
-  _Slot(0.27, 0.63, 0.32),
-  _Slot(0.50, 0.63, 0.32),
-  _Slot(0.73, 0.63, 0.32),
+  _Slot(0.280, 0.340, 0.250),
+  _Slot(0.485, 0.345, 0.250),
+  _Slot(0.685, 0.335, 0.250),
+  _Slot(0.280, 0.640, 0.250),
+  _Slot(0.485, 0.640, 0.250),
+  _Slot(0.685, 0.635, 0.250),
 ];
 
 class _HydroGameTier1State extends State<HydroGameTier1> {
@@ -235,7 +235,9 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
     final isSelected = _adjustMode && _selectedSlot == i;
     return Positioned(
       left: slot.x * w - size / 2,
-      top: slot.y * h - size * 0.70,
+      // Centre de la plante (50%) aligné sur le centre du cup —
+      // marche pour tous les stades quelle que soit leur taille.
+      top: slot.y * h - size / 2,
       width: size,
       height: size,
       child: GestureDetector(
