@@ -9,7 +9,6 @@ import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
 import 'widgets/games/hydro_game.dart';
-import 'widgets/games/water_game.dart';
 import 'widgets/games/wood_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/wardrobe_screen.dart';
@@ -95,7 +94,6 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _onMap = false;
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
-  bool _inWaterGame = false;
   bool _inHydroGame = false;
   bool _inWoodGame = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
@@ -274,12 +272,7 @@ class _WagonScreenState extends State<WagonScreen> {
       backgroundColor: Colors.black,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 600),
-        child: _inWaterGame
-            ? WaterGameTier1(
-                key: const ValueKey('water_game'),
-                onClose: () => setState(() => _inWaterGame = false),
-              )
-            : _inHydroGame
+        child: _inHydroGame
             ? HydroGameTier1(
                 key: const ValueKey('hydro_game'),
                 onClose: () => setState(() => _inHydroGame = false),
@@ -435,7 +428,10 @@ class _WagonScreenState extends State<WagonScreen> {
                 // Bouton ACTION contextuel — un seul rond qui s'allume
                 // quand le perso atteint un bord. Tap = entre dans la
                 // loco (bord gauche) ou ouvre la map (bord droit).
-                _actionFab(),
+                AnimatedBuilder(
+                  animation: GameState.instance,
+                  builder: (_, __) => _actionFab(),
+                ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'toggle_dance',
@@ -561,8 +557,25 @@ class _WagonScreenState extends State<WagonScreen> {
         GameState.instance.restoreFatigue(0.10);
       };
     } else if (_atFilter) {
-      icon = Icons.local_drink;
-      action = () => setState(() => _inWaterGame = true);
+      final glasses = GameState.instance.waterTankGlasses;
+      if (glasses == 0) {
+        // Vide → remplir.
+        icon = Icons.water;
+        action = () {
+          GameState.instance
+              .setWaterTankGlasses(GameState.waterTankMax);
+        };
+      } else {
+        // Plein ou partiel → boire un verre.
+        icon = Icons.local_drink;
+        action = () {
+          _triggerSpecial('use_back', frames: 24,
+              next: 'drink', nextFrames: 25);
+          GameState.instance.restoreThirst(0.20);
+          _audio.playSfx('drink');
+          GameState.instance.setWaterTankGlasses(glasses - 1);
+        };
+      }
     } else if (_atDog) {
       icon = Icons.pets;
       action = () {

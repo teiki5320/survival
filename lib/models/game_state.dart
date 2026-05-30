@@ -50,6 +50,7 @@ class GameState extends ChangeNotifier {
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
+        'waterTankGlasses': waterTankGlasses,
         'filterTier': filterTier,
         'hydroTier': hydroTier,
         'woodTier': woodTier,
@@ -89,6 +90,9 @@ class GameState extends ChangeNotifier {
         _unlocked.addAll((data['unlocked'] as List).cast<String>());
       }
       wagonStage = (data['wagonStage'] as num?)?.toInt() ?? 0;
+      waterTankGlasses =
+          ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
+              .clamp(0, waterTankMax);
       filterTier = (data['filterTier'] as num?)?.toInt() ?? 1;
       hydroTier = (data['hydroTier'] as num?)?.toInt() ?? 1;
       woodTier = (data['woodTier'] as num?)?.toInt() ?? 1;
@@ -211,6 +215,17 @@ class GameState extends ChangeNotifier {
   }
 
   int wagonStage = 0;
+
+  // --- Water tank (filter prop) — 0..5 verres stockés ---
+  int waterTankGlasses = 0;
+  static const int waterTankMax = 5;
+  static const int waterTankFrames = 12;
+
+  void setWaterTankGlasses(int n) {
+    waterTankGlasses = n.clamp(0, waterTankMax);
+    notifyListeners();
+    save();
+  }
 
   // --- Equipment tiers (1-4) ---
   int filterTier = 1;

@@ -185,7 +185,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
     _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
     _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
-    _PropDef('filter',   'Filtre',    animated: true,  frameCount: 49),
+    _PropDef('filter',   'Filtre',    animated: false),
     _PropDef('table',    'Table',     animated: false),
     _PropDef('notebook', 'Carnet',    animated: false),
     _PropDef('firstaid', 'Secours',   animated: false),
@@ -208,6 +208,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
   // pour la remplir, Plume passe à empty quand elle vient de manger.
   bool _bowlFull = true;
+
+  // Niveau visuel du filtre (0..GameState.waterTankFrames-1).
+  // Animé temporairement lors du remplissage / descente lors d'un verre.
+  double _filterDisplayLevel = 0;
+  AnimationController? _filterFillCtrl;
 
   // Le chien a sa propre state machine. Sa hauteur vient du parent
   // (slider live), son Y reste fixe, son X glisse quand il marche.
@@ -391,6 +396,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       setState(() {});
     });
     GameState.instance.addListener(_onGameStateChanged);
+    _filterDisplayLevel = _glassesToFrame(
+        GameState.instance.waterTankGlasses);
     _thoughtTimer = Timer.periodic(const Duration(seconds: 60), (_) {
       if (!mounted) return;
       // 50 % chance to skip — so they don't appear like clockwork.
@@ -411,6 +418,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _horizonIndex = _horizonIndex % _horizonAssets.length;
       setState(() {});
     }
+    final targetFrame = _glassesToFrame(GameState.instance.waterTankGlasses);
+    if ((targetFrame - _filterDisplayLevel).abs() > 0.1) {
+      _animateFilterTo(targetFrame);
+    }
+  }
+
+  double _glassesToFrame(int glasses) {
+    // 0 verres → frame 0, 5 verres → frame 11 (12 frames - 1)
+    final maxFrame = (GameState.waterTankFrames - 1).toDouble();
+    return (glasses / GameState.waterTankMax) * maxFrame;
+  }
+
+  void _animateFilterTo(double target) {
+    _filterFillCtrl?.dispose();
+    final start = _filterDisplayLevel;
+    final ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    );
+    ctrl.addListener(() {
+      setState(() {
+        _filterDisplayLevel = start + (target - start) * ctrl.value;
+      });
+    });
+    ctrl.forward();
+    _filterFillCtrl = ctrl;
   }
 
   bool _precached = false;
@@ -470,6 +503,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Bowl a 2 états statiques.
     precacheImage(const AssetImage('assets/objects/bowl_full.png'), context);
     precacheImage(const AssetImage('assets/objects/bowl_empty.png'), context);
+    // Filtre/tank: 12 frames pour niveau d'eau.
+    for (int i = 0; i < GameState.waterTankFrames; i++) {
+      precacheImage(AssetImage('assets/objects/tank_$i.png'), context);
+    }
     // Plume (chien) — précache les 9 anims. idle = image statique,
     // walk = 49 frames, le reste = 25 frames.
     precacheImage(const AssetImage('assets/objects/dog_idle.png'), context);
@@ -1349,17 +1386,22 @@ class _SideScrollSceneState extends State<SideScrollScene>
                      : 'assets/objects/bowl_empty.png')
         : 'assets/objects/${def.key}.png';
     const boxFit = BoxFit.contain;
-    final Widget sprite = def.animated
-        ? _AnimatedSprite(
-            prefix: def.key,
-            frameCount: def.frameCount,
-            durationMs: def.frameDurationMs * def.frameCount,
-            fit: boxFit,
-          )
-        : Image.asset(
-            staticAsset,
-            fit: boxFit,
-          );
+    final Widget sprite;
+    if (def.key == 'filter') {
+      sprite = _WaterTankSprite(level: _filterDisplayLevel, fit: boxFit);
+    } else if (def.animated) {
+      sprite = _AnimatedSprite(
+        prefix: def.key,
+        frameCount: def.frameCount,
+        durationMs: def.frameDurationMs * def.frameCount,
+        fit: boxFit,
+      );
+    } else {
+      sprite = Image.asset(
+        staticAsset,
+        fit: boxFit,
+      );
+    }
     Widget wrapped = _nightTint(sprite);
     if (def.key == 'stove' && (pos.animDx != 0 || pos.animDy != 0)) {
       wrapped = Transform.translate(
@@ -2210,4 +2252,23 @@ class _AnimDef {
   final int frames;
   final int frameMs;
   final bool loops;
+}
+
+/// Affiche le bon frame du tank selon le niveau (0..waterTankFrames-1).
+/// Niveau peut être fractionnaire (interpolation visuelle pendant l'anim
+/// de remplissage / descente).
+class _WaterTankSprite extends StatelessWidget {
+  const _WaterTankSprite({required this.level, required this.fit});
+  final double level;
+  final BoxFit fit;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxFrame = GameState.waterTankFrames - 1;
+    final idx = level.round().clamp(0, maxFrame);
+    return Image.asset(
+      'assets/objects/tank_$idx.png',
+      fit: fit,
+    );
+  }
 }
