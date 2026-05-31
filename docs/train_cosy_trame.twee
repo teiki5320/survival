@@ -25,6 +25,23 @@ Train Cosy — Trame
 (set: $tenteRetour to false)
 
 
+:: HUD [footer]
+(if: not (passage:)'s tags contains "fin")[
+  (set: $soif to (max: 0, (min: 100, $soif)))
+  (set: $faim to (max: 0, (min: 100, $faim)))
+  (set: $bois to (max: 0, (min: 100, $bois)))
+  (set: $moral to (max: 0, (min: 100, $moral)))
+  ---
+  (text-style:"bold")[💧 Soif (print: $soif)  ·  🍖 Faim (print: $faim)  ·  🪵 Bois (print: $bois)  ·  ❤️ Moral (print: $moral)]
+  (if: $soif <= 0 or $faim <= 0 or $bois <= 0)[
+    (goto: "FinMort")
+  ]
+  (else-if: $moral <= 0)[
+    (goto: "FinAbandon")
+  ]
+]
+
+
 :: Depart
 La gare brûle. La foule te porte jusqu'au quai. Au bout, des silhouettes
 rallument une vieille locomotive de fret à bois. Tu montes. Tu te caches.
@@ -921,7 +938,7 @@ du refuge. Ton cœur bat dans ta gorge. Tu as tenu. Tu es arrivée.
    LES FINS
    ============================================================ %/
 
-:: FinRetrouvailles
+:: FinRetrouvailles [fin]
 FIN — Retrouvailles
 
 Sur le quai du refuge, des silhouettes se précipitent vers le train.
@@ -934,7 +951,7 @@ désormais partie de ta famille — celle qu'on choisit.]
 
 //Tu as survécu, de corps et d'âme. Vous êtes ensemble.//
 
-:: FinDeuil
+:: FinDeuil [fin]
 FIN — Le deuil et la vie
 
 Ils ne sont pas là. Tu cherches, tu demandes, tu montres leurs visages
@@ -948,7 +965,7 @@ de victoire.
 
 //Survivre, ce n'est pas seulement tenir. C'est accepter, et continuer.//
 
-:: FinMort
+:: FinMort [fin]
 FIN — Le voyage s'arrête
 
 Le train ralentit, puis se tait, au milieu du blanc. (if: $bois <= 0)[Plus
@@ -960,7 +977,7 @@ Quelque part, peut-être, quelqu'un t'attend encore. Il ne le saura jamais.
 
 //Une stat est tombée à zéro. Fin de partie.//
 
-:: FinAbandon
+:: FinAbandon [fin]
 FIN — L'abandon
 
 À quoi bon. Tu n'y crois plus. À une gare sans nom, sous un ciel sans
@@ -971,7 +988,7 @@ Tu t'assieds sur un banc gelé. Tu attends. Tu ne sais même plus quoi.
 
 //Le moral est tombé à zéro. Shen a renoncé.//
 
-:: FinSecrete
+:: FinSecrete [fin]
 FIN SECRÈTE — La voix
 
 À l'autre bout du tunnel, sur le quai, une femme tient une vieille radio
