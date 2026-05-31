@@ -8,6 +8,7 @@ import 'services/audio_service.dart';
 import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
+import 'widgets/cards_screen.dart';
 import 'widgets/games/hydro_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/wardrobe_screen.dart';
@@ -94,6 +95,7 @@ class _WagonScreenState extends State<WagonScreen> {
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
   bool _inHydroGame = false;
+  bool _inCards = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   double _dogHeight = 0.136;
   int _dogInteractCount = 0;
@@ -270,7 +272,12 @@ class _WagonScreenState extends State<WagonScreen> {
       backgroundColor: Colors.black,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 600),
-        child: _inHydroGame
+        child: _inCards
+            ? CardsScreen(
+                key: const ValueKey('cards'),
+                onClose: () => setState(() => _inCards = false),
+              )
+            : _inHydroGame
             ? HydroGameTier1(
                 key: const ValueKey('hydro_game'),
                 onClose: () => setState(() => _inHydroGame = false),
@@ -418,6 +425,15 @@ class _WagonScreenState extends State<WagonScreen> {
                 AnimatedBuilder(
                   animation: GameState.instance,
                   builder: (_, __) => _actionFab(),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'open_cards',
+                  tooltip: 'Le voyage (cartes)',
+                  backgroundColor: const Color(0xFFE8B96B),
+                  foregroundColor: const Color(0xFF2A2018),
+                  onPressed: () => setState(() => _inCards = true),
+                  child: const Icon(Icons.style),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
