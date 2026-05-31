@@ -10,6 +10,17 @@ Train Cosy — Trame
   "zoom": 0.5
 }
 
+/% ============================================================
+   PRINCIPE DE DESIGN
+   Les actions de SURVIE (mettre le bois, manger, boire, filtrer
+   l'eau, cultiver) se font À LA MAIN dans le wagon side-scroller.
+   Les CARTES ici sont NARRATIVES : rencontres, dilemmes, souvenirs,
+   ambiance, lore. Elles touchent les stats seulement quand c'est un
+   vrai choix d'histoire (donner sa nourriture, trouver une cache,
+   un sacrifice). Pas de carte-corvée.
+   Stats : $soif $faim $bois $moral (0 = fin). Le wagon les remplit.
+   ============================================================ %/
+
 :: StoryInit
 (set: $soif to 70)
 (set: $faim to 70)
@@ -23,22 +34,20 @@ Train Cosy — Trame
 (set: $enfantMalade to false)
 (set: $radioSuivie to 0)
 (set: $tenteRetour to false)
+(set: $aArme to false)
+(set: $doute to 0)
 
 
 :: HUD [footer]
-(if: not (passage:)'s tags contains "fin")[
+(if: not ((passage:)'s tags contains "fin"))[
   (set: $soif to (max: 0, (min: 100, $soif)))
   (set: $faim to (max: 0, (min: 100, $faim)))
   (set: $bois to (max: 0, (min: 100, $bois)))
   (set: $moral to (max: 0, (min: 100, $moral)))
   ---
-  (text-style:"bold")[💧 Soif (print: $soif)  ·  🍖 Faim (print: $faim)  ·  🪵 Bois (print: $bois)  ·  ❤️ Moral (print: $moral)]
-  (if: $soif <= 0 or $faim <= 0 or $bois <= 0)[
-    (goto: "FinMort")
-  ]
-  (else-if: $moral <= 0)[
-    (goto: "FinAbandon")
-  ]
+  (text-style:"bold")[💧 (print: $soif)  ·  🍖 (print: $faim)  ·  🪵 (print: $bois)  ·  ❤️ (print: $moral)]
+  (if: $soif <= 0 or $faim <= 0 or $bois <= 0)[(goto: "FinMort")]
+  (else-if: $moral <= 0)[(goto: "FinAbandon")]
 ]
 
 
@@ -68,14 +77,12 @@ seul comme toi.
 (set: $aLeChien to true)
 Il se blottit contre toi. Le wagon te paraît moins vide.
 //Moral +15 · le chien embarque//
-
 [[La ville flambe encore...->G1b]]
 
 :: G1seule
 (set: $moral to it - 5)
 Tu fermes la porte. Le wagon est immense et silencieux.
 //Moral -5//
-
 [[La ville flambe encore...->G1b]]
 
 :: G1b
@@ -90,56 +97,103 @@ peut-être encore là-bas.
 (set: $faim to it - 10)
 (set: $tenteRetour to true)
 Tu sautes. Les rues sont un piège de feu et d'ombres. Tu cries leurs
-noms. Personne. Tu remontes de justesse, les mains vides — mais tu as
-vu un train partir vers le nord, bondé. Et s'ils étaient dedans ?
-//Soif -10 · Faim -10 · flag : graine d'espoir (le train du nord)//
-
+noms. Personne. Tu remontes les mains vides — mais tu as vu un train
+filer vers le nord, bondé. Et s'ils étaient dedans ?
+//Soif -10 · Faim -10 · une graine d'espoir//
 [[Suite->F1a]]
 
 :: G1bFuir
 (set: $moral to it - 10)
-Tu détournes les yeux. Le train accélère. La culpabilité s'installe,
-lourde, dans le silence.
+Tu détournes les yeux. Le train accélère. La culpabilité s'installe.
 //Moral -10//
-
 [[Suite->F1a]]
 
-/% --- remplissage segment 1 -> 2 --- %/
+/% --- SEGMENT 1 → 2 : choc, faubourgs morts, première nuit seule --- %/
 
 :: F1a
-La voie longe les faubourgs morts. Des draps pendent aux fenêtres
-comme des fantômes.
+Des draps pendent aux fenêtres des immeubles éventrés, comme des
+fantômes qui te saluent au passage.
 
-[[← Fermer les rideaux du wagon->F1aFerme]]
-[[→ Regarder défiler->F1aRegarde]]
+[[← Y voir un adieu->F1aAdieu]]
+[[→ Détourner le regard->F1aDetourne]]
 
-:: F1aFerme
-(set: $moral to it + 3)
-Dans la pénombre tiède, tu respires un peu. //Moral +3//
+:: F1aAdieu
+(set: $moral to it + 4)
+Tu lèves la main vers eux. Un dernier salut à un monde qui s'éteint. //Moral +4//
 [[Suite->F1b]]
 
-:: F1aRegarde
-(set: $moral to it - 4)
-Chaque maison vide est une question sans réponse. //Moral -4//
+:: F1aDetourne
+(set: $moral to it - 3)
+Tu fixes le plancher du wagon. Ne rien voir, c'est moins souffrir. //Moral -3//
 [[Suite->F1b]]
 
 :: F1b
-La jauge de bois baisse. La loco réclame sa pitance.
+Un homme court le long de la voie, hurlant, tendant les bras vers le
+train qui prend de la vitesse. Tu ne peux rien faire.
 
-[[← Économiser, ralentir->F1bEco]]
-[[→ Garder l'allure->F1bAllure]]
+[[← Le regarder jusqu'au bout->F1bRegarde]]
+[[→ Rentrer dans le wagon->F1bRentre]]
 
-:: F1bEco
-(set: $bois to it + 5)
-(set: $faim to it - 3)
-Le train ralentit ; tu tiens plus longtemps mais la faim te tenaille.
-//Bois +5 · Faim -3//
+:: F1bRegarde
+(set: $moral to it - 6)
+Il rapetisse, tombe, ne se relève pas. Tu graveras son visage. //Moral -6//
+[[Suite->F1c]]
+
+:: F1bRentre
+(set: $moral to it - 2)
+Tu fermes la porte sur ses cris. Lâche, peut-être. Vivante, sûrement. //Moral -2//
+[[Suite->F1c]]
+
+:: F1c
+Dans un coin du wagon, une valise oubliée par un passager qui ne
+montera plus. À l'intérieur : des habits, et une photo de famille.
+
+[[← Garder la photo->F1cPhoto]]
+[[→ Ne pas fouiller leur vie->F1cFerme]]
+
+:: F1cPhoto
+(set: $moral to it + 5)
+Des inconnus qui souriaient, un été. Tu la glisses contre la tienne.
+Ne pas les laisser disparaître tout à fait. //Moral +5//
+[[Suite->F1d]]
+
+:: F1cFerme
+(set: $moral to it + 2)
+Tu refermes la valise avec douceur. Leur intimité leur appartient. //Moral +2//
+[[Suite->F1d]]
+
+:: F1d
+Première nuit seule. Le wagon craque, le rail chante, et chaque bruit
+ressemble à un pas.
+
+[[← Veiller, aux aguets->F1dVeille]]
+[[→ T'obliger à dormir->F1dDort]]
+
+:: F1dVeille
+(set: $moral to it - 4)
+Tu ne fermes pas l'œil. À l'aube, épuisée, tu es toujours vivante. //Moral -4//
+[[Suite->F1e]]
+
+:: F1dDort
+(if: $aLeChien)[(set: $moral to it + 6)Le chien se cale contre ton dos. Sa chaleur te berce. Tu dors. //Moral +6//]
+(else:)[(set: $moral to it + 2)Tu t'endors par épuisement, poings serrés. //Moral +2//]
+[[Suite->F1e]]
+
+:: F1e
+Un panneau rouillé défile, à demi lisible : « REFUGE NORD → ». Une
+flèche pointe vers le blanc lointain.
+
+[[← Y croire->F1eCroire]]
+[[→ Rester prudente->F1ePrudence]]
+
+:: F1eCroire
+(set: $moral to it + 7)
+Un cap. Une direction. Un sens. Ton cœur se redresse un peu. //Moral +7//
 [[Vers le dépôt->G2]]
 
-:: F1bAllure
-(set: $bois to it - 8)
-Les kilomètres défilent. Le foyer dévore le bois.
-//Bois -8//
+:: F1ePrudence
+(set: $moral to it + 1)
+Un panneau ne nourrit personne. Mais tu le notes, quand même. //Moral +1//
 [[Vers le dépôt->G2]]
 
 
@@ -150,132 +204,195 @@ Les kilomètres défilent. Le foyer dévore le bois.
 :: G2
 GARE 2 — Dépôt de fret
 
-Un vieux cheminot émerge d'une guérite, une lampe à la main. Il tape
-sur la chaudière. « Tu sais nourrir ça, petite ? »
+Un vieux cheminot émerge d'une guérite, une lampe à la main. Il observe
+ta loco, hoche la tête. « Tu sais où tu vas, au moins ? »
 
-[[← Apprendre de lui->G2apprendre]]
-[[→ Me débrouiller seule->G2seule]]
+[[← Le laisser monter->G2vieux]]
+[[→ Te méfier, refuser->G2seule]]
 
-:: G2apprendre
-(set: $bois to it + 20)
+:: G2vieux
 (set: $leVieuxABord to true)
-Il te montre le foyer, le tirage, le rythme. Il monte avec toi —
-il dit connaître la voie « jusqu'au froid ».
-//Bois +20 · Le Vieux à bord//
-
+(set: $moral to it + 8)
+Il monte, pose son sac, tapote la chaudière comme un vieil ami.
+« Je connais cette voie jusqu'au froid. » Une présence. //Le Vieux à bord · Moral +8//
 [[Suite->F2a]]
 
 :: G2seule
-(set: $bois to it + 5)
-Tu refuses l'aide. Il hausse les épaules, te jette quand même
-quelques bûches. Tu apprends à tâtons.
-//Bois +5//
-
+(set: $moral to it - 4)
+Tu refuses. Il hausse les épaules, te laisse quand même un mot :
+« Le nord boit du bois. Prévois large. » Puis il s'efface. //Moral -4//
 [[Suite->F2a]]
 
-/% --- remplissage 2 -> 3 --- %/
+/% --- SEGMENT 2 → 3 : apprendre le train, doute, brouillard --- %/
 
 :: F2a
-(if: $leVieuxABord)[Le Vieux fredonne un air d'avant-guerre en alimentant le feu.]
-(else:)[Seule, tu comptes les bûches comme on compte les jours.]
+(if: $leVieuxABord)[Le Vieux fredonne un air d'avant-guerre, les yeux dans le foyer.]
+(else:)[Seule face au feu, tu fredonnes pour le bruit que ça fait.]
 
-[[← L'écouter / souffler un peu->F2aRepos]]
-[[→ Ranger le wagon->F2aRange]]
+[[← Demander / chanter avec lui->F2aChante]]
+[[→ Rester silencieuse->F2aSilence]]
 
-:: F2aRepos
+:: F2aChante
 (set: $moral to it + 6)
-Un moment de calme. //Moral +6//
+(if: $leVieuxABord)[Vos deux voix fausses se mêlent. Il rit.] Un instant volé à la fin du monde. //Moral +6//
 [[Suite->F2b]]
 
-:: F2aRange
-(set: $moral to it + 2)
-(set: $faim to it - 2)
-Le wagon devient un foyer. L'effort creuse l'appétit. //Moral +2 · Faim -2//
+:: F2aSilence
+(set: $moral to it - 2)
+Le silence te va. Il pèse, mais il est à toi. //Moral -2//
 [[Suite->F2b]]
 
 :: F2b
-Brouillard épais. Des silhouettes immobiles, au loin, entre les rails.
+Un wagon déraillé bloque à moitié la voie. Il faut ralentir au pas
+pour le contourner — endroit parfait pour une embuscade.
 
-[[← Éteindre la lampe, se taire->F2bCache]]
-[[→ Accélérer pour passer->F2bFonce]]
+[[← Avancer prudemment->F2bPrudent]]
+[[→ Forcer le passage vite->F2bForce]]
 
-:: F2bCache
+:: F2bPrudent
 (set: $moral to it - 3)
-Le train glisse en silence. Les silhouettes ne bougent pas. //Moral -3//
+Tu passes au ralenti, le cœur battant. Rien. Juste ta peur. //Moral -3//
+[[Suite->F2c]]
+
+:: F2bForce
+(set: $bois to it - 6)
+Tu pousses la loco pour passer vite. Le foyer crache des étincelles. //Bois -6//
+[[Suite->F2c]]
+
+:: F2c
+Sur une paroi de béton, une phrase peinte en rouge : « ILS MENTENT SUR
+LE NORD. »
+
+[[← Refuser d'y croire->F2cRefuse]]
+[[→ Laisser le doute entrer->F2cDoute]]
+
+:: F2cRefuse
+(set: $moral to it + 4)
+Quelqu'un de désespéré, voilà tout. Tu choisis ton espoir. //Moral +4//
+[[Suite->F2d]]
+
+:: F2cDoute
+(set: $doute to it + 1)
+(set: $moral to it - 5)
+Et si tout ça n'était qu'une rumeur ? La pensée s'incruste. //Moral -5 · doute//
+[[Suite->F2d]]
+
+:: F2d
+Brouillard épais. Des silhouettes immobiles, debout entre les rails,
+te regardent passer sans bouger.
+
+[[← Éteindre la lampe, te faire oublier->F2dCache]]
+[[→ Soutenir leur regard->F2dRegard]]
+
+:: F2dCache
+(set: $moral to it - 3)
+Tu plonges le wagon dans le noir. Elles disparaissent dans ton dos. //Moral -3//
 [[Vers la halte->G3]]
 
-:: F2bFonce
-(set: $bois to it - 6)
-Tu passes en trombe. Un caillou claque contre la tôle. //Bois -6//
+:: F2dRegard
+(set: $moral to it + 3)
+Tu les fixes. Vivants ? Morts ? Elles ne te feront pas baisser les yeux. //Moral +3//
 [[Vers la halte->G3]]
 
 
 /% ============================================================
-   GARE 3 — HALTE 47 (pillards dans le brouillard · choix moral)
+   GARE 3 — HALTE 47 (le fuyard · choix moral fondateur)
    ============================================================ %/
 
 :: G3
 GARE 3 — Halte 47
 
-Une silhouette sort du brouillard, mains levées.
-« Pitié... laissez-moi monter. » Derrière, d'autres ombres approchent.
+Une silhouette sort du brouillard, mains levées. « Pitié... laissez-moi
+monter. » Derrière, d'autres ombres approchent au pas.
 
 [[← Le laisser monter->G3aide]]
 [[→ Verrouiller la porte->G3refuse]]
 
 :: G3aide
 (set: $faim to it - 10)
-(set: $soif to it - 10)
+(set: $soif to it - 8)
 (set: $moral to it + 12)
 (set: $aAideFuyard to true)
 Il s'effondre de gratitude. Une bouche de plus à nourrir, mais un
 regard humain de moins à perdre. Il dit s'appeler Tomas.
-//Faim -10 · Soif -10 · Moral +12 · il reviendra (G11)//
-
+//Faim -10 · Soif -8 · Moral +12 · il reviendra//
 [[Suite->F3a]]
 
 :: G3refuse
 (set: $moral to it - 15)
 Tu verrouilles. Ses coups contre la tôle s'éloignent, puis des cris,
 puis plus rien. Les ombres, elles, ont retenu ce train.
-//Moral -15 · les pillards reviendront (G11)//
-
+//Moral -15 · les pillards reviendront//
 [[Suite->F3a]]
 
-/% --- remplissage 3 -> 4 --- %/
+/% --- SEGMENT 3 → 4 : conséquence du choix, pluie, lore --- %/
 
 :: F3a
-La pluie cendrée tambourine sur le toit.
+La pluie cendrée tambourine sur le toit. L'eau dévale les vitres en
+traînées grises.
 
-[[← Tendre un seau (récolter)->F3aSeau]]
-[[→ Dormir au sec->F3aDormir]]
+[[← Coller ton front à la vitre->F3aVitre]]
+[[→ T'éloigner du froid->F3aLoin]]
 
-:: F3aSeau
-(set: $soif to it + 12)
-De l'eau grise, mais de l'eau. //Soif +12//
+:: F3aVitre
+(set: $moral to it + 3)
+Le verre est glacé, le bruit hypnotique. Tu te vides la tête. //Moral +3//
 [[Suite->F3b]]
 
-:: F3aDormir
-(set: $moral to it + 5)
-(set: $soif to it - 4)
-Un vrai sommeil, rare. //Moral +5 · Soif -4//
+:: F3aLoin
+(set: $moral to it + 1)
+Tu te recroquevilles au centre, au sec, au chaud. //Moral +1//
 [[Suite->F3b]]
 
 :: F3b
-(if: $aLeChien)[Le chien gratte à la porte, queue battante, et dépose à tes pieds un vieux jouet.]
-(else:)[Un courant d'air fait grincer la porte coulissante.]
+(if: $aAideFuyard)[Tomas dort, épuisé. Dans son sommeil, il murmure un prénom de femme.]
+(else:)[Cette nuit, tu rêves de coups contre la tôle qui ne s'arrêtent jamais.]
 
-[[← Jouer un instant->F3bJoue]]
-[[→ Rester concentrée->F3bConcentre]]
+[[← Veiller dessus / affronter le rêve->F3bVeille]]
+[[→ Te boucher les oreilles->F3bBouche]]
 
-:: F3bJoue
-(set: $moral to it + 8)
-Un éclat de rire t'échappe. Tu avais oublié le son. //Moral +8//
+:: F3bVeille
+(if: $aAideFuyard)[(set: $moral to it + 5)Tu le couvres d'une couverture. On veille les vivants. //Moral +5//]
+(else:)[(set: $moral to it - 6)Tu laisses le remords te traverser. Il fallait bien le sentir. //Moral -6//]
+[[Suite->F3c]]
+
+:: F3bBouche
+(set: $moral to it - 2)
+Tu serres l'oreiller sur ta tête jusqu'au matin. //Moral -2//
+[[Suite->F3c]]
+
+:: F3c
+Le train longe un cimetière de voitures empilées, rouillées, figées
+dans leur dernière fuite.
+
+[[← Imaginer leurs histoires->F3cImagine]]
+[[→ Ne voir que de la ferraille->F3cFerraille]]
+
+:: F3cImagine
+(set: $moral to it - 3)
+Des familles, des départs, des klaxons. Tout ça, immobile à jamais. //Moral -3//
+[[Suite->F3d]]
+
+:: F3cFerraille
+(set: $moral to it + 2)
+Du métal mort. Tu refuses de pleurer chaque épave du monde. //Moral +2//
+[[Suite->F3d]]
+
+:: F3d
+Sur la banquette, oublié, un livre d'images pour enfants, gondolé par
+l'humidité. Une histoire de renard et de lune.
+
+[[← Le lire à voix haute->F3dLit]]
+[[→ Le serrer sans l'ouvrir->F3dSerre]]
+
+:: F3dLit
+(set: $moral to it + 6)
+(if: $aLeChien)[Le chien pose la tête sur tes genoux et écoute.] Tu lisais ça à ta sœur. //Moral +6//
 [[Vers le village->G4]]
 
-:: F3bConcentre
-(set: $faim to it + 4)
-Tu rationnes, tu calcules. //Faim +4//
+:: F3dSerre
+(set: $moral to it + 3)
+Trop de souvenirs dans ces pages. Tu le gardes contre toi, fermé. //Moral +3//
 [[Vers le village->G4]]
 
 
@@ -286,50 +403,46 @@ Tu rationnes, tu calcules. //Faim +4//
 :: G4
 GARE 4 — Village fantôme
 
-Le train s'arrête à un quai effondré. Tu fouilles une maison éventrée.
-Sur une étagère, sous la poussière : une radio à manivelle.
+Le train stoppe à un quai effondré. Dans une maison éventrée, sous la
+poussière : une radio à manivelle, intacte.
 
-[[← La prendre (encombrant mais...)->G4radio]]
+[[← La prendre->G4radio]]
 [[→ Laisser, filer vite->G4vite]]
 
 :: G4radio
 (set: $aLaRadio to true)
 Tu tournes la manivelle. Grésillement. Puis une voix de femme, hachée :
 « ...vers le nord... le froid nous protège... si vous m'entendez... »
-Le message se coupe. Ton cœur cogne.
-//radio acquise · fil narratif jusqu'à G14//
-
+Le message se coupe. Ton cœur cogne. //radio acquise//
 [[Suite->F4a]]
 
 :: G4vite
 (set: $moral to it - 6)
-Trop lourd, trop risqué. Tu remontes les mains vides. Mais cette nuit-là,
-tu rêves d'une voix que tu n'as pas entendue.
-//Moral -6//
-
+Trop lourd, trop risqué. Tu remontes les mains vides. Cette nuit-là, tu
+rêves d'une voix que tu n'as pas entendue. //Moral -6//
 [[Suite->F4a]]
 
-/% --- remplissage 4 -> 5 --- %/
+/% --- SEGMENT 4 → 5 : la voix, dilemmes, identité --- %/
 
 :: F4a
-(if: $aLaRadio)[La radio crache des bribes. En tournant la manivelle, tu cherches la voix.]
-(else:)[Le vent siffle dans les interstices. Tu tends l'oreille au silence.]
+(if: $aLaRadio)[Tu tournes la manivelle dans le noir, cherchant la voix entre les parasites.]
+(else:)[Tu tends l'oreille au silence, espérant un son qui ne vient pas.]
 
-[[← Tourner la manivelle longtemps->F4aRadio]]
-[[→ Préserver tes forces->F4aRepos]]
+[[← Y consacrer la nuit->F4aNuit]]
+[[→ Garder tes forces->F4aForces]]
 
-:: F4aRadio
-(if: $aLaRadio)[(set: $radioSuivie to it + 1)(set: $moral to it + 6)« ...quai 9... nous attendons... » Un nom, presque. //Moral +6 · radio suivie//]
-(else:)[(set: $moral to it - 3)Rien que du blanc. //Moral -3//]
+:: F4aNuit
+(if: $aLaRadio)[(set: $radioSuivie to it + 1)(set: $moral to it + 6)« ...quai... nous attendons... » Un fragment de plus. Un fil. //Moral +6 · radio suivie//]
+(else:)[(set: $moral to it - 3)Rien. Que le vent dans la tôle. //Moral -3//]
 [[Suite->F4b]]
 
-:: F4aRepos
-(set: $faim to it + 3)
-Tu fermes les yeux, tu gardes tes forces. //Faim +3//
+:: F4aForces
+(set: $moral to it + 1)
+Tu fermes les yeux. Demain est une autre voie. //Moral +1//
 [[Suite->F4b]]
 
 :: F4b
-Un troupeau de cerfs efflanqués traverse la voie devant la loco.
+Un troupeau de cerfs efflanqués traverse la voie, juste devant la loco.
 
 [[← Freiner pour les épargner->F4bFreine]]
 [[→ Ne pas ralentir->F4bPasse]]
@@ -337,56 +450,88 @@ Un troupeau de cerfs efflanqués traverse la voie devant la loco.
 :: F4bFreine
 (set: $bois to it - 5)
 (set: $moral to it + 7)
-Ils passent. L'un d'eux te regarde. //Bois -5 · Moral +7//
-[[Vers le pont->G5]]
+Ils passent. L'un d'eux te regarde, longtemps. De la vie, encore. //Bois -5 · Moral +7//
+[[Suite->F4c]]
 
 :: F4bPasse
-(set: $faim to it + 6)
+(set: $faim to it + 8)
+(set: $moral to it - 6)
+Un choc sourd. De la viande pour des jours, et un goût de cendre dans
+la bouche. //Faim +8 · Moral -6//
+[[Suite->F4c]]
+
+:: F4c
+Sur le mur d'une halte, à la peinture blanche : « MARIA — SI TU LIS ÇA
+— RENDEZ-VOUS AU NORD. JE T'ATTENDS. »
+
+[[← T'imaginer Maria les retrouvant->F4cMaria]]
+[[→ Penser aux tiens->F4cTiens]]
+
+:: F4cMaria
+(set: $moral to it + 5)
+Quelque part, quelqu'un attend quelqu'un. Ça suffit à y croire. //Moral +5//
+[[Suite->F4d]]
+
+:: F4cTiens
+(set: $moral to it - 4)
+(set: $doute to it + 1)
+Et toi, qui t'attend ? Personne n'a écrit ton nom sur un mur. //Moral -4//
+[[Suite->F4d]]
+
+:: F4d
+Une vitre intacte te renvoie ton reflet. Tu te reconnais à peine :
+maigre, dure, les yeux d'une autre.
+
+[[← Sourire à cette inconnue->F4dSourit]]
+[[→ Te détourner->F4dDetourne]]
+
+:: F4dSourit
+(set: $moral to it + 6)
+« On tient bon, toi et moi. » L'inconnue te sourit en retour. //Moral +6//
+[[Vers le pont->G5]]
+
+:: F4dDetourne
 (set: $moral to it - 5)
-Un choc sourd. De la viande pour des jours, et un goût amer. //Faim +6 · Moral -5//
+Tu ne veux pas voir ce que le voyage fait de toi. //Moral -5//
 [[Vers le pont->G5]]
 
 
 /% ============================================================
-   GARE 5 — PONT SUR LE FLEUVE (décision ressources)
+   GARE 5 — PONT SUR LE FLEUVE (décision ressources narrative)
    ============================================================ %/
 
 :: G5
 GARE 5 — Pont sur le fleuve
 
 Le train s'immobilise sur un long pont de fer. En bas, un fleuve gris
-charrie des glaces. Poissons possibles, eau à portée — mais rester
-immobile, c'est s'exposer.
+charrie des glaces. Tu pourrais descendre faire le plein d'eau et
+pêcher — mais rester à découvert, c'est s'exposer.
 
-[[← Descendre pêcher et faire de l'eau->G5reste]]
-[[→ Traverser vite, ne pas s'attarder->G5fonce]]
+[[← Descendre, prendre le risque->G5reste]]
+[[→ Traverser sans t'arrêter->G5fonce]]
 
 :: G5reste
 (set: $soif to it + 18)
 (set: $faim to it + 12)
 (set: $moral to it - 4)
 Tu remplis les jarres, tu attrapes deux poissons. Mais chaque minute
-sur ce pont à découvert te noue le ventre.
-//Soif +18 · Faim +12 · Moral -4//
-
+sur ce pont à nu te noue le ventre. //Soif +18 · Faim +12 · Moral -4//
 [[Suite->F5a]]
 
 :: G5fonce
-(set: $bois to it - 10)
+(set: $bois to it - 8)
 (set: $moral to it + 5)
-Tu pousses la loco. Le pont gronde, puis te recrache de l'autre côté,
-sur la terre ferme. Soulagement.
-//Bois -10 · Moral +5//
-
+Tu pousses la loco. Le pont gronde et te recrache sur la terre ferme.
+Soulagement. //Bois -8 · Moral +5//
 [[Suite->F5a]]
 
-/% --- remplissage 5 -> 6 --- %/
+/% --- SEGMENT 5 → 6 : confidences, fantômes, nuit de doute --- %/
 
 :: F5a
-(if: $leVieuxABord)[Le Vieux te raconte sa femme, restée dans une ville qui n'existe plus.]
-(else:)[Tu parles seule, à voix basse, pour ne pas oublier le son de ta propre voix.]
+(if: $leVieuxABord)[Le Vieux te parle de sa femme, restée dans une ville qui n'existe plus.]
+(else:)[Tu parles seule, à voix basse, pour ne pas oublier ta propre voix.]
 
-[[← Écouter / se souvenir->F5aSouvenir]]
+[[← Écouter / te souvenir->F5aSouvenir]]
 [[→ Couper court->F5aCoupe]]
 
 :: F5aSouvenir
@@ -400,168 +545,304 @@ Tu te fermes. Plus simple, plus froid. //Moral -3//
 [[Suite->F5b]]
 
 :: F5b
-Un orage de grêle. La toiture fuit au-dessus de la couchette.
+Un autre train croise le tien, en sens inverse, sur la voie parallèle.
+Vide. Toutes portes ouvertes. Pas une âme.
 
-[[← Réparer (effort)->F5bRepare]]
-[[→ Déplacer la couchette->F5bBouge]]
+[[← Te demander ce qui s'est passé->F5bDemande]]
+[[→ Y voir un présage->F5bPresage]]
 
-:: F5bRepare
-(set: $faim to it - 5)
-(set: $moral to it + 4)
-Tu colmates. Trempée mais fière. //Faim -5 · Moral +4//
+:: F5bDemande
+(set: $moral to it - 4)
+Où sont passés ses passagers ? Tu n'auras jamais la réponse. //Moral -4//
+[[Suite->F5c]]
+
+:: F5bPresage
+(set: $doute to it + 1)
+(set: $moral to it - 6)
+Est-ce ton train, dans quelques jours ? Vide, lui aussi ? //Moral -6//
+[[Suite->F5c]]
+
+:: F5c
+Tu trouves un carnet de croquis et un crayon dans un casier.
+
+[[← Dessiner les visages des tiens->F5cDessine]]
+[[→ Le ranger, trop dur->F5cRange]]
+
+:: F5cDessine
+(set: $moral to it + 9)
+Leurs traits reprennent forme sous ta main. Tant que tu peux les
+dessiner, tu ne les as pas perdus. //Moral +9//
+[[Suite->F5d]]
+
+:: F5cRange
+(set: $moral to it - 2)
+Tu n'es pas prête à les regarder en face. Pas encore. //Moral -2//
+[[Suite->F5d]]
+
+:: F5d
+Au loin, un petit camp. Un enfant grimpé sur un toit te fait de
+grands signes des deux bras.
+
+[[← Lui répondre->F5dRepond]]
+[[→ Te contenter de le regarder->F5dRegarde]]
+
+:: F5dRepond
+(set: $moral to it + 7)
+Tu agites le bras jusqu'à perte de vue. Un lien d'une seconde, mais réel. //Moral +7//
+[[Suite->F5e]]
+
+:: F5dRegarde
+(set: $moral to it + 2)
+Tu le regardes rapetisser. Tu penses à ta sœur, à cet âge. //Moral +2//
+[[Suite->F5e]]
+
+:: F5e
+La nuit, la pensée revient, glaciale : et s'ils étaient déjà morts,
+tous, depuis la première nuit ?
+
+[[← La repousser de toutes tes forces->F5eRepousse]]
+[[→ La laisser t'engloutir un peu->F5eEngloutit]]
+
+:: F5eRepousse
+(set: $moral to it + 5)
+« Non. Ils m'attendent. » Tu en fais une certitude pour tenir. //Moral +5//
 [[Vers le camp->G6]]
 
-:: F5bBouge
-(set: $soif to it - 3)
-Tu dors au sec, dans un coin. //Soif -3//
+:: F5eEngloutit
+(set: $doute to it + 1)
+(set: $moral to it - 8)
+Tu pleures dans le noir. Demain tu te relèveras. Pas cette nuit. //Moral -8//
 [[Vers le camp->G6]]
 
 
 /% ============================================================
-   GARE 6 — CAMP-REFUGE (rumeur du Nord · Le Vieux reste/suit)
+   GARE 6 — CAMP-REFUGE (rumeur du Nord · le Vieux reste/suit)
    ============================================================ %/
 
 :: G6
 GARE 6 — Camp-refuge
 
-Des feux, des tentes, des survivants. On échange des nouvelles : au nord,
-là où le froid tient les pillards à distance, des familles se regroupent.
-(if: $leVieuxABord)[Le Vieux regarde le camp. « Je pourrais finir mes jours ici, petite. »]
+Des feux, des tentes, des survivants. On confirme la rumeur : au nord,
+le froid tient les pillards à distance, des familles se regroupent.
+(if: $leVieuxABord)[Le Vieux contemple le camp. « Je pourrais finir mes jours ici, petite. »]
 
 (if: $leVieuxABord)[[[← Le supplier de continuer->G6vieuxSuit]]]
 (if: $leVieuxABord)[[[→ Le laisser rester->G6vieuxReste]]]
-(if: not $leVieuxABord)[[[← Échanger des vivres->G6troc]]]
-(if: not $leVieuxABord)[[[→ Repartir vite->G6file]]]
+(if: not $leVieuxABord)[[[← Échanger avec eux->G6troc]]]
+(if: not $leVieuxABord)[[[→ Te méfier, repartir->G6file]]]
 
 :: G6vieuxSuit
 (set: $moral to it + 8)
-Il soupire, sourit, recharge le foyer. « Bon. Encore un bout de chemin. »
-//Moral +8 · Le Vieux reste à bord//
+Il soupire, sourit, recharge le foyer. « Bon. Encore un bout de chemin. » //Moral +8//
 [[Suite->F6a]]
 
 :: G6vieuxReste
 (set: $leVieuxABord to false)
 (set: $bois to it + 15)
-(set: $moral to it - 6)
-Il te laisse sa réserve de bois et un dernier conseil. Le wagon se vide
-encore d'une présence.
-//Le Vieux descend · Bois +15 · Moral -6//
+(set: $moral to it - 8)
+Il te laisse sa réserve de bois et un dernier conseil. Le wagon perd
+une présence. //Le Vieux descend · Bois +15 · Moral -8//
 [[Suite->F6a]]
 
 :: G6troc
 (set: $faim to it + 10)
 (set: $bois to it + 8)
 (set: $soif to it - 4)
-Tu troques contre des vivres et du bois. //Faim +10 · Bois +8 · Soif -4//
+Tu troques la photo d'inconnus contre des vivres et du bois. //Faim +10 · Bois +8 · Soif -4//
 [[Suite->F6a]]
 
 :: G6file
 (set: $moral to it - 4)
-Tu te méfies, tu repars seule. //Moral -4//
+Tu ne fais confiance à personne. Tu repars seule, plus pauvre mais
+entière. //Moral -4//
 [[Suite->F6a]]
 
-/% --- remplissage 6 -> 7 --- %/
+/% --- SEGMENT 6 → 7 : la voie grimpe, premier froid, souvenirs --- %/
 
 :: F6a
-La voie grimpe. Le paysage pâlit, l'air se fait coupant.
+(if: $leVieuxABord)[Le Vieux te tend son vieux manteau de cheminot. « Là-haut, t'en auras besoin plus que moi. »]
+(else:)[Tu trouves dans une malle un épais manteau de laine, à ta taille presque.]
 
-[[← Sortir les couvertures->F6aCouv]]
-[[→ Brûler plus pour chauffer->F6aFeu]]
+[[← L'accepter / l'enfiler->F6aManteau]]
+[[→ Le garder en réserve->F6aReserve]]
 
-:: F6aCouv
-(set: $moral to it + 4)
-Emmitouflée, ça va. //Moral +4//
+:: F6aManteau
+(set: $moral to it + 6)
+Enveloppée de chaleur, tu te sens un peu protégée du monde. //Moral +6//
 [[Suite->F6b]]
 
-:: F6aFeu
-(set: $bois to it - 7)
-(set: $moral to it + 5)
-La chaleur, ce luxe. //Bois -7 · Moral +5//
+:: F6aReserve
+(set: $moral to it + 2)
+Tu le plies soigneusement. Pour plus froid encore. //Moral +2//
 [[Suite->F6b]]
 
 :: F6b
-Tu trouves un vieux carnet de croquis dans un casier du wagon.
+Les premières fougères de givre se dessinent sur les vitres, fines
+comme de la dentelle.
 
-[[← Dessiner ta famille de mémoire->F6bDessine]]
-[[→ Le garder pour le feu->F6bBrule]]
+[[← T'émerveiller->F6bEmerveille]]
+[[→ Y lire une menace->F6bMenace]]
 
-:: F6bDessine
-(set: $moral to it + 9)
-(set: $faim to it - 2)
-Leurs visages reprennent forme sous ton crayon. //Moral +9 · Faim -2//
+:: F6bEmerveille
+(set: $moral to it + 5)
+Le monde meurt, mais il sait encore être beau. //Moral +5//
+[[Suite->F6c]]
+
+:: F6bMenace
+(set: $moral to it - 3)
+Le froid arrive. Et le froid, ici, ça tue. //Moral -3//
+[[Suite->F6c]]
+
+:: F6c
+Une meute de loups suit le train à distance, ombres grises bondissant
+dans la neige sale.
+
+[[← Les admirer courir->F6cAdmire]]
+[[→ Surveiller la porte->F6cPorte]]
+
+:: F6cAdmire
+(set: $moral to it + 4)
+Libres, sauvages, vivants. Tu les envies presque. //Moral +4//
+[[Suite->F6d]]
+
+:: F6cPorte
+(set: $moral to it - 2)
+Tu vérifies le verrou trois fois. La faim rend tout dangereux. //Moral -2//
+[[Suite->F6d]]
+
+:: F6d
+(if: $aLaRadio)[La radio capte, lointaine, une voix d'enfant : « ...y a quelqu'un ? »]
+(else:)[Porté par le vent, un cri ténu — un enfant ? — ou ton imagination.]
+
+[[← Tendre l'oreille->F6dEcoute]]
+[[→ Te dire que c'est le vent->F6dVent]]
+
+:: F6dEcoute
+(set: $moral to it + 3)
+(if: $aLaRadio)[(set: $radioSuivie to it + 1)]
+Tu ralentis, le cœur serré. Le silence revient. //Moral +3//
+[[Suite->F6e]]
+
+:: F6dVent
+(set: $moral to it - 3)
+« C'est le vent. Juste le vent. » Tu n'en crois pas un mot. //Moral -3//
+[[Suite->F6e]]
+
+:: F6e
+Souvenir : ta petite sœur, terrifiée par le noir, et toi qui lui
+chantais une berceuse jusqu'à ce qu'elle s'endorme.
+
+[[← Chanter cette berceuse maintenant->F6eChante]]
+[[→ Ravaler tes larmes->F6eRavale]]
+
+:: F6eChante
+(set: $moral to it + 8)
+Ta voix tremble dans le wagon glacé. Tu chantes pour deux. //Moral +8//
 [[Vers le souvenir->G7]]
 
-:: F6bBrule
-(set: $bois to it + 3)
-(set: $moral to it - 5)
-Le papier ne chauffe pas longtemps. //Bois +3 · Moral -5//
+:: F6eRavale
+(set: $moral to it - 4)
+Tu serres les dents. Chanter, ce serait t'effondrer. //Moral -4//
 [[Vers le souvenir->G7]]
 
 
 /% ============================================================
-   GARE 7 — HALTE 12 (souvenir : la petite sœur)
+   GARE 7 — HALTE 12 (souvenir jouable : la petite sœur)
    ============================================================ %/
 
 :: G7
 GARE 7 — Halte 12
 
-Le nom de la halte te serre la gorge : c'est ici que, petite, tu venais
-avec ta sœur regarder passer les trains. Un souvenir remonte, net.
+Le nom te serre la gorge : enfant, tu venais ici avec ta sœur regarder
+passer les trains. Un souvenir remonte, intact, douloureux.
 
 [[← Te laisser submerger->G7pleure]]
-[[→ Te raccrocher à l'espoir->G7espoir]]
+[[→ En faire une promesse->G7espoir]]
 
 :: G7pleure
-(set: $moral to it - 8)
-Tu pleures, longtemps. Ça fait mal et ça fait du bien.
-//Moral -8 maintenant... mais la digue cède, allège la suite//
+(set: $moral to it - 6)
+Tu pleures, longtemps. La digue cède — et après, étrangement, tu
+respires mieux. //Moral -6//
 [[Suite->G7promesse]]
 
 :: G7espoir
-(set: $moral to it + 10)
-« Je te retrouverai. » Tu le dis à voix haute, comme une promesse.
-//Moral +10//
+(set: $moral to it + 12)
+« Je te retrouverai. » Tu le dis à voix haute, comme un serment. //Moral +12//
 [[Suite->G7promesse]]
 
 :: G7promesse
-(if: $aLeChien)[Le chien pose sa tête sur tes genoux, comme s'il comprenait.(set: $moral to it + 4)]
+(if: $aLeChien)[(set: $moral to it + 4)Le chien pose sa tête sur tes genoux, comme s'il comprenait.]
 Le train repart vers le blanc.
 [[Suite->F7a]]
 
-/% --- remplissage 7 -> 8 (entrée du froid) --- %/
+/% --- SEGMENT 7 → 8 : entrée dans le froid, traces, présages --- %/
 
 :: F7a
-Première vraie neige. Elle tient sur le toit, sur les rails.
+Première vraie neige, épaisse. Sur le quai d'une halte, des traces de
+pas fraîches s'éloignent vers nulle part.
 
-[[← La fondre pour boire->F7aEau]]
-[[→ Avancer sans s'arrêter->F7aAvance]]
+[[← Te demander qui les a laissées->F7aQui]]
+[[→ Ne pas t'attarder->F7aPasse]]
 
-:: F7aEau
-(set: $soif to it + 14)
-De l'eau pure, enfin. //Soif +14//
+:: F7aQui
+(set: $moral to it - 3)
+Quelqu'un est passé, récemment. Vivant ? Tu ne le sauras pas. //Moral -3//
 [[Suite->F7b]]
 
-:: F7aAvance
-(set: $bois to it - 6)
-Tu gagnes du terrain sur le froid. //Bois -6//
+:: F7aPasse
+(set: $moral to it + 1)
+Pas tes affaires. Tu continues. //Moral +1//
 [[Suite->F7b]]
 
 :: F7b
-(if: $aLaRadio)[La radio capte une voix d'enfant, au loin : « ...y a quelqu'un ? »]
-(else:)[Un cri ténu, porté par le vent, ou peut-être ton imagination.]
+Un corps gelé est assis contre un poteau, paisible, serrant une photo
+contre sa poitrine.
 
-[[← Tendre l'oreille, ralentir->F7bEcoute]]
-[[→ Ignorer, ce n'est rien->F7bIgnore]]
+[[← Regarder la photo->F7bPhoto]]
+[[→ Le laisser en paix->F7bPaix]]
 
-:: F7bEcoute
+:: F7bPhoto
+(set: $moral to it - 5)
+Une famille, un mariage, des rires. Il est mort en les regardant. //Moral -5//
+[[Suite->F7c]]
+
+:: F7bPaix
 (set: $moral to it + 3)
-(if: $aLaRadio)[(set: $radioSuivie to it + 1)]
-Tu ralentis. Le cri se rapproche. //Moral +3//
+Tu inclines la tête en passant. Repose-toi. //Moral +3//
+[[Suite->F7c]]
+
+:: F7c
+La nuit, les aurores boréales s'allument pour la première fois —
+voiles verts ondulant sur le ciel noir.
+
+[[← Réveiller le wagon pour voir ça->F7cReveille]]
+[[→ Les garder pour toi seule->F7cSeule]]
+
+:: F7cReveille
+(if: $aLeChien)[(set: $moral to it + 7)Tu montres le ciel au chien, qui penche la tête. Un émerveillement partagé. //Moral +7//]
+(else:)[(set: $moral to it + 4)Tu voudrais montrer ça à quelqu'un. Personne. Mais c'est beau. //Moral +4//]
+[[Suite->F7d]]
+
+:: F7cSeule
+(set: $moral to it + 5)
+Un cadeau rien que pour toi, dans l'immensité. //Moral +5//
+[[Suite->F7d]]
+
+:: F7d
+Tu parles au vide — ou au chien — de ta sœur. De ses manies, de son
+rire, de la fois où elle a peint le chat en bleu.
+
+[[← Rire au souvenir->F7dRit]]
+[[→ Te taire, gorge nouée->F7dTait]]
+
+:: F7dRit
+(set: $moral to it + 6)
+Un rire vrai t'échappe. Elle existe encore, dans ce rire. //Moral +6//
 [[Vers la zone froide->G8]]
 
-:: F7bIgnore
-(set: $moral to it - 4)
-Tu serres les dents et tu passes. //Moral -4//
+:: F7dTait
+(set: $moral to it - 3)
+Les mots se coincent. Tu regardes la neige. //Moral -3//
 [[Vers la zone froide->G8]]
 
 
@@ -572,9 +853,8 @@ Tu serres les dents et tu passes. //Moral -4//
 :: G8
 GARE 8 — Entrée zone froide
 
-Le froid mord pour de bon ; la loco boit deux fois plus. Sur la voie,
-recroquevillé contre un signal mort : un enfant seul, bleui, vivant
-de justesse.
+Le froid mord pour de bon. Sur la voie, contre un signal mort : un
+enfant seul, bleui, vivant de justesse.
 
 [[← Le prendre à bord->G8enfant]]
 [[→ Ne pas pouvoir le sauver->G8laisse]]
@@ -584,73 +864,102 @@ de justesse.
 (set: $faim to it - 8)
 (set: $soif to it - 6)
 (set: $moral to it + 14)
-Tu le réchauffes contre toi. Il ne parle pas, mais il s'accroche à ton
-manteau. Il a l'âge qu'aurait ta sœur, alors.
-//enfant à bord · Faim -8 · Soif -6 · Moral +14//
-
+Tu le réchauffes contre toi. Il ne parle pas, mais s'accroche à ton
+manteau. Il a l'âge qu'aurait ta sœur, alors. //enfant à bord · Faim -8 · Soif -6 · Moral +14//
 [[Suite->F8a]]
 
 :: G8laisse
 (set: $moral to it - 18)
 Tu n'as presque plus rien. Tu passes. Son image te suivra à chaque
-gare. C'est le genre de choix qui éteint quelque chose.
-//Moral -18//
-
+gare. Ce choix éteint quelque chose en toi. //Moral -18//
 [[Suite->F8a]]
 
-/% --- remplissage 8 -> 9 --- %/
+/% --- SEGMENT 8 → 9 : l'enfant (ou le vide), tempête qui monte --- %/
 
 :: F8a
-(if: $aLEnfant)[L'enfant grelotte sous la couverture, fiévreux.]
-(else:)[Le wagon n'a jamais paru aussi grand ni aussi froid.]
+(if: $aLEnfant)[L'enfant te tend, timidement, la moitié de son unique biscuit.]
+(else:)[Le wagon n'a jamais paru aussi grand, ni aussi vide.]
 
-[[← Tout donner pour le réchauffer->F8aChauffe]]
-[[→ Garder du bois en réserve->F8aReserve]]
+[[← (Accepter / chérir le geste)->F8aAccepte]]
+[[→ (Refuser / encaisser le vide)->F8aRefuse]]
 
-:: F8aChauffe
-(set: $bois to it - 12)
-(set: $moral to it + 6)
-(if: $aLEnfant)[Ses joues reprennent des couleurs. //Bois -12 · Moral +6//]
-(else:)[Tu te réchauffes, seule. //Bois -12 · Moral +6//]
+:: F8aAccepte
+(if: $aLEnfant)[(set: $moral to it + 8)Tu prends une miette pour ne pas le vexer, et tu lui rends le reste. //Moral +8//]
+(else:)[(set: $moral to it - 5)Tu cognes du poing contre la tôle, pour sentir quelque chose. //Moral -5//]
 [[Suite->F8b]]
 
-:: F8aReserve
-(set: $moral to it - 4)
-Tu serres les dents et la réserve. //Moral -4//
+:: F8aRefuse
+(if: $aLEnfant)[(set: $moral to it + 4)« Garde-le, mon grand. » Tu ébouriffes ses cheveux. //Moral +4//]
+(else:)[(set: $moral to it - 2)Tu te fais toute petite dans un coin. //Moral -2//]
 [[Suite->F8b]]
 
 :: F8b
-Une tempête se lève à l'horizon, mur blanc qui avance.
+Un enfant — ou toi — découvre une boîte à musique dans un tiroir. La
+mélodie s'élève, fragile, dans le froid.
 
-[[← S'arrêter et s'abriter->F8bAbri]]
-[[→ Tenter de la devancer->F8bCourse]]
+[[← La laisser jouer jusqu'au bout->F8bJoue]]
+[[→ L'arrêter, trop triste->F8bArrete]]
 
-:: F8bAbri
-(set: $bois to it - 5)
-(set: $soif to it + 5)
-Tu attends, calfeutrée. //Bois -5 · Soif +5//
+:: F8bJoue
+(set: $moral to it + 6)
+(if: $aLEnfant)[L'enfant s'endort, bercé. Tu n'oses plus bouger.] //Moral +6//
+[[Suite->F8c]]
+
+:: F8bArrete
+(set: $moral to it - 3)
+Le silence revient, plus lourd qu'avant. //Moral -3//
+[[Suite->F8c]]
+
+:: F8c
+(if: $aLEnfant)[Sur le col de l'enfant, une étiquette cousue : un prénom. Tu le lis tout bas.]
+(else:)[Tu surprends ton propre prénom, écrit jadis à l'intérieur de ton manteau par ta mère.]
+
+[[← Le prononcer à voix haute->F8cNom]]
+[[→ Le garder secret->F8cSecret]]
+
+:: F8cNom
+(set: $moral to it + 5)
+(if: $aLEnfant)[Il lève les yeux. Tu existes pour lui, maintenant. Lui pour toi. //Moral +5//]
+(else:)[« C'est moi. Je suis encore moi. » //Moral +5//]
+[[Suite->F8d]]
+
+:: F8cSecret
+(set: $moral to it + 2)
+Certains noms se gardent au creux de la poitrine. //Moral +2//
+[[Suite->F8d]]
+
+:: F8d
+Un mur blanc grandit à l'horizon : une tempête de neige avance vers le
+train.
+
+[[← Te préparer à t'abriter->F8dAbri]]
+[[→ Tenter de la devancer->F8dCourse]]
+
+:: F8dAbri
+(set: $moral to it - 2)
+Tu rassembles tout ce qui peut tenir chaud et tu attends le mur. //Moral -2//
 [[Vers la plaine->G9]]
 
-:: F8bCourse
+:: F8dCourse
 (set: $bois to it - 10)
-(set: $moral to it - 3)
-Course contre le blizzard. //Bois -10 · Moral -3//
+(set: $moral to it - 4)
+Tu pousses la loco dans une course perdue d'avance contre le blizzard. //Bois -10 · Moral -4//
 [[Vers la plaine->G9]]
 
 
 /% ============================================================
-   GARE 9 — PLAINE ENNEIGÉE (tempête · enfant malade)
+   GARE 9 — PLAINE ENNEIGÉE (tempête · l'enfant malade)
    ============================================================ %/
 
 :: G9
 GARE 9 — Plaine enneigée / ruines
 
-Le blizzard enveloppe tout. (if: $aLEnfant)[L'enfant brûle de fièvre, délire,
-appelle une mère.](else:)[Le silence blanc est total ; tu pourrais hurler sans
-écho.]
+Le blizzard enveloppe tout. (if: $aLEnfant)[L'enfant brûle de fièvre,
+délire, appelle une mère qui ne viendra pas.](else:)[Le silence blanc est
+total ; tu pourrais hurler sans le moindre écho.]
 
-(if: $aLEnfant)[[[← Veiller sur lui toute la nuit->G9veille]]]
-(if: $aLEnfant)[[[→ Chercher des médicaments dans les ruines->G9medoc]]]
+(if: $aLEnfant)[[[← Le veiller toute la nuit->G9veille]]]
+(if: $aLEnfant)[[[→ Braver la tempête pour des médicaments->G9medoc]]]
 (if: not $aLEnfant)[[[← Tenir bon, attendre->G9attend]]]
 (if: not $aLEnfant)[[[→ Fouiller les ruines->G9fouille]]]
 
@@ -658,117 +967,215 @@ appelle une mère.](else:)[Le silence blanc est total ; tu pourrais hurler sans
 (set: $faim to it - 6)
 (set: $moral to it + 8)
 (set: $enfantMalade to true)
-Tu ne dors pas. Au matin, sa fièvre tombe un peu. Il serre ta main.
-//Faim -6 · Moral +8//
+Tu ne dors pas. Au matin, sa fièvre tombe un peu. Il serre ta main. //Faim -6 · Moral +8//
 [[Suite->F9a]]
 
 :: G9medoc
 (set: $soif to it - 8)
 (set: $moral to it + 4)
-Tu braves la tempête, tu reviens avec des cachets périmés. Ça suffira.
-//Soif -8 · Moral +4//
+Tu braves le blizzard, reviens avec des cachets périmés. Ça suffira. //Soif -8 · Moral +4//
 [[Suite->F9a]]
 
 :: G9attend
 (set: $moral to it - 6)
-La nuit dure mille ans. Tu survis. //Moral -6//
+La nuit dure mille ans. Tu survis. Seule. //Moral -6//
 [[Suite->F9a]]
 
 :: G9fouille
 (set: $faim to it + 8)
 (set: $soif to it - 5)
-Des conserves gelées dans une cave. //Faim +8 · Soif -5//
+Des conserves gelées dans une cave murée. Un petit trésor. //Faim +8 · Soif -5//
 [[Suite->F9a]]
 
-/% --- remplissage 9 -> 10 --- %/
+/% --- SEGMENT 9 → 10 : après la tempête, beauté, signes de vie --- %/
 
 :: F9a
-La tempête faiblit. Un soleil pâle perce, sans chaleur.
+La tempête faiblit. Un soleil pâle perce, sans chaleur, magnifique.
 
-[[← S'autoriser un répit->F9aRepit]]
+[[← T'autoriser un répit->F9aRepit]]
 [[→ Repartir aussitôt->F9aRepart]]
 
 :: F9aRepit
 (set: $moral to it + 7)
-(set: $bois to it - 3)
-Tu regardes la lumière sur la neige. Beau, malgré tout. //Moral +7 · Bois -3//
-[[Vers l'oasis->G10]]
+Tu regardes la lumière courir sur la neige. Vivre, juste un instant. //Moral +7//
+[[Suite->F9b]]
 
 :: F9aRepart
-(set: $bois to it - 6)
-En route. Toujours en route. //Bois -6//
+(set: $moral to it - 2)
+En route. Toujours en route. Pas le temps. //Moral -2//
+[[Suite->F9b]]
+
+:: F9b
+Un lac gelé, immense miroir, renvoie le ciel à l'envers. Le train
+semble rouler dans les nuages.
+
+[[← Te perdre dans cette image->F9bPerd]]
+[[→ Y voir un présage fragile->F9bFragile]]
+
+:: F9bPerd
+(set: $moral to it + 6)
+Haut, bas, ciel, glace — plus de différence. Juste de la beauté. //Moral +6//
+[[Suite->F9c]]
+
+:: F9bFragile
+(set: $moral to it + 2)
+Magnifique, mais la glace est mince. Comme ton espoir. //Moral +2//
+[[Suite->F9c]]
+
+:: F9c
+(if: $aLeChien)[Le chien s'agite, museau au sol : il a flairé les traces d'un autre chien.]
+(else:)[Des empreintes de pattes serpentent le long de la voie, fraîches.]
+
+[[← Suivre la piste du regard->F9cSuit]]
+[[→ Continuer ton chemin->F9cContinue]]
+
+:: F9cSuit
+(set: $moral to it + 4)
+De la vie, quelque part, qui cherche aussi. Ça réchauffe. //Moral +4//
+[[Suite->F9d]]
+
+:: F9cContinue
+(set: $moral to it + 1)
+Chacun sa route dans le blanc. //Moral +1//
+[[Suite->F9d]]
+
+:: F9d
+À l'horizon, une tache improbable : du vert. Quelque chose pousse,
+là-bas, contre toute logique.
+
+[[← Y croire, mettre le cap->F9dCap]]
+[[→ Te méfier d'un mirage->F9dMirage]]
+
+:: F9dCap
+(set: $moral to it + 6)
+Du vert dans le blanc. Tu accélères, presque joyeuse. //Moral +6//
+[[Vers l'oasis->G10]]
+
+:: F9dMirage
+(set: $moral to it + 2)
+Tu avances quand même, mais sans trop espérer. //Moral +2//
 [[Vers l'oasis->G10]]
 
 
 /% ============================================================
-   GARE 10 — OASIS PERDUE / SERRE (répit cosy · hydroponie)
+   GARE 10 — OASIS PERDUE / SERRE (répit cosy)
    ============================================================ %/
 
 :: G10
 GARE 10 — Oasis perdue (serre)
 
-Une serre intacte au milieu du blanc, alimentée par une source chaude.
-Des plantes vertes. De la vie. Un répit irréel.
+Une serre intacte au milieu du blanc, chauffée par une source. Des
+plantes vertes. De la vie. Un répit irréel.
 
-[[← S'installer, cultiver, se reposer->G10repos]]
+[[← T'installer, cultiver, te reposer->G10repos]]
 [[→ Faire le plein et repartir vite->G10plein]]
 
 :: G10repos
-(set: $faim to it + 20)
+(set: $faim to it + 18)
 (set: $soif to it + 15)
 (set: $moral to it + 15)
-(if: $aLEnfant)[L'enfant rit pour la première fois, court entre les plants.(set: $moral to it + 5)]
-Quelques jours de chaleur, de verdure, de presque-bonheur.
-//Faim +20 · Soif +15 · Moral +15//
+(if: $aLEnfant)[(set: $moral to it + 5)L'enfant rit pour la première fois, court entre les plants.]
+Quelques jours de chaleur, de verdure, de presque-bonheur. //Faim +18 · Soif +15 · Moral +15//
 [[Suite->F10a]]
 
 :: G10plein
 (set: $faim to it + 12)
 (set: $soif to it + 10)
 (set: $bois to it + 10)
-Tu remplis tout ce que tu peux et tu repars. Le devoir avant le repos.
-//Faim +12 · Soif +10 · Bois +10//
+Tu remplis tout ce que tu peux et tu repars. Le devoir avant le repos. //Faim +12 · Soif +10 · Bois +10//
 [[Suite->F10a]]
 
-/% --- remplissage 10 -> 11 --- %/
+/% --- SEGMENT 10 → 11 : le répit se fissure, la menace revient --- %/
 
 :: F10a
-(if: $aLaRadio)[La radio, plus claire ici : « ...halte 31... ils approchent... fuyez... »]
-(else:)[Une fumée noire monte loin derrière, sur la voie.]
+(if: $aLEnfant)[Dans la serre, l'enfant te tend une fleur qu'il a cueillie pour toi.]
+(else:)[Tu cueilles une fleur. Pour personne. Tu la mets quand même à ta fenêtre.]
 
-[[← Se préparer au pire->F10aPrep]]
-[[→ Espérer que ce n'est rien->F10aEspere]]
+[[← La garder précieusement->F10aGarde]]
+[[→ La laisser à la serre->F10aLaisse]]
 
-:: F10aPrep
+:: F10aGarde
+(set: $moral to it + 6)
+Une fleur, en plein hiver du monde. Tu la presses dans le carnet. //Moral +6//
+[[Suite->F10b]]
+
+:: F10aLaisse
+(set: $moral to it + 2)
+Qu'elle vive ici, où elle est née. //Moral +2//
+[[Suite->F10b]]
+
+:: F10b
+(if: $aLaRadio)[La radio crache, soudain pressante : « ...halte 31... ils approchent... fuyez... »]
+(else:)[Une fumée noire monte au loin, derrière, sur la voie que tu as suivie.]
+
+[[← Te préparer au pire->F10bPrep]]
+[[→ Espérer que ce n'est rien->F10bEspere]]
+
+:: F10bPrep
 (set: $moral to it - 2)
 (if: $aLaRadio)[(set: $radioSuivie to it + 1)]
-Tu vérifies les verrous, tu serres les rangs. //Moral -2//
+Tu serres les rangs, tu vérifies tout. //Moral -2//
+[[Suite->F10c]]
+
+:: F10bEspere
+(set: $moral to it + 2)
+Tu choisis de croire au calme encore un peu. //Moral +2//
+[[Suite->F10c]]
+
+:: F10c
+Dans un casier scellé de la serre, une arme — un vieux fusil de chasse
+et trois cartouches.
+
+[[← La prendre->F10cPrend]]
+[[→ La laisser, refuser cette voie->F10cLaisse]]
+
+:: F10cPrend
+(set: $aArme to true)
+(set: $moral to it - 4)
+Tu la glisses sous la couchette. Le poids du métal te rassure et te
+dégoûte à la fois. //arme acquise · Moral -4//
+[[Suite->F10d]]
+
+:: F10cLaisse
+(set: $moral to it + 4)
+Tu n'en veux pas. Si tu dois survivre, ce ne sera pas comme ça. //Moral +4//
+[[Suite->F10d]]
+
+:: F10d
+Dernière nuit calme avant la halte 31. Le ciel se déploie, immense,
+constellé.
+
+[[← Compter les étoiles comme avant->F10dEtoiles]]
+[[→ Dormir, rassembler tes forces->F10dDort]]
+
+:: F10dEtoiles
+(set: $moral to it + 6)
+Tu retrouves la Grande Ourse. Ta sœur disait qu'elle ramène à la maison. //Moral +6//
 [[Vers la halte 31->G11]]
 
-:: F10aEspere
+:: F10dDort
 (set: $moral to it + 3)
-Tu choisis de croire au calme. //Moral +3//
+Un sommeil court mais profond. Demain sera rude. //Moral +3//
 [[Vers la halte 31->G11]]
 
 
 /% ============================================================
-   GARE 11 — HALTE 31 (CLIMAX INTERMÉDIAIRE)
-   variantes : pillards (si fuyard refusé) / Tomas (si aidé) / radio
+   GARE 11 — HALTE 31 (CLIMAX INTERMÉDIAIRE · 3 variantes)
    ============================================================ %/
 
 :: G11
 GARE 11 — Halte 31
 
 (if: $aAideFuyard)[Une silhouette t'attend sur le quai : Tomas, celui que tu
-as sauvé à la Halte 47. Il a couru au-devant de toi pour te prévenir : des
-pillards remontent la voie.](else-if: $radioSuivie >= 2)[La voix de la radio,
-soudain limpide, te guide : « Halte 31, ne t'arrête pas, prends la voie de
-gauche. » Elle connaît ton nom.](else:)[Des phares crevant le brouillard :
-les pillards que tu as semés à la Halte 47 ont rattrapé le train.]
+as sauvé. Il a couru au-devant de toi pour te prévenir — des pillards
+remontent la voie.](else-if: $radioSuivie >= 2)[La voix de la radio, soudain
+limpide, te guide : « Halte 31, prends la voie de gauche, ne t'arrête
+pas. » Elle connaît ton nom.](else:)[Des phares crèvent le brouillard : les
+pillards que tu as semés à la Halte 47 ont rattrapé le train.]
 
-(if: $aAideFuyard)[[[← Embarquer Tomas et fuir ensemble->G11tomas]]]
+(if: $aAideFuyard)[[[← Fuir avec Tomas->G11tomas]]]
 (if: $aAideFuyard)[[[→ Le remercier et filer seule->G11seuleFuit]]]
-(if: not $aAideFuyard and $radioSuivie >= 2)[[[← Suivre la voix (gauche)->G11radio]]]
+(if: not $aAideFuyard and $radioSuivie >= 2)[[[← Suivre la voix->G11radio]]]
 (if: not $aAideFuyard and $radioSuivie >= 2)[[[→ Garder ta route->G11ignoreRadio]]]
 (if: not $aAideFuyard and $radioSuivie < 2)[[[← Affronter les pillards->G11combat]]]
 (if: not $aAideFuyard and $radioSuivie < 2)[[[→ Tout brûler pour les distancer->G11fuite]]]
@@ -776,16 +1183,15 @@ les pillards que tu as semés à la Halte 47 ont rattrapé le train.]
 :: G11tomas
 (set: $moral to it + 12)
 (set: $faim to it - 6)
-Tomas saute à bord et cale la porte. À deux, vous tenez les pillards
-en respect jusqu'à la nuit. Vous n'êtes plus seuls.
-//Moral +12 · Faim -6//
+Tomas saute à bord, cale la porte. À deux, vous tenez les pillards en
+respect jusqu'à la nuit. Vous n'êtes plus seuls. //Moral +12 · Faim -6//
 [[Suite->F11a]]
 
 :: G11seuleFuit
 (set: $moral to it - 5)
 (set: $bois to it - 8)
-Tu refuses de le mettre en danger. Seule, tu sèmes les phares dans
-un tunnel. //Moral -5 · Bois -8//
+Tu refuses de le remettre en danger. Seule, tu sèmes les phares dans un
+tunnel. //Moral -5 · Bois -8//
 [[Suite->F11a]]
 
 :: G11radio
@@ -802,10 +1208,8 @@ Tu te méfies de la voix. La fuite est rude, mais tu passes. //Moral -8 · Bois 
 [[Suite->F11a]]
 
 :: G11combat
-(set: $moral to it - 10)
-(set: $faim to it - 8)
-Tu te défends, lampe en main, cœur cognant. Ils renoncent, pour cette
-fois. //Moral -10 · Faim -8//
+(if: $aArme)[(set: $moral to it - 6)(set: $faim to it - 4)Tu tires deux fois en l'air. Ils reculent dans le noir. Le coup résonne longtemps en toi. //Moral -6 · Faim -4//]
+(else:)[(set: $moral to it - 10)(set: $faim to it - 8)Tu te défends, lampe et barre de fer en main, cœur cognant. Ils renoncent. Pour cette fois. //Moral -10 · Faim -8//]
 [[Suite->F11a]]
 
 :: G11fuite
@@ -815,23 +1219,94 @@ Tu jettes tout dans le foyer. La loco rugit et t'arrache au danger,
 presque à sec. //Bois -15 · Moral -4//
 [[Suite->F11a]]
 
-/% --- remplissage 11 -> 12 --- %/
+/% --- SEGMENT 11 → 12 : nuit polaire, la voix se précise --- %/
 
 :: F11a
-Le calme après la peur. La nuit polaire, immense, étoilée.
+Le calme après la peur. La nuit polaire, immense, et les aurores qui
+reviennent danser.
 
-[[← Contempler les aurores->F11aAurore]]
+[[← Les contempler longtemps->F11aAurore]]
 [[→ Dormir enfin->F11aDort]]
 
 :: F11aAurore
 (set: $moral to it + 8)
-Des voiles verts dansent sur le ciel noir. //Moral +8//
-[[Vers la tour->G12]]
+Des voiles verts sur le noir. Le monde te fait un cadeau. //Moral +8//
+[[Suite->F11b]]
 
 :: F11aDort
 (set: $moral to it + 4)
-(set: $faim to it + 3)
-Un sommeil profond, mérité. //Moral +4 · Faim +3//
+Un sommeil profond, mérité. //Moral +4//
+[[Suite->F11b]]
+
+:: F11b
+Le froid se fait absolu. La glace gagne l'intérieur des vitres, le
+souffle gèle en suspension.
+
+[[← Resserrer ton petit monde->F11bResserre]]
+[[→ Endurer, stoïque->F11bEndure]]
+
+:: F11bResserre
+(if: $aLEnfant)[(set: $moral to it + 5)Tu blottis l'enfant et le chien contre toi sous le manteau. Un nid de chaleur. //Moral +5//]
+(else-if: $aLeChien)[(set: $moral to it + 4)Tu serres le chien contre toi. Vous tenez chaud à deux. //Moral +4//]
+(else:)[(set: $moral to it + 1)Tu te recroquevilles autour de ta propre chaleur. //Moral +1//]
+[[Suite->F11c]]
+
+:: F11bEndure
+(set: $moral to it - 3)
+Tu fixes le givre avancer, sans bouger. //Moral -3//
+[[Suite->F11c]]
+
+:: F11c
+Une statue à demi ensevelie surgit de la neige — un soldat de pierre,
+bras tendu vers le nord, comme un guide.
+
+[[← Y voir un signe->F11cSigne]]
+[[→ Un vestige inutile->F11cVestige]]
+
+:: F11cSigne
+(set: $moral to it + 4)
+« Par là. » Même la pierre te dit de continuer. //Moral +4//
+[[Suite->F11d]]
+
+:: F11cVestige
+(set: $moral to it - 2)
+Un monument à un monde qui n'a pas su se sauver. //Moral -2//
+[[Suite->F11d]]
+
+:: F11d
+(if: $aLaRadio)[La radio, plus claire que jamais : la voix évoque un détail que seul
+quelqu'un de ta famille pourrait connaître.]
+(else:)[Dans le demi-sommeil, tu crois entendre la voix de ta sœur t'appeler.]
+
+[[← Répondre, parler à la voix->F11dRepond]]
+[[→ Ne pas oser y croire->F11dPasOse]]
+
+:: F11dRepond
+(if: $aLaRadio)[(set: $radioSuivie to it + 1)(set: $moral to it + 8)Tu parles dans le micro, la gorge serrée. Un silence. Puis : « ...continue. » //Moral +8 · radio suivie//]
+(else:)[(set: $moral to it + 4)Tu murmures son prénom dans le noir. //Moral +4//]
+[[Suite->F11e]]
+
+:: F11dPasOse
+(set: $doute to it + 1)
+(set: $moral to it - 4)
+Tu coupes la radio. Trop d'espoir fait trop mal. //Moral -4//
+[[Suite->F11e]]
+
+:: F11e
+(if: $aLEnfant)[L'enfant lève les yeux : « On reste ensemble, hein ? Après ? »]
+(else:)[Tu te demandes ce que tu feras, après. S'il y a un après.]
+
+[[← Promettre / te projeter->F11ePromet]]
+[[→ Ne rien promettre->F11eRien]]
+
+:: F11ePromet
+(set: $moral to it + 7)
+(if: $aLEnfant)[« Ensemble. Promis. » Il sourit et s'endort.] Se projeter, c'est déjà vivre. //Moral +7//
+[[Vers la tour->G12]]
+
+:: F11eRien
+(set: $moral to it - 3)
+Tu ne promets rien que tu ne sois sûre de tenir. //Moral -3//
 [[Vers la tour->G12]]
 
 
@@ -843,41 +1318,91 @@ Un sommeil profond, mérité. //Moral +4 · Faim +3//
 GARE 12 — Tour de guet
 
 Du haut d'une tour de guet abandonnée, tu le vois enfin : loin au nord,
-des lumières. Le refuge. Des cheminées qui fument. Des gens.
+des lumières. Des cheminées qui fument. Le refuge. Des gens.
 
 [[← Y croire de toutes tes forces->G12croire]]
 [[→ Te préparer à la déception->G12prudence]]
 
 :: G12croire
 (set: $moral to it + 16)
-« Ils sont là. Je le sais. » L'espoir te porte comme jamais.
-//Moral +16//
+« Ils sont là. Je le sais. » L'espoir te porte comme jamais. //Moral +16//
 [[Suite->F12a]]
 
 :: G12prudence
 (set: $moral to it + 4)
 Tu gardes le cœur en réserve. On a moins mal quand on n'attend rien —
-mais on vit moins fort aussi.
-//Moral +4//
+mais on vit moins fort, aussi. //Moral +4//
 [[Suite->F12a]]
 
-/% --- remplissage 12 -> 13 --- %/
+/% --- SEGMENT 12 → 13 : dernière montée, le col se dresse --- %/
 
 :: F12a
-La dernière montée. Le col gelé se dresse, mur de glace et de vent.
+(if: $leVieuxABord)[Le Vieux pose l'oreille sur la chaudière. « Elle est fatiguée, la vieille. Comme moi. »]
+(else:)[Tu écoutes le cœur de la loco : un battement irrégulier, inquiétant.]
 
-[[← Vérifier la loco avant l'assaut->F12aCheck]]
-[[→ Foncer tant que tu as l'élan->F12aFonce]]
+[[← La rassurer, lui parler->F12aParle]]
+[[→ Juste serrer les dents->F12aDents]]
 
-:: F12aCheck
-(set: $bois to it + 4)
-(set: $moral to it + 2)
-Tu graisses, tu serres, tu prépares. //Bois +4 · Moral +2//
+:: F12aParle
+(set: $moral to it + 4)
+« Tiens bon, ma belle. On y est presque. » Une machine, et pourtant. //Moral +4//
+[[Suite->F12b]]
+
+:: F12aDents
+(set: $moral to it - 2)
+Tu n'as plus de mots à gaspiller. Que de la volonté. //Moral -2//
+[[Suite->F12b]]
+
+:: F12b
+Le vent hurle, blanc sur blanc. La visibilité tombe à quelques mètres.
+
+[[← Avancer au jugé, confiante->F12bConfiante]]
+[[→ Ramper, terrifiée->F12bRampe]]
+
+:: F12bConfiante
+(set: $moral to it + 3)
+Tu connais ta voie. Tu avances dans le néant, droite. //Moral +3//
+[[Suite->F12c]]
+
+:: F12bRampe
+(set: $moral to it - 4)
+Chaque mètre est une prière. //Moral -4//
+[[Suite->F12c]]
+
+:: F12c
+Dans le col, des carcasses d'autres trains, figées, ensevelies. Ils
+n'ont pas passé l'hiver.
+
+[[← Te jurer de réussir, toi->F12cJure]]
+[[→ Sentir la peur t'envahir->F12cPeur]]
+
+:: F12cJure
+(set: $moral to it + 5)
+« Pas moi. Pas nous. Pas si près. » //Moral +5//
+[[Suite->F12d]]
+
+:: F12cPeur
+(set: $moral to it - 6)
+(set: $doute to it + 1)
+Et si c'était ça, ton train, demain ? Une carcasse de plus. //Moral -6//
+[[Suite->F12d]]
+
+:: F12d
+Un petit autel laissé par d'autres voyageurs : photos, jouets, mots
+d'adieu coincés sous des pierres.
+
+[[← Y laisser un objet à toi->F12dLaisse]]
+[[→ Te recueillir et partir->F12dRecueille]]
+
+:: F12dLaisse
+(set: $moral to it + 6)
+Tu y déposes la photo des inconnus de la valise. Qu'ils reposent là,
+au seuil du refuge. //Moral +6//
 [[Vers le col->G13]]
 
-:: F12aFonce
-(set: $bois to it - 8)
-L'élan, à tout prix. //Bois -8//
+:: F12dRecueille
+(set: $moral to it + 3)
+Un instant de silence pour tous ceux qui n'arriveront pas. //Moral +3//
 [[Vers le col->G13]]
 
 
@@ -898,19 +1423,17 @@ Il faut sacrifier quelque chose pour franchir la dernière pente.
 (set: $bois to it + 25)
 (set: $moral to it - 10)
 Tu jettes au feu la table, la couchette, le carnet — tout ce qui
-faisait du wagon un chez-toi. La loco repart. Le foyer n'est plus
-qu'une boîte de tôle, mais elle avance.
-//Bois +25 · Moral -10//
-[[Suite->G14]]
+faisait du wagon un chez-toi. La loco repart. Ce n'est plus qu'une
+boîte de tôle, mais elle avance. //Bois +25 · Moral -10//
+[[Vers le tunnel->G14]]
 
 :: G13pied
-(set: $bois to it - 5)
-(if: $leVieuxABord)[Le Vieux descend, cale des pierres sous les roues, pousse.
-« Vas-y, petite. Moi, j'ai fait ma route. » Il reste sur le col.(set: $leVieuxABord to false)(set: $moral to it - 12)]
-(else:)[Tu pousses, tu glisses, tu hurles — et la loco bascule de l'autre côté,
-à un souffle de la panne.(set: $moral to it - 6)]
-//la dernière pente, au prix fort//
-[[Suite->G14]]
+(if: $leVieuxABord)[(set: $leVieuxABord to false)(set: $moral to it - 12)Le Vieux descend, cale des pierres sous les roues, pousse de toutes
+ses forces. « Vas-y, petite. Moi, j'ai fait ma route. » Il reste sur le
+col, debout dans la neige, et te salue. //Le Vieux reste · Moral -12//]
+(else:)[(set: $moral to it - 6)(set: $bois to it - 5)Tu pousses, tu glisses, tu hurles — et la loco bascule de l'autre
+côté, à un souffle de la panne. //Moral -6 · Bois -5//]
+[[Vers le tunnel->G14]]
 
 
 /% ============================================================
@@ -922,8 +1445,6 @@ GARE 14 — Tunnel nord / Refuge
 
 Le train s'engage dans le dernier tunnel. À l'autre bout : la lumière
 du refuge. Ton cœur bat dans ta gorge. Tu as tenu. Tu es arrivée.
-
-(if: $moral <= 0)[(goto: "FinAbandon")]
 
 [[Sortir du tunnel->G14sortie]]
 
@@ -942,12 +1463,12 @@ du refuge. Ton cœur bat dans ta gorge. Tu as tenu. Tu es arrivée.
 FIN — Retrouvailles
 
 Sur le quai du refuge, des silhouettes se précipitent vers le train.
-Parmi elles, un visage que tu connais par cœur. Tu n'as pas rêvé.
-Tu n'as pas tenu pour rien.
+Parmi elles, un visage que tu connais par cœur. Tu n'as pas rêvé. Tu
+n'as pas tenu pour rien.
 
 (if: $aLeChien)[Le chien bondit le premier, aboyant comme un fou.]
-(if: $aLEnfant)[L'enfant serre ta main, intimidé, et tu comprends qu'il fait
-désormais partie de ta famille — celle qu'on choisit.]
+(if: $aLEnfant)[L'enfant serre ta main : il fait désormais partie de la
+famille — celle qu'on choisit.]
 
 //Tu as survécu, de corps et d'âme. Vous êtes ensemble.//
 
@@ -955,13 +1476,12 @@ désormais partie de ta famille — celle qu'on choisit.]
 FIN — Le deuil et la vie
 
 Ils ne sont pas là. Tu cherches, tu demandes, tu montres leurs visages
-dessinés de mémoire. Personne. La vérité, douce et terrible, finit par
-s'imposer : ils ne viendront pas.
+dessinés de mémoire. Personne. La vérité, douce et terrible, s'impose :
+ils ne viendront pas.
 
-Mais (if: $aLeChien)[le chien]
-(else-if: $aLEnfant)[l'enfant](else:)[le feu du wagon] est là. Et toi aussi.
-Tu choisis de rester, de reconstruire, de vivre. C'est une autre forme
-de victoire.
+Mais (if: $aLeChien)[le chien](else-if: $aLEnfant)[l'enfant](else:)[le
+feu du wagon] est là. Et toi aussi. Tu choisis de rester, de
+reconstruire, de vivre. C'est une autre forme de victoire.
 
 //Survivre, ce n'est pas seulement tenir. C'est accepter, et continuer.//
 
@@ -969,11 +1489,12 @@ de victoire.
 FIN — Le voyage s'arrête
 
 Le train ralentit, puis se tait, au milieu du blanc. (if: $bois <= 0)[Plus
-de bois ; le foyer s'éteint, et le froid entre.](else-if: $soif <= 0)[La soif
-a eu raison de toi.](else-if: $faim <= 0)[La faim t'a vidée de tes dernières
-forces.](else:)[Le monde mort t'a rattrapée.]
+de bois ; le foyer s'éteint, le froid entre.](else-if: $soif <= 0)[La soif
+a eu raison de toi.](else-if: $faim <= 0)[La faim t'a vidée de tes
+dernières forces.](else:)[Le monde mort t'a rattrapée.]
 
-Quelque part, peut-être, quelqu'un t'attend encore. Il ne le saura jamais.
+Quelque part, peut-être, quelqu'un t'attend encore. Il ne le saura
+jamais.
 
 //Une stat est tombée à zéro. Fin de partie.//
 
@@ -998,7 +1519,8 @@ qui parlait dans le grésillement. Qui t'a guidée. Qui n'a jamais cessé
 d'appeler.
 
 (if: $aLeChien)[Le chien tourne autour de vous deux en aboyant.]
-(if: $aLEnfant)[L'enfant lève les yeux vers cette inconnue qui te ressemble.]
+(if: $aLEnfant)[L'enfant lève les yeux vers cette inconnue qui te
+ressemble tant.]
 
 Vous ne dites rien. Il n'y a rien à dire. Vous avez survécu — toutes les
 deux — et le monde mort, pour une fois, n'a pas gagné.
