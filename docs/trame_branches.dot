@@ -1,0 +1,72 @@
+digraph TrameTrainCosy {
+  rankdir=TB;
+  bgcolor="#1b1714";
+  fontname="Helvetica";
+  node [fontname="Helvetica", fontsize=11, style="filled", color="#3a2f28", fontcolor="#f3e9da"];
+  edge [color="#9c8a76", fontname="Helvetica", fontsize=9, fontcolor="#d8c7af"];
+
+  // --- Gares (spine) ---
+  node [shape=box, fillcolor="#5a4634"];
+  G1  [label="G1 Gare natale\n(tuto · trouve le chien)"];
+  G2  [label="G2 Dépôt de fret\n(loco à bois · Le Vieux monte)"];
+  G3  [label="G3 Halte 47\n(pillards dans le brouillard)"];
+  G4  [label="G4 Village fantôme\n(trouve la radio)"];
+  G5  [label="G5 Pont sur le fleuve\n(ressources)"];
+  G6  [label="G6 Camp-refuge\n(rumeur du Nord)"];
+  G7  [label="G7 Halte 12\n(souvenir de la sœur)"];
+  G8  [label="G8 Entrée zone froide\n(trouve l'enfant)"];
+  G9  [label="G9 Plaine enneigée\n(tempête · enfant malade)"];
+  G10 [label="G10 Oasis / serre\n(répit cosy)"];
+  G11 [label="G11 Halte 31\n(climax intermédiaire)"];
+  G12 [label="G12 Tour de guet\n(voit le refuge nord)"];
+  G13 [label="G13 Col gelé\n(sacrifice)"];
+  G14 [label="G14 Tunnel nord / Refuge\n(CLIMAX)"];
+
+  // --- Noeuds de choix (branches) ---
+  node [shape=diamond, fillcolor="#735a3c", fontcolor="#fff7e6"];
+  C3  [label="aider le fuyard ?"];
+  C6  [label="Le Vieux\nreste ou suit ?"];
+  C11 [label="pillards\nou radio claire ?"];
+  C13 [label="quoi sacrifier ?"];
+
+  // --- Fins ---
+  node [shape=ellipse];
+  F_RETROUV [label="FIN · Retrouvailles", fillcolor="#3c6e47"];
+  F_DEUIL   [label="FIN · Le deuil et la vie", fillcolor="#4a5a7a"];
+  F_MORT    [label="FIN · Mort (stat à 0)", fillcolor="#7a3030"];
+  F_ABANDON [label="FIN · Abandon (moral 0)", fillcolor="#6a5a3a"];
+  F_SECRETE [label="FIN secrète · la voix\nétait sa sœur", fillcolor="#7a5a8a"];
+
+  // --- Spine principale ---
+  G1 -> G2 -> G3;
+  G3 -> C3;
+  C3 -> G4 [label="aide (flag+)"];
+  C3 -> G4 [label="ignore (flag-)", style=dashed];
+  G4 -> G5 -> G6 -> C6;
+  C6 -> G7 [label="reste au camp", style=dashed];
+  C6 -> G7 [label="suit Shen (flag Vieux)"];
+  G7 -> G8 -> G9 -> G10 -> G11;
+  G11 -> C11;
+  C11 -> G12 [label="pillards (si fuyard ignoré)", style=dashed];
+  C11 -> G12 [label="voix radio (si radio suivie)"];
+  G12 -> G13 -> C13;
+  C13 -> G14 [label="bois / détour / compagnon"];
+
+  // --- Fins depuis le climax + sorties anticipées ---
+  G14 -> F_RETROUV [label="flags positifs"];
+  G14 -> F_DEUIL   [label="flags mitigés"];
+  G14 -> F_SECRETE [label="radio suivie + tout positif", color="#c79bdc"];
+
+  // Fins possibles à tout moment (game over)
+  C13 -> F_MORT    [label="stat à 0", color="#c46b6b", style=dotted];
+  C11 -> F_ABANDON [label="moral à 0", color="#c9b27a", style=dotted];
+
+  // Légende
+  subgraph cluster_legende {
+    label="Légende";
+    fontcolor="#d8c7af";
+    color="#3a2f28";
+    node [shape=plaintext, fillcolor="#1b1714", fontcolor="#d8c7af", fontsize=10];
+    leg [label="◻ gare (étape obligatoire)\n◇ choix qui pose un flag\n● fin\n— branche principale   ┄ variante selon flag   ⋯ fin anticipée (stat 0)\n\nEntre chaque gare : ~10 cartes de remplissage (non dessinées ici)"];
+  }
+}
