@@ -23,9 +23,10 @@ audio branché (sans musique) + carte avec spline 14 gares. **Mini-jeu hydro
 (6 cups, sprites peints, mode ajuster)** + **filtre eau inline (tank animé)**.
 Wood game retiré.
 
-**🚨 GROSSE DÉCISION EN COURS** : direction gameplay. L'utilisateur s'inspire
-de **Reigns** (mobile, swipe gauche/droite, choix narratifs courts, 4 stats à
-équilibrer, runs courtes). Voir section "Direction Reigns" plus bas.
+**✅ DIRECTION VALIDÉE (2026-05-31)** : gameplay **Reigns-like** + histoire
+canon écrite (Shen fuit la 3e GM, cherche sa famille, train vers le refuge
+nord). Voir section "Direction Reigns — VALIDÉE" plus bas. Prochaine étape =
+implémentation (moteur de cartes).
 
 ---
 
@@ -227,71 +228,115 @@ map_route, **hydro_tank**, **title_bg**.
 
 ---
 
-## 🎯 Direction Reigns — décision en cours
+## 🎯 Direction Reigns — VALIDÉE (2026-05-31)
 
-L'utilisateur veut s'inspirer de **Reigns** (mobile, ~2016). Caractéristiques :
-- Swipe gauche/droite (binaire) sur des **cartes événements**
-- 4 stats à équilibrer, mort si une atteint 0 ou 100%
-- Sessions courtes (5-15 min par "règne")
-- Multi-personnages récurrents avec mini-arcs
-- Hautement rejouable, plusieurs fins
+Concept Reigns **acté**. Reste à trancher en impl : hybride (wagon
+side-scroller vivant en fond des cartes) vs full Reigns visuel — penché
+hybride, à confirmer au moment du code.
 
-### Adaptation Train Cosy proposée
+**Format** : cartes événements swipe gauche/droite, 2 choix par carte,
+sessions courtes, hautement rejouable, fins multiples.
 
-**Boucle** :
-- Train roule. Cartes événements apparaissent toutes les 30s-1min.
-- 2 choix par carte (gauche/droite).
-- 4 stats à équilibrer : **Faim**, **Soif**, **Bois loco**, **Moral**.
-- Si un stat à 0 (ou 100%) → fin du voyage (mort/abandon/incendie).
-- Mort = restart, persistance partielle (cartes vues, gares déverrouillées).
+### Les 4 stats (mort si une touche 0 ; on NE garde PAS le 100%)
 
-**Trame** :
-- 14 gares = 14 grandes étapes narratives obligatoires (déjà sur la map)
-- Entre 2 gares : ~10 cartes événements aléatoires (météo, passagers,
-  loco, souvenirs)
-- À chaque gare : carte spéciale (2 ou 3 choix narratifs lourds)
+1. **Soif** → eau (filtre, neige fondue, pluie).
+2. **Faim** → nourriture (hydroponie, troc, chasse).
+3. **Bois** → carburant loco. À 0 = train s'arrête en terrain hostile = mort.
+4. **Moral / Espoir** → foi de retrouver la famille. À 0 = elle abandonne,
+   descend du train.
 
-**Prémisse à choisir** (cœur émotionnel du jeu) :
-1. Shen **fuit** un passé (faute, perte)
-2. Shen **cherche** quelqu'un (famille, mentor, amour)
-3. Shen **livre** quelque chose (message, objet sacré, enfant)
-4. Shen a **oublié** (amnésie post-traumatique)
-5. Shen **attend** une fin (acceptation, dernière promenade)
+### L'HISTOIRE (validée, canon)
 
-**Décision attendue** :
-- L'utilisateur n'a PAS encore choisi la prémisse.
-- L'utilisateur n'a PAS encore décidé si on garde le side-scroller wagon
-  en background des cartes, ou si on bascule full Reigns visuel.
-- L'utilisateur n'a PAS encore validé le concept Reigns définitivement.
+**Prémisse** : mix **fuit + cherche**. Thème profond = **espoir contre
+acceptation** (croire qu'ils sont vivants, ou apprendre à vivre sinon).
 
-### Structure narrative à construire (si Reigns validé)
+- **Monde** : après la 3e Guerre mondiale, effondrement total, lente
+  extinction. États morts, villes vides, survivants en poches le long des
+  voies ferrées. Ciel bas, cendre comme neige sale, silence.
+- **Shen** : ex-étudiante rentrée dans sa ville natale (parents + petite
+  sœur), ville longtemps épargnée.
+- **La nuit de la fuite** : explosions, parents la réveillent, fuite dans
+  le chaos, famille séparée. Shen seule, portée par la foule jusqu'à la
+  gare. Trains bondés. Au bout du quai, des silhouettes rallument une
+  vieille **loco de fret à bois**. Elle monte, se cache dans l'unique
+  wagon. Le convoi part au moment où la gare brûle, les autres trains
+  explosent, des tirs tuent les rares passagers montés avec elle.
+- **Le périple** : seule, une loco à bois + un wagon, la voie file vers le
+  **nord** (zone froide = refuge où des familles se regroupent, le froid
+  tient les pillards à distance). Et si les siens étaient montés dans un
+  autre train ? S'ils l'attendaient là-haut ?
+- **Cœur du jeu** : survivre de corps ET d'âme assez longtemps pour le
+  découvrir.
 
-À écrire avec l'utilisateur (la narrative est explicitement reportée
-mais le squelette doit être prêt) :
-- 14 scènes principales (1 par gare)
-- 3-5 personnages récurrents avec leurs arcs (3-4 apparitions chacun)
-- 3-5 fins selon bilan global
-- ~100 cartes de remplissage (entre-gares, événements ambient/tactiques)
+### Trame principale — 14 gares (tempéré → transition → neige nord)
 
-Total estimé : **80-100 scènes courtes** pour avoir un jeu Reigns
-complet et profond.
+| # | Gare | Beat |
+|---|------|------|
+| 1 | Gare natale en ruines | Tuto. Choix : retourner en ville (risque) ou fuir. **Trouve le chien**. |
+| 2 | Dépôt de fret | Apprend à nourrir la loco au bois. **Le Vieux** (cheminot) monte. |
+| 3 | Halte 47 | Premiers **pillards** dans le brouillard. Choix moral. |
+| 4 | Village fantôme | **Trouve la radio à manivelle.** 1er fragment de message du nord. |
+| 5 | Pont sur le fleuve | Décision ressources : ralentir (eau/pêche) ou foncer (sécurité). |
+| 6 | Camp-refuge | Survivants, rumeur du Nord précisée. Le Vieux reste ou continue (flag). |
+| 7 | Halte 12 | Souvenir d'enfance jouable : la **petite sœur**. Enjeu émotionnel. |
+| 8 | Entrée zone froide | Le froid menace, loco boit plus. **Trouve un enfant seul**. |
+| 9 | Plaine enneigée / ruines | Tempête. Survie pure. L'enfant tombe malade. |
+| 10 | Oasis perdue (serre) | Répit cosy. Hydroponie, lien avec l'enfant. |
+| 11 | Halte 31 | Climax inter : pillards rattrapent OU message radio clair (voix familière ?). |
+| 12 | Tour de guet | Vue sur le **refuge nord**. Espoir concret. Décision lourde. |
+| 13 | Col gelé / Halte 6 | Dernière épreuve, loco menace de lâcher. **Sacrifice**. |
+| 14 | Tunnel nord / Refuge | **Climax.** Selon flags : retrouvailles / vérité / autre. |
+
+Chaque gare = scène 2 choix avec 2-3 variantes selon flags accumulés.
+
+### Cartes de remplissage
+
+**~10 cartes entre CHAQUE gare** → 13 inter-gares × ~10 = **~130 cartes**.
+Pool large, ~10 vues par segment, varié à chaque run. Rôle : ambiance
+(météo, paysage, ennui), tactique (ressources, soigner Shen), lore
+(souvenirs, objets trouvés).
+
+### Personnages récurrents (3-4 apparitions chacun)
+
+1. **Le chien** — gare 1. Témoin silencieux, ancre du moral.
+2. **Le Vieux** (cheminot) — gares 2→6. Mentor du train. Peut rester/mourir.
+3. **L'enfant** — gare 8. Miroir de la petite sœur. Plus gros levier émotionnel.
+4. **Les pillards** — antagoniste diffus (gares 3, 11, 13).
+5. **La voix radio** — fil d'espoir (gares 4→14). Refuge ? La sœur ? Réservé fin.
+
+### Fins (3-5)
+
+1. **Retrouvailles** — bonne gestion + bons choix → retrouve tout/partie famille.
+2. **Le deuil et la vie** — ils sont morts, mais elle choisit de vivre.
+3. **Mort** — une stat à 0 (gelée, affamée, loco éteinte, pillards).
+4. **L'abandon** — moral à 0, descend à une gare au hasard.
+5. **Fin secrète** — toutes cartes vues + flags positifs + radio suivie → la voix était sa sœur.
+
+### Volume de contenu cible
+
+~14 cartes de gare (+ variantes) + ~130 cartes de remplissage + scènes
+secondaires des persos récurrents. **Noms en placeholders** (Le Vieux /
+l'enfant / la sœur), à nommer plus tard.
 
 ---
 
 ## Ce qui reste à faire
 
-### 🚨 Priorité absolue — décision direction gameplay
+### 🚨 Priorité absolue — implémenter Reigns (direction validée)
 
-1. **Choisir : Reigns-like ou autre direction ?** L'utilisateur a montré
-   intérêt pour Reigns mais rien validé. Reprendre la discussion :
-   prémisse, branches, personnages récurrents, fins.
+1. **Construire le moteur de cartes** : modèle de carte (texte + 2 choix +
+   effets sur les 4 stats + flags requis/posés), pile de cartes, swipe
+   G/D, écran de carte (hybride wagon en fond à confirmer).
+2. **Système de stats** faim/soif/bois/moral + conditions de fin (0 = mort/
+   abandon) + 5 fins.
+3. **Écrire le contenu** : 14 cartes de gare (avec variantes) +
+   ~130 cartes de remplissage + arcs des persos récurrents.
 
 ### Priorité haute — feedback utilisateur récent
 
-2. **Refaire les musiques** — supprimées car « rock pas adapté ».
-3. **Brancher les 3 autres plantes** (tomato, eggplant, lettuce) dans
+4. **Refaire les musiques** — supprimées car « rock pas adapté ».
+5. **Brancher les 3 autres plantes** (tomato, eggplant, lettuce) dans
    hydro_game (sprites prêts, juste UI à ajouter).
-4. **Mécaniques narratives** à designer (Reigns ou autre).
 
 ### Priorité moyenne — qualité de vie
 
@@ -337,17 +382,17 @@ complet et profond.
 
 ## Notes pour la prochaine session
 
-**Dernier sujet abordé** : direction gameplay inspirée de **Reigns**. La
-discussion porte sur :
-- Le concept de cartes événements swipe gauche/droite
-- 4 stats à équilibrer (faim, soif, bois, moral)
-- 5 prémisses possibles pour Shen
-- Structure narrative avec 14 gares + cartes de remplissage + personnages
-  récurrents + fins multiples
+**Dernier sujet abordé (2026-05-31)** : direction **Reigns VALIDÉE** +
+**histoire canon écrite** (voir section "Direction Reigns — VALIDÉE").
+Shen, ex-étudiante, fuit la 3e GM et cherche sa famille perdue dans la
+fuite ; loco à bois + 1 wagon vers le refuge nord. 4 stats (faim/soif/
+bois/moral, 0 = fin), 14 gares, ~130 cartes de remplissage (10 entre
+chaque gare), 5 persos récurrents, 5 fins.
 
-**À reprendre** : continuer la discussion sur la prémisse à choisir, puis
-décider si on commit Reigns ou pas, puis si oui commencer à structurer la
-trame narrative (mais l'utilisateur dit "narration plus tard").
+**À reprendre** : commencer l'implémentation — d'abord le moteur de cartes
+(modèle carte + swipe + effets stats + flags), puis le système de stats/
+fins, puis écrire le contenu. Trancher hybride vs full Reigns au moment du
+code (penché hybride). Noms des persos à définir (placeholders pour l'instant).
 
 **À ne PAS faire** :
 - Recommencer à proposer des mini-jeux variés (hydro/water/wood). Le hydro
