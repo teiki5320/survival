@@ -1,0 +1,278 @@
+:: StoryTitle
+Train Cosy — Trame
+
+:: StoryData
+{
+  "ifid": "5B5E8C2A-1F3D-4C7A-9E2B-TRAINCOSY001",
+  "format": "Harlowe",
+  "format-version": "3.3.8",
+  "start": "Depart",
+  "zoom": 0.6
+}
+
+:: StoryInit
+(set: $soif to 70)
+(set: $faim to 70)
+(set: $bois to 70)
+(set: $moral to 70)
+(set: $aLeChien to false)
+(set: $leVieuxABord to false)
+(set: $aAideFuyard to false)
+(set: $aLaRadio to false)
+(set: $aLEnfant to false)
+
+<!--
+=== CONVENTIONS ===
+4 stats : $soif $faim $bois $moral (0 = fin de partie)
+Flags : booléens posés par les choix, relisent des branches plus loin.
+Chaque "gare" = passage [G.x]. Chaque carte de remplissage = [F.x].
+Effets : (set:) sur les stats / flags dans le passage de résultat.
+Choix = 2 liens (gauche / droite) dans chaque carte.
+Ce fichier est le SQUELETTE : 14 gares reliées + 3 gares détaillées + 2 cartes
+de remplissage en exemple. À étoffer dans Twine, puis exporter pour import Flutter.
+-->
+
+:: Depart
+La gare brûle. La foule te porte jusqu'au quai. Au bout, des silhouettes
+rallument une vieille locomotive de fret à bois. Tu montes. Tu te caches.
+Le train s'ébranle.
+
+[[Le voyage commence->G1]]
+
+
+:: G1
+(set: $_titre to "GARE 1 — Gare natale en ruines")
+Le quai brûle derrière toi. Sous un banc renversé, un chiot tremble,
+seul comme toi.
+
+[[← Le recueillir->G1_chien]]
+[[→ Continuer seule->G1_seule]]
+
+:: G1_chien
+(set: $moral to it + 15)
+(set: $aLeChien to true)
+Il se blottit contre toi. Le wagon te paraît moins vide.
+//Moral +15 · le chien embarque//
+
+[[Suite->G2]]
+
+:: G1_seule
+(set: $moral to it - 5)
+Tu fermes la porte. Le wagon est immense et silencieux.
+//Moral -5//
+
+[[La ville flambe encore...->G1b]]
+
+:: G1b
+La ville flambe au loin. Tes parents sont peut-être encore là-bas.
+
+[[← Y retourner->G1b_retour]]
+[[→ Renoncer, fuir->G1b_fuir]]
+
+:: G1b_retour
+(set: $soif to it - 10)
+(set: $faim to it - 10)
+Tu descends. Les rues sont un piège de feu et d'ombres. Tu remontes
+de justesse, les mains vides.
+//Soif -10 · Faim -10 · risque pillards plus tard//
+
+[[Suite->G2]]
+
+:: G1b_fuir
+(set: $moral to it - 10)
+Tu détournes les yeux. Le train accélère. La culpabilité s'installe.
+//Moral -10//
+
+[[Suite->G2]]
+
+
+:: G2
+(set: $_titre to "GARE 2 — Dépôt de fret")
+Un vieux cheminot tape sur la chaudière. « Tu sais nourrir ça, petite ? »
+
+[[← Apprendre de lui->G2_apprendre]]
+[[→ Me débrouiller seule->G2_seule]]
+
+:: G2_apprendre
+(set: $bois to it + 20)
+(set: $leVieuxABord to true)
+Il te montre le foyer, le tirage, le rythme. Il monte avec toi.
+//Bois +20 · Le Vieux à bord//
+
+[[Carte de remplissage->F_neige]]
+
+:: G2_seule
+(set: $bois to it + 5)
+Tu apprends à tâtons. Le feu prend mal, mais il prend.
+//Bois +5//
+
+[[Carte de remplissage->F_neige]]
+
+
+:: F_neige
+La neige tombe. Le wagon se refroidit lentement.
+
+[[← Brûler du bois pour chauffer->F_neige_bois]]
+[[→ Fondre la neige pour boire->F_neige_eau]]
+
+:: F_neige_bois
+(set: $bois to it - 10)
+La chaleur revient. La réserve de bois fond avec.
+//Bois -10//
+
+[[Suite->F_renard]]
+
+:: F_neige_eau
+(set: $soif to it + 10)
+Tu remplis une casserole de neige. De l'eau, enfin.
+//Soif +10//
+
+[[Suite->F_renard]]
+
+
+:: F_renard
+Un renard maigre te fixe depuis les ruines qui défilent.
+
+[[← Le regarder passer->F_renard_regarde]]
+[[→ Lui jeter du pain->F_renard_pain]]
+
+:: F_renard_regarde
+(set: $moral to it + 5)
+Il trotte un moment le long de la voie, puis disparaît.
+//Moral +5//
+
+[[Vers la halte->G3]]
+
+:: F_renard_pain
+(set: $faim to it - 5)
+(set: $moral to it + 10)
+Il happe le morceau et lève les yeux vers toi. Un instant de douceur.
+//Faim -5 · Moral +10//
+
+[[Vers la halte->G3]]
+
+
+:: G3
+(set: $_titre to "GARE 3 — Halte 47")
+Une silhouette sort du brouillard, mains levées.
+« Pitié... laissez-moi monter. »
+
+[[← Le laisser monter->G3_aide]]
+[[→ Verrouiller la porte->G3_refuse]]
+
+:: G3_aide
+(set: $faim to it - 10)
+(set: $soif to it - 10)
+(set: $moral to it + 10)
+(set: $aAideFuyard to true)
+Il s'effondre de gratitude. Une bouche de plus à nourrir, mais un regard
+humain de moins à perdre.
+//Faim -10 · Soif -10 · Moral +10 · il reviendra (G11)//
+
+[[Suite du voyage->G4]]
+
+:: G3_refuse
+(set: $moral to it - 15)
+Tu verrouilles. Ses coups contre la tôle s'éloignent. Le silence pèse.
+//Moral -15 · les pillards (G11)//
+
+[[Suite du voyage->G4]]
+
+
+<!-- ===== SQUELETTE DES GARES 4 À 14 (à détailler dans Twine) ===== -->
+
+:: G4
+(set: $_titre to "GARE 4 — Village fantôme")
+Tu fouilles une maison éventrée. Sur une étagère : une radio à manivelle.
+
+[[← La prendre (encombrant)->G4_radio]]
+[[→ Laisser, filer vite->G4_vite]]
+
+:: G4_radio
+(set: $aLaRadio to true)
+Tu tournes la manivelle. Une voix lointaine, hachée, parle du Nord...
+//radio acquise · fil narratif G4→G14//
+
+[[Suite->G5]]
+
+:: G4_vite
+(set: $moral to it - 5)
+Tu n'emportes rien. Le silence du wagon n'en est que plus lourd.
+//Moral -5//
+
+[[Suite->G5]]
+
+:: G5
+(set: $_titre to "GARE 5 — Pont sur le fleuve")
+[À DÉTAILLER] Décision ressources : ralentir (eau/pêche) ou foncer (sécurité).
+[[← Ralentir->G6]]
+[[→ Foncer->G6]]
+
+:: G6
+(set: $_titre to "GARE 6 — Camp-refuge")
+[À DÉTAILLER] La rumeur du Nord se précise. Le Vieux reste ou continue.
+[[← Le Vieux reste->G7]]
+[[→ Le Vieux continue->G7]]
+
+:: G7
+(set: $_titre to "GARE 7 — Halte 12")
+[À DÉTAILLER] Souvenir d'enfance jouable : la petite sœur.
+[[← ...->G8]]
+[[→ ...->G8]]
+
+:: G8
+(set: $_titre to "GARE 8 — Entrée zone froide")
+[À DÉTAILLER] Le froid menace, la loco boit plus. Tu trouves un enfant seul.
+[[← Le recueillir->G9]]
+[[→ Continuer->G9]]
+
+:: G9
+(set: $_titre to "GARE 9 — Plaine enneigée")
+[À DÉTAILLER] Tempête. Survie pure. L'enfant tombe malade.
+[[← ...->G10]]
+[[→ ...->G10]]
+
+:: G10
+(set: $_titre to "GARE 10 — Oasis perdue (serre)")
+[À DÉTAILLER] Répit cosy. Hydroponie, lien avec l'enfant.
+[[← ...->G11]]
+[[→ ...->G11]]
+
+:: G11
+(set: $_titre to "GARE 11 — Halte 31 (climax intermédiaire)")
+[À DÉTAILLER] Si fuyard refusé → pillards rattrapent. Si radio suivie → voix claire.
+[[← ...->G12]]
+[[→ ...->G12]]
+
+:: G12
+(set: $_titre to "GARE 12 — Tour de guet")
+[À DÉTAILLER] Vue sur le refuge nord. L'espoir devient concret.
+[[← ...->G13]]
+[[→ ...->G13]]
+
+:: G13
+(set: $_titre to "GARE 13 — Col gelé")
+[À DÉTAILLER] La loco menace de lâcher. Sacrifice.
+[[← ...->G14]]
+[[→ ...->G14]]
+
+:: G14
+(set: $_titre to "GARE 14 — Tunnel nord / Refuge")
+[CLIMAX — à détailler selon flags]
+(if: $moral > 40 and $aLaRadio)[[[Fin : Retrouvailles->FIN_Retrouvailles]]]
+(else-if: $moral > 20)[[[Fin : Le deuil et la vie->FIN_Deuil]]]
+(else:)[[[Fin : Abandon->FIN_Abandon]]]
+
+
+:: FIN_Retrouvailles
+(set: $_titre to "FIN — Retrouvailles")
+Au bout du tunnel, des feux. Des silhouettes. Et un visage que tu connais.
+
+:: FIN_Deuil
+(set: $_titre to "FIN — Le deuil et la vie")
+Ils ne sont pas là. Mais le chien dort contre toi, et l'enfant respire.
+Tu choisis de vivre.
+
+:: FIN_Abandon
+(set: $_titre to "FIN — L'abandon")
+Tu descends à une gare sans nom. Le train repart sans toi.
