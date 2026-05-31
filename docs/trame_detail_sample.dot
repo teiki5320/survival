@@ -1,0 +1,72 @@
+digraph TrameDetail {
+  rankdir=TB;
+  bgcolor="#1b1714";
+  fontname="Helvetica";
+  splines=true;
+  nodesep=0.5;
+  ranksep=0.7;
+  node [fontname="Helvetica", fontsize=10, fontcolor="#f3e9da"];
+  edge [color="#9c8a76", fontname="Helvetica", fontsize=9, fontcolor="#d8c7af"];
+
+  // ===== CARTES (questions) =====
+  node [shape=box, style="filled,rounded", fillcolor="#5a4634", width=2.6];
+
+  K1 [label="G1 · GARE NATALE\n«Le quai brûle derrière toi.\nUn chiot tremble sous un banc.»"];
+  K1b [label="G1b\n«La ville flambe. Tes parents\nsont peut-être encore là-bas.»"];
+  K2 [label="G2 · DÉPÔT DE FRET\n«Un vieux cheminot tape sur la\nchaudière : ''Tu sais nourrir\nça, petite ?''»"];
+  F_renard [label="REMPLISSAGE\n«Un renard maigre te fixe\ndepuis les ruines.»"];
+  F_neige [label="REMPLISSAGE\n«La neige tombe. Le wagon\nse refroidit.»"];
+  K3 [label="G3 · HALTE 47\n«Une silhouette sort du\nbrouillard, mains levées :\n''Pitié, laissez-moi monter.''»"];
+
+  // ===== EFFETS / RÉSULTATS =====
+  node [shape=note, style="filled", fillcolor="#2e2620", fontcolor="#cdbfa8", width=1.8, fontsize=9];
+  E1L [label="Moral +15\nflag: a_le_chien\n→ le chien embarque"];
+  E1R [label="Moral -5\n→ menе à G1b"];
+  E1bL [label="Soif -10, Faim -10\nrisque pillards\nflag: tenté_retour"];
+  E1bR [label="Moral -10\n(culpabilité)"];
+  E2L [label="Bois +20\nflag: le_vieux_a_bord\n→ Le Vieux monte"];
+  E2R [label="Bois +5\nflag: seule"];
+  EfrenL [label="Moral +5"];
+  EfrenR [label="Faim -1, Moral +10"];
+  EneigeL [label="Bois -10 (chauffe)"];
+  EneigeR [label="Soif +10 (neige fondue)\nFatigue -5"];
+  E3L [label="Faim -10, Soif -10\nMoral +10\nflag: a_aidé_fuyard\n(revient en G11)"];
+  E3R [label="Moral -15\nflag: a_refusé\n(pillards en G11)"];
+
+  // ===== ARÊTES : carte -> (réponse) -> effet =====
+  K1 -> E1L [label="← Le recueillir", color="#8fb98f"];
+  K1 -> E1R [label="→ Continuer seule", color="#c9a37a"];
+  E1L -> K2;
+  E1R -> K1b;
+
+  K1b -> E1bL [label="← Y retourner", color="#c46b6b"];
+  K1b -> E1bR [label="→ Renoncer", color="#c9a37a"];
+  E1bL -> F_renard;
+  E1bR -> F_renard;
+
+  F_renard -> EfrenL [label="← Le regarder", color="#8fb98f"];
+  F_renard -> EfrenR [label="→ Jeter du pain", color="#c9a37a"];
+  EfrenL -> K2;
+  EfrenR -> K2;
+
+  K2 -> E2L [label="← Apprendre", color="#8fb98f"];
+  K2 -> E2R [label="→ Me débrouiller", color="#c9a37a"];
+  E2L -> F_neige;
+  E2R -> F_neige;
+
+  F_neige -> EneigeL [label="← Brûler du bois", color="#c46b6b"];
+  F_neige -> EneigeR [label="→ Fondre la neige", color="#8fb98f"];
+  EneigeL -> K3;
+  EneigeR -> K3;
+
+  K3 -> E3L [label="← Le laisser monter", color="#8fb98f"];
+  K3 -> E3R [label="→ Verrouiller la porte", color="#c46b6b"];
+
+  // Légende
+  subgraph cluster_leg {
+    label="Comment lire";
+    fontcolor="#d8c7af"; color="#3a2f28";
+    node [shape=plaintext, fillcolor="#1b1714", fontcolor="#d8c7af", fontsize=9];
+    leg [label="▭ carte (question)        ▱ effet d'une réponse\n← = swipe gauche    → = swipe droite\nun effet = gains/pertes de stats + flags posés\nles flags rouvrent ou ferment des branches plus loin (ex: a_aidé_fuyard → G11)"];
+  }
+}
