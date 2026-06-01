@@ -87,20 +87,26 @@ class AudioService {
     await _safe(() => _fire.stop());
   }
 
-  /// Background music. DÉSACTIVÉ : les pistes music_*.mp3 (rock, pas
-  /// adaptées) ont été retirées du bundle. No-op tant qu'on n'a pas de
-  /// vraie musique cosy. Réactiver en remettant les assets + le corps.
-  static const bool _musicEnabled = false;
+  /// Background music selon l'ambiance : 'day' / 'night' / 'cold'.
+  /// Mappe les moods vers les fichiers réels (noms libres côté assets).
+  static const bool _musicEnabled = true;
+  static const Map<String, String> _musicFiles = {
+    'day': 'audio/paper-lantern-ruins.mp3',
+    'night': 'audio/moonlit-static.mp3',
+    'cold': 'audio/zone-froide.mp3',
+  };
 
   Future<void> setMusic(String mood) async {
     if (!_musicEnabled) return;
     if (_currentMusic == mood) return;
+    final file = _musicFiles[mood];
+    if (file == null) return;
     _currentMusic = mood;
     await _safe(() async {
       await _music.stop();
       await _music.setReleaseMode(ReleaseMode.loop);
       await _music.setVolume(0.3);
-      await _music.play(AssetSource('audio/music_$mood.mp3'));
+      await _music.play(AssetSource(file));
     });
   }
 

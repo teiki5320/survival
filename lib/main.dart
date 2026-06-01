@@ -164,18 +164,26 @@ class _WagonScreenState extends State<WagonScreen> {
   static const Duration _dayNightPeriod = Duration(minutes: 6);
   Timer? _dayNightTimer;
 
+  String _musicMood() {
+    if (_night) return 'night';
+    if (GameState.instance.inColdZone) return 'cold';
+    return 'day';
+  }
+
   void _refreshMusic() {
-    // Musique désactivée pour l'instant — à refaire plus tard.
+    _audio.setMusic(_musicMood());
   }
 
   @override
   void initState() {
     super.initState();
     _audio.startAmbientTrain();
+    _refreshMusic();
     GameState.instance.addListener(_refreshMusic);
     _dayNightTimer = Timer.periodic(_dayNightPeriod, (_) {
       if (!mounted) return;
       setState(() => _night = !_night);
+      _refreshMusic();
     });
   }
 
