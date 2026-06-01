@@ -447,14 +447,20 @@ class _CardsScreenState extends State<CardsScreen>
   }
 
   Widget _cardFace(StoryCard card) {
+    return card.kind == CardKind.gare
+        ? _gareFace(card)
+        : _fillerFace(card);
+  }
+
+  // --- carte de REMPLISSAGE : parchemin clair, léger ---
+  Widget _fillerFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
-    final cardW = min(w * 0.62, 340.0);
-    final isGare = card.kind == CardKind.gare;
+    final cardW = min(w * 0.6, 330.0);
     return Container(
       width: cardW,
       constraints: BoxConstraints(
-        minHeight: 200,
-        maxHeight: MediaQuery.of(context).size.height * 0.6,
+        minHeight: 190,
+        maxHeight: MediaQuery.of(context).size.height * 0.58,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -462,64 +468,125 @@ class _CardsScreenState extends State<CardsScreen>
           end: Alignment.bottomRight,
           colors: [Color(0xFFF6E7CC), Color(0xFFE9D2A8)],
         ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isGare ? const Color(0xFFB5854E) : const Color(0x33000000),
-          width: isGare ? 2.5 : 1,
-        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0x33000000), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.45),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(18),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (card.speaker != null) ...[
-              _speakerBadge(card.speaker!),
-              const SizedBox(height: 14),
-            ],
-            Flexible(
-              child: SingleChildScrollView(
-                child: Text(
-                  card.text,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF3A2A18),
-                    fontSize: 16,
-                    height: 1.4,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Text(
+              card.text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF3A2A18),
+                fontSize: 16,
+                height: 1.4,
+                fontWeight: FontWeight.w500,
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _speakerBadge(String s) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        decoration: BoxDecoration(
-          color: const Color(0xFFB5854E).withValues(alpha: 0.22),
-          borderRadius: BorderRadius.circular(20),
+  // --- carte de GARE : sombre, solennelle, liseré doré, bandeau titre ---
+  Widget _gareFace(StoryCard card) {
+    final w = MediaQuery.of(context).size.width;
+    final cardW = min(w * 0.66, 360.0);
+    const gold = Color(0xFFE8B96B);
+    return Container(
+      width: cardW,
+      constraints: BoxConstraints(
+        minHeight: 230,
+        maxHeight: MediaQuery.of(context).size.height * 0.62,
+      ),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF3A2A1A), Color(0xFF241812)],
         ),
-        child: Text(
-          s.toUpperCase(),
-          style: const TextStyle(
-            color: Color(0xFF6B4F2E),
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.2,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: gold, width: 2.5),
+        boxShadow: [
+          BoxShadow(
+            color: gold.withValues(alpha: 0.35),
+            blurRadius: 28,
+            spreadRadius: 1,
           ),
-        ),
-      );
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.6),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // bandeau titre de la gare
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            decoration: BoxDecoration(
+              color: gold.withValues(alpha: 0.16),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+              border: const Border(
+                bottom: BorderSide(color: gold, width: 1),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.train, color: gold, size: 16),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    (card.speaker ?? 'GARE').toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: gold,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Text(
+                    card.text,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFF3E6CF),
+                      fontSize: 17,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   // --- carte de conséquence (reste jusqu'au tap) ---
   Widget _resultCard() {
