@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 
 import '../constants.dart';
 import '../models/game_state.dart';
+import 'stat_rings.dart';
 
 // ---------------------------------------------------------------------------
 // Data — fixed track + stations that slide along the track
@@ -800,33 +801,8 @@ class _MapStatsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final gs = GameState.instance;
-    Widget gauge(IconData icon, int value, Color color) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 5),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color, size: 14),
-            const SizedBox(width: 3),
-            SizedBox(
-              width: 30,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: (value / 100).clamp(0.0, 1.0),
-                  minHeight: 5,
-                  backgroundColor: Colors.white24,
-                  valueColor: AlwaysStoppedAnimation(color),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(20),
@@ -834,12 +810,12 @@ class _MapStatsBar extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          gauge(Icons.water_drop, gs.cardSoif, const Color(0xFF6FAEDF)),
-          gauge(Icons.restaurant, gs.cardFaim, const Color(0xFFE89B5C)),
-          gauge(Icons.local_fire_department, gs.cardBois,
-              const Color(0xFFD4884A)),
-          gauge(Icons.favorite, gs.cardMoral, const Color(0xFFD98A8A)),
-          const SizedBox(width: 8),
+          const StatRingsBar(
+            ringSize: 34,
+            emojiSize: 15,
+            mainAxisSize: MainAxisSize.min,
+          ),
+          const SizedBox(width: 10),
           const Icon(Icons.park, color: Color(0xFFBFA46A), size: 14),
           const SizedBox(width: 3),
           Text('${gs.itemCount('wood')}',

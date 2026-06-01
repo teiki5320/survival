@@ -9,6 +9,7 @@ import 'widgets/locomotive_scene.dart';
 import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
 import 'widgets/cards_screen.dart';
+import 'widgets/stat_rings.dart';
 import 'widgets/games/hydro_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/wardrobe_screen.dart';
@@ -382,18 +383,13 @@ class _WagonScreenState extends State<WagonScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Les 4 vraies jauges du voyage (système unique).
-                      _statBar(Icons.water_drop, gs.cardSoif / 100.0,
-                          const Color(0xFF6FAEDF)),
-                      const SizedBox(height: 2),
-                      _statBar(Icons.restaurant, gs.cardFaim / 100.0,
-                          const Color(0xFFE89B5C)),
-                      const SizedBox(height: 2),
-                      _statBar(Icons.local_fire_department, gs.cardBois / 100.0,
-                          const Color(0xFFD4884A)),
-                      const SizedBox(height: 2),
-                      _statBar(Icons.favorite, gs.cardMoral / 100.0,
-                          const Color(0xFFD98A8A)),
+                      // Les 4 vraies jauges du voyage (anneaux unifiés).
+                      const StatRingsBar(
+                        ringSize: 34,
+                        emojiSize: 15,
+                        mainAxisSize: MainAxisSize.min,
+                        alignment: MainAxisAlignment.start,
+                      ),
                       const SizedBox(height: 6),
                       // Réserves (ce qui sert à ravitailler les jauges).
                       Row(
@@ -507,39 +503,6 @@ class _WagonScreenState extends State<WagonScreen> {
 
   /// Mini-jauge horizontale icone + barre 80px. Couleur passe au rouge
   /// quand la valeur descend sous 25 %.
-  Widget _statBar(IconData icon, double value, Color color) {
-    final low = value < 0.25;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon,
-            size: 12,
-            color: low ? const Color(0xFFE05A4D) : color.withValues(alpha: 0.9)),
-        const SizedBox(width: 4),
-        Container(
-          width: 80,
-          height: 6,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(3),
-          ),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: FractionallySizedBox(
-              widthFactor: value.clamp(0.0, 1.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: low ? const Color(0xFFE05A4D) : color,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   /// Pastille compteur ressource: icône + nombre (0-1000).
   Widget _resourceChip(IconData icon, int count, Color color) {
     return Container(
