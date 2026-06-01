@@ -175,6 +175,12 @@ class ReignsEngine {
   void _loadSegment() {
     final idx = _gs.cardGareIndex ?? 0;
     final seg = segments[idx];
+    // Réapprovisionnement en bois à certaines gares. Garde anti-double via un
+    // flag de run, pour ne pas re-créditer si on recharge une sauvegarde.
+    final supply = kWoodSupplyByGare[idx];
+    if (supply != null && flags.add('woodGiven_$idx')) {
+      _gs.grantItem('wood', supply);
+    }
     _queue
       ..clear()
       ..addAll(seg.gareCards(flags));

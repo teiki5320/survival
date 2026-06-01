@@ -112,14 +112,27 @@ def pick(card, stats, strategy):
 
 COLD_GARE = 7        # gare 8 (0-based) = entrée zone froide
 COLD_BOIS = 2        # surconso bois/carte dans le froid
+WOOD_START = 4       # réserve de bois de départ
+WOOD_SUPPLY = {2:5,6:6,9:4}  # bûches offertes à l'arrivée de gares
 
 def run(strategy, refuels_per_seg):
     stats = {'soif':70,'faim':70,'bois':70,'moral':70}
     flags = set(); soin = 0
+    wood = WOOD_START
     for si, (gare, fill, draw) in enumerate(segments):
-        # budget wagon en début de segment : recharge les 2 (ou N) plus basses
+        wood += WOOD_SUPPLY.get(si, 0)
+        # budget wagon : recharge les N stats les plus basses. Recharger BOIS
+        # exige de brûler 1 bûche ; sans bois en réserve, on recharge la stat
+        # non-bois la plus basse à la place.
         for _ in range(refuels_per_seg):
-            low = min(stats, key=lambda k: stats[k])
+            order = sorted(stats, key=lambda k: stats[k])
+            low = order[0]
+            if low == 'bois' and wood <= 0:
+                low = next((k for k in order if k != 'bois'), 'bois')
+            if low == 'bois':
+                if wood <= 0:
+                    continue
+                wood -= 1
             stats[low] = min(100, stats[low] + REFUEL)
         deck = list(gare) + random.sample(fill, min(draw, len(fill)))
         for card in deck:
@@ -136,41 +149,50 @@ def run(strategy, refuels_per_seg):
                 stats['bois'] = max(0, stats['bois'] - COLD_BOIS)
             if min(stats.values()) <= 0:
                 dead = min(stats, key=lambda k: stats[k])
-                return ('mort' if dead!='moral' else 'abandon'), stats, flags
+                tag = 'abandon' if dead=='moral' else 'mort'
+                return tag, stats, flags, dead
     # fin
     moral = stats['moral']; aSoeur = 'aLaSoeur' in flags
     if aSoeur and soin>=SOIN_REQ and moral>=MORAL_REQ: end='famille'
     elif aSoeur and moral>=30: end='ensemble'
     else: end='abandon'
-    return end, stats, flags
+    return end, stats, flags, None
 
 def trial(strategy, refuels, n=4000):
-    ends = collections.Counter(); survived = 0; famille = 0
+    ends = collections.Counter(); deaths = collections.Counter()
+    survived = 0; famille = 0
     for _ in range(n):
-        e,_s,_f = run(strategy, refuels)
+        e,_s,_f,dead = run(strategy, refuels)
         ends[e]+=1
+        if dead: deaths[dead]+=1
         if e in ('famille','ensemble'): survived+=1
         if e=='famille': famille+=1
-    return survived/n, famille/n, ends
+    return survived/n, famille/n, ends, deaths
 
-if '--sweep' in sys.argv:
-    print("Sweep (budget=2) — cible : casual ~55-70% survie, smart ~90-98%, famille earned")
-    print(f"{'REFUEL':>6} {'LOSS':>5} | {'careless':>9} {'casual':>8} {'smart':>8} {'smart-fam':>9}")
-    for REFUEL in [6,7,8,9,10]:
-        for LOSS in [1.3,1.5,1.7]:
-            globals()['REFUEL']=REFUEL; globals()['LOSS_MULT']=LOSS
-            c0,_,_ = trial('careless',2,2500)
-            c1,_,_ = trial('casual',2,2500)
-            c2,f2,_ = trial('smart',2,2500)
-            print(f"{REFUEL:>6} {LOSS:>5} | {c0*100:8.1f}% {c1*100:7.1f}% {c2*100:7.1f}% {f2*100:8.1f}%")
-        print()
+if '--wood' in sys.argv:
+    # Sweep réserve de bois : trouve un niveau où le bois devient un vrai
+    # facteur de mort (sinon le mécanisme #3 ne sert à rien).
+    print("Sweep bois (casual, budget=2) — survie + part des morts dues au bois")
+    print(f"{'START':>5} {'supply':>16} | {'casual':>7} {'morts bois %':>12}")
+    for ws, sup in [(5,{2:6,6:7,9:5}),(4,{2:4,6:5,9:3}),(3,{2:3,6:4,9:2}),
+                    (2,{2:3,6:3,9:2}),(3,{6:4,9:2}),(2,{6:3,9:2})]:
+        globals()['WOOD_START']=ws; globals()['WOOD_SUPPLY']=sup
+        n=4000; surv=0; boisdeath=0
+        for _ in range(n):
+            e,_s,_f,dead = run('casual',2)
+            if e in ('famille','ensemble'): surv+=1
+            if dead=='bois': boisdeath+=1
+        print(f"{ws:>5} {str(sup):>16} | {surv*100/n:6.1f}% {boisdeath*100/n:11.1f}%")
     sys.exit(0)
 
 print(f"Segments parsés : {len(segments)}  | gare seg1 : {len(segments[0][0])}  | filler seg1 : {len(segments[0][1])}")
-print(f"REFUEL={REFUEL}  LOSS_MULT={LOSS_MULT}  SOIN_REQ={SOIN_REQ}\n")
+print(f"REFUEL={REFUEL}  LOSS_MULT={LOSS_MULT}  SOIN_REQ={SOIN_REQ}  "
+      f"WOOD_START={WOOD_START} supply={WOOD_SUPPLY}\n")
 for strat in ['careless','casual','smart','caring']:
     for rf in [2]:
-        rate, fam, ends = trial(strat, rf)
+        rate, fam, ends, deaths = trial(strat, rf)
         top = ', '.join(f'{k}:{round(v*100/4000)}%' for k,v in ends.most_common())
-        print(f'{strat:9} budget={rf} → survie {rate*100:5.1f}%  famille {fam*100:4.1f}%  [{top}]')
+        dtop = ', '.join(f'{k}:{round(v*100/4000)}%' for k,v in deaths.most_common())
+        print(f'{strat:9} → survie {rate*100:5.1f}%  famille {fam*100:4.1f}%  [{top}]')
+        if dtop: print(f'           morts par : {dtop}')
     print()

@@ -274,6 +274,18 @@ class _MapScreenState extends State<MapScreen>
               ),
             ),
           ),
+          // Les 4 jauges + réserve de bois, pour décider AVANT d'entrer dans
+          // le froid (visible seulement pendant une run).
+          if (GameState.instance.hasCardRun)
+            const SafeArea(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: _MapStatsBar(),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -780,6 +792,63 @@ class _MapPainter extends CustomPainter {
 // ---------------------------------------------------------------------------
 // HUD
 // ---------------------------------------------------------------------------
+
+/// Petite barre des 4 jauges + réserve de bois, en haut de la carte.
+class _MapStatsBar extends StatelessWidget {
+  const _MapStatsBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final gs = GameState.instance;
+    Widget gauge(IconData icon, int value, Color color) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 5),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color, size: 14),
+            const SizedBox(width: 3),
+            SizedBox(
+              width: 30,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: (value / 100).clamp(0.0, 1.0),
+                  minHeight: 5,
+                  backgroundColor: Colors.white24,
+                  valueColor: AlwaysStoppedAnimation(color),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          gauge(Icons.water_drop, gs.cardSoif, const Color(0xFF6FAEDF)),
+          gauge(Icons.restaurant, gs.cardFaim, const Color(0xFFE89B5C)),
+          gauge(Icons.local_fire_department, gs.cardBois,
+              const Color(0xFFD4884A)),
+          gauge(Icons.favorite, gs.cardMoral, const Color(0xFFD98A8A)),
+          const SizedBox(width: 8),
+          const Icon(Icons.park, color: Color(0xFFBFA46A), size: 14),
+          const SizedBox(width: 3),
+          Text('${gs.itemCount('wood')}',
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
 
 class _TrainZoneHUD extends StatelessWidget {
   const _TrainZoneHUD({required this.path, required this.displayPosition});

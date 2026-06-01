@@ -31,6 +31,19 @@ const int kColdGareIndex = 7;
 // qui relie la carte au gameplay ; calé par simulation).
 const int kColdBoisDrainPerCard = 2;
 
+// --- Réserve de bois (bûches) ---
+// Le bois est une RÉSERVE épuisable (itemCount('wood')), pas une prod infinie :
+// alimenter le foyer (jauge Bois) consomme 1 bûche. On se réapprovisionne à
+// certaines gares (dépôt, camp, oasis) → il faut FAIRE DES STOCKS avant le
+// grand nord, sinon la loco s'éteint. Valeurs calées par simulation.
+const int kWoodStartReserve = 4;
+// Bûches offertes à l'arrivée de certaines gares (index 0-based de la gare).
+// idx 2 = Dépôt ferroviaire, idx 6 = Camp-refuge (juste avant le froid),
+// idx 9 = Oasis perdue (répit en plein froid). Calé par simulation : le bois
+// devient une cause de mort réelle (~16% des morts d'un joueur attentif, 68%
+// d'un joueur négligent) sans empêcher un joueur soigneux de survivre.
+const Map<int, int> kWoodSupplyByGare = {2: 5, 6: 6, 9: 4};
+
 // --- Weather ---
 const Duration kWeatherPeriod = Duration(minutes: 5);
 

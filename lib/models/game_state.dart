@@ -308,6 +308,8 @@ class GameState extends ChangeNotifier {
     cardSoin = 0;
     ravitaillementBudget = ravitaillementMax;
     cardSegmentProgress = 0.0;
+    // Réserve de bois de départ (bûches dans le wagon).
+    _items['wood'] = kWoodStartReserve;
     save();
     notifyListeners();
   }

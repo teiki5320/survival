@@ -530,10 +530,20 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       color: Colors.black.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      'Bûches : ${widget.logsThrown}',
-                      style: const TextStyle(color: Color(0xFFFFD9A0), fontSize: 16),
-                    ),
+                    child: Builder(builder: (_) {
+                      final stock = GameState.instance.itemCount('wood');
+                      return Text(
+                        stock > 0
+                            ? 'Réserve de bois : $stock'
+                            : 'Réserve vide — fais le plein aux gares',
+                        style: TextStyle(
+                          color: stock > 0
+                              ? const Color(0xFFFFD9A0)
+                              : const Color(0xFFE0A0A0),
+                          fontSize: 16,
+                        ),
+                      );
+                    }),
                   ),
                 ),
               ),

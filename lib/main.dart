@@ -291,9 +291,15 @@ class _WagonScreenState extends State<WagonScreen> {
                     night: _night,
                     logsThrown: _logsThrown,
                     onThrowLog: () {
-                      setState(() => _logsThrown++);
-                      // Nourrir le foyer remonte la jauge Bois (budget segment).
-                      GameState.instance.tryRavitailler('bois');
+                      // Nourrir le foyer = brûler 1 bûche de la réserve ET
+                      // dépenser 1 point de budget du segment. Sans bûche ou
+                      // sans budget, le geste ne donne rien (réserve à gérer).
+                      final gs = GameState.instance;
+                      if (gs.itemCount('wood') > 0 &&
+                          gs.tryRavitailler('bois')) {
+                        gs.consumeItem('wood');
+                        setState(() => _logsThrown++);
+                      }
                     },
                     onReturn: _exitLocomotive,
                   )
