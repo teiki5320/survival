@@ -294,7 +294,7 @@ class ReignsEngine {
     final card = _queue.isEmpty ? null : _queue.first;
     return EngineState(
       card: card,
-      gareIndex: _gareIndex,
+      gareIndex: gareIndex,
       isGare: card?.kind == CardKind.gare,
       finished: false,
     );
