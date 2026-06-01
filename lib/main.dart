@@ -376,19 +376,24 @@ class _WagonScreenState extends State<WagonScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _statBar(Icons.restaurant, gs.hunger,
-                          const Color(0xFFE89B5C)),
-                      const SizedBox(height: 2),
-                      _statBar(Icons.water_drop, gs.thirst,
+                      // Les 4 vraies jauges du voyage (système unique).
+                      _statBar(Icons.water_drop, gs.cardSoif / 100.0,
                           const Color(0xFF6FAEDF)),
                       const SizedBox(height: 2),
-                      _statBar(Icons.bedtime, gs.fatigue,
-                          const Color(0xFFB385D9)),
+                      _statBar(Icons.restaurant, gs.cardFaim / 100.0,
+                          const Color(0xFFE89B5C)),
+                      const SizedBox(height: 2),
+                      _statBar(Icons.local_fire_department, gs.cardBois / 100.0,
+                          const Color(0xFFD4884A)),
+                      const SizedBox(height: 2),
+                      _statBar(Icons.favorite, gs.cardMoral / 100.0,
+                          const Color(0xFFD98A8A)),
                       const SizedBox(height: 6),
+                      // Réserves (ce qui sert à ravitailler les jauges).
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _resourceChip(Icons.local_fire_department,
+                          _resourceChip(Icons.park,
                               gs.itemCount('wood'),
                               const Color(0xFFD4884A)),
                           const SizedBox(width: 6),

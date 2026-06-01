@@ -8,14 +8,6 @@ import '../constants.dart';
 
 class GameState extends ChangeNotifier {
   GameState._() {
-    _refillTimer = Timer.periodic(
-      Duration(seconds: kEnergyRefillSeconds),
-      (_) => _tickRefill(),
-    );
-    _drainTimer = Timer.periodic(
-      const Duration(seconds: 5),
-      (_) => _tickDrain(),
-    );
     _initWeatherCycle();
     _initTrainRoute();
     load();
@@ -40,10 +32,6 @@ class GameState extends ChangeNotifier {
     try {
       final path = _getSavePathSync();
       final data = jsonEncode({
-        'energy': _energy,
-        'hunger': _hunger,
-        'thirst': _thirst,
-        'fatigue': _fatigue,
         'lampOn': _lampOn,
         'trainPosition': _trainPosition,
         'items': _items,
@@ -66,10 +54,6 @@ class GameState extends ChangeNotifier {
       final file = File(path);
       if (!file.existsSync()) return;
       final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      _energy = (data['energy'] as num?)?.toInt() ?? kMaxEnergy;
-      _hunger = (data['hunger'] as num?)?.toDouble() ?? 1.0;
-      _thirst = (data['thirst'] as num?)?.toDouble() ?? 1.0;
-      _fatigue = (data['fatigue'] as num?)?.toDouble() ?? 1.0;
       _lampOn = data['lampOn'] as bool? ?? true;
       _trainPosition = (data['trainPosition'] as num?)?.toDouble() ?? kTrainStartPosition;
       _items.clear();
@@ -99,85 +83,33 @@ class GameState extends ChangeNotifier {
     } catch (_) {}
   }
 
-  int _saveCounter = 0;
-  void _autoSave() {
-    _saveCounter++;
-    if (_saveCounter % 30 == 0) save();
-  }
+  // --- Energy (RETIRÉ) ---
+  // L'énergie était décorative (jamais dépensée). Shims neutres conservés
+  // pour ne rien casser ; ne fait plus rien.
+  int get energy => 5;
+  bool get canLeaveTrain => true;
+  void spendEnergy([int amount = 1]) {}
+  void grantEnergy(int amount) {}
 
-  // --- Energy ---
-  int _energy = kMaxEnergy;
-  int get energy => _energy;
-  bool get canLeaveTrain => _energy > 0;
-
-  DateTime _lastRefillTick = DateTime.now();
-  Timer? _refillTimer;
-
-  void _tickRefill() {
-    final now = DateTime.now();
-    final elapsed = now.difference(_lastRefillTick).inSeconds;
-    final gained = elapsed ~/ kEnergyRefillSeconds;
-    if (gained <= 0) return;
-    _lastRefillTick = now;
-    final before = _energy;
-    _energy = (_energy + gained).clamp(0, kMaxEnergy);
-    if (_energy != before) notifyListeners();
-  }
-
-  void spendEnergy([int amount = 1]) {
-    _energy = (_energy - amount).clamp(0, kMaxEnergy);
-    notifyListeners();
-    save();
-  }
-
-  void grantEnergy(int amount) {
-    _energy = (_energy + amount).clamp(0, kMaxEnergy);
-    notifyListeners();
-  }
-
-  // --- Survival bars ---
-  double _hunger = 1.0;
-  double _thirst = 1.0;
-  double _fatigue = 1.0;
-  double get hunger => _hunger;
-  double get thirst => _thirst;
-  double get fatigue => _fatigue;
-
-  static final double _hungerDrainPerSec = 1.0 / kHungerFullDrainSeconds;
-  static final double _thirstDrainPerSec = 1.0 / kThirstFullDrainSeconds;
-  static final double _fatigueDrainPerSec = 1.0 / kFatigueFullDrainSeconds;
-
-  Timer? _drainTimer;
-  DateTime _lastDrainTick = DateTime.now();
-
-  void _tickDrain() {
-    final now = DateTime.now();
-    final dt = now.difference(_lastDrainTick).inSeconds.toDouble();
-    if (dt <= 0) return;
-    _lastDrainTick = now;
-    final h0 = _hunger, t0 = _thirst, f0 = _fatigue;
-    _hunger = (_hunger - _hungerDrainPerSec * dt).clamp(0.0, 1.0);
-    _thirst = (_thirst - _thirstDrainPerSec * dt).clamp(0.0, 1.0);
-    _fatigue = (_fatigue - _fatigueDrainPerSec * dt).clamp(0.0, 1.0);
-    if (_hunger != h0 || _thirst != t0 || _fatigue != f0) {
-      notifyListeners();
-      _autoSave();
-    }
-  }
+  // --- Jauges de survie : FUSIONNÉES avec les 4 stats du mode cartes ---
+  // hunger/thirst/fatigue n'existent plus comme système temps réel séparé.
+  // Le HUD du wagon lit désormais les VRAIES jauges (cardFaim/Soif/Moral)
+  // normalisées 0..1. fatigue est mappée sur le moral (faute de mieux), en
+  // attendant un éventuel 5e axe. Les restoreX nudgent les vraies jauges.
+  double get hunger => cardFaim / 100.0;
+  double get thirst => cardSoif / 100.0;
+  double get fatigue => cardMoral / 100.0;
 
   void restoreHunger(double amount) {
-    _hunger = (_hunger + amount).clamp(0.0, 1.0);
-    notifyListeners();
+    nudgeCardStat('faim', (amount * 100).round());
   }
 
   void restoreThirst(double amount) {
-    _thirst = (_thirst + amount).clamp(0.0, 1.0);
-    notifyListeners();
+    nudgeCardStat('soif', (amount * 100).round());
   }
 
   void restoreFatigue(double amount) {
-    _fatigue = (_fatigue + amount).clamp(0.0, 1.0);
-    notifyListeners();
+    nudgeCardStat('moral', (amount * 100).round());
   }
 
   // --- Wagon state ---
@@ -299,9 +231,9 @@ class GameState extends ChangeNotifier {
 
   // --- Thought bubble context ---
   String get contextualThought {
-    if (_hunger < 0.2) return '🍖';
-    if (_thirst < 0.2) return '💧';
-    if (_fatigue < 0.15) return '💤';
+    if (hunger < 0.2) return '🍖';
+    if (thirst < 0.2) return '💧';
+    if (fatigue < 0.15) return '💤';
     if (inColdZone) return '❄️';
     const neutral = ['☕', '💭', '🌿', '📖', '🎵'];
     return neutral[DateTime.now().second % neutral.length];
@@ -453,8 +385,6 @@ class GameState extends ChangeNotifier {
 
   @override
   void dispose() {
-    _refillTimer?.cancel();
-    _drainTimer?.cancel();
     _weatherTimer?.cancel();
     _trainTimer?.cancel();
     super.dispose();

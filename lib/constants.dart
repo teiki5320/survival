@@ -8,15 +8,6 @@ const double kColdZoneEnd = 0.40;
 const double kTransitionWidth = 0.05;
 const double kTrainStartPosition = 0.10;
 
-// --- Energy ---
-const int kMaxEnergy = 5;
-const int kEnergyRefillSeconds = 300; // 5 min en prod
-
-// --- Survival drain (secondes pour vider complètement) ---
-const double kHungerFullDrainSeconds = 30 * 60; // 30 min
-const double kThirstFullDrainSeconds = 20 * 60; // 20 min
-const double kFatigueFullDrainSeconds = 45 * 60; // 45 min
-
 // --- Weather ---
 const Duration kWeatherPeriod = Duration(minutes: 5);
 
