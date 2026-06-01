@@ -295,6 +295,31 @@ class GameState extends ChangeNotifier {
 
   bool get hasCardRun => cardGareIndex != null;
 
+  // --- Budget de ravitaillement par segment ---
+  // Le wagon est un répit LIMITÉ entre deux gares : on ne peut pas tout
+  // recharger. Chaque geste qui remonte une jauge (manger, boire, bois,
+  // lire, câliner le chien) coûte 1 point. Le budget se recharge à chaque
+  // nouvelle gare. C'est CE plafond qui crée la rareté (sans lui, le wagon
+  // = bouton "gagner"). Valeur calée par simulation : 2/segment.
+  static const int ravitaillementMax = 2;
+  int ravitaillementBudget = ravitaillementMax;
+
+  void resetRavitaillement() {
+    ravitaillementBudget = ravitaillementMax;
+    notifyListeners();
+    save();
+  }
+
+  /// Tente un ravitaillement depuis le wagon : remonte [stat] de [gain] si le
+  /// budget du segment le permet. Retourne false si budget épuisé (l'appelant
+  /// peut alors signaler au joueur que le wagon est "épuisé" pour ce segment).
+  bool tryRavitailler(String stat, [int gain = 10]) {
+    if (ravitaillementBudget <= 0) return false;
+    ravitaillementBudget--;
+    nudgeCardStat(stat, gain);
+    return true;
+  }
+
   /// Démarre une nouvelle run : remet jauges, flags, progression à zéro.
   void startCardRun() {
     cardSoif = 70;
@@ -305,6 +330,7 @@ class GameState extends ChangeNotifier {
     cardFlags.clear();
     cardSeenOneshot.clear();
     cardSoin = 0;
+    ravitaillementBudget = ravitaillementMax;
     save();
     notifyListeners();
   }
@@ -351,6 +377,7 @@ class GameState extends ChangeNotifier {
         'flags': cardFlags.toList(),
         'seenOneshot': cardSeenOneshot.toList(),
         'soin': cardSoin,
+        'ravitaillement': ravitaillementBudget,
       };
 
   void _loadCardsRun(dynamic raw) {
@@ -368,6 +395,9 @@ class GameState extends ChangeNotifier {
       ..clear()
       ..addAll(((m['seenOneshot'] as List?) ?? const []).cast<String>());
     cardSoin = (m['soin'] as num?)?.toInt() ?? 0;
+    ravitaillementBudget =
+        ((m['ravitaillement'] as num?)?.toInt() ?? ravitaillementMax)
+            .clamp(0, ravitaillementMax);
   }
 
   // --- Locations ---

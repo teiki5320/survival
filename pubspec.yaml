@@ -1,7 +1,7 @@
 name: train_cosy
 description: "Side-scroller train, cosy post-apocalyptic narrative game."
 publish_to: "none"
-version: 0.17.0+73
+version: 0.18.0+74
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

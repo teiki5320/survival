@@ -199,12 +199,16 @@ class ReignsEngine {
     // effets → GameState (clamp + persistance). Les GAINS de moral sont
     // atténués (×0.6) pour éviter que la jauge sature et devienne inutile ;
     // les pertes de moral, elles, comptent plein.
+    // Les PERTES sont amplifiées (×1.5) pour créer une vraie tension de
+    // survie (calé par simulation : sans ça le drain est trop mou et le
+    // joueur survit passivement). Les GAINS de moral restent atténués
+    // (×0.6) pour éviter que la jauge sature et devienne inutile.
     if (choice.effects.isNotEmpty) {
       _gs.applyCardDeltas({
         for (final e in choice.effects.entries)
-          _statKey[e.key]!: (e.key == Stat.moral && e.value > 0)
-              ? (e.value * 0.6).round()
-              : e.value,
+          _statKey[e.key]!: e.value < 0
+              ? (e.value * 1.5).round()
+              : (e.key == Stat.moral ? (e.value * 0.6).round() : e.value),
       });
     }
     // MÉCANIQUE SŒUR (fondu dans le moral) : tant qu'elle est à bord, elle
@@ -250,6 +254,8 @@ class ReignsEngine {
         );
       }
       _gs.cardGareIndex = next;
+      // Nouvelle gare = le wagon se recharge : budget de ravitaillement plein.
+      _gs.resetRavitaillement();
       _gs.save();
       _loadSegment();
     }

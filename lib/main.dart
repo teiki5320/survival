@@ -292,8 +292,8 @@ class _WagonScreenState extends State<WagonScreen> {
                     logsThrown: _logsThrown,
                     onThrowLog: () {
                       setState(() => _logsThrown++);
-                      // Nourrir le foyer remplit la jauge Bois de la run.
-                      GameState.instance.nudgeCardStat('bois', 12);
+                      // Nourrir le foyer remonte la jauge Bois (budget segment).
+                      GameState.instance.tryRavitailler('bois');
                     },
                     onReturn: _exitLocomotive,
                   )
@@ -406,6 +406,29 @@ class _WagonScreenState extends State<WagonScreen> {
                               const Color(0xFFE89B5C)),
                         ],
                       ),
+                      if (gs.hasCardRun) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.bolt,
+                                size: 13,
+                                color: gs.ravitaillementBudget > 0
+                                    ? const Color(0xFFE8C56A)
+                                    : Colors.white24),
+                            const SizedBox(width: 3),
+                            Text(
+                              'Ravitaillement ${gs.ravitaillementBudget}/${GameState.ravitaillementMax}',
+                              style: TextStyle(
+                                color: gs.ravitaillementBudget > 0
+                                    ? Colors.white70
+                                    : const Color(0xFFD98A8A),
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 );
@@ -559,9 +582,8 @@ class _WagonScreenState extends State<WagonScreen> {
       icon = Icons.menu_book;
       action = () {
         _triggerSpecial('read', frames: 49);
-        GameState.instance.restoreFatigue(0.10);
-        // Lire au coin du wagon réconforte : petit gain de moral côté run.
-        GameState.instance.nudgeCardStat('moral', 4);
+        // Lire réconforte : +moral, mais ça compte dans le budget du segment.
+        GameState.instance.tryRavitailler('moral');
       };
     } else if (_atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
@@ -576,13 +598,14 @@ class _WagonScreenState extends State<WagonScreen> {
         // Plein ou partiel → boire un verre.
         icon = Icons.local_drink;
         action = () {
-          _triggerSpecial('use_back', frames: 24,
-              next: 'drink', nextFrames: 25);
-          GameState.instance.restoreThirst(0.20);
-          // Boire au filtre remplit aussi la jauge Soif de la run de cartes.
-          GameState.instance.nudgeCardStat('soif', 15);
-          _audio.playSfx('drink');
-          GameState.instance.setWaterTankGlasses(glasses - 1);
+          // Boire = 1 verre de la cuve (réserve) + 1 point de budget segment.
+          // Si le budget est épuisé, on ne gaspille pas le verre.
+          if (GameState.instance.tryRavitailler('soif')) {
+            _triggerSpecial('use_back', frames: 24,
+                next: 'drink', nextFrames: 25);
+            _audio.playSfx('drink');
+            GameState.instance.setWaterTankGlasses(glasses - 1);
+          }
         };
       }
     } else if (_atDog) {
@@ -594,9 +617,8 @@ class _WagonScreenState extends State<WagonScreen> {
         } else {
           _triggerSpecial('crouch', frames: 49);
         }
-        GameState.instance.restoreFatigue(0.05);
-        // Câliner le chien remonte le moral de la run.
-        GameState.instance.nudgeCardStat('moral', 5);
+        // Câliner le chien remonte le moral (compte dans le budget segment).
+        GameState.instance.tryRavitailler('moral');
         _audio.playSfx('dog_bark');
       };
     } else if (_atStove) {
