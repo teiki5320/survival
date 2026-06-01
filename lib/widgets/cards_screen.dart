@@ -1,13 +1,14 @@
 // Écran du mode cartes "Reigns-like".
 //
-// Design : une carte centrale qu'on swipe à gauche ou à droite. La carte
-// s'incline et glisse dans le sens du drag ; un bandeau de choix apparaît
-// du côté visé. Au lâcher au-delà d'un seuil, le choix est validé, une
-// courte conséquence s'affiche, puis la carte suivante entre. Les 4 jauges
-// (soif/faim/bois/moral) sont en haut, la progression des gares en dessous.
+// Design : une carte centrale qu'on swipe à gauche ou à droite. Chaque
+// choix affiche À L'AVANCE ce qu'on gagne / perd (deltas de stats). Au
+// lâcher au-delà d'un seuil, le choix est validé : la carte glisse, puis
+// une CARTE DE CONSÉQUENCE prend sa place (texte + bilan des stats) et
+// reste affichée jusqu'à ce qu'on tape pour passer à la suite. Pas de
+// minuterie — on lit à son rythme.
 //
-// Palette : warm honey/cream/amber dedans, cold blue dehors — cohérent avec
-// l'esthétique Ghibli/lofi du jeu.
+// Les 4 jauges (soif/faim/bois/moral) sont en haut, la progression des
+// gares en dessous. Palette warm honey/cream dedans, cold blue dehors.
 
 import 'dart:math';
 
@@ -30,16 +31,33 @@ class _CardsScreenState extends State<CardsScreen>
   late final ReignsEngine _engine;
   late EngineState _state;
 
-  // Position de drag horizontale (px) de la carte courante.
+  // Drag horizontal (px) de la carte courante.
   double _drag = 0;
-  // Conséquence courte affichée après un choix.
-  String? _flash;
+
+  // Quand on a choisi : on affiche la conséquence et on attend un tap.
+  String? _resultText;
+  Map<Stat, int> _resultDeltas = const {};
+  EngineState? _pending; // état à révéler au tap
 
   late final AnimationController _flyCtrl; // sortie de carte
   late final AnimationController _enterCtrl; // entrée de carte
   Animation<Offset>? _flyAnim;
 
-  static const double _threshold = 110; // px pour valider un swipe
+  static const double _threshold = 110;
+
+  // Métadonnées d'affichage des stats.
+  static const Map<Stat, String> _emoji = {
+    Stat.soif: '💧',
+    Stat.faim: '🍖',
+    Stat.bois: '🪵',
+    Stat.moral: '❤️',
+  };
+  static const Map<Stat, Color> _color = {
+    Stat.soif: Color(0xFF6FAEDF),
+    Stat.faim: Color(0xFFE89B5C),
+    Stat.bois: Color(0xFFB5854E),
+    Stat.moral: Color(0xFFD98A8A),
+  };
 
   @override
   void initState() {
@@ -50,9 +68,9 @@ class _CardsScreenState extends State<CardsScreen>
     );
     _state = _engine.start();
     _flyCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 320));
+        vsync: this, duration: const Duration(milliseconds: 300));
     _enterCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 360))
+        vsync: this, duration: const Duration(milliseconds: 340))
       ..value = 1;
   }
 
@@ -63,9 +81,11 @@ class _CardsScreenState extends State<CardsScreen>
     super.dispose();
   }
 
+  bool get _showingResult => _resultText != null;
+
   void _commit(bool right) {
     final card = _state.card;
-    if (card == null) return;
+    if (card == null || _showingResult) return;
     final choice = right ? card.right : card.left;
     final w = MediaQuery.of(context).size.width;
     _flyAnim = Tween<Offset>(
@@ -73,26 +93,38 @@ class _CardsScreenState extends State<CardsScreen>
       end: Offset(right ? w * 1.2 : -w * 1.2, 60),
     ).animate(CurvedAnimation(parent: _flyCtrl, curve: Curves.easeIn));
     _flyCtrl.forward(from: 0).then((_) {
-      final next = _engine.choose(choice);
+      final next = _engine.choose(choice); // applique les effets
       setState(() {
-        _state = next;
         _drag = 0;
-        _flash = choice.resultText;
+        _pending = next;
+        // Si la carte n'a pas de conséquence écrite, on enchaîne direct.
+        if (choice.resultText == null) {
+          _revealPending();
+        } else {
+          _resultText = choice.resultText;
+          _resultDeltas = choice.effects;
+        }
       });
       _flyCtrl.value = 0;
-      _enterCtrl.forward(from: 0);
-      // efface le flash après un moment
-      if (choice.resultText != null) {
-        Future.delayed(const Duration(milliseconds: 2200), () {
-          if (mounted) setState(() => _flash = null);
-        });
-      }
     });
+  }
+
+  void _revealPending() {
+    _state = _pending ?? _state;
+    _pending = null;
+    _resultText = null;
+    _resultDeltas = const {};
+    _enterCtrl.forward(from: 0);
+  }
+
+  void _tapAdvance() {
+    if (!_showingResult) return;
+    setState(_revealPending);
   }
 
   @override
   Widget build(BuildContext context) {
-    final inCold = _engine.gareIndex >= 7; // gares froides
+    final inCold = _engine.gareIndex >= 7;
     final bgTop = inCold ? const Color(0xFF243447) : const Color(0xFF2A2018);
     final bgBottom = inCold ? const Color(0xFF111A26) : const Color(0xFF14100B);
 
@@ -114,8 +146,8 @@ class _CardsScreenState extends State<CardsScreen>
                     _statsRow(),
                     _gareProgress(),
                     Expanded(child: _cardArea()),
-                    _hintRow(),
-                    const SizedBox(height: 8),
+                    _bottomZone(),
+                    const SizedBox(height: 10),
                   ],
                 ),
         ),
@@ -155,33 +187,38 @@ class _CardsScreenState extends State<CardsScreen>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _gauge('💧', s[Stat.soif]!, const Color(0xFF6FAEDF)),
-          _gauge('🍖', s[Stat.faim]!, const Color(0xFFE89B5C)),
-          _gauge('🪵', s[Stat.bois]!, const Color(0xFFB5854E)),
-          _gauge('❤️', s[Stat.moral]!, const Color(0xFFD98A8A)),
-        ],
+        children: Stat.values.map((st) {
+          // surligne la jauge qui va changer pendant un drag
+          int preview = 0;
+          if (!_showingResult && _state.card != null && _drag.abs() > 30) {
+            final ch = _drag > 0 ? _state.card!.right : _state.card!.left;
+            preview = ch.effects[st] ?? 0;
+          }
+          return _gauge(st, s[st]!, preview);
+        }).toList(),
       ),
     );
   }
 
-  Widget _gauge(String emoji, int value, Color color) {
+  Widget _gauge(Stat st, int value, int preview) {
     final low = value <= 20;
+    final color = _color[st]!;
     return Column(
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 18)),
+        Text(_emoji[st]!, style: const TextStyle(fontSize: 18)),
         const SizedBox(height: 3),
         Stack(
           alignment: Alignment.center,
           children: [
             SizedBox(
-              width: 38,
-              height: 38,
+              width: 40,
+              height: 40,
               child: CircularProgressIndicator(
                 value: value / 100,
                 strokeWidth: 4,
                 backgroundColor: Colors.white12,
-                valueColor: AlwaysStoppedAnimation(low ? Colors.redAccent : color),
+                valueColor:
+                    AlwaysStoppedAnimation(low ? Colors.redAccent : color),
               ),
             ),
             Text('$value',
@@ -191,11 +228,27 @@ class _CardsScreenState extends State<CardsScreen>
                     fontWeight: FontWeight.bold)),
           ],
         ),
+        // aperçu du changement pendant le drag
+        SizedBox(
+          height: 16,
+          child: preview == 0
+              ? null
+              : Text(
+                  preview > 0 ? '+$preview' : '$preview',
+                  style: TextStyle(
+                    color: preview > 0
+                        ? const Color(0xFF8BD18B)
+                        : Colors.redAccent,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ),
       ],
     );
   }
 
-  // --- ligne de progression des 14 gares ---
+  // --- progression des 14 gares ---
   Widget _gareProgress() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -222,13 +275,15 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  // --- zone de carte (drag + animation) ---
+  // --- zone de carte ---
   Widget _cardArea() {
+    if (_showingResult) return _resultCard();
+
     final card = _state.card;
     if (card == null) return const SizedBox.shrink();
 
     final w = MediaQuery.of(context).size.width;
-    final rot = (_drag / w) * 0.35; // inclinaison
+    final rot = (_drag / w) * 0.35;
     final leftActive = _drag < -30;
     final rightActive = _drag > 30;
 
@@ -246,10 +301,7 @@ class _CardsScreenState extends State<CardsScreen>
       child: AnimatedBuilder(
         animation: Listenable.merge([_flyCtrl, _enterCtrl]),
         builder: (context, _) {
-          double dx = _drag;
-          double dy = 0;
-          double rotation = rot;
-          double scale = 1;
+          double dx = _drag, dy = 0, rotation = rot, scale = 1;
           if (_flyCtrl.isAnimating && _flyAnim != null) {
             dx = _flyAnim!.value.dx;
             dy = _flyAnim!.value.dy;
@@ -261,16 +313,15 @@ class _CardsScreenState extends State<CardsScreen>
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // indices gauche / droite révélés par le drag
-                _choiceTag(card.left.label, false, leftActive),
-                _choiceTag(card.right.label, true, rightActive),
+                _choiceTag(card.left, false, leftActive),
+                _choiceTag(card.right, true, rightActive),
                 Transform.translate(
                   offset: Offset(dx, dy),
                   child: Transform.rotate(
                     angle: rotation,
                     child: Transform.scale(
                       scale: scale,
-                      child: _cardFace(card, leftActive, rightActive),
+                      child: _cardFace(card),
                     ),
                   ),
                 ),
@@ -282,32 +333,40 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  Widget _choiceTag(String label, bool right, bool active) {
+  // étiquette de choix révélée pendant le drag (avec deltas)
+  Widget _choiceTag(CardChoice choice, bool right, bool active) {
     return Align(
       alignment: right ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         child: AnimatedOpacity(
-          opacity: active ? 1 : 0.15,
+          opacity: active ? 1 : 0.12,
           duration: const Duration(milliseconds: 120),
           child: Container(
-            constraints: const BoxConstraints(maxWidth: 120),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            constraints: const BoxConstraints(maxWidth: 130),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: (active
-                      ? const Color(0xFFE8B96B)
-                      : Colors.white)
-                  .withValues(alpha: active ? 0.95 : 0.25),
-              borderRadius: BorderRadius.circular(12),
+              color: const Color(0xFFE8B96B)
+                  .withValues(alpha: active ? 0.95 : 0.3),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: active ? const Color(0xFF2A2018) : Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  choice.label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF2A2018),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                if (choice.effects.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  _deltaChips(choice.effects, dark: true),
+                ],
+              ],
             ),
           ),
         ),
@@ -315,7 +374,29 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  Widget _cardFace(StoryCard card, bool leftActive, bool rightActive) {
+  // petites pastilles 🍖+10 🪵-6
+  Widget _deltaChips(Map<Stat, int> fx, {bool dark = false}) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 6,
+      runSpacing: 4,
+      children: fx.entries.map((e) {
+        final pos = e.value > 0;
+        return Text(
+          '${_emoji[e.key]}${pos ? '+' : ''}${e.value}',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+            color: pos
+                ? (dark ? const Color(0xFF2C6E2C) : const Color(0xFF8BD18B))
+                : (dark ? const Color(0xFF9E2B2B) : Colors.redAccent),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _cardFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
     final cardW = min(w * 0.62, 340.0);
     final isGare = card.kind == CardKind.gare;
@@ -350,23 +431,7 @@ class _CardsScreenState extends State<CardsScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             if (card.speaker != null) ...[
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFB5854E).withValues(alpha: 0.22),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  card.speaker!.toUpperCase(),
-                  style: const TextStyle(
-                    color: Color(0xFF6B4F2E),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              ),
+              _speakerBadge(card.speaker!),
               const SizedBox(height: 14),
             ],
             Flexible(
@@ -389,58 +454,142 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  // --- indices de swipe en bas + flash de conséquence ---
-  Widget _hintRow() {
-    if (_flash != null) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+  Widget _speakerBadge(String s) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFB5854E).withValues(alpha: 0.22),
+          borderRadius: BorderRadius.circular(20),
+        ),
         child: Text(
-          _flash!,
-          textAlign: TextAlign.center,
+          s.toUpperCase(),
           style: const TextStyle(
-            color: Color(0xFFE8B96B),
-            fontStyle: FontStyle.italic,
-            fontSize: 14,
+            color: Color(0xFF6B4F2E),
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.2,
           ),
         ),
       );
-    }
+
+  // --- carte de conséquence (reste jusqu'au tap) ---
+  Widget _resultCard() {
+    final w = MediaQuery.of(context).size.width;
+    final cardW = min(w * 0.66, 360.0);
+    return GestureDetector(
+      onTap: _tapAdvance,
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: Container(
+          width: cardW,
+          constraints: BoxConstraints(
+            minHeight: 180,
+            maxHeight: MediaQuery.of(context).size.height * 0.58,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1813),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFE8B96B), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 24,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      _resultText ?? '',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFFF0E6D2),
+                        fontSize: 16,
+                        height: 1.5,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ),
+                if (_resultDeltas.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  _deltaChips(_resultDeltas),
+                ],
+                const SizedBox(height: 18),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: const [
+                    Icon(Icons.touch_app, color: Colors.white38, size: 16),
+                    SizedBox(width: 6),
+                    Text('Toucher pour continuer',
+                        style: TextStyle(color: Colors.white38, fontSize: 12)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- zone du bas : boutons de choix (avec deltas) ou rien en résultat ---
+  Widget _bottomZone() {
+    if (_showingResult) return const SizedBox(height: 56);
     final card = _state.card;
-    if (card == null) return const SizedBox(height: 32);
+    if (card == null) return const SizedBox(height: 56);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _swipeButton(card.left.label, false),
-          const Icon(Icons.swipe, color: Colors.white24, size: 22),
-          _swipeButton(card.right.label, true),
+          Expanded(child: _swipeButton(card.left, false)),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 6),
+            child: Icon(Icons.swipe, color: Colors.white24, size: 22),
+          ),
+          Expanded(child: _swipeButton(card.right, true)),
         ],
       ),
     );
   }
 
-  Widget _swipeButton(String label, bool right) {
-    return Flexible(
-      child: GestureDetector(
-        onTap: () => _commit(right),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!right)
-              const Icon(Icons.chevron_left, color: Colors.white54, size: 20),
-            Flexible(
-              child: Text(
-                label,
-                textAlign: right ? TextAlign.right : TextAlign.left,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
+  Widget _swipeButton(CardChoice choice, bool right) {
+    return GestureDetector(
+      onTap: () => _commit(right),
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        crossAxisAlignment:
+            right ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!right)
+                const Icon(Icons.chevron_left,
+                    color: Colors.white54, size: 20),
+              Flexible(
+                child: Text(
+                  choice.label,
+                  textAlign: right ? TextAlign.right : TextAlign.left,
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                ),
               ),
-            ),
-            if (right)
-              const Icon(Icons.chevron_right, color: Colors.white54, size: 20),
+              if (right)
+                const Icon(Icons.chevron_right,
+                    color: Colors.white54, size: 20),
+            ],
+          ),
+          if (choice.effects.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            _deltaChips(choice.effects),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -484,7 +633,9 @@ class _CardsScreenState extends State<CardsScreen>
                     setState(() {
                       _state = _engine.start();
                       _drag = 0;
-                      _flash = null;
+                      _resultText = null;
+                      _resultDeltas = const {};
+                      _pending = null;
                     });
                   },
                   icon: const Icon(Icons.refresh),
