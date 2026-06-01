@@ -87,10 +87,13 @@ class AudioService {
     await _safe(() => _fire.stop());
   }
 
-  /// Background music — call with 'day' or 'night' and the asset swap is
-  /// handled transparently. Cross-fade not implemented yet; the simpler
-  /// stop-and-restart works for the prototype.
+  /// Background music. DÉSACTIVÉ : les pistes music_*.mp3 (rock, pas
+  /// adaptées) ont été retirées du bundle. No-op tant qu'on n'a pas de
+  /// vraie musique cosy. Réactiver en remettant les assets + le corps.
+  static const bool _musicEnabled = false;
+
   Future<void> setMusic(String mood) async {
+    if (!_musicEnabled) return;
     if (_currentMusic == mood) return;
     _currentMusic = mood;
     await _safe(() async {
