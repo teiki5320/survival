@@ -43,6 +43,12 @@ class _CardsScreenState extends State<CardsScreen>
   late final AnimationController _enterCtrl; // entrée de carte
   Animation<Offset>? _flyAnim;
 
+  // Une impulsion par stat : se déclenche quand la jauge change vraiment,
+  // pour la faire pulser (scale + halo) au moment de l'application.
+  final Map<Stat, AnimationController> _pulse = {};
+  // Sens du dernier changement par stat (pour colorer le halo).
+  final Map<Stat, int> _pulseSign = {};
+
   static const double _threshold = 110;
 
   // Métadonnées d'affichage des stats.
@@ -72,12 +78,20 @@ class _CardsScreenState extends State<CardsScreen>
     _enterCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 340))
       ..value = 1;
+    for (final st in Stat.values) {
+      _pulse[st] = AnimationController(
+          vsync: this, duration: const Duration(milliseconds: 520));
+      _pulseSign[st] = 0;
+    }
   }
 
   @override
   void dispose() {
     _flyCtrl.dispose();
     _enterCtrl.dispose();
+    for (final c in _pulse.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -94,6 +108,12 @@ class _CardsScreenState extends State<CardsScreen>
     ).animate(CurvedAnimation(parent: _flyCtrl, curve: Curves.easeIn));
     _flyCtrl.forward(from: 0).then((_) {
       final next = _engine.choose(choice); // applique les effets
+      // pulse les jauges qui ont effectivement changé
+      choice.effects.forEach((st, delta) {
+        if (delta == 0) return;
+        _pulseSign[st] = delta;
+        _pulse[st]?.forward(from: 0);
+      });
       setState(() {
         _drag = 0;
         _pending = next;
@@ -203,30 +223,60 @@ class _CardsScreenState extends State<CardsScreen>
   Widget _gauge(Stat st, int value, int preview) {
     final low = value <= 20;
     final color = _color[st]!;
+    final pulseCtrl = _pulse[st]!;
+    final gain = (_pulseSign[st] ?? 0) > 0;
+    final haloColor = gain ? const Color(0xFF8BD18B) : Colors.redAccent;
     return Column(
       children: [
         Text(_emoji[st]!, style: const TextStyle(fontSize: 18)),
         const SizedBox(height: 3),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox(
-              width: 40,
-              height: 40,
-              child: CircularProgressIndicator(
-                value: value / 100,
-                strokeWidth: 4,
-                backgroundColor: Colors.white12,
-                valueColor:
-                    AlwaysStoppedAnimation(low ? Colors.redAccent : color),
+        AnimatedBuilder(
+          animation: pulseCtrl,
+          builder: (context, child) {
+            // courbe d'impulsion : 0→1→0 (un aller-retour doux)
+            final t = pulseCtrl.value;
+            final p = t == 0 ? 0.0 : (t < 0.5 ? t * 2 : (1 - t) * 2);
+            final scale = 1 + 0.28 * p;
+            return Transform.scale(
+              scale: scale,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: p == 0
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: haloColor.withValues(alpha: 0.7 * p),
+                            blurRadius: 14 * p,
+                            spreadRadius: 3 * p,
+                          ),
+                        ],
+                ),
+                child: child,
               ),
-            ),
-            Text('$value',
-                style: TextStyle(
-                    color: low ? Colors.redAccent : Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold)),
-          ],
+            );
+          },
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: CircularProgressIndicator(
+                  value: value / 100,
+                  strokeWidth: 4,
+                  backgroundColor: Colors.white12,
+                  valueColor:
+                      AlwaysStoppedAnimation(low ? Colors.redAccent : color),
+                ),
+              ),
+              Text('$value',
+                  style: TextStyle(
+                      color: low ? Colors.redAccent : Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold)),
+            ],
+          ),
         ),
         // aperçu du changement pendant le drag
         SizedBox(
