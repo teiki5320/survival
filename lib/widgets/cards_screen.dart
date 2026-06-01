@@ -49,6 +49,11 @@ class _CardsScreenState extends State<CardsScreen>
   // Sens du dernier changement par stat (pour colorer le halo).
   final Map<Stat, int> _pulseSign = {};
 
+  // Annonce plein écran à l'arrivée d'une gare ("GARE X — Nom").
+  late final AnimationController _gareCtrl;
+  int _announcedGare = -1;
+  String _gareLabel = '';
+
   static const double _threshold = 110;
 
   // Métadonnées d'affichage des stats.
@@ -83,16 +88,32 @@ class _CardsScreenState extends State<CardsScreen>
           vsync: this, duration: const Duration(milliseconds: 520));
       _pulseSign[st] = 0;
     }
+    _gareCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1700));
+    // annonce la première gare au démarrage
+    _maybeAnnounceGare();
   }
 
   @override
   void dispose() {
     _flyCtrl.dispose();
     _enterCtrl.dispose();
+    _gareCtrl.dispose();
     for (final c in _pulse.values) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  /// Si la carte courante est une gare jamais annoncée, déclenche l'overlay
+  /// plein écran "GARE X — Nom".
+  void _maybeAnnounceGare() {
+    final card = _state.card;
+    if (card == null || card.kind != CardKind.gare) return;
+    if (_announcedGare == _engine.gareIndex) return;
+    _announcedGare = _engine.gareIndex;
+    _gareLabel = card.speaker ?? 'Gare';
+    _gareCtrl.forward(from: 0);
   }
 
   bool get _showingResult => _resultText != null;
@@ -135,6 +156,7 @@ class _CardsScreenState extends State<CardsScreen>
     _resultText = null;
     _resultDeltas = const {};
     _enterCtrl.forward(from: 0);
+    _maybeAnnounceGare();
   }
 
   void _tapAdvance() {
@@ -157,21 +179,114 @@ class _CardsScreenState extends State<CardsScreen>
             colors: [bgTop, bgBottom],
           ),
         ),
-        child: SafeArea(
-          child: _state.finished
-              ? _buildEnding()
-              : Column(
-                  children: [
-                    _topBar(),
-                    _statsRow(),
-                    _gareProgress(),
-                    Expanded(child: _cardArea()),
-                    _bottomZone(),
-                    const SizedBox(height: 10),
-                  ],
-                ),
+        child: Stack(
+          children: [
+            SafeArea(
+              child: _state.finished
+                  ? _buildEnding()
+                  : Column(
+                      children: [
+                        _topBar(),
+                        _statsRow(),
+                        _gareProgress(),
+                        Expanded(child: _cardArea()),
+                        _bottomZone(),
+                        const SizedBox(height: 10),
+                      ],
+                    ),
+            ),
+            _gareAnnounce(),
+          ],
         ),
       ),
+    );
+  }
+
+  // --- overlay d'annonce de gare : assombrit l'écran, fait surgir le titre
+  // doré, puis s'efface. Non interactif (laisse passer les taps une fois fini).
+  Widget _gareAnnounce() {
+    return AnimatedBuilder(
+      animation: _gareCtrl,
+      builder: (context, _) {
+        final t = _gareCtrl.value;
+        if (t == 0 || t >= 1) return const SizedBox.shrink();
+        // courbe : apparition rapide, maintien, fondu de sortie
+        final fade = t < 0.18
+            ? t / 0.18
+            : t > 0.78
+                ? (1 - t) / 0.22
+                : 1.0;
+        final slide = (1 - Curves.easeOut.transform((t / 0.3).clamp(0, 1))) * 28;
+        const gold = Color(0xFFE8B96B);
+        final num = min(_announcedGare + 1, 14);
+        return Positioned.fill(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: fade.clamp(0, 1),
+              child: Container(
+                color: Colors.black.withValues(alpha: 0.66 * fade),
+                child: Center(
+                  child: Transform.translate(
+                    offset: Offset(0, slide),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: gold, width: 2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: gold.withValues(alpha: 0.5 * fade),
+                                blurRadius: 30,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(Icons.train, color: gold, size: 32),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          'GARE $num',
+                          style: const TextStyle(
+                            color: gold,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 40),
+                          child: Text(
+                            _gareLabel,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              height: 1.2,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Container(
+                          width: 80,
+                          height: 2,
+                          color: gold.withValues(alpha: 0.7),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
