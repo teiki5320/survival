@@ -202,6 +202,12 @@ class ReignsEngine {
         for (final e in choice.effects.entries) _statKey[e.key]!: e.value,
       });
     }
+    // MÉCANIQUE SŒUR (fondu dans le moral) : tant qu'elle est à bord, elle
+    // est une 2e bouche (faim/soif s'usent plus) mais sa présence soutient
+    // le moral. Appliqué à chaque carte après la gare 5.
+    if (flags.contains('aLaSoeur')) {
+      _gs.applyCardDeltas({'faim': -2, 'soif': -2, 'moral': 2});
+    }
     flags.addAll(choice.setFlags);
 
     // mort immédiate si une jauge touche 0

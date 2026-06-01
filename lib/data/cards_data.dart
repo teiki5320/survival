@@ -36,7 +36,11 @@ StoryCard _filler(
     );
 
 // ============================================================
-// LES 14 GARES (piliers narratifs)
+// LES 14 GARES (piliers narratifs) — ARC PETITE SŒUR
+// 1→4 : la fuite, Shen seule, un espoir qu'elle refoule.
+// 5    : RETROUVAILLES surprise avec la petite sœur (flag aLaSoeur).
+// 6→14 : la protéger (2 bouches : faim/soif plus dures, moral soutenu)
+//        et tenir jusqu'au refuge nord OÙ LES PARENTS ATTENDENT.
 // ============================================================
 
 List<StoryCard> _gare1(Set<String> f) => [
@@ -56,12 +60,11 @@ List<StoryCard> _gare1(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Gare natale',
         text:
-            "La ville flambe au loin. Tes parents, ta petite sœur... ils sont peut-être encore là-bas.",
-        left: _c("Y retourner",
-            fx: {Stat.soif: -10, Stat.faim: -10},
-            result: "Les rues sont un piège de feu. Tu remontes les mains vides — mais tu as vu un train filer vers le nord, bondé."),
-        right: _c("Laisser le train fuir",
-            fx: {Stat.moral: -10}, result: "Tu détournes les yeux. La culpabilité s'installe."),
+            "La ville flambe. Dans la cohue, tu as perdu tes parents et ta petite sœur. Tu n'as vu personne tomber — mais tu n'as vu personne s'en sortir non plus.",
+        left: _c("Te jurer de les revoir",
+            fx: {Stat.moral: 8}, result: "Tu serres les poings. Tant que tu n'as pas de preuve, tu choisis d'espérer."),
+        right: _c("Te résigner au pire",
+            fx: {Stat.moral: -10, Stat.faim: 5}, result: "Tu enterres l'espoir pour ne pas qu'il te tue. Au moins, tu manges sans culpabilité."),
       ),
     ];
 
@@ -69,15 +72,13 @@ List<StoryCard> _gare2(Set<String> f) => [
       StoryCard(
         id: 'G2',
         kind: CardKind.gare,
-        speaker: 'Le Vieux',
+        speaker: 'Dépôt de fret',
         text:
-            "Un vieux cheminot émerge d'une guérite, lampe à la main. « Tu sais où tu vas, au moins ? »",
-        left: _c("Le laisser monter",
-            fx: {Stat.moral: 8}, flags: ['leVieuxABord'],
-            result: "Il tapote la chaudière. « Je connais cette voie jusqu'au froid. »"),
-        right: _c("Te méfier, refuser",
-            fx: {Stat.moral: -4},
-            result: "« Le nord boit du bois. Prévois large. » Puis il s'efface."),
+            "Le foyer de la loco s'éteint. Tu ne sais pas la nourrir. Un manuel graisseux traîne dans la cabine.",
+        left: _c("Apprendre par le manuel",
+            fx: {Stat.bois: 18, Stat.faim: -4}, result: "Des heures à déchiffrer, mais le feu reprend, vigoureux."),
+        right: _c("Te débrouiller au flair",
+            fx: {Stat.bois: 6, Stat.moral: -3}, result: "Le feu prend mal. Tu apprendras dans la douleur."),
       ),
     ];
 
@@ -87,14 +88,11 @@ List<StoryCard> _gare3(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Halte 47',
         text:
-            "Une silhouette sort du brouillard, mains levées. « Pitié... laissez-moi monter. » Derrière, d'autres ombres approchent.",
-        left: _c("Le laisser monter",
-            fx: {Stat.faim: -10, Stat.soif: -8, Stat.moral: 12},
-            flags: ['aAideFuyard'],
-            result: "Il s'effondre de gratitude. Il dit s'appeler Tomas."),
-        right: _c("Verrouiller la porte",
-            fx: {Stat.moral: -15},
-            result: "Ses coups s'éloignent, puis des cris, puis plus rien."),
+            "Sur le quai, un foulard d'enfant accroché à un clou claque au vent. Il ressemble à s'y méprendre à celui de ta sœur. Des pillards rôdent dans la brume autour.",
+        left: _c("Risquer tout pour le récupérer",
+            fx: {Stat.faim: -8, Stat.moral: 12}, flags: ['indiceSoeur'], result: "Tu te faufiles, le cœur battant. C'est bien le sien. Elle est passée par là. Elle est vivante."),
+        right: _c("Ne pas risquer ta peau",
+            fx: {Stat.moral: -8}, result: "Tu files. Le doute te ronge : et si c'était elle qui l'avait laissé là, pour toi ?"),
       ),
     ];
 
@@ -104,13 +102,11 @@ List<StoryCard> _gare4(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Village fantôme',
         text:
-            "Dans une maison éventrée, sous la poussière : une radio à manivelle, intacte.",
-        left: _c("La prendre",
-            flags: ['aLaRadio', 'radio1'],
-            result: "Une voix de femme, hachée : « ...vers le nord... si vous m'entendez... »"),
-        right: _c("Laisser, filer vite",
-            fx: {Stat.moral: -6},
-            result: "Cette nuit-là, tu rêves d'une voix que tu n'as pas entendue."),
+            "Un mur couvert de messages de disparus. Au milieu, une écriture maladroite d'enfant : « JE VAIS AU NORD. JE T'ATTENDS. » Pas de nom.",
+        left: _c("Y croire, foncer au nord",
+            fx: {Stat.moral: 14, Stat.bois: -8}, flags: ['indiceSoeur'], result: "Tu graves sa réponse à côté et tu pousses la loco. Si c'est elle, elle ne t'attendra pas en vain."),
+        right: _c("Rester méfiante",
+            fx: {Stat.moral: -4}, result: "Des milliers d'enfants ont écrit ça. Tu n'oses pas y croire. Pas encore."),
       ),
     ];
 
@@ -120,50 +116,38 @@ List<StoryCard> _gare5(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Pont sur le fleuve',
         text:
-            "Le train s'arrête sur un long pont de fer. En bas, un fleuve gris. Faire de l'eau et pêcher — mais rester à découvert.",
-        left: _c("Descendre, prendre le risque",
-            fx: {Stat.soif: 18, Stat.faim: 12, Stat.moral: -4},
-            result: "Jarres remplies, deux poissons. Mais chaque minute à nu te noue le ventre."),
-        right: _c("Traverser sans t'arrêter",
-            fx: {Stat.bois: -8, Stat.moral: 5},
-            result: "Le pont gronde et te recrache sur la terre ferme."),
+            "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
+        left: _c("Courir la serrer dans tes bras",
+            fx: {Stat.moral: 40}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi."),
+        right: _c("Courir la serrer dans tes bras",
+            fx: {Stat.moral: 40}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi."),
+      ),
+      StoryCard(
+        id: 'G5b',
+        kind: CardKind.gare,
+        speaker: 'Ta sœur',
+        text:
+            "« Papa et maman... ils sont partis devant. Vers le nord, un refuge. Ils m'ont dit de les attendre, que quelqu'un viendrait. » Ses yeux brillent. « Je savais que ce serait toi. »",
+        left: _c("Lui promettre de les retrouver",
+            fx: {Stat.moral: 12}, flags: ['capParents'], result: "« On va les retrouver. Tous les deux. » Tu y crois, maintenant. Tu as une raison."),
+        right: _c("Rester prudente devant elle",
+            fx: {Stat.moral: 4}, flags: ['capParents'], result: "Tu hoches la tête sans promettre. Mais au fond, le cap est fixé : le nord, les parents."),
       ),
     ];
 
-List<StoryCard> _gare6(Set<String> f) {
-  if (f.contains('leVieuxABord')) {
-    return [
+List<StoryCard> _gare6(Set<String> f) => [
       StoryCard(
-        id: 'G6v',
+        id: 'G6',
         kind: CardKind.gare,
         speaker: 'Camp-refuge',
         text:
-            "Des feux, des survivants. La rumeur du nord se confirme. Le Vieux contemple le camp. « Je pourrais finir mes jours ici, petite. »",
-        left: _c("Le supplier de continuer",
-            fx: {Stat.moral: 8},
-            result: "Il soupire, sourit. « Bon. Encore un bout de chemin. »"),
-        right: _c("Le laisser rester",
-            fx: {Stat.bois: 15, Stat.moral: -8}, flags: ['vieuxParti'],
-            result: "Il te laisse sa réserve de bois. Le wagon perd une présence."),
+            "Un camp de survivants. On peut troquer, mais ils regardent ta sœur avec trop d'intérêt — ici, un enfant en bonne santé, ça se monnaie.",
+        left: _c("Troquer vite et partir",
+            fx: {Stat.faim: 12, Stat.soif: 8, Stat.moral: -6}, result: "Tu obtiens des vivres mais tu sens leurs regards. Tu repars avant la nuit, elle serrée contre toi."),
+        right: _c("Ne pas t'attarder une seconde",
+            fx: {Stat.moral: 6, Stat.faim: -5}, result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. C'est tout ce qui compte."),
       ),
     ];
-  }
-  return [
-    StoryCard(
-      id: 'G6',
-      kind: CardKind.gare,
-      speaker: 'Camp-refuge',
-      text:
-          "Des feux, des survivants. Au nord, le froid tient les pillards à distance, des familles se regroupent.",
-      left: _c("Échanger avec eux",
-          fx: {Stat.faim: 10, Stat.bois: 8, Stat.soif: -4},
-          result: "Tu troques contre des vivres et du bois."),
-      right: _c("Te méfier, repartir",
-          fx: {Stat.moral: -4},
-          result: "Tu repars seule, plus pauvre mais entière."),
-    ),
-  ];
-}
 
 List<StoryCard> _gare7(Set<String> f) => [
       StoryCard(
@@ -171,13 +155,11 @@ List<StoryCard> _gare7(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Halte 12',
         text:
-            "Enfant, tu venais ici avec ta sœur regarder passer les trains. Un souvenir remonte, intact, douloureux.",
-        left: _c("Te laisser submerger",
-            fx: {Stat.moral: -6},
-            result: "Tu pleures longtemps. Après, étrangement, tu respires mieux."),
-        right: _c("En faire une promesse",
-            fx: {Stat.moral: 12},
-            result: "« Je te retrouverai. » Tu le dis comme un serment."),
+            "Cette halte, vous y veniez enfant, toutes les deux, regarder les trains. Ta sœur la reconnaît et sourit pour la première fois depuis la fuite.",
+        left: _c("Lui raconter ce souvenir",
+            fx: {Stat.moral: 16, Stat.bois: -5}, result: "Vous riez ensemble dans le wagon arrêté. Un moment volé, qui coûte un peu de route, mais qui vous répare."),
+        right: _c("Garder le cap, ne pas t'arrêter",
+            fx: {Stat.moral: 4}, result: "Tu serres les dents et tu avances. Le nord d'abord. Les souvenirs, après."),
       ),
     ];
 
@@ -187,50 +169,27 @@ List<StoryCard> _gare8(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Entrée zone froide',
         text:
-            "Le froid mord pour de bon. Sur la voie, contre un signal mort : un enfant seul, bleui, vivant de justesse.",
-        left: _c("Le prendre à bord",
-            fx: {Stat.faim: -8, Stat.soif: -6, Stat.moral: 14},
-            flags: ['aLEnfant'],
-            result: "Il s'accroche à ton manteau. Il a l'âge qu'aurait ta sœur."),
-        right: _c("Ne pas pouvoir le sauver",
-            fx: {Stat.moral: -18},
-            result: "Tu passes. Son image te suivra à chaque gare."),
+            "Le froid mord pour de bon. Ta sœur grelotte, ses lèvres bleuissent. Elle n'a pas de vrai manteau.",
+        left: _c("Lui donner le tien",
+            fx: {Stat.moral: 14, Stat.soif: -6}, flags: ['soeurProtegee'], result: "Tu grelottes à sa place. Elle s'endort contre toi, au chaud. Tu ne regrettes rien."),
+        right: _c("Pousser le feu à fond",
+            fx: {Stat.bois: -16, Stat.moral: 6}, result: "Tu sacrifies ta réserve de bois pour la réchauffer. Le wagon est un four, pour l'instant."),
       ),
     ];
 
-List<StoryCard> _gare9(Set<String> f) {
-  if (f.contains('aLEnfant')) {
-    return [
+List<StoryCard> _gare9(Set<String> f) => [
       StoryCard(
-        id: 'G9e',
+        id: 'G9',
         kind: CardKind.gare,
         speaker: 'Plaine enneigée',
         text:
-            "Le blizzard enveloppe tout. L'enfant brûle de fièvre, délire, appelle une mère qui ne viendra pas.",
-        left: _c("Le veiller toute la nuit",
-            fx: {Stat.faim: -6, Stat.moral: 8},
-            result: "Au matin, sa fièvre tombe un peu. Il serre ta main."),
-        right: _c("Braver la tempête pour des médicaments",
-            fx: {Stat.soif: -8, Stat.moral: 4},
-            result: "Tu reviens avec des cachets périmés. Ça suffira."),
+            "Le blizzard enferme le train. Ta sœur brûle de fièvre, délire, t'appelle dans son sommeil agité. Tu n'as presque plus rien.",
+        left: _c("La veiller toute la nuit",
+            fx: {Stat.faim: -10, Stat.moral: 12}, flags: ['soeurProtegee'], result: "Tu ne dors pas, tu éponges son front jusqu'à l'aube. La fièvre cède. Elle vivra."),
+        right: _c("Braver la tempête pour des remèdes",
+            fx: {Stat.soif: -12, Stat.moral: 8}, flags: ['soeurProtegee'], result: "Tu sors dans le blizzard, tu reviens gelée avec des cachets périmés. Ça suffit. De justesse."),
       ),
     ];
-  }
-  return [
-    StoryCard(
-      id: 'G9',
-      kind: CardKind.gare,
-      speaker: 'Plaine enneigée',
-      text:
-          "Le blizzard enveloppe tout. Le silence blanc est total ; tu pourrais hurler sans le moindre écho.",
-      left: _c("Tenir bon, attendre",
-          fx: {Stat.moral: -6}, result: "La nuit dure mille ans. Tu survis. Seule."),
-      right: _c("Fouiller les ruines",
-          fx: {Stat.faim: 8, Stat.soif: -5},
-          result: "Des conserves gelées dans une cave murée."),
-    ),
-  ];
-}
 
 List<StoryCard> _gare10(Set<String> f) => [
       StoryCard(
@@ -238,67 +197,27 @@ List<StoryCard> _gare10(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Oasis perdue',
         text:
-            "Une serre intacte au milieu du blanc, chauffée par une source. Des plantes vertes. De la vie. Un répit irréel.",
-        left: _c("T'installer, te reposer",
-            fx: {Stat.faim: 18, Stat.soif: 15, Stat.moral: 15},
-            result: "Quelques jours de chaleur, de verdure, de presque-bonheur."),
-        right: _c("Faire le plein et repartir",
-            fx: {Stat.faim: 12, Stat.soif: 10, Stat.bois: 10},
-            result: "Le devoir avant le repos."),
+            "Une serre intacte, chaude, verdoyante. Ta sœur court entre les plants en riant. Un répit irréel. On pourrait... rester ici ?",
+        left: _c("S'accorder un vrai repos",
+            fx: {Stat.faim: 20, Stat.soif: 16, Stat.moral: 18}, result: "Quelques jours de chaleur et de rires. Vous reprenez des forces et de l'âme. Puis le nord rappelle."),
+        right: _c("Faire le plein et repartir vite",
+            fx: {Stat.faim: 12, Stat.soif: 10, Stat.bois: 12, Stat.moral: -4}, result: "« Papa et maman attendent. » Elle comprend. Vous repartez le ventre plein, le cœur lourd."),
       ),
     ];
 
-List<StoryCard> _gare11(Set<String> f) {
-  if (f.contains('aAideFuyard')) {
-    return [
+List<StoryCard> _gare11(Set<String> f) => [
       StoryCard(
-        id: 'G11t',
+        id: 'G11',
         kind: CardKind.gare,
         speaker: 'Halte 31',
         text:
-            "Tomas t'attend sur le quai. Il a couru au-devant de toi pour te prévenir — des pillards remontent la voie.",
-        left: _c("Fuir avec Tomas",
-            fx: {Stat.moral: 12, Stat.faim: -6},
-            result: "À deux, vous tenez les pillards en respect. Vous n'êtes plus seuls."),
-        right: _c("Le remercier et filer seule",
-            fx: {Stat.moral: -5, Stat.bois: -8},
-            result: "Seule, tu sèmes les phares dans un tunnel."),
+            "Des pillards ont dressé un barrage sur la voie. Ils veulent le train, les vivres — et ils ont vu ta sœur.",
+        left: _c("Foncer dans le barrage",
+            fx: {Stat.bois: -18, Stat.moral: -6}, result: "Tu pousses la loco à fond et tu enfonces l'obstacle. Des cris, des tirs, puis le silence. Vous êtes passées, presque à sec."),
+        right: _c("Négocier, donner des vivres",
+            fx: {Stat.faim: -16, Stat.soif: -10, Stat.moral: 4}, result: "Tu sacrifies la moitié de vos réserves pour qu'ils vous laissent passer. Affamées, mais entières."),
       ),
     ];
-  }
-  if (f.contains('radio2') || f.contains('radio3')) {
-    return [
-      StoryCard(
-        id: 'G11r',
-        kind: CardKind.gare,
-        speaker: 'Halte 31',
-        text:
-            "La voix de la radio te guide, limpide : « Halte 31, prends la voie de gauche. » Elle connaît ton nom.",
-        left: _c("Suivre la voix",
-            fx: {Stat.moral: 14}, flags: ['radio3'],
-            result: "Les pillards s'enfoncent dans la mauvaise voie. « Bien. Continue. »"),
-        right: _c("Garder ta route",
-            fx: {Stat.moral: -8, Stat.bois: -10},
-            result: "Tu te méfies de la voix. La fuite est rude, mais tu passes."),
-      ),
-    ];
-  }
-  return [
-    StoryCard(
-      id: 'G11',
-      kind: CardKind.gare,
-      speaker: 'Halte 31',
-      text:
-          "Des phares crèvent le brouillard : les pillards que tu as semés à la Halte 47 ont rattrapé le train.",
-      left: _c("Affronter les pillards",
-          fx: {Stat.moral: -10, Stat.faim: -8},
-          result: "Tu te défends, cœur cognant. Ils renoncent. Pour cette fois."),
-      right: _c("Tout brûler pour les distancer",
-          fx: {Stat.bois: -15, Stat.moral: -4},
-          result: "La loco rugit et t'arrache au danger, presque à sec."),
-    ),
-  ];
-}
 
 List<StoryCard> _gare12(Set<String> f) => [
       StoryCard(
@@ -306,49 +225,39 @@ List<StoryCard> _gare12(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Tour de guet',
         text:
-            "Du haut d'une tour, tu le vois enfin : loin au nord, des lumières. Des cheminées qui fument. Le refuge. Des gens.",
-        left: _c("Y croire de toutes tes forces",
-            fx: {Stat.moral: 16},
-            result: "« Ils sont là. Je le sais. » L'espoir te porte comme jamais."),
-        right: _c("Te préparer à la déception",
-            fx: {Stat.moral: 4},
-            result: "On a moins mal quand on n'attend rien. Mais on vit moins fort, aussi."),
+            "Du haut d'une tour, vous le voyez enfin : le refuge du nord, ses cheminées qui fument. Et, plantée devant, une pancarte : « FAMILLES — REGROUPEMENT SECTEUR EST ». Ta sœur te serre la main à la broyer.",
+        left: _c("Lui jurer qu'ils sont là",
+            fx: {Stat.moral: 18}, result: "« Ils nous attendent. Je le sais. » Elle hoche la tête, les yeux pleins de larmes et d'espoir."),
+        right: _c("Tempérer son espoir",
+            fx: {Stat.moral: 6}, result: "« On verra, ma puce. On verra. » Tu ne veux pas qu'elle s'effondre si... non. N'y pense pas."),
       ),
     ];
 
-List<StoryCard> _gare13(Set<String> f) {
-  return [
-    StoryCard(
-      id: 'G13',
-      kind: CardKind.gare,
-      speaker: 'Col gelé',
-      text:
-          "La loco toussote : plus assez de bois pour le sommet. Il faut sacrifier quelque chose pour franchir la dernière pente.",
-      left: _c("Brûler le mobilier du wagon",
-          fx: {Stat.bois: 25, Stat.moral: -10},
-          result: "La table, la couchette, le carnet — tout ce qui faisait un chez-toi. La loco repart."),
-      right: f.contains('leVieuxABord') && !f.contains('vieuxParti')
-          ? _c("Tout miser, finir à pied",
-              fx: {Stat.moral: -12}, flags: ['vieuxParti'],
-              result: "Le Vieux descend, pousse. « Vas-y, petite. Moi, j'ai fait ma route. » Il reste sur le col.")
-          : _c("Tout miser, finir à pied",
-              fx: {Stat.moral: -6, Stat.bois: -5},
-              result: "Tu pousses, tu glisses — et la loco bascule de l'autre côté, à un souffle de la panne."),
-    ),
-  ];
-}
+List<StoryCard> _gare13(Set<String> f) => [
+      StoryCard(
+        id: 'G13',
+        kind: CardKind.gare,
+        speaker: 'Col gelé',
+        text:
+            "La loco rend l'âme dans la dernière montée, à un souffle du sommet. Plus de bois. Il faut sacrifier quelque chose, vite, avant que le froid ne vous prenne.",
+        left: _c("Brûler tout le mobilier du wagon",
+            fx: {Stat.bois: 28, Stat.moral: -8}, result: "La table, la couchette, vos affaires — tout au feu. Le wagon n'est plus qu'une boîte nue, mais la loco franchit le col."),
+        right: _c("Descendre pousser ensemble",
+            fx: {Stat.faim: -14, Stat.soif: -10, Stat.moral: 10}, result: "Vous poussez à deux, à mains nues dans la neige, en hurlant. La loco bascule de l'autre côté. Vous l'avez fait. Ensemble."),
+      ),
+    ];
 
 List<StoryCard> _gare14(Set<String> f) => [
       StoryCard(
         id: 'G14',
         kind: CardKind.gare,
-        speaker: 'Tunnel nord',
+        speaker: 'Refuge du nord',
         text:
-            "Le train s'engage dans le dernier tunnel. À l'autre bout : la lumière du refuge. Tu as tenu. Tu es arrivée.",
-        left: _c("Sortir du tunnel",
-            result: "La lumière t'aveugle. Le quai approche..."),
-        right: _c("Sortir du tunnel",
-            result: "La lumière t'aveugle. Le quai approche..."),
+            "Le train entre en gare du refuge. Ta sœur écrase son visage contre la vitre. Sur le quai, la foule des familles qui cherchent les leurs. Tu descends, le cœur en feu.",
+        left: _c("Chercher vos parents dans la foule",
+            result: "Tu prends sa main et vous avancez dans la foule, scrutant chaque visage..."),
+        right: _c("Chercher vos parents dans la foule",
+            result: "Tu prends sa main et vous avancez dans la foule, scrutant chaque visage..."),
       ),
     ];
 
@@ -714,41 +623,38 @@ final List<Segment> trainCosyScenario = [
 ];
 
 /// Résout la fin à partir des stats finales + flags.
+/// Arc sœur : si on arrive au refuge avec un bon moral et qu'on a vraiment
+/// pris soin d'elle, on retrouve aussi les parents (fin pleine). Sinon, on
+/// arrive éprouvés mais ensemble (fin douce-amère).
 String resolveTrainCosyEnding(Map<Stat, int> stats, Set<String> flags) {
   final moral = stats[Stat.moral] ?? 0;
-  final radio3 = flags.contains('radio3');
-  final hasCompagnon = flags.contains('aLEnfant') || flags.contains('aAideFuyard');
-  if (radio3 && moral >= 60 && flags.contains('aLaRadio')) return 'secrete';
-  if (moral >= 55 && hasCompagnon) return 'retrouvailles';
-  if (moral >= 30) return 'deuil';
+  final aSoeur = flags.contains('aLaSoeur');
+  final protegee = flags.contains('soeurProtegee');
+  if (aSoeur && protegee && moral >= 55) return 'famille';
+  if (aSoeur && moral >= 30) return 'ensemble';
   return 'abandon';
 }
 
 /// Textes des fins.
 const Map<String, ({String title, String body})> endings = {
-  'retrouvailles': (
-    title: 'Retrouvailles',
+  'famille': (
+    title: 'Réunis',
     body:
-        "Sur le quai du refuge, des silhouettes se précipitent. Parmi elles, un visage que tu connais par cœur. Tu n'as pas rêvé. Tu n'as pas tenu pour rien.\n\nTu as survécu, de corps et d'âme. Vous êtes ensemble.",
+        "Dans la foule du refuge, deux silhouettes se figent, puis se précipitent : vos parents. Ta sœur leur saute au cou en sanglotant. Vous y êtes. Tous. Ensemble.\n\nTu les as ramenés. Tu as tenu, de corps et d'âme, et le monde mort n'a pas gagné.",
   ),
-  'deuil': (
-    title: 'Le deuil et la vie',
+  'ensemble': (
+    title: 'Toutes les deux',
     body:
-        "Ils ne sont pas là. Tu cherches, tu demandes, tu montres leurs visages dessinés de mémoire. Personne. La vérité s'impose : ils ne viendront pas.\n\nMais tu es là. Tu choisis de rester, de reconstruire, de vivre. Une autre forme de victoire.",
+        "Vous cherchez longtemps. Vos parents ne sont pas sur ce quai — partis ailleurs, ou jamais arrivés, tu ne sauras pas tout de suite.\n\nMais ta sœur est là, sa main dans la tienne, vivante. Vous êtes arrivées. Le reste, vous l'affronterez ensemble. C'est déjà une victoire.",
   ),
   'mort': (
     title: "Le voyage s'arrête",
     body:
-        "Le train ralentit, puis se tait, au milieu du blanc. Une jauge est tombée à zéro. Quelque part, peut-être, quelqu'un t'attend encore. Il ne le saura jamais.",
+        "Le train ralentit, puis se tait, au milieu du blanc. Une jauge est tombée à zéro. Le froid entre. Quelque part au nord, quelqu'un vous attend encore. Il ne le saura jamais.",
   ),
   'abandon': (
     title: "L'abandon",
     body:
-        "À quoi bon. Tu n'y crois plus. À une gare sans nom, tu descends. Le train repart sans toi, vide, et disparaît dans le blanc.",
-  ),
-  'secrete': (
-    title: 'La voix',
-    body:
-        "Sur le quai, une femme tient une vieille radio à manivelle, jumelle de la tienne. Elle se retourne. C'est ta sœur. C'était elle, depuis le début, qui parlait dans le grésillement. Qui t'a guidée.\n\nVous avez survécu, toutes les deux. Le monde mort, pour une fois, n'a pas gagné.",
+        "À quoi bon. Tu n'y crois plus. À une gare sans nom, tu descends. Le train repart sans toi, et le blanc t'avale.",
   ),
 };
