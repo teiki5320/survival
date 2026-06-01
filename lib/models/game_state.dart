@@ -154,19 +154,39 @@ class GameState extends ChangeNotifier {
   Weather get weather => _weather;
   Timer? _weatherTimer;
 
+  /// Palette météo cohérente avec la zone traversée. Le grand nord est
+  /// majoritairement neigeux/brumeux ; la zone tempérée n'a JAMAIS de neige.
+  List<Weather> _weatherPoolForZone(TrainZone zone) {
+    switch (zone) {
+      case TrainZone.cold:
+        return [Weather.snowy, Weather.snowy, Weather.foggy, Weather.cloudy];
+      case TrainZone.transitionToCold:
+        return [Weather.foggy, Weather.cloudy, Weather.snowy, Weather.clear];
+      case TrainZone.transitionToWarm:
+        return [Weather.cloudy, Weather.clear, Weather.foggy, Weather.rainy];
+      case TrainZone.warm:
+        return [Weather.clear, Weather.clear, Weather.cloudy, Weather.rainy,
+          Weather.foggy];
+    }
+  }
+
+  void _pickWeather() {
+    final pool = _weatherPoolForZone(trainZone)
+      ..removeWhere((w) => w == _weather);
+    if (pool.isEmpty) return;
+    _weather = pool[DateTime.now().millisecondsSinceEpoch % pool.length];
+    notifyListeners();
+  }
+
+  /// Force un rafraîchissement météo cohérent avec la zone courante. Appelé
+  /// quand on change de gare (donc potentiellement de zone) : entrer dans le
+  /// nord fait tomber la neige tout de suite, sans attendre le timer.
+  void refreshWeatherForZone() => _pickWeather();
+
   void _initWeatherCycle() {
-    _weatherTimer ??= Timer.periodic(kWeatherPeriod, (_) {
-      final zone = trainZone;
-      List<Weather> pool;
-      if (zone == TrainZone.cold || zone == TrainZone.transitionToCold) {
-        pool = [Weather.clear, Weather.cloudy, Weather.foggy, Weather.snowy];
-      } else {
-        pool = [Weather.clear, Weather.clear, Weather.cloudy, Weather.rainy];
-      }
-      pool.removeWhere((w) => w == _weather);
-      _weather = pool[DateTime.now().millisecondsSinceEpoch % pool.length];
-      notifyListeners();
-    });
+    // Variation d'ambiance DANS une zone (le changement de zone, lui, est
+    // déclenché par refreshWeatherForZone à l'avance de gare).
+    _weatherTimer ??= Timer.periodic(kWeatherPeriod, (_) => _pickWeather());
   }
 
   // --- Train route ---
@@ -310,6 +330,8 @@ class GameState extends ChangeNotifier {
     cardSegmentProgress = 0.0;
     // Réserve de bois de départ (bûches dans le wagon).
     _items['wood'] = kWoodStartReserve;
+    // Météo de départ cohérente avec la zone tempérée du début.
+    _pickWeather();
     save();
     notifyListeners();
   }

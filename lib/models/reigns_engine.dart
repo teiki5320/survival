@@ -281,6 +281,9 @@ class ReignsEngine {
       _gs.cardGareIndex = next;
       // Nouvelle gare = le wagon se recharge : budget de ravitaillement plein.
       _gs.resetRavitaillement();
+      // ...et la météo se met au diapason de la (nouvelle) zone : entrer dans
+      // le nord fait tomber la neige immédiatement.
+      _gs.refreshWeatherForZone();
       _gs.save();
       _loadSegment();
     }
