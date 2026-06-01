@@ -359,6 +359,7 @@ class GameState extends ChangeNotifier {
   int? cardGareIndex; // segment courant (0-based)
   final Set<String> cardFlags = {}; // flags narratifs de la run
   final Set<String> cardSeenOneshot = {}; // fillers oneshot déjà vus
+  int cardSoin = 0; // nb de fois où Shen a vraiment protégé sa sœur
 
   bool get hasCardRun => cardGareIndex != null;
 
@@ -371,6 +372,7 @@ class GameState extends ChangeNotifier {
     cardGareIndex = 0;
     cardFlags.clear();
     cardSeenOneshot.clear();
+    cardSoin = 0;
     save();
     notifyListeners();
   }
@@ -416,6 +418,7 @@ class GameState extends ChangeNotifier {
         'gareIndex': cardGareIndex,
         'flags': cardFlags.toList(),
         'seenOneshot': cardSeenOneshot.toList(),
+        'soin': cardSoin,
       };
 
   void _loadCardsRun(dynamic raw) {
@@ -432,6 +435,7 @@ class GameState extends ChangeNotifier {
     cardSeenOneshot
       ..clear()
       ..addAll(((m['seenOneshot'] as List?) ?? const []).cast<String>());
+    cardSoin = (m['soin'] as num?)?.toInt() ?? 0;
   }
 
   // --- Locations ---

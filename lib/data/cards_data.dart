@@ -7,6 +7,7 @@
 // Flags utilisés : aLeChien, leVieuxABord, aAideFuyard, aLaRadio, aLEnfant
 // + compteur radioSuivie via flag "radio1/2/3" (on cumule).
 
+import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
 
 // Raccourcis pour alléger l'écriture.
@@ -629,8 +630,11 @@ final List<Segment> trainCosyScenario = [
 String resolveTrainCosyEnding(Map<Stat, int> stats, Set<String> flags) {
   final moral = stats[Stat.moral] ?? 0;
   final aSoeur = flags.contains('aLaSoeur');
-  final protegee = flags.contains('soeurProtegee');
-  if (aSoeur && protegee && moral >= 55) return 'famille';
+  // Fin pleine "famille" : sœur à bord + au moins 2 vrais gestes de
+  // protection + moral solide. Sinon "ensemble" (arrivés, mais parents en
+  // suspens). Sinon abandon.
+  final soin = GameState.instance.cardSoin;
+  if (aSoeur && soin >= 2 && moral >= 50) return 'famille';
   if (aSoeur && moral >= 30) return 'ensemble';
   return 'abandon';
 }

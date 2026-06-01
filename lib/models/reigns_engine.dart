@@ -196,18 +196,25 @@ class ReignsEngine {
 
   /// Applique un choix et renvoie l'état suivant (carte suivante ou fin).
   EngineState choose(CardChoice choice) {
-    // effets → GameState (clamp + persistance)
+    // effets → GameState (clamp + persistance). Les GAINS de moral sont
+    // atténués (×0.6) pour éviter que la jauge sature et devienne inutile ;
+    // les pertes de moral, elles, comptent plein.
     if (choice.effects.isNotEmpty) {
       _gs.applyCardDeltas({
-        for (final e in choice.effects.entries) _statKey[e.key]!: e.value,
+        for (final e in choice.effects.entries)
+          _statKey[e.key]!: (e.key == Stat.moral && e.value > 0)
+              ? (e.value * 0.6).round()
+              : e.value,
       });
     }
     // MÉCANIQUE SŒUR (fondu dans le moral) : tant qu'elle est à bord, elle
-    // est une 2e bouche (faim/soif s'usent plus) mais sa présence soutient
-    // le moral. Appliqué à chaque carte après la gare 5.
+    // est une 2e bouche (faim/soif -1 par carte) mais sa présence soutient
+    // un peu le moral (+1). Appliqué à chaque carte après la gare 5.
     if (flags.contains('aLaSoeur')) {
-      _gs.applyCardDeltas({'faim': -2, 'soif': -2, 'moral': 2});
+      _gs.applyCardDeltas({'faim': -1, 'soif': -1, 'moral': 1});
     }
+    // Compte les vrais gestes de protection (pour la fin "famille").
+    if (choice.setFlags.contains('soeurProtegee')) _gs.cardSoin++;
     flags.addAll(choice.setFlags);
 
     // mort immédiate si une jauge touche 0
