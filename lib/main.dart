@@ -291,13 +291,13 @@ class _WagonScreenState extends State<WagonScreen> {
                     night: _night,
                     logsThrown: _logsThrown,
                     onThrowLog: () {
-                      // Nourrir le foyer = brûler 1 bûche de la réserve ET
-                      // dépenser 1 point de budget du segment. Sans bûche ou
-                      // sans budget, le geste ne donne rien (réserve à gérer).
+                      // Nourrir le foyer = brûler 1 bûche de la réserve et
+                      // remonter la jauge Bois. Sans bûche, le geste ne donne
+                      // rien (la réserve reste à gérer).
                       final gs = GameState.instance;
-                      if (gs.itemCount('wood') > 0 &&
-                          gs.tryRavitailler('bois')) {
+                      if (gs.itemCount('wood') > 0) {
                         gs.consumeItem('wood');
+                        gs.nudgeCardStat('bois', 10);
                         setState(() => _logsThrown++);
                       }
                     },
@@ -417,16 +417,16 @@ class _WagonScreenState extends State<WagonScreen> {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.bolt,
+                            Icon(Icons.style,
                                 size: 13,
-                                color: gs.ravitaillementBudget > 0
+                                color: gs.cardCredits > 0
                                     ? const Color(0xFFE8C56A)
                                     : Colors.white24),
                             const SizedBox(width: 3),
                             Text(
-                              'Ravitaillement ${gs.ravitaillementBudget}/${GameState.ravitaillementMax}',
+                              'Cartes ${gs.cardCredits}/${GameState.cardCreditsMax}',
                               style: TextStyle(
-                                color: gs.ravitaillementBudget > 0
+                                color: gs.cardCredits > 0
                                     ? Colors.white70
                                     : const Color(0xFFD98A8A),
                                 fontSize: 10,
@@ -588,8 +588,8 @@ class _WagonScreenState extends State<WagonScreen> {
       icon = Icons.menu_book;
       action = () {
         _triggerSpecial('read', frames: 49);
-        // Lire réconforte : +moral, mais ça compte dans le budget du segment.
-        GameState.instance.tryRavitailler('moral');
+        // Lire réconforte : +moral.
+        GameState.instance.nudgeCardStat('moral', 10);
       };
     } else if (_atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
@@ -604,14 +604,12 @@ class _WagonScreenState extends State<WagonScreen> {
         // Plein ou partiel → boire un verre.
         icon = Icons.local_drink;
         action = () {
-          // Boire = 1 verre de la cuve (réserve) + 1 point de budget segment.
-          // Si le budget est épuisé, on ne gaspille pas le verre.
-          if (GameState.instance.tryRavitailler('soif')) {
-            _triggerSpecial('use_back', frames: 24,
-                next: 'drink', nextFrames: 25);
-            _audio.playSfx('drink');
-            GameState.instance.setWaterTankGlasses(glasses - 1);
-          }
+          // Boire = 1 verre de la cuve (réserve) + remonte la jauge Soif.
+          GameState.instance.nudgeCardStat('soif', 10);
+          _triggerSpecial('use_back', frames: 24,
+              next: 'drink', nextFrames: 25);
+          _audio.playSfx('drink');
+          GameState.instance.setWaterTankGlasses(glasses - 1);
         };
       }
     } else if (_atDog) {
@@ -623,8 +621,8 @@ class _WagonScreenState extends State<WagonScreen> {
         } else {
           _triggerSpecial('crouch', frames: 49);
         }
-        // Câliner le chien remonte le moral (compte dans le budget segment).
-        GameState.instance.tryRavitailler('moral');
+        // Câliner le chien remonte le moral.
+        GameState.instance.nudgeCardStat('moral', 10);
         _audio.playSfx('dog_bark');
       };
     } else if (_atStove) {

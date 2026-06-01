@@ -851,9 +851,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _activeSpecialLoops = false;
           _specialFrame = 0;
           _specialAccumMs = 0;
-          // Cuisiner/manger remonte la jauge Faim (compte dans le budget
-          // de ravitaillement du segment).
-          GameState.instance.tryRavitailler('faim');
+          // Cuisiner/manger remonte la jauge Faim.
+          GameState.instance.nudgeCardStat('faim', 10);
         }
       });
       widget.onHeroXChanged?.call(_heroX);

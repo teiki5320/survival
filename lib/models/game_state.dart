@@ -291,28 +291,67 @@ class GameState extends ChangeNotifier {
 
   bool get hasCardRun => cardGareIndex != null;
 
-  // --- Budget de ravitaillement par segment ---
-  // Le wagon est un répit LIMITÉ entre deux gares : on ne peut pas tout
-  // recharger. Chaque geste qui remonte une jauge (manger, boire, bois,
-  // lire, câliner le chien) coûte 1 point. Le budget se recharge à chaque
-  // nouvelle gare. C'est CE plafond qui crée la rareté (sans lui, le wagon
-  // = bouton "gagner"). Valeur calée par simulation : 2/segment.
-  static const int ravitaillementMax = 2;
-  int ravitaillementBudget = ravitaillementMax;
+  // --- Crédits de tirage de cartes ---
+  // Répondre à une carte (= la tirer) coûte 1 crédit. On en a
+  // [cardCreditsMax] et ils se rechargent lentement EN TEMPS RÉEL (1 toutes
+  // les [creditRefillInterval]). C'est CE rythme qui ralentit l'avancée de
+  // l'histoire : on joue quelques cartes d'affilée, puis on laisse le temps
+  // passer avant de continuer. (Remplace l'ancien budget de ravitaillement.)
+  static const int cardCreditsMax = 3;
+  static const Duration creditRefillInterval = Duration(minutes: 8);
+  int cardCredits = cardCreditsMax;
+  // Timestamp (ms epoch) où le PROCHAIN crédit sera rendu. 0 = pile pleine.
+  int cardCreditNextMs = 0;
 
-  void resetRavitaillement() {
-    ravitaillementBudget = ravitaillementMax;
-    notifyListeners();
-    save();
+  /// Recalcule les crédits gagnés avec le temps écoulé (régen même hors-ligne).
+  /// À appeler à l'ouverture de l'écran cartes et périodiquement.
+  void refreshCredits() {
+    if (cardCredits >= cardCreditsMax) {
+      cardCreditNextMs = 0;
+      return;
+    }
+    final intervalMs = creditRefillInterval.inMilliseconds;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (cardCreditNextMs == 0) {
+      // Aucune minuterie en cours : on en démarre une.
+      cardCreditNextMs = now + intervalMs;
+      save();
+      return;
+    }
+    var changed = false;
+    while (cardCredits < cardCreditsMax && now >= cardCreditNextMs) {
+      cardCredits++;
+      cardCreditNextMs += intervalMs;
+      changed = true;
+    }
+    if (cardCredits >= cardCreditsMax) cardCreditNextMs = 0;
+    if (changed) {
+      notifyListeners();
+      save();
+    }
   }
 
-  /// Tente un ravitaillement depuis le wagon : remonte [stat] de [gain] si le
-  /// budget du segment le permet. Retourne false si budget épuisé (l'appelant
-  /// peut alors signaler au joueur que le wagon est "épuisé" pour ce segment).
-  bool tryRavitailler(String stat, [int gain = 10]) {
-    if (ravitaillementBudget <= 0) return false;
-    ravitaillementBudget--;
-    nudgeCardStat(stat, gain);
+  /// Millisecondes avant le prochain crédit (0 si pile pleine).
+  int get msToNextCredit {
+    if (cardCredits >= cardCreditsMax || cardCreditNextMs == 0) return 0;
+    final d = cardCreditNextMs - DateTime.now().millisecondsSinceEpoch;
+    return d < 0 ? 0 : d;
+  }
+
+  /// Dépense 1 crédit pour tirer une carte. Retourne false si à sec (l'écran
+  /// bloque alors le swipe et invite à attendre la recharge).
+  bool spendCardCredit() {
+    refreshCredits();
+    if (cardCredits <= 0) return false;
+    final wasFull = cardCredits >= cardCreditsMax;
+    cardCredits--;
+    if (wasFull) {
+      // On était plein : démarre le minuteur de recharge du 1er crédit manquant.
+      cardCreditNextMs =
+          DateTime.now().millisecondsSinceEpoch + creditRefillInterval.inMilliseconds;
+    }
+    notifyListeners();
+    save();
     return true;
   }
 
@@ -326,7 +365,8 @@ class GameState extends ChangeNotifier {
     cardFlags.clear();
     cardSeenOneshot.clear();
     cardSoin = 0;
-    ravitaillementBudget = ravitaillementMax;
+    cardCredits = cardCreditsMax;
+    cardCreditNextMs = 0;
     cardSegmentProgress = 0.0;
     // Réserve de bois de départ (bûches dans le wagon).
     _items['wood'] = kWoodStartReserve;
@@ -378,7 +418,8 @@ class GameState extends ChangeNotifier {
         'flags': cardFlags.toList(),
         'seenOneshot': cardSeenOneshot.toList(),
         'soin': cardSoin,
-        'ravitaillement': ravitaillementBudget,
+        'credits': cardCredits,
+        'creditNextMs': cardCreditNextMs,
         'segProgress': cardSegmentProgress,
       };
 
@@ -397,9 +438,9 @@ class GameState extends ChangeNotifier {
       ..clear()
       ..addAll(((m['seenOneshot'] as List?) ?? const []).cast<String>());
     cardSoin = (m['soin'] as num?)?.toInt() ?? 0;
-    ravitaillementBudget =
-        ((m['ravitaillement'] as num?)?.toInt() ?? ravitaillementMax)
-            .clamp(0, ravitaillementMax);
+    cardCredits = ((m['credits'] as num?)?.toInt() ?? cardCreditsMax)
+        .clamp(0, cardCreditsMax);
+    cardCreditNextMs = (m['creditNextMs'] as num?)?.toInt() ?? 0;
     cardSegmentProgress =
         ((m['segProgress'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 1.0);
   }

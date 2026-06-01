@@ -10,11 +10,13 @@
 // Les 4 jauges (soif/faim/bois/moral) sont en haut, la progression des
 // gares en dessous. Palette warm honey/cream dedans, cold blue dehors.
 
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
 
 import '../data/cards_data.dart';
+import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
 
 class CardsScreen extends StatefulWidget {
@@ -54,6 +56,11 @@ class _CardsScreenState extends State<CardsScreen>
   int _announcedGare = -1;
   String _gareLabel = '';
 
+  // Tic 1s : régénère les crédits en temps réel + rafraîchit le compte à
+  // rebours affiché. Flash quand on tente un swipe sans crédit.
+  Timer? _creditTimer;
+  bool _noCreditFlash = false;
+
   static const double _threshold = 110;
 
   // Métadonnées d'affichage des stats.
@@ -90,12 +97,21 @@ class _CardsScreenState extends State<CardsScreen>
     }
     _gareCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1700));
+    // Régen des crédits (rattrape le temps écoulé hors-ligne) + tic 1s pour
+    // animer le compte à rebours et créditer en direct.
+    GameState.instance.refreshCredits();
+    _creditTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      GameState.instance.refreshCredits();
+      setState(() {});
+    });
     // annonce la première gare au démarrage
     _maybeAnnounceGare();
   }
 
   @override
   void dispose() {
+    _creditTimer?.cancel();
     _flyCtrl.dispose();
     _enterCtrl.dispose();
     _gareCtrl.dispose();
@@ -121,6 +137,19 @@ class _CardsScreenState extends State<CardsScreen>
   void _commit(bool right) {
     final card = _state.card;
     if (card == null || _showingResult) return;
+    if (_flyCtrl.isAnimating) return;
+    // Tirer une carte coûte 1 crédit. À sec : on annule le swipe et on
+    // signale qu'il faut attendre la recharge.
+    if (!GameState.instance.spendCardCredit()) {
+      setState(() {
+        _drag = 0;
+        _noCreditFlash = true;
+      });
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) setState(() => _noCreditFlash = false);
+      });
+      return;
+    }
     final choice = right ? card.right : card.left;
     final w = MediaQuery.of(context).size.width;
     _flyAnim = Tween<Offset>(
@@ -290,6 +319,14 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
+  // mm:ss à partir de millisecondes.
+  static String _fmt(int ms) {
+    final s = (ms / 1000).ceil();
+    final m = s ~/ 60;
+    final r = s % 60;
+    return '$m:${r.toString().padLeft(2, '0')}';
+  }
+
   // --- barre du haut ---
   Widget _topBar() {
     return Padding(
@@ -309,7 +346,57 @@ class _CardsScreenState extends State<CardsScreen>
                 fontWeight: FontWeight.w600),
           ),
           const Spacer(),
-          const SizedBox(width: 48),
+          _creditsChip(),
+          const SizedBox(width: 8),
+        ],
+      ),
+    );
+  }
+
+  // Pastille crédits : N petits jetons + compte à rebours du prochain.
+  Widget _creditsChip() {
+    final gs = GameState.instance;
+    final n = gs.cardCredits;
+    final max = GameState.cardCreditsMax;
+    final next = gs.msToNextCredit;
+    final empty = n <= 0;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: (_noCreditFlash ? Colors.redAccent : const Color(0xFFE8B96B))
+            .withValues(alpha: _noCreditFlash ? 0.30 : 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: _noCreditFlash
+              ? Colors.redAccent
+              : const Color(0xFFE8B96B).withValues(alpha: 0.4),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < max; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 1.5),
+              child: Icon(
+                Icons.circle,
+                size: 9,
+                color: i < n
+                    ? const Color(0xFFE8C56A)
+                    : Colors.white.withValues(alpha: 0.18),
+              ),
+            ),
+          if (next > 0) ...[
+            const SizedBox(width: 6),
+            Text(
+              _fmt(next),
+              style: TextStyle(
+                color: empty ? const Color(0xFFD98A8A) : Colors.white54,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -775,6 +862,32 @@ class _CardsScreenState extends State<CardsScreen>
     if (_showingResult) return const SizedBox(height: 56);
     final card = _state.card;
     if (card == null) return const SizedBox(height: 56);
+    // Plus de crédits : on bloque le tirage et on invite à attendre.
+    if (GameState.instance.cardCredits <= 0) {
+      final next = GameState.instance.msToNextCredit;
+      return Container(
+        height: 56,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Plus de crédits — le voyage reprend son souffle.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFFD98A8A), fontSize: 12),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              next > 0
+                  ? 'Prochaine carte dans ${_fmt(next)}'
+                  : 'Recharge…',
+              style: const TextStyle(color: Colors.white38, fontSize: 11),
+            ),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
