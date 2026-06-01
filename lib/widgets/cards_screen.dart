@@ -77,7 +77,7 @@ class _CardsScreenState extends State<CardsScreen>
       segments: trainCosyScenario,
       resolveEnding: resolveTrainCosyEnding,
     );
-    _state = _engine.start();
+    _state = _engine.startOrResume();
     _flyCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 300));
     _enterCtrl = AnimationController(

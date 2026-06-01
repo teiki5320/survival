@@ -13,6 +13,8 @@
 
 import 'dart:math';
 
+import 'game_state.dart';
+
 /// Les 4 jauges du mode cartes.
 enum Stat { soif, faim, bois, moral }
 
@@ -122,42 +124,53 @@ class ReignsEngine {
 
   final Random _rng;
 
-  // --- état runtime ---
-  final Set<String> flags = {};
-  final Map<Stat, int> stats = {
-    Stat.soif: 70,
-    Stat.faim: 70,
-    Stat.bois: 70,
-    Stat.moral: 70,
+  // GameState est la SOURCE DE VÉRITÉ : jauges (cardSoif…), flags de run
+  // (cardFlags), oneshot vues (cardSeenOneshot), segment courant
+  // (cardGareIndex). Le moteur lit/écrit dedans, ne duplique rien.
+  GameState get _gs => GameState.instance;
+
+  /// Vue lecture des 4 jauges (pour l'UI), tirée de GameState.
+  Map<Stat, int> get stats => {
+        Stat.soif: _gs.cardSoif,
+        Stat.faim: _gs.cardFaim,
+        Stat.bois: _gs.cardBois,
+        Stat.moral: _gs.cardMoral,
+      };
+
+  Set<String> get flags => _gs.cardFlags;
+
+  // File des cartes du segment courant : beats de gare puis fillers piochés.
+  final List<StoryCard> _queue = [];
+
+  int get gareIndex => _gs.cardGareIndex ?? 0;
+
+  static const Map<Stat, String> _statKey = {
+    Stat.soif: 'soif',
+    Stat.faim: 'faim',
+    Stat.bois: 'bois',
+    Stat.moral: 'moral',
   };
 
-  int _gareIndex = 0;
-  // File des cartes à montrer dans le segment courant : d'abord les beats
-  // de la gare, puis les fillers piochés.
-  final List<StoryCard> _queue = [];
-  // Ids de fillers oneshot déjà vus, pour ne pas les répéter dans la run.
-  final Set<String> _seenOneshot = {};
-  bool _started = false;
-
-  int get gareIndex => _gareIndex;
-
-  /// Démarre / renvoie la première carte.
+  /// Nouvelle run depuis zéro.
   EngineState start() {
-    _started = true;
-    flags.clear();
-    _seenOneshot.clear();
-    stats[Stat.soif] = 70;
-    stats[Stat.faim] = 70;
-    stats[Stat.bois] = 70;
-    stats[Stat.moral] = 70;
-    _gareIndex = 0;
+    _gs.startCardRun();
+    _queue.clear();
+    _loadSegment();
+    return _emit();
+  }
+
+  /// Reprend une run sauvegardée si elle existe, sinon en démarre une neuve.
+  /// On reprend au début du segment courant (granularité gare).
+  EngineState startOrResume() {
+    if (!_gs.hasCardRun) return start();
     _queue.clear();
     _loadSegment();
     return _emit();
   }
 
   void _loadSegment() {
-    final seg = segments[_gareIndex];
+    final idx = _gs.cardGareIndex ?? 0;
+    final seg = segments[idx];
     _queue
       ..clear()
       ..addAll(seg.gareCards(flags));
@@ -170,23 +183,25 @@ class ReignsEngine {
     final pool = seg.fillerPool
         .where((c) => c.requires == null || c.requires!(flags))
         .where((c) =>
-            c.kind != CardKind.fillerOneshot || !_seenOneshot.contains(c.id))
+            c.kind != CardKind.fillerOneshot ||
+            !_gs.cardSeenOneshot.contains(c.id))
         .toList()
       ..shuffle(_rng);
     final picked = pool.take(seg.drawCount).toList();
     for (final c in picked) {
-      if (c.kind == CardKind.fillerOneshot) _seenOneshot.add(c.id);
+      if (c.kind == CardKind.fillerOneshot) _gs.cardSeenOneshot.add(c.id);
     }
     return picked;
   }
 
   /// Applique un choix et renvoie l'état suivant (carte suivante ou fin).
   EngineState choose(CardChoice choice) {
-    if (!_started) return start();
-    // effets
-    choice.effects.forEach((stat, delta) {
-      stats[stat] = (stats[stat]! + delta).clamp(0, 100);
-    });
+    // effets → GameState (clamp + persistance)
+    if (choice.effects.isNotEmpty) {
+      _gs.applyCardDeltas({
+        for (final e in choice.effects.entries) _statKey[e.key]!: e.value,
+      });
+    }
     flags.addAll(choice.setFlags);
 
     // mort immédiate si une jauge touche 0
@@ -195,9 +210,10 @@ class ReignsEngine {
       orElse: () => const MapEntry(Stat.moral, 1),
     );
     if (stats[dead.key]! <= 0) {
+      _gs.endCardRun();
       return EngineState(
         card: null,
-        gareIndex: _gareIndex,
+        gareIndex: gareIndex,
         isGare: false,
         finished: true,
         endingId: dead.key == Stat.moral ? 'abandon' : 'mort',
@@ -208,16 +224,20 @@ class ReignsEngine {
 
     // segment courant terminé → gare suivante (ou fin)
     if (_queue.isEmpty) {
-      _gareIndex++;
-      if (_gareIndex >= segments.length) {
+      final next = (_gs.cardGareIndex ?? 0) + 1;
+      if (next >= segments.length) {
+        final endId = resolveEnding(stats, flags);
+        _gs.endCardRun();
         return EngineState(
           card: null,
-          gareIndex: _gareIndex,
+          gareIndex: next,
           isGare: false,
           finished: true,
-          endingId: resolveEnding(stats, flags),
+          endingId: endId,
         );
       }
+      _gs.cardGareIndex = next;
+      _gs.save();
       _loadSegment();
     }
     return _emit();

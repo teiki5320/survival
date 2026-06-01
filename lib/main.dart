@@ -163,40 +163,25 @@ class _WagonScreenState extends State<WagonScreen> {
   /// le joueur veut forcer manuellement.
   static const Duration _dayNightPeriod = Duration(minutes: 6);
   Timer? _dayNightTimer;
-  Timer? _farmTimer;
-
-  String _musicMood() {
-    if (_night) return 'night';
-    if (GameState.instance.inColdZone) return 'cold';
-    return 'day';
-  }
 
   void _refreshMusic() {
     // Musique désactivée pour l'instant — à refaire plus tard.
-    // _audio.setMusic(_musicMood());
   }
 
   @override
   void initState() {
     super.initState();
     _audio.startAmbientTrain();
-    _refreshMusic();
     GameState.instance.addListener(_refreshMusic);
     _dayNightTimer = Timer.periodic(_dayNightPeriod, (_) {
       if (!mounted) return;
       setState(() => _night = !_night);
-      _refreshMusic();
-    });
-    // Avance la ferme (hydro + eau) toutes les 10 secondes en session.
-    _farmTimer = Timer.periodic(const Duration(seconds: 10), (_) {
-      GameState.instance.advanceFarm();
     });
   }
 
   @override
   void dispose() {
     _dayNightTimer?.cancel();
-    _farmTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _audio.stopAll();
@@ -297,7 +282,11 @@ class _WagonScreenState extends State<WagonScreen> {
                     key: const ValueKey('locomotive'),
                     night: _night,
                     logsThrown: _logsThrown,
-                    onThrowLog: () => setState(() => _logsThrown++),
+                    onThrowLog: () {
+                      setState(() => _logsThrown++);
+                      // Nourrir le foyer remplit la jauge Bois de la run.
+                      GameState.instance.nudgeCardStat('bois', 12);
+                    },
                     onReturn: _exitLocomotive,
                   )
                 : _buildWagon(key: const ValueKey('wagon')),
@@ -558,6 +547,8 @@ class _WagonScreenState extends State<WagonScreen> {
       action = () {
         _triggerSpecial('read', frames: 49);
         GameState.instance.restoreFatigue(0.10);
+        // Lire au coin du wagon réconforte : petit gain de moral côté run.
+        GameState.instance.nudgeCardStat('moral', 4);
       };
     } else if (_atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
@@ -575,6 +566,8 @@ class _WagonScreenState extends State<WagonScreen> {
           _triggerSpecial('use_back', frames: 24,
               next: 'drink', nextFrames: 25);
           GameState.instance.restoreThirst(0.20);
+          // Boire au filtre remplit aussi la jauge Soif de la run de cartes.
+          GameState.instance.nudgeCardStat('soif', 15);
           _audio.playSfx('drink');
           GameState.instance.setWaterTankGlasses(glasses - 1);
         };
@@ -589,6 +582,8 @@ class _WagonScreenState extends State<WagonScreen> {
           _triggerSpecial('crouch', frames: 49);
         }
         GameState.instance.restoreFatigue(0.05);
+        // Câliner le chien remonte le moral de la run.
+        GameState.instance.nudgeCardStat('moral', 5);
         _audio.playSfx('dog_bark');
       };
     } else if (_atStove) {

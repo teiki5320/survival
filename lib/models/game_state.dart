@@ -54,9 +54,7 @@ class GameState extends ChangeNotifier {
         'filterTier': filterTier,
         'hydroTier': hydroTier,
         'woodTier': woodTier,
-        'hydroSlots': _hydroSlots,
-        'waterJars': _waterJars,
-        'lastTick': _lastTick.millisecondsSinceEpoch,
+        'cardsRun': _cardsRunToJson(),
       });
       await File(path).writeAsString(data);
     } catch (_) {}
@@ -96,30 +94,7 @@ class GameState extends ChangeNotifier {
       filterTier = (data['filterTier'] as num?)?.toInt() ?? 1;
       hydroTier = (data['hydroTier'] as num?)?.toInt() ?? 1;
       woodTier = (data['woodTier'] as num?)?.toInt() ?? 1;
-      if (data['hydroSlots'] is List) {
-        final raw = (data['hydroSlots'] as List);
-        for (int i = 0; i < raw.length && i < _hydroSlots.length; i++) {
-          final m = (raw[i] as Map).cast<String, dynamic>();
-          _hydroSlots[i] = {
-            'seed': m['seed'],
-            'growth': (m['growth'] as num?)?.toDouble() ?? 0.0,
-            'hydration': (m['hydration'] as num?)?.toDouble() ?? 1.0,
-          };
-        }
-      }
-      if (data['waterJars'] is List) {
-        final raw = (data['waterJars'] as List);
-        for (int i = 0; i < raw.length && i < _waterJars.length; i++) {
-          final m = (raw[i] as Map);
-          _waterJars[i] = {
-            'water': (m['water'] as num?)?.toDouble() ?? 0.0,
-            'sediment': (m['sediment'] as num?)?.toDouble() ?? 0.0,
-          };
-        }
-      }
-      final lt = (data['lastTick'] as num?)?.toInt();
-      if (lt != null) _lastTick = DateTime.fromMillisecondsSinceEpoch(lt);
-      advanceFarm();
+      _loadCardsRun(data['cardsRun']);
       notifyListeners();
     } catch (_) {}
   }
@@ -231,176 +206,6 @@ class GameState extends ChangeNotifier {
   int filterTier = 1;
   int hydroTier = 1;
   int woodTier = 1;
-
-  // --- Hydro slots (tier 1: 4 plots) ---
-  // Each slot has seedId | null, growth 0..1, hydration 0..1.
-  final List<Map<String, dynamic>> _hydroSlots = List.generate(
-      8, (_) => {'seed': null, 'growth': 0.0, 'hydration': 1.0});
-  List<Map<String, dynamic>> get hydroSlots => _hydroSlots;
-
-  void plantSeed(int slot, String seedId) {
-    _hydroSlots[slot] = {
-      'seed': seedId,
-      'growth': 0.0,
-      'hydration': 1.0,
-    };
-    notifyListeners();
-    save();
-  }
-
-  void waterSlot(int slot) {
-    if (_items['water'] == null || _items['water']! < 1) return;
-    _items['water'] = _items['water']! - 1;
-    _hydroSlots[slot]['hydration'] = 1.0;
-    notifyListeners();
-    save();
-  }
-
-  void harvestSlot(int slot) {
-    final s = _hydroSlots[slot];
-    if (s['seed'] == null || (s['growth'] as double) < 1.0) return;
-    final seed = s['seed'] as String;
-    final yield = hydroYield(seed);
-    grantItem('food', yield);
-    _hydroSlots[slot] = {'seed': null, 'growth': 0.0, 'hydration': 1.0};
-    notifyListeners();
-    save();
-  }
-
-  void clearDeadSlot(int slot) {
-    _hydroSlots[slot] = {'seed': null, 'growth': 0.0, 'hydration': 1.0};
-    notifyListeners();
-    save();
-  }
-
-  // --- Water jars (tier 1: 5 jars, source → 3 settle stages → output) ---
-  // Each jar: water 0..100, sediment 0..100 (higher = murkier).
-  final List<Map<String, double>> _waterJars = List.generate(
-      5, (_) => {'water': 0.0, 'sediment': 0.0});
-  List<Map<String, double>> get waterJars => _waterJars;
-
-  /// Transvase le clair du haut (50% du contenu) vers la jarre suivante.
-  /// Le sédiment reste majoritairement dans la jarre source.
-  void transferWater(int from) {
-    if (from >= _waterJars.length - 1) {
-      // Dernière jarre : verse dans le compteur.
-      final jar = _waterJars[from];
-      final amount = jar['water']!.round();
-      if (amount < 5) return;
-      grantItem('water', amount);
-      jar['water'] = 0.0;
-      jar['sediment'] = 0.0;
-      notifyListeners();
-      save();
-      return;
-    }
-    final src = _waterJars[from];
-    final w = src['water']!;
-    if (w < 10) return;
-    final sed = src['sediment']!;
-    final clarity = w > 0 ? 1.0 - (sed / w).clamp(0.0, 1.0) : 0.0;
-    // On ne transvase que si clarté > 50%.
-    if (clarity < 0.5) return;
-    final transferred = w * 0.5;
-    final sedTransferred = sed * 0.1; // peu de sédiment passe
-    src['water'] = (w - transferred).clamp(0.0, 100.0);
-    src['sediment'] = (sed - sedTransferred).clamp(0.0, 100.0);
-    final dst = _waterJars[from + 1];
-    dst['water'] = (dst['water']! + transferred).clamp(0.0, 100.0);
-    dst['sediment'] = (dst['sediment']! + sedTransferred).clamp(0.0, 100.0);
-    notifyListeners();
-    save();
-  }
-
-  /// Vide une jarre (ex : pour recommencer).
-  void emptyJar(int idx) {
-    _waterJars[idx] = {'water': 0.0, 'sediment': 0.0};
-    notifyListeners();
-    save();
-  }
-
-  // --- Real-time tick (offline + online) ---
-  DateTime _lastTick = DateTime.now();
-
-  /// Fait avancer hydro + eau du nombre de secondes écoulées depuis le
-  /// dernier appel. Appelé au load et périodiquement quand l'app est
-  /// ouverte.
-  void advanceFarm() {
-    final now = DateTime.now();
-    final delta = now.difference(_lastTick).inSeconds.toDouble();
-    if (delta <= 0) return;
-    _lastTick = now;
-
-    // Hydro tick.
-    final dryRate = 1.0 / 600.0; // hydration -1 toutes les 10 min
-    for (final s in _hydroSlots) {
-      if (s['seed'] == null) continue;
-      final seedId = s['seed'] as String;
-      final growTime = hydroGrowSeconds(seedId);
-      s['hydration'] = ((s['hydration'] as double) - delta * dryRate)
-          .clamp(0.0, 1.0);
-      if ((s['hydration'] as double) > 0.3) {
-        s['growth'] = ((s['growth'] as double) + delta / growTime)
-            .clamp(0.0, 1.0);
-      }
-    }
-
-    // Water tick.
-    // Source (jarre 0) se remplit à un rythme dépendant de la météo.
-    final rainBoost = (weather == Weather.rainy ||
-            weather == Weather.snowy ||
-            inColdZone)
-        ? 1.0
-        : 0.2;
-    final fillRate = 0.05 * rainBoost; // 5 unités par 100s en pluie
-    final source = _waterJars[0];
-    source['water'] =
-        ((source['water'] ?? 0) + delta * fillRate).clamp(0.0, 100.0);
-    // L'eau brute apporte aussi du sédiment proportionnel.
-    source['sediment'] =
-        ((source['sediment'] ?? 0) + delta * fillRate * 0.6)
-            .clamp(0.0, 100.0);
-
-    // Décantation : le sédiment "tombe" dans chaque jarre lentement.
-    // Concrètement on diminue le sédiment graduellement (il se dépose
-    // au fond et disparaît de la mesure "eau trouble").
-    final settleRate = 1.0 / 180.0; // -1 sédiment toutes les 3 min
-    for (final j in _waterJars) {
-      j['sediment'] =
-          ((j['sediment'] ?? 0) - delta * settleRate).clamp(0.0, 100.0);
-    }
-
-    notifyListeners();
-  }
-
-  // --- Hydro seed data ---
-  static int hydroGrowSeconds(String seedId) {
-    switch (seedId) {
-      case 'tomato':
-        return 600; // 10 min
-      case 'wheat':
-        return 1800; // 30 min
-      case 'herb':
-        return 300; // 5 min
-      case 'beans':
-        return 900; // 15 min
-    }
-    return 600;
-  }
-
-  static int hydroYield(String seedId) {
-    switch (seedId) {
-      case 'tomato':
-        return 15;
-      case 'wheat':
-        return 35;
-      case 'herb':
-        return 5;
-      case 'beans':
-        return 20;
-    }
-    return 10;
-  }
 
   void upgradeTier(String which) {
     switch (which) {
@@ -537,6 +342,97 @@ class GameState extends ChangeNotifier {
   }
 
   bool hasFlag(String flag) => _flags.contains(flag);
+
+  // ===========================================================
+  // MODE CARTES (Reigns) — source de vérité unique des 4 jauges
+  // soif/faim/bois/moral (0-100) + état d'une run en cours.
+  // Le wagon (manger/boire/mettre du bois) nudge ces jauges ; le
+  // moteur de cartes les lit et les modifie. Tout est persisté.
+  // ===========================================================
+  static const int statMax = 100;
+  int cardSoif = 70;
+  int cardFaim = 70;
+  int cardBois = 70;
+  int cardMoral = 70;
+
+  // Progression de la run en cours (null = pas de run / terminée).
+  int? cardGareIndex; // segment courant (0-based)
+  final Set<String> cardFlags = {}; // flags narratifs de la run
+  final Set<String> cardSeenOneshot = {}; // fillers oneshot déjà vus
+
+  bool get hasCardRun => cardGareIndex != null;
+
+  /// Démarre une nouvelle run : remet jauges, flags, progression à zéro.
+  void startCardRun() {
+    cardSoif = 70;
+    cardFaim = 70;
+    cardBois = 70;
+    cardMoral = 70;
+    cardGareIndex = 0;
+    cardFlags.clear();
+    cardSeenOneshot.clear();
+    save();
+    notifyListeners();
+  }
+
+  /// Termine la run (atteinte d'une fin) : on efface la progression mais on
+  /// garde les jauges figées pour l'écran de fin.
+  void endCardRun() {
+    cardGareIndex = null;
+    save();
+  }
+
+  /// Applique des deltas aux 4 jauges, clampe 0-100, persiste.
+  void applyCardDeltas(Map<String, int> deltas) {
+    cardSoif = (cardSoif + (deltas['soif'] ?? 0)).clamp(0, statMax);
+    cardFaim = (cardFaim + (deltas['faim'] ?? 0)).clamp(0, statMax);
+    cardBois = (cardBois + (deltas['bois'] ?? 0)).clamp(0, statMax);
+    cardMoral = (cardMoral + (deltas['moral'] ?? 0)).clamp(0, statMax);
+    notifyListeners();
+    save();
+  }
+
+  /// Nudge ponctuel d'une jauge depuis le wagon (manger, boire, bois).
+  void nudgeCardStat(String stat, int delta) {
+    switch (stat) {
+      case 'soif':
+        cardSoif = (cardSoif + delta).clamp(0, statMax);
+      case 'faim':
+        cardFaim = (cardFaim + delta).clamp(0, statMax);
+      case 'bois':
+        cardBois = (cardBois + delta).clamp(0, statMax);
+      case 'moral':
+        cardMoral = (cardMoral + delta).clamp(0, statMax);
+    }
+    notifyListeners();
+    save();
+  }
+
+  Map<String, dynamic> _cardsRunToJson() => {
+        'soif': cardSoif,
+        'faim': cardFaim,
+        'bois': cardBois,
+        'moral': cardMoral,
+        'gareIndex': cardGareIndex,
+        'flags': cardFlags.toList(),
+        'seenOneshot': cardSeenOneshot.toList(),
+      };
+
+  void _loadCardsRun(dynamic raw) {
+    if (raw is! Map) return;
+    final m = raw.cast<String, dynamic>();
+    cardSoif = (m['soif'] as num?)?.toInt() ?? 70;
+    cardFaim = (m['faim'] as num?)?.toInt() ?? 70;
+    cardBois = (m['bois'] as num?)?.toInt() ?? 70;
+    cardMoral = (m['moral'] as num?)?.toInt() ?? 70;
+    cardGareIndex = (m['gareIndex'] as num?)?.toInt();
+    cardFlags
+      ..clear()
+      ..addAll(((m['flags'] as List?) ?? const []).cast<String>());
+    cardSeenOneshot
+      ..clear()
+      ..addAll(((m['seenOneshot'] as List?) ?? const []).cast<String>());
+  }
 
   // --- Locations ---
   final Set<String> _unlocked = {'station_abandonnee'};

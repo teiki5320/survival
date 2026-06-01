@@ -852,6 +852,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _specialFrame = 0;
           _specialAccumMs = 0;
           GameState.instance.restoreHunger(0.20);
+          // Cuisiner/manger au réchaud remplit la jauge Faim de la run.
+          GameState.instance.nudgeCardStat('faim', 15);
         }
       });
       widget.onHeroXChanged?.call(_heroX);
