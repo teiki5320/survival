@@ -631,10 +631,13 @@ String resolveTrainCosyEnding(Map<Stat, int> stats, Set<String> flags) {
   final moral = stats[Stat.moral] ?? 0;
   final aSoeur = flags.contains('aLaSoeur');
   // Fin pleine "famille" : sœur à bord + au moins 2 vrais gestes de
-  // protection + moral solide. Sinon "ensemble" (arrivés, mais parents en
-  // suspens). Sinon abandon.
+  // protection + moral ÉLEVÉ (>=65). Le seuil haut rend la meilleure fin
+  // *méritée* sans être automatique : par simulation, une joueuse experte
+  // l'obtient ~94% du temps, une attentive ~52% (le reste bascule sur
+  // "ensemble", la fin douce-amère). En-dessous (>=50) famille devenait
+  // automatique et "ensemble" n'apparaissait jamais. Sinon abandon.
   final soin = GameState.instance.cardSoin;
-  if (aSoeur && soin >= 2 && moral >= 50) return 'famille';
+  if (aSoeur && soin >= 2 && moral >= 65) return 'famille';
   if (aSoeur && moral >= 30) return 'ensemble';
   return 'abandon';
 }

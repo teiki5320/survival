@@ -199,15 +199,17 @@ class ReignsEngine {
     // effets → GameState (clamp + persistance). Les GAINS de moral sont
     // atténués (×0.6) pour éviter que la jauge sature et devienne inutile ;
     // les pertes de moral, elles, comptent plein.
-    // Les PERTES sont amplifiées (×1.5) pour créer une vraie tension de
-    // survie (calé par simulation : sans ça le drain est trop mou et le
-    // joueur survit passivement). Les GAINS de moral restent atténués
+    // Les PERTES sont amplifiées (×1.7) pour créer une vraie tension de
+    // survie. Calé par simulation (tools/sim_game.py) : à ×1.7 + budget 2,
+    // une joueuse négligente meurt ~42% du temps, une attentive survit
+    // ~95%, une experte ~100%. En-dessous (×1.5) le drain est trop mou et
+    // tout le monde survit passivement. Les GAINS de moral restent atténués
     // (×0.6) pour éviter que la jauge sature et devienne inutile.
     if (choice.effects.isNotEmpty) {
       _gs.applyCardDeltas({
         for (final e in choice.effects.entries)
           _statKey[e.key]!: e.value < 0
-              ? (e.value * 1.5).round()
+              ? (e.value * 1.7).round()
               : (e.key == Stat.moral ? (e.value * 0.6).round() : e.value),
       });
     }

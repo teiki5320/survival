@@ -1,0 +1,170 @@
+#!/usr/bin/env python3
+"""Simulation fidèle de l'économie Train Cosy (post étapes 1+2).
+
+Parse les vraies cartes de lib/data/cards_data.dart (paires de choix +
+effets + flags), puis rejoue des milliers de runs sous les règles réelles :
+  - 14 segments, fillers drawCount=4 (sauf 12,13 = 0)
+  - pertes ×1.5, gains de moral ×0.6
+  - mécanique sœur : après flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
+  - budget wagon : 2 ravitaillements de +10 par segment
+  - mort si une jauge <= 0 ; fin selon resolveTrainCosyEnding
+Stats départ 70/70/70/70.
+"""
+import re, random, sys, collections
+
+SRC = open('lib/data/cards_data.dart', encoding='utf-8').read()
+
+def match_paren(s, i):
+    """i pointe sur '(' ; retourne l'index de la ')' correspondante."""
+    depth = 0
+    while i < len(s):
+        c = s[i]
+        if c == '(': depth += 1
+        elif c == ')':
+            depth -= 1
+            if depth == 0: return i
+        i += 1
+    return -1
+
+def parse_choice(block):
+    """Extrait (effects dict, set(flags)) d'un appel _c(...)."""
+    fx = {}
+    m = re.search(r'fx:\s*\{([^}]*)\}', block)
+    if m:
+        for stat, val in re.findall(r'Stat\.(\w+):\s*(-?\d+)', m.group(1)):
+            fx[stat] = int(val)
+    flags = set()
+    mf = re.search(r'flags:\s*\[([^\]]*)\]', block)
+    if mf:
+        flags = set(re.findall(r"'([^']+)'", mf.group(1)))
+    return fx, flags
+
+def extract_choices(func_body):
+    """Liste ordonnée de (fx,flags) pour chaque _c(...) du corps."""
+    out = []
+    for m in re.finditer(r'_c\(', func_body):
+        start = m.end() - 1
+        end = match_paren(func_body, start)
+        out.append(parse_choice(func_body[start:end+1]))
+    return out
+
+def get_func_body(name):
+    # deux styles : "List<StoryCard> _gareN(..) => [ ... ]"
+    #          et  "final List<StoryCard> _fillN = [ ... ]"
+    m = re.search(r'List<StoryCard>\s+' + name + r'\b', SRC)
+    if not m: return ''
+    lb = SRC.index('[', m.end())
+    depth = 0; i = lb
+    while i < len(SRC):
+        if SRC[i] == '[': depth += 1
+        elif SRC[i] == ']':
+            depth -= 1
+            if depth == 0: break
+        i += 1
+    return SRC[lb:i+1]
+
+# Construit les paires de cartes (left,right) par segment.
+def card_pairs(name):
+    choices = extract_choices(get_func_body(name))
+    return [(choices[i], choices[i+1]) for i in range(0, len(choices)-1, 2)]
+
+segments = []
+for i in range(1, 15):
+    gare = card_pairs(f'_gare{i}')
+    fill = card_pairs(f'_fill{i}') if i <= 12 else []
+    draw = 4 if i <= 12 else 0
+    segments.append((gare, fill, draw))
+
+LOSS_MULT = 1.7
+REFUEL = 10
+SOIN_REQ = 2
+MORAL_REQ = 65
+
+def apply(stats, fx, flags, has_sister):
+    # règles moteur : pertes ×LOSS_MULT, gain moral ×0.6
+    for k, v in fx.items():
+        if v < 0: d = round(v * LOSS_MULT)
+        elif k == 'moral': d = round(v * 0.6)
+        else: d = v
+        stats[k] = max(0, min(100, stats[k] + d))
+
+def pick(card, stats, strategy):
+    (lfx, lfl), (rfx, rfl) = card
+    if strategy == 'careless':
+        return random.choice([0, 1])
+    def score(fx):
+        t = dict(stats)
+        for k, v in fx.items():
+            d = round(v*LOSS_MULT) if v < 0 else (round(v*0.6) if k=='moral' else v)
+            t[k] = max(0, min(100, t[k]+d))
+        return min(t.values())
+    best = 0 if score(lfx) >= score(rfx) else 1
+    if strategy == 'smart':
+        return best
+    if strategy == 'caring':
+        # joueuse qui VEUT la fin famille : protège la sœur dès qu'on lui
+        # propose, sinon joue stat-optimal.
+        if 'soeurProtegee' in lfl: return 0
+        if 'soeurProtegee' in rfl: return 1
+        return best
+    # 'casual' : pondère vers le meilleur choix mais se trompe 30% du temps
+    return best if random.random() < 0.70 else 1-best
+
+def run(strategy, refuels_per_seg):
+    stats = {'soif':70,'faim':70,'bois':70,'moral':70}
+    flags = set(); soin = 0
+    for gare, fill, draw in segments:
+        # budget wagon en début de segment : recharge les 2 (ou N) plus basses
+        for _ in range(refuels_per_seg):
+            low = min(stats, key=lambda k: stats[k])
+            stats[low] = min(100, stats[low] + 10)
+        deck = list(gare) + random.sample(fill, min(draw, len(fill)))
+        for card in deck:
+            idx = pick(card, stats, strategy)
+            fx, fl = card[idx]
+            apply(stats, fx, flags, 'aLaSoeur' in flags)
+            if 'soeurProtegee' in fl: soin += 1
+            flags |= fl
+            if 'aLaSoeur' in flags:
+                apply(stats, {'faim':-1,'soif':-1}, flags, True)
+                stats['moral'] = min(100, stats['moral']+1)
+            if min(stats.values()) <= 0:
+                dead = min(stats, key=lambda k: stats[k])
+                return ('mort' if dead!='moral' else 'abandon'), stats, flags
+    # fin
+    moral = stats['moral']; aSoeur = 'aLaSoeur' in flags
+    if aSoeur and soin>=SOIN_REQ and moral>=MORAL_REQ: end='famille'
+    elif aSoeur and moral>=30: end='ensemble'
+    else: end='abandon'
+    return end, stats, flags
+
+def trial(strategy, refuels, n=4000):
+    ends = collections.Counter(); survived = 0; famille = 0
+    for _ in range(n):
+        e,_s,_f = run(strategy, refuels)
+        ends[e]+=1
+        if e in ('famille','ensemble'): survived+=1
+        if e=='famille': famille+=1
+    return survived/n, famille/n, ends
+
+if '--sweep' in sys.argv:
+    print("Sweep (budget=2) — cible : casual ~55-70% survie, smart ~90-98%, famille earned")
+    print(f"{'REFUEL':>6} {'LOSS':>5} | {'careless':>9} {'casual':>8} {'smart':>8} {'smart-fam':>9}")
+    for REFUEL in [6,7,8,9,10]:
+        for LOSS in [1.3,1.5,1.7]:
+            globals()['REFUEL']=REFUEL; globals()['LOSS_MULT']=LOSS
+            c0,_,_ = trial('careless',2,2500)
+            c1,_,_ = trial('casual',2,2500)
+            c2,f2,_ = trial('smart',2,2500)
+            print(f"{REFUEL:>6} {LOSS:>5} | {c0*100:8.1f}% {c1*100:7.1f}% {c2*100:7.1f}% {f2*100:8.1f}%")
+        print()
+    sys.exit(0)
+
+print(f"Segments parsés : {len(segments)}  | gare seg1 : {len(segments[0][0])}  | filler seg1 : {len(segments[0][1])}")
+print(f"REFUEL={REFUEL}  LOSS_MULT={LOSS_MULT}  SOIN_REQ={SOIN_REQ}\n")
+for strat in ['careless','casual','smart','caring']:
+    for rf in [2]:
+        rate, fam, ends = trial(strat, rf)
+        top = ', '.join(f'{k}:{round(v*100/4000)}%' for k,v in ends.most_common())
+        print(f'{strat:9} budget={rf} → survie {rate*100:5.1f}%  famille {fam*100:4.1f}%  [{top}]')
+    print()
