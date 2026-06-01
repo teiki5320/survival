@@ -1,12 +1,35 @@
 // Constantes de gameplay centralisées.
 // Modifier ici pour tuner sans chercher dans 5 fichiers.
 
-// --- Train route ---
-const int kLoopDurationSeconds = 3600; // 60 min pour un tour complet
-const double kColdZoneStart = 0.0;
-const double kColdZoneEnd = 0.40;
-const double kTransitionWidth = 0.05;
-const double kTrainStartPosition = 0.10;
+// --- Train route (piloté par la progression des 14 gares) ---
+// Position normalisée (0..1 le long de la spline de la carte) de chacune des
+// 14 gares, dans l'ordre narratif. DOIT rester synchro avec _stations[i].t
+// dans map_screen.dart (même valeurs, même ordre). Le train n'avance plus sur
+// une horloge : sa position = la gare courante de la run + progression dans
+// le segment. Ainsi la carte reflète l'histoire au lieu de tourner en boucle.
+const List<double> kGarePositions = [
+  0.9887, // 1  Station abandonnée
+  0.0865, // 2  Halte 47
+  0.1854, // 3  Dépôt ferroviaire
+  0.2143, // 4  Halte 12
+  0.2857, // 5  Village fantôme
+  0.3467, // 6  Halte 83
+  0.4024, // 7  Camp-refuge
+  0.4631, // 8  Pont suspendu — ENTRÉE ZONE FROIDE
+  0.5714, // 9  Halte 9
+  0.6409, // 10 Oasis perdue
+  0.6771, // 11 Halte 31
+  0.7923, // 12 Tour de guet
+  0.8571, // 13 Halte 6
+  0.9286, // 14 Tunnel nord (refuge)
+];
+
+// Gare (0-based) à partir de laquelle on bascule dans le grand nord glacé.
+// Canon : gare 8 = "entrée zone froide" → la loco boit plus de bois.
+const int kColdGareIndex = 7;
+// Surconsommation de bois par carte une fois dans le froid (drain mécanique
+// qui relie la carte au gameplay ; calé par simulation).
+const int kColdBoisDrainPerCard = 2;
 
 // --- Weather ---
 const Duration kWeatherPeriod = Duration(minutes: 5);

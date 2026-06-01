@@ -9,7 +9,6 @@ import '../constants.dart';
 class GameState extends ChangeNotifier {
   GameState._() {
     _initWeatherCycle();
-    _initTrainRoute();
     load();
   }
   static final GameState instance = GameState._();
@@ -33,7 +32,6 @@ class GameState extends ChangeNotifier {
       final path = _getSavePathSync();
       final data = jsonEncode({
         'lampOn': _lampOn,
-        'trainPosition': _trainPosition,
         'items': _items,
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
@@ -55,7 +53,6 @@ class GameState extends ChangeNotifier {
       if (!file.existsSync()) return;
       final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _lampOn = data['lampOn'] as bool? ?? true;
-      _trainPosition = (data['trainPosition'] as num?)?.toDouble() ?? kTrainStartPosition;
       _items.clear();
       if (data['items'] is Map) {
         (data['items'] as Map).forEach((k, v) {
@@ -173,61 +170,40 @@ class GameState extends ChangeNotifier {
   }
 
   // --- Train route ---
-  double _trainPosition = kTrainStartPosition;
-  double get trainPosition => _trainPosition;
-  Timer? _trainTimer;
-  DateTime _lastTrainTick = DateTime.now();
+  // Progression DANS le segment courant (0..1) : 0 = on vient d'arriver à la
+  // gare, 1 = dernière carte du segment jouée. Mise à jour par le moteur de
+  // cartes ; sert à faire glisser le train entre deux gares sur la carte.
+  double cardSegmentProgress = 0.0;
+
+  /// Position du train sur la spline de la carte (0..1). Dérivée de la
+  /// progression de la run : gare courante + fraction du segment. Plus
+  /// d'horloge — la carte suit l'histoire. Hors run, on est à la gare 1.
+  double get trainPosition {
+    if (!hasCardRun) return kGarePositions.first;
+    final i = (cardGareIndex ?? 0).clamp(0, kGarePositions.length - 1);
+    final t0 = kGarePositions[i];
+    if (i >= kGarePositions.length - 1) return t0;
+    final t1 = kGarePositions[i + 1];
+    var forward = (t1 - t0) % 1.0; // distance vers l'avant (gère le wrap 1→0)
+    if (forward < 0) forward += 1.0;
+    final p = t0 + cardSegmentProgress.clamp(0.0, 1.0) * forward;
+    return p % 1.0;
+  }
+
+  /// Indice de gare effectif pour les effets de zone (clampé).
+  int get _effectiveGareIndex =>
+      (cardGareIndex ?? 0).clamp(0, kGarePositions.length - 1);
 
   TrainZone get trainZone {
-    final p = _trainPosition;
-    if (p >= kColdZoneStart + kTransitionWidth && p < kColdZoneEnd - kTransitionWidth) {
-      return TrainZone.cold;
-    }
-    if (p >= 1.0 - kTransitionWidth || p < kColdZoneStart + kTransitionWidth) {
-      return TrainZone.transitionToCold;
-    }
-    if (p >= kColdZoneEnd - kTransitionWidth && p < kColdZoneEnd + kTransitionWidth) {
-      return TrainZone.transitionToWarm;
-    }
+    if (!hasCardRun) return TrainZone.warm;
+    final i = _effectiveGareIndex;
+    if (i >= kColdGareIndex) return TrainZone.cold;
+    if (i == kColdGareIndex - 1) return TrainZone.transitionToCold;
     return TrainZone.warm;
   }
 
   bool get inColdZone =>
       trainZone == TrainZone.cold || trainZone == TrainZone.transitionToCold;
-
-  void _initTrainRoute() {
-    _trainTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      _tickTrain();
-    });
-  }
-
-  void _tickTrain() {
-    final now = DateTime.now();
-    final dt = now.difference(_lastTrainTick).inMilliseconds / 1000.0;
-    if (dt <= 0) return;
-    _lastTrainTick = now;
-    final advance = dt / kLoopDurationSeconds;
-    final old = _trainPosition;
-    _trainPosition = (_trainPosition + advance) % 1.0;
-    final oldZone = _zoneFor(old);
-    final newZone = trainZone;
-    if (oldZone != newZone || (_trainPosition - old).abs() > 0.001) {
-      notifyListeners();
-    }
-  }
-
-  TrainZone _zoneFor(double p) {
-    if (p >= kColdZoneStart + kTransitionWidth && p < kColdZoneEnd - kTransitionWidth) {
-      return TrainZone.cold;
-    }
-    if (p >= 1.0 - kTransitionWidth || p < kColdZoneStart + kTransitionWidth) {
-      return TrainZone.transitionToCold;
-    }
-    if (p >= kColdZoneEnd - kTransitionWidth && p < kColdZoneEnd + kTransitionWidth) {
-      return TrainZone.transitionToWarm;
-    }
-    return TrainZone.warm;
-  }
 
   // --- Thought bubble context ---
   String get contextualThought {
@@ -331,6 +307,7 @@ class GameState extends ChangeNotifier {
     cardSeenOneshot.clear();
     cardSoin = 0;
     ravitaillementBudget = ravitaillementMax;
+    cardSegmentProgress = 0.0;
     save();
     notifyListeners();
   }
@@ -378,6 +355,7 @@ class GameState extends ChangeNotifier {
         'seenOneshot': cardSeenOneshot.toList(),
         'soin': cardSoin,
         'ravitaillement': ravitaillementBudget,
+        'segProgress': cardSegmentProgress,
       };
 
   void _loadCardsRun(dynamic raw) {
@@ -398,6 +376,8 @@ class GameState extends ChangeNotifier {
     ravitaillementBudget =
         ((m['ravitaillement'] as num?)?.toInt() ?? ravitaillementMax)
             .clamp(0, ravitaillementMax);
+    cardSegmentProgress =
+        ((m['segProgress'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 1.0);
   }
 
   // --- Locations ---
@@ -416,7 +396,6 @@ class GameState extends ChangeNotifier {
   @override
   void dispose() {
     _weatherTimer?.cancel();
-    _trainTimer?.cancel();
     super.dispose();
   }
 }

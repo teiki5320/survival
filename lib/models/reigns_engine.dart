@@ -13,6 +13,7 @@
 
 import 'dart:math';
 
+import '../constants.dart';
 import 'game_state.dart';
 
 /// Les 4 jauges du mode cartes.
@@ -168,6 +169,9 @@ class ReignsEngine {
     return _emit();
   }
 
+  // Nb de cartes du segment courant (pour calculer la progression du train).
+  int _segmentTotal = 1;
+
   void _loadSegment() {
     final idx = _gs.cardGareIndex ?? 0;
     final seg = segments[idx];
@@ -175,6 +179,8 @@ class ReignsEngine {
       ..clear()
       ..addAll(seg.gareCards(flags));
     _queue.addAll(_drawFillers(seg));
+    _segmentTotal = _queue.isEmpty ? 1 : _queue.length;
+    _gs.cardSegmentProgress = 0.0;
   }
 
   /// Pioche [seg.drawCount] cartes du paquet, sans répéter les oneshot déjà
@@ -219,6 +225,13 @@ class ReignsEngine {
     if (flags.contains('aLaSoeur')) {
       _gs.applyCardDeltas({'faim': -1, 'soif': -1, 'moral': 1});
     }
+    // ZONE FROIDE (gare 8+) : le grand nord glacé fait boire la loco — bois
+    // qui fond à chaque carte. C'est le lien MÉCANIQUE carte↔monde : avancer
+    // sur la carte change la difficulté, pas juste le décor. (canon : "le
+    // froid menace, la loco boit plus").
+    if (_gs.inColdZone) {
+      _gs.applyCardDeltas({'bois': -kColdBoisDrainPerCard});
+    }
     // Compte les vrais gestes de protection (pour la fin "famille").
     if (choice.setFlags.contains('soeurProtegee')) _gs.cardSoin++;
     flags.addAll(choice.setFlags);
@@ -240,6 +253,10 @@ class ReignsEngine {
     }
 
     if (_queue.isNotEmpty) _queue.removeAt(0);
+
+    // Avance le train sur la carte : fraction du segment déjà parcourue.
+    _gs.cardSegmentProgress =
+        ((_segmentTotal - _queue.length) / _segmentTotal).clamp(0.0, 1.0);
 
     // segment courant terminé → gare suivante (ou fin)
     if (_queue.isEmpty) {

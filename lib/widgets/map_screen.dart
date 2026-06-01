@@ -35,21 +35,24 @@ class _Station {
   final String? locationId;
 }
 
+// Positions (t) tirées de kGarePositions (constants.dart) : source unique de
+// vérité partagée avec le moteur de cartes, pour que carte et run ne dérivent
+// jamais. Ici on n'ajoute que les noms / type / locationId.
 final List<_Station> _stations = [
-  _Station('Station abandonnée', 0.9887, big: true, locationId: 'station_abandonnee'),
-  _Station('Halte 47', 0.0865),
-  _Station('Dépôt ferroviaire', 0.1854, big: true, locationId: 'depot_ferroviaire'),
-  _Station('Halte 12', 0.2143),
-  _Station('Village fantôme', 0.2857, big: true, locationId: 'village_fantome'),
-  _Station('Halte 83', 0.3467),
-  _Station('Camp-refuge', 0.4024, locationId: 'camp_refuge'),
-  _Station('Pont suspendu', 0.4631, locationId: 'pont_suspendu'),
-  _Station('Halte 9', 0.5714),
-  _Station('Oasis perdue', 0.6409, locationId: 'oasis_perdue'),
-  _Station('Halte 31', 0.6771),
-  _Station('Tour de guet', 0.7923, locationId: 'tour_de_guet'),
-  _Station('Halte 6', 0.8571),
-  _Station('Tunnel nord', 0.9286, locationId: 'tunnel_nord'),
+  _Station('Station abandonnée', kGarePositions[0], big: true, locationId: 'station_abandonnee'),
+  _Station('Halte 47', kGarePositions[1]),
+  _Station('Dépôt ferroviaire', kGarePositions[2], big: true, locationId: 'depot_ferroviaire'),
+  _Station('Halte 12', kGarePositions[3]),
+  _Station('Village fantôme', kGarePositions[4], big: true, locationId: 'village_fantome'),
+  _Station('Halte 83', kGarePositions[5]),
+  _Station('Camp-refuge', kGarePositions[6], locationId: 'camp_refuge'),
+  _Station('Pont suspendu', kGarePositions[7], locationId: 'pont_suspendu'),
+  _Station('Halte 9', kGarePositions[8]),
+  _Station('Oasis perdue', kGarePositions[9], locationId: 'oasis_perdue'),
+  _Station('Halte 31', kGarePositions[10]),
+  _Station('Tour de guet', kGarePositions[11], locationId: 'tour_de_guet'),
+  _Station('Halte 6', kGarePositions[12]),
+  _Station('Tunnel nord', kGarePositions[13], locationId: 'tunnel_nord'),
 ];
 
 // ---------------------------------------------------------------------------
@@ -196,8 +199,17 @@ class _MapScreenState extends State<MapScreen>
   void _onTick(Duration elapsed) {
     final target = GameState.instance.trainPosition;
     final secs = elapsed.inMicroseconds / 1e6;
+    // La position cible bouge maintenant par paliers (gare → gare). On glisse
+    // le train en douceur vers elle, par le plus court chemin sur le cercle
+    // (gère le wrap 1.0 → 0.0 de la boucle).
+    var diff = (target - _displayPosition) % 1.0;
+    if (diff > 0.5) diff -= 1.0;
+    if (diff < -0.5) diff += 1.0;
     setState(() {
-      _displayPosition = target;
+      var p = _displayPosition + diff * 0.06;
+      p %= 1.0;
+      if (p < 0) p += 1.0;
+      _displayPosition = p;
       _elapsed = secs;
     });
   }
@@ -776,21 +788,23 @@ class _TrainZoneHUD extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final zone = GameState.instance.trainZone;
+    final gs = GameState.instance;
+    final zone = gs.trainZone;
 
-    _Station? nextStation;
-    double minDist = 2.0;
-    for (final s in _stations) {
-      double dist = s.t - displayPosition;
-      if (dist < 0) dist += 1.0;
-      if (dist < minDist) {
-        minDist = dist;
-        nextStation = s;
-      }
+    // La position du train suit l'histoire : on affiche la prochaine gare et
+    // l'avancement dans le segment courant (plus d'ETA chronométré).
+    final gareIdx = (gs.cardGareIndex ?? 0).clamp(0, _stations.length - 1);
+    final hasNext = gs.hasCardRun && gareIdx < _stations.length - 1;
+    final nextStation = hasNext ? _stations[gareIdx + 1] : null;
+    final progressPct = (gs.cardSegmentProgress * 100).round();
+    final String etaLabel;
+    if (!gs.hasCardRun) {
+      etaLabel = 'Voyage à commencer';
+    } else if (nextStation == null) {
+      etaLabel = 'Terminus — refuge nord';
+    } else {
+      etaLabel = '${nextStation.name} — $progressPct%';
     }
-    final etaSeconds = (minDist * kLoopDurationSeconds).round();
-    final etaMin = etaSeconds ~/ 60;
-    final etaSec = etaSeconds % 60;
 
     String zoneLabel;
     IconData icon;
@@ -830,7 +844,7 @@ class _TrainZoneHUD extends StatelessWidget {
           const Icon(Icons.train, color: Colors.white70, size: 14),
           const SizedBox(width: 4),
           Text(
-            '${nextStation?.name ?? "?"} — ${etaMin}m${etaSec.toString().padLeft(2, '0')}s',
+            etaLabel,
             style: const TextStyle(color: Colors.white70, fontSize: 13),
           ),
         ],

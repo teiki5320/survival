@@ -110,14 +110,17 @@ def pick(card, stats, strategy):
     # 'casual' : pondère vers le meilleur choix mais se trompe 30% du temps
     return best if random.random() < 0.70 else 1-best
 
+COLD_GARE = 7        # gare 8 (0-based) = entrée zone froide
+COLD_BOIS = 2        # surconso bois/carte dans le froid
+
 def run(strategy, refuels_per_seg):
     stats = {'soif':70,'faim':70,'bois':70,'moral':70}
     flags = set(); soin = 0
-    for gare, fill, draw in segments:
+    for si, (gare, fill, draw) in enumerate(segments):
         # budget wagon en début de segment : recharge les 2 (ou N) plus basses
         for _ in range(refuels_per_seg):
             low = min(stats, key=lambda k: stats[k])
-            stats[low] = min(100, stats[low] + 10)
+            stats[low] = min(100, stats[low] + REFUEL)
         deck = list(gare) + random.sample(fill, min(draw, len(fill)))
         for card in deck:
             idx = pick(card, stats, strategy)
@@ -128,6 +131,9 @@ def run(strategy, refuels_per_seg):
             if 'aLaSoeur' in flags:
                 apply(stats, {'faim':-1,'soif':-1}, flags, True)
                 stats['moral'] = min(100, stats['moral']+1)
+            # zone froide : la loco boit plus (drain bois plat, non multiplié)
+            if si >= COLD_GARE:
+                stats['bois'] = max(0, stats['bois'] - COLD_BOIS)
             if min(stats.values()) <= 0:
                 dead = min(stats, key=lambda k: stats[k])
                 return ('mort' if dead!='moral' else 'abandon'), stats, flags
