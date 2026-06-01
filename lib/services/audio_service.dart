@@ -46,7 +46,15 @@ class AudioService {
 
   /// Continuous train-rolling rumble. Started when the train is running,
   /// stopped when it halts. Idempotent.
+  ///
+  /// DÉSACTIVÉ : `ambient_train.mp3` est en fait un morceau musical trop
+  /// "rock", pas adapté à l'ambiance cosy. On no-op tant qu'on n'a pas un
+  /// vrai son de roulement de train neutre à mettre à la place. Garder le
+  /// code pour réactiver d'une ligne quand l'asset propre arrivera.
+  static const bool _ambientEnabled = false;
+
   Future<void> startAmbientTrain() async {
+    if (!_ambientEnabled) return;
     if (_ambientOn) return;
     _ambientOn = true;
     await _safe(() async {
