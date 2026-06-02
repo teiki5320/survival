@@ -1234,9 +1234,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         _buildProp(def: def, w: w, h: h),
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
-                      if (_activeSpecial != 'pet_dog')
+                      if (_activeSpecial != 'pet_dog' && !_sisterDogActive)
                         _buildStaticDog(w, h),
-                      // Petite soeur (danse en boucle dans le wagon).
+                      // Petite soeur autonome (anim toutes les ~20s).
                       _buildSister(w, h),
                       // 4c. Lamp glow when lamp is on.
                       if (GameState.instance.lampOn)
@@ -1491,31 +1491,27 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
 
-  // Petite soeur présente dans le wagon : boucle "dance" (jeu/danse),
-  // pleine résolution, night-tint, isolée en RepaintBoundary pour ne pas
-  // peser sur le reste de la scène.
+  // Masque le chien statique pendant que la soeur le câline/caresse
+  // (sa sprite d'interaction contient déjà le chien).
+  bool _sisterDogActive = false;
+
+  // Petite soeur autonome : danse au repos, joue une anim toutes les ~20s.
+  // Placée près du chien (0.46) pour que ses anims chien s'alignent bien.
   Widget _buildSister(double w, double h) {
     final sisH = h * 0.34;
     final sisW = sisH; // sprites 512x512 carrés
-    final sisX = 0.40 * w;
+    final sisX = 0.46 * w;
     final feetY = h * 0.74;
     return Positioned(
       left: sisX - sisW / 2,
       top: feetY - sisH * 0.84,
       width: sisW,
       height: sisH,
-      child: IgnorePointer(
-        child: RepaintBoundary(
-          child: _nightTint(
-            const _AnimatedSprite(
-              prefix: 'sister_dance',
-              frameCount: 25,
-              durationMs: 2400,
-              dir: 'assets/characters',
-              resizeWidth: null,
-            ),
-          ),
-        ),
+      child: _SisterCharacter(
+        tint: _nightTint,
+        onDogInteraction: (active) {
+          if (mounted) setState(() => _sisterDogActive = active);
+        },
       ),
     );
   }
@@ -1813,6 +1809,113 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
           gaplessPlayback: true,
         );
       },
+    );
+  }
+}
+
+/// Petite soeur autonome dans le wagon. Au repos elle danse doucement
+/// (boucle `dance`). Toutes les ~20 s elle joue une animation one-shot tirée
+/// au hasard d'un pool (câlins/caresses au chien), puis revient au repos.
+/// `onDogInteraction` prévient le parent pour masquer le chien statique
+/// pendant qu'elle interagit (sa sprite contient déjà le chien).
+class _SisterCharacter extends StatefulWidget {
+  const _SisterCharacter({
+    required this.tint,
+    required this.onDogInteraction,
+  });
+
+  final Widget Function(Widget child) tint;
+  final ValueChanged<bool> onDogInteraction;
+
+  @override
+  State<_SisterCharacter> createState() => _SisterCharacterState();
+}
+
+class _SisterCharacterState extends State<_SisterCharacter>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  Timer? _timer;
+  final _rng = math.Random();
+
+  // anim courante : nom du préfixe, nb de frames, durée, boucle ou one-shot,
+  // et si elle implique le chien (pour masquer le chien statique).
+  String _anim = 'dance';
+  int _frames = 25;
+  bool _looping = true;
+
+  // Pool d'animations autonomes (one-shot). dog=true => masque le chien.
+  static const _pool = [
+    ('pet_dog', 8, 1800, true),
+    ('hug_dog', 8, 2000, true),
+    ('dance', 25, 2400, false),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4000),
+    )..repeat();
+    _ctrl.addStatusListener(_onStatus);
+    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _playRandom());
+  }
+
+  void _onStatus(AnimationStatus status) {
+    // Fin d'un one-shot -> retour au repos (dance en boucle).
+    if (status == AnimationStatus.completed && !_looping) {
+      widget.onDogInteraction(false);
+      _setAnim('dance', 25, 4000, loop: true);
+    }
+  }
+
+  void _playRandom() {
+    if (!mounted || !_looping) return; // ne pas couper un one-shot en cours
+    final pick = _pool[_rng.nextInt(_pool.length)];
+    final isDog = pick.$4;
+    if (isDog) widget.onDogInteraction(true);
+    _setAnim(pick.$1, pick.$2, pick.$3, loop: false);
+  }
+
+  void _setAnim(String anim, int frames, int ms, {required bool loop}) {
+    if (!mounted) return;
+    setState(() {
+      _anim = anim;
+      _frames = frames;
+      _looping = loop;
+    });
+    _ctrl.duration = Duration(milliseconds: ms);
+    if (loop) {
+      _ctrl.repeat();
+    } else {
+      _ctrl.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _ctrl.removeStatusListener(_onStatus);
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _ctrl,
+          builder: (_, __) {
+            final frame =
+                (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
+            final asset = 'assets/characters/sister_${_anim}_${frame + 1}.png';
+            return widget.tint(
+              Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
+            );
+          },
+        ),
+      ),
     );
   }
 }
