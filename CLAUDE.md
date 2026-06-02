@@ -66,6 +66,10 @@ Process classique image :
 OpenArt **n'exporte pas vraiment en transparence** — fond blanc/noir baked-in.
 Toujours demander fond solide blanc (#FFFFFF) ou noir (#000000), je keye.
 
+**RÈGLE PROMPTS AVEC RÉFÉRENCE** : quand une image est mise en référence, NE
+PAS redécrire son contenu (style, perspective, proportions, couleurs…). Le
+prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
+
 **Règles AutoSprite** :
 - **Jamais de preview**. Générer direct la version finale.
 - **Valider le coût AVANT** toute dépense. Annoncer crédits.
