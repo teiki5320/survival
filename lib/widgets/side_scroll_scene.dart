@@ -1236,6 +1236,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     pendant les interactions (crouch → wag_tail).
                       if (_activeSpecial != 'pet_dog')
                         _buildStaticDog(w, h),
+                      // Petite soeur (danse en boucle dans le wagon).
+                      _buildSister(w, h),
                       // 4c. Lamp glow when lamp is on.
                       if (GameState.instance.lampOn)
                         Positioned.fill(
@@ -1489,6 +1491,35 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
 
+  // Petite soeur présente dans le wagon : boucle "dance" (jeu/danse),
+  // pleine résolution, night-tint, isolée en RepaintBoundary pour ne pas
+  // peser sur le reste de la scène.
+  Widget _buildSister(double w, double h) {
+    final sisH = h * 0.34;
+    final sisW = sisH; // sprites 512x512 carrés
+    final sisX = 0.40 * w;
+    final feetY = h * 0.74;
+    return Positioned(
+      left: sisX - sisW / 2,
+      top: feetY - sisH * 0.84,
+      width: sisW,
+      height: sisH,
+      child: IgnorePointer(
+        child: RepaintBoundary(
+          child: _nightTint(
+            const _AnimatedSprite(
+              prefix: 'sister_dance',
+              frameCount: 25,
+              durationMs: 2400,
+              dir: 'assets/characters',
+              resizeWidth: null,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   int _dogAnimFrame = 0;
 
   Widget _buildStaticDog(double w, double h) {
@@ -1727,12 +1758,17 @@ class _AnimatedSprite extends StatefulWidget {
     required this.frameCount,
     required this.durationMs,
     this.fit = BoxFit.contain,
+    this.dir = 'assets/objects',
+    this.resizeWidth = 256,
   });
 
   final String prefix;
   final int frameCount;
   final int durationMs;
   final BoxFit fit;
+  final String dir;
+  // null = décode en pleine résolution (sprites perso). Sinon ResizeImage.
+  final int? resizeWidth;
 
   @override
   State<_AnimatedSprite> createState() => _AnimatedSpriteState();
@@ -1765,17 +1801,14 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
         final frame = (_ctrl.value * widget.frameCount)
             .floor()
             .clamp(0, widget.frameCount - 1);
-        // ResizeImage : décode à 256px max (au lieu de la taille native
-        // 512px). Divise par 4 la mémoire de chaque frame en cache et
-        // donc la fréquence des purges qui re-décodent à chaud (cause
-        // des saccades au démarrage d'anim).
+        final asset = '${widget.dir}/${widget.prefix}_${frame + 1}.png';
+        // ResizeImage (props) : décode plus petit pour alléger le cache.
+        // resizeWidth null (perso) : pleine résolution.
+        final ImageProvider provider = widget.resizeWidth == null
+            ? AssetImage(asset)
+            : ResizeImage(AssetImage(asset), width: widget.resizeWidth);
         return Image(
-          image: ResizeImage(
-            AssetImage(
-              'assets/objects/${widget.prefix}_${frame + 1}.png',
-            ),
-            width: 256,
-          ),
+          image: provider,
           fit: widget.fit,
           gaplessPlayback: true,
         );
