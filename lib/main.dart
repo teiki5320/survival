@@ -166,7 +166,7 @@ class _WagonScreenState extends State<WagonScreen> {
   // the gesture has a visible consequence outside the cab too.
   int _logsThrown = 0;
 
-  static const _stageLabels = ['Sale', 'Sol nettoyé', 'Vitres remises', 'Tout propre'];
+  static const _stageLabels = ['Vitres remises', 'Tout propre'];
 
   final _audio = AudioService();
 
@@ -442,9 +442,10 @@ class _WagonScreenState extends State<WagonScreen> {
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'cycle_wagon_stage',
-                  tooltip: 'Wagon: ${_stageLabels[_wagonStage]}',
+                  tooltip:
+                      'Wagon: ${_stageLabels[_wagonStage.clamp(0, _stageLabels.length - 1)]}',
                   onPressed: () {
-                    setState(() => _wagonStage = (_wagonStage + 1) % 4);
+                    setState(() => _wagonStage = (_wagonStage + 1) % 2);
                     _audio.playSfx('clean');
                   },
                   child: const Icon(Icons.cleaning_services),

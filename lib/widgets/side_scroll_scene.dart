@@ -413,6 +413,66 @@ class _SideScrollSceneState extends State<SideScrollScene>
         if (mounted) setState(() => _thoughtEmoji = null);
       });
     });
+    // Autonomie de Shen : toutes les ~14s, si elle est oisive, elle fait une
+    // action choisie selon ses besoins (les 4 stats), façon Sims.
+    _autonomyTimer =
+        Timer.periodic(const Duration(seconds: 14), (_) => _autonomyTick());
+  }
+
+  Timer? _autonomyTimer;
+
+  /// Lance une animation spéciale one-shot de façon autonome (même mécanique
+  /// que celle pilotée par le parent via specialAnimToken).
+  void _startAutoSpecial(String anim, {int frames = 49}) {
+    setState(() {
+      _activeSpecial = anim;
+      _activeSpecialFrames = frames;
+      _activeSpecialLoops = false;
+      _specialFrame = 0;
+      _specialAccumMs = 0;
+      _nextSpecial = null;
+      _heroSleeping = false;
+      _heroDancing = false;
+      _heroLyingDown = false;
+      _heroTarget = null;
+      _idleBreak = null;
+    });
+  }
+
+  /// Comportement autonome de Shen, dicté par ses besoins (cosmétique : la
+  /// scène ne modifie pas les stats, gérées par les cartes). Elle ne fait
+  /// rien si elle est déjà occupée (marche, dort, anim, porte...).
+  void _autonomyTick() {
+    if (!mounted || !widget.running) return;
+    final busy = _heroTarget != null ||
+        _heroSleeping ||
+        _heroDancing ||
+        _heroLyingDown ||
+        _waking ||
+        _doorPushing ||
+        _activeSpecial != null ||
+        _idleBreak != null;
+    if (busy) return;
+
+    final gs = GameState.instance;
+    final soif = gs.cardSoif, faim = gs.cardFaim, moral = gs.cardMoral;
+    final r = math.Random();
+
+    if (soif < 55 && soif <= faim && soif <= moral) {
+      _startAutoSpecial('drink'); // a soif -> boit
+    } else if (faim < 55 && faim <= moral) {
+      _startAutoSpecial(r.nextBool() ? 'cook' : 'garden_tend'); // a faim
+    } else if (moral < 62) {
+      const pool = ['read', 'warm_hands', 'pet_dog', 'dance', 'look_window'];
+      _startAutoSpecial(pool[r.nextInt(pool.length)]); // remonte le moral
+    } else {
+      // tout va bien : elle flâne ou fait une petite pause.
+      if (r.nextBool()) {
+        _walkTo(_heroXMin + r.nextDouble() * (_heroXMax - _heroXMin));
+      } else {
+        _startAutoSpecial(r.nextBool() ? 'yawn' : 'stretch');
+      }
+    }
   }
 
   void _onGameStateChanged() {
@@ -556,8 +616,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/horizon_transition_d.png',
       'assets/background/foreground_band.png',
       'assets/background/foreground_snow.png',
-      'assets/background/wagon_dirty.png',
-      'assets/background/wagon_swept.png',
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
       'assets/background/wagon_rails.png',
@@ -655,6 +713,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     GameState.instance.removeListener(_onGameStateChanged);
     _heroTicker.dispose();
     _heroAnim.dispose();
+    _autonomyTimer?.cancel();
     _horizonRotateTimer?.cancel();
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
@@ -1126,33 +1185,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           running: widget.running,
                         ),
                       ),
-                      // 3c. Fond bois derrière le wagon pour masquer
-                      //     les trous dans le plancher (dirty/swept).
-                      if (widget.wagonStage <= 1)
-                        Positioned(
-                          left: w * 0.12,
-                          right: w * 0.08,
-                          top: h * 0.65,
-                          bottom: h * 0.14,
-                          child: _nightTint(
-                            const DecoratedBox(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    Color(0xFF3D2B1A),
-                                    Color(0xFF2E1F12),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
                       // 4. Wagon — fixed in the centre, picked from the
-                      //    progression stage (dirty → swept → windowed →
-                      //    clean). Night ColorFilter tints all four the
-                      //    same way.
+                      //    progression stage (windowed → clean). Night
+                      //    ColorFilter tints both the same way.
                       Positioned.fill(
                         child: _nightTint(
                           Image.asset(
@@ -1278,7 +1313,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                     heroX: _heroX,
                                     feetY: 0.92,
                                     stepToken: _stepToken,
-                                    enabled: widget.wagonStage <= 1,
+                                    // plancher propre désormais (dirty/swept
+                                    // retirés) -> plus de poussière au sol.
+                                    enabled: false,
                                   ),
                                 ),
                                 if (_thoughtEmoji != null)
@@ -1542,9 +1579,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       top: feetY - dogH * 0.75,
       width: dogW,
       height: dogH,
-      child: _nightTint(
-        Image.asset('assets/objects/dog_idle.png', fit: BoxFit.contain),
-      ),
+      child: _DogCharacter(tint: _nightTint),
     );
   }
 
@@ -1678,8 +1713,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   String _wagonAssetFor(int stage) {
     const assets = [
-      'assets/background/wagon_dirty.png',
-      'assets/background/wagon_swept.png',
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
     ];
@@ -1920,6 +1953,89 @@ class _SisterCharacterState extends State<_SisterCharacter>
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+/// Chien autonome dans le wagon. Au repos il est posé (dog_idle, statique),
+/// et toutes les ~15 s il joue une petite animation au hasard (s'étire,
+/// penche la tête, aboie, remue la queue, se couche), puis revient au repos.
+class _DogCharacter extends StatefulWidget {
+  const _DogCharacter({required this.tint});
+  final Widget Function(Widget child) tint;
+
+  @override
+  State<_DogCharacter> createState() => _DogCharacterState();
+}
+
+class _DogCharacterState extends State<_DogCharacter>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  Timer? _timer;
+  final _rng = math.Random();
+
+  String? _anim; // null = repos (dog_idle statique)
+  int _frames = 25;
+
+  // Pool d'animations courtes (toutes 25 frames).
+  static const _pool = [
+    ('stretch_yawn', 2000),
+    ('head_tilt', 1500),
+    ('bark', 1400),
+    ('wag_tail', 1600),
+    ('lay_down', 2000),
+    ('sleep', 2600),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2));
+    _ctrl.addStatusListener((s) {
+      if (s == AnimationStatus.completed && mounted) {
+        setState(() => _anim = null); // retour au repos
+      }
+    });
+    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _play());
+  }
+
+  void _play() {
+    if (!mounted || _anim != null) return;
+    final pick = _pool[_rng.nextInt(_pool.length)];
+    setState(() {
+      _anim = pick.$1;
+      _frames = 25;
+    });
+    _ctrl.duration = Duration(milliseconds: pick.$2);
+    _ctrl.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RepaintBoundary(
+      child: IgnorePointer(
+        child: _anim == null
+            ? widget.tint(Image.asset('assets/objects/dog_idle.png',
+                fit: BoxFit.contain, gaplessPlayback: true))
+            : AnimatedBuilder(
+                animation: _ctrl,
+                builder: (_, __) {
+                  final frame =
+                      (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
+                  final asset =
+                      'assets/objects/dog_${_anim}_${frame + 1}.png';
+                  return widget.tint(Image.asset(asset,
+                      fit: BoxFit.contain, gaplessPlayback: true));
+                },
+              ),
       ),
     );
   }

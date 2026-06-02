@@ -68,7 +68,8 @@ class GameState extends ChangeNotifier {
       if (data['unlocked'] is List) {
         _unlocked.addAll((data['unlocked'] as List).cast<String>());
       }
-      wagonStage = (data['wagonStage'] as num?)?.toInt() ?? 0;
+      // 2 stages désormais (windowed/clean) : clamp pour vieilles sauvegardes.
+      wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
