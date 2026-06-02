@@ -370,57 +370,22 @@ class _WagonScreenState extends State<WagonScreen> {
           right: 0,
           child: SafeArea(
             child: Center(
-              child: AnimatedBuilder(
-              animation: GameState.instance,
-              builder: (_, __) {
-                final gs = GameState.instance;
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.7),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // HUD = uniquement les 4 anneaux. Les réserves
-                      // (bois/eau/bouffe) sont visibles là où on les utilise
-                      // (loco, filtre, hydro), pas besoin de les dupliquer ici.
-                      const StatRingsBar(
-                        ringSize: 34,
-                        emojiSize: 15,
-                        mainAxisSize: MainAxisSize.min,
-                        alignment: MainAxisAlignment.center,
-                      ),
-                      if (gs.hasCardRun) ...[
-                        const SizedBox(height: 6),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.style,
-                                size: 13,
-                                color: gs.cardCredits > 0
-                                    ? const Color(0xFFE8C56A)
-                                    : Colors.white24),
-                            const SizedBox(width: 3),
-                            Text(
-                              'Cartes ${gs.cardCredits}/${GameState.cardCreditsMax}',
-                              style: TextStyle(
-                                color: gs.cardCredits > 0
-                                    ? Colors.white70
-                                    : const Color(0xFFD98A8A),
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
-                  ),
-                );
-              },
+              // HUD = uniquement les 4 anneaux. Les réserves (bois/eau/
+              // bouffe) sont visibles là où on les utilise ; les crédits de
+              // tirage "Cartes X/X" restent sur l'écran de cartes.
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const StatRingsBar(
+                  ringSize: 34,
+                  emojiSize: 15,
+                  mainAxisSize: MainAxisSize.min,
+                  alignment: MainAxisAlignment.center,
+                ),
               ),
             ),
           ),
