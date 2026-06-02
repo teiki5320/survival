@@ -519,12 +519,14 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                 ),
               ),
             ),
-            // Log counter HUD (top-left).
+            // HUD réserve + anneaux, centré en haut.
             Positioned(
               top: 24,
-              left: 24,
+              left: 0,
+              right: 0,
               child: SafeArea(
                 child: IgnorePointer(
+                  child: Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
@@ -533,7 +535,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Builder(builder: (_) {
                           final stock = GameState.instance.itemCount('wood');
@@ -557,6 +559,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ),
               ),

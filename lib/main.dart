@@ -363,12 +363,14 @@ class _WagonScreenState extends State<WagonScreen> {
             },
           ),
         ),
-        // HUD survie — jauges compactes hunger/thirst/fatigue.
+        // HUD survie — les 4 anneaux, centrés en haut.
         Positioned(
           top: 8,
-          left: 8,
+          left: 0,
+          right: 0,
           child: SafeArea(
-            child: AnimatedBuilder(
+            child: Center(
+              child: AnimatedBuilder(
               animation: GameState.instance,
               builder: (_, __) {
                 final gs = GameState.instance;
@@ -381,7 +383,7 @@ class _WagonScreenState extends State<WagonScreen> {
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // HUD = uniquement les 4 anneaux. Les réserves
                       // (bois/eau/bouffe) sont visibles là où on les utilise
@@ -390,7 +392,7 @@ class _WagonScreenState extends State<WagonScreen> {
                         ringSize: 34,
                         emojiSize: 15,
                         mainAxisSize: MainAxisSize.min,
-                        alignment: MainAxisAlignment.start,
+                        alignment: MainAxisAlignment.center,
                       ),
                       if (gs.hasCardRun) ...[
                         const SizedBox(height: 6),
@@ -419,6 +421,7 @@ class _WagonScreenState extends State<WagonScreen> {
                   ),
                 );
               },
+              ),
             ),
           ),
         ),
