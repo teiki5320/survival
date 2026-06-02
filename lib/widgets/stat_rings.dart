@@ -52,7 +52,7 @@ class StatRingsBar extends StatelessWidget {
           children: [
             for (final k in _order)
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: ringSize * 0.12),
+                padding: EdgeInsets.symmetric(horizontal: ringSize * 0.22),
                 child: StatRing(
                   emoji: emoji[k]!,
                   value: vals[k]!,

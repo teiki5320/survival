@@ -553,8 +553,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         }),
                         const SizedBox(height: 8),
                         const StatRingsBar(
-                          ringSize: 34,
-                          emojiSize: 15,
+                          ringSize: 46,
+                          emojiSize: 20,
                           mainAxisSize: MainAxisSize.min,
                         ),
                       ],

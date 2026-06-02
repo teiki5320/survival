@@ -807,8 +807,8 @@ class _MapStatsBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: const StatRingsBar(
-        ringSize: 34,
-        emojiSize: 15,
+        ringSize: 46,
+        emojiSize: 20,
         mainAxisSize: MainAxisSize.min,
       ),
     );
