@@ -12,6 +12,7 @@ import 'widgets/cards_screen.dart';
 import 'widgets/stat_rings.dart';
 import 'widgets/games/hydro_game.dart';
 import 'widgets/title_screen.dart';
+import 'widgets/loading_screen.dart';
 import 'widgets/wardrobe_screen.dart';
 
 Future<void> main() async {
@@ -55,21 +56,31 @@ class RootScreen extends StatefulWidget {
   State<RootScreen> createState() => _RootScreenState();
 }
 
+enum _Phase { title, loading, game }
+
 class _RootScreenState extends State<RootScreen> {
-  bool _showTitle = true;
+  _Phase _phase = _Phase.title;
 
   @override
   Widget build(BuildContext context) {
+    // Précharge tous les sprites pendant la phase loading AVANT d'entrer
+    // dans le wagon : plus d'à-coup au premier déclenchement d'une anim.
+    final child = switch (_phase) {
+      _Phase.title => TitleScreen(
+          key: const ValueKey('title'),
+          onStart: ({required fromScratch}) {
+            setState(() => _phase = _Phase.loading);
+          },
+        ),
+      _Phase.loading => LoadingScreen(
+          key: const ValueKey('loading'),
+          onReady: () => setState(() => _phase = _Phase.game),
+        ),
+      _Phase.game => const WagonScreen(key: ValueKey('wagon_root')),
+    };
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 800),
-      child: _showTitle
-          ? TitleScreen(
-              key: const ValueKey('title'),
-              onStart: ({required fromScratch}) {
-                setState(() => _showTitle = false);
-              },
-            )
-          : const WagonScreen(key: ValueKey('wagon_root')),
+      child: child,
     );
   }
 }
