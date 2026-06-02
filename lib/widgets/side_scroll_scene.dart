@@ -296,6 +296,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   TrainZone? _lastZone;
 
   late final Ticker _heroTicker;
+  // Pilote les frames de l'héroïne SANS reconstruire toute la scène. Le
+  // cluster héroïne (sprite + halo + poussière + bulle) écoute ce notifier ;
+  // _onHeroTick le bump à chaque frame au lieu d'un setState global (qui
+  // reconstruisait parallax + props + atmosphère 60×/s = saccades).
+  final ValueNotifier<int> _heroAnim = ValueNotifier<int>(0);
   late double _heroX = widget.initialHeroX;
   double? _heroTarget;
   // She has only two facing options: the walk_right sheet, or its
@@ -649,6 +654,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void dispose() {
     GameState.instance.removeListener(_onGameStateChanged);
     _heroTicker.dispose();
+    _heroAnim.dispose();
     _horizonRotateTimer?.cancel();
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
@@ -660,6 +666,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
     super.dispose();
   }
 
+  /// Comme setState mais ne rebuild QUE le cluster héroïne (via _heroAnim),
+  /// pas toute la scène. À utiliser pour les avances de frame par tick.
+  /// Conserve exactement la sémantique des closures (les `return` internes
+  /// sortent de fn, comme avec le callback de setState).
+  void _animSet(void Function() fn) {
+    fn();
+    _heroAnim.value++;
+  }
+
   void _onHeroTick(Duration elapsed) {
     final dtMicros = (elapsed - _lastTick).inMicroseconds;
     _lastTick = elapsed;
@@ -668,7 +683,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final dtMs = (dt * 1000).round();
 
     if (_doorPushing) {
-      setState(() {
+      _animSet(() {
         _doorAccumMs += dtMs;
         while (_doorAccumMs >= _doorFrameMs) {
           _doorAccumMs -= _doorFrameMs;
@@ -711,7 +726,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     if (_waking) {
-      setState(() {
+      _animSet(() {
         _wakingAccumMs += dtMs;
         while (_wakingAccumMs >= _wakingFrameMs) {
           _wakingAccumMs -= _wakingFrameMs;
@@ -743,7 +758,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     if (_heroLyingDown) {
-      setState(() {
+      _animSet(() {
         _lieDownAccumMs += dtMs;
         while (_lieDownAccumMs >= _lieDownFrameMs) {
           _lieDownAccumMs -= _lieDownFrameMs;
@@ -762,7 +777,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     if (_heroSleeping) {
-      setState(() {
+      _animSet(() {
         _sleepAccumMs += dtMs;
         while (_sleepAccumMs >= _sleepFrameMs) {
           _sleepAccumMs -= _sleepFrameMs;
@@ -773,7 +788,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     if (_heroDancing) {
-      setState(() {
+      _animSet(() {
         _danceAccumMs += dtMs;
         while (_danceAccumMs >= _danceFrameMs) {
           _danceAccumMs -= _danceFrameMs;
@@ -788,7 +803,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       // Idle break currently playing — advance its frames, snap back
       // to idle when done.
       if (_idleBreak != null) {
-        setState(() {
+        _animSet(() {
           _idleBreakAccumMs += dtMs;
           while (_idleBreakAccumMs >= _idleBreakFrameMs) {
             _idleBreakAccumMs -= _idleBreakFrameMs;
@@ -803,7 +818,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         });
         return;
       }
-      setState(() {
+      _animSet(() {
         _idleAccumMs += dtMs;
         while (_idleAccumMs >= _idleFrameMs) {
           _idleAccumMs -= _idleFrameMs;
@@ -832,7 +847,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (delta.abs() <= step) {
       final arriveTriggersLieDown = _walkingToBed;
       final arriveTriggerssCook = _walkingToStove;
-      setState(() {
+      _animSet(() {
         _heroX = target;
         _heroTarget = null;
         _walkFrame = 0;
@@ -860,7 +875,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     final dir = delta > 0 ? 1.0 : -1.0;
-    setState(() {
+    _animSet(() {
       _heroX += step * dir;
       _heroFacingRight = dir > 0;
       _walkAccumMs += dtMs;
@@ -1236,36 +1251,47 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
-                      // 5. Heroine — walks on the wagon floor.
-                      _buildHeroine(w, h),
-                      // 5b. Warm halo around the heroine when she's at
-                      //     either edge of the wagon (door areas — lamp
-                      //     glow / firebox spill from off-frame).
+                      // 5. Cluster héroïne (sprite + halo + poussière +
+                      //    bulle de pensée). Isolé sous _heroAnim : seul ce
+                      //    sous-arbre se reconstruit à chaque frame, pas la
+                      //    scène entière. RepaintBoundary cantonne le repaint.
                       Positioned.fill(
-                        child: CharacterHalo(
-                          heroX: _heroX,
-                          heroY: 0.72,
-                          intensity: _heroEdgeProximity() * (widget.night ? 1.0 : 0.6),
-                        ),
-                      ),
-                      // 5c. Footstep dust puff at her feet each plant.
-                      Positioned.fill(
-                        child: FootstepDust(
-                          heroX: _heroX,
-                          feetY: 0.92,
-                          stepToken: _stepToken,
-                          enabled: widget.wagonStage <= 1,
-                        ),
-                      ),
-                      // 5e. Random thought bubble above her head.
-                      if (_thoughtEmoji != null)
-                        Positioned.fill(
-                          child: ThoughtBubble(
-                            heroX: _heroX,
-                            heroTopY: 0.30,
-                            emoji: _thoughtEmoji!,
+                        child: RepaintBoundary(
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: _heroAnim,
+                            builder: (_, __, ___) => Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _buildHeroine(w, h),
+                                Positioned.fill(
+                                  child: CharacterHalo(
+                                    heroX: _heroX,
+                                    heroY: 0.72,
+                                    intensity: _heroEdgeProximity() *
+                                        (widget.night ? 1.0 : 0.6),
+                                  ),
+                                ),
+                                Positioned.fill(
+                                  child: FootstepDust(
+                                    heroX: _heroX,
+                                    feetY: 0.92,
+                                    stepToken: _stepToken,
+                                    enabled: widget.wagonStage <= 1,
+                                  ),
+                                ),
+                                if (_thoughtEmoji != null)
+                                  Positioned.fill(
+                                    child: ThoughtBubble(
+                                      heroX: _heroX,
+                                      heroTopY: 0.30,
+                                      emoji: _thoughtEmoji!,
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
+                      ),
                       // 5f. Overlay météo : teinte plein écran + voile
                       //     selon GameState.weather. Mis en haut du
                       //     Stack pour couvrir TOUT (sauf le HUD).
@@ -1522,7 +1548,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-              child: Image.asset(asset, fit: BoxFit.contain),
+              child: Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
             ),
           ),
         ),
@@ -1541,7 +1567,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+          child: _nightTint(
+              Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true)),
         ),
       );
     }
@@ -1602,7 +1629,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     final adjustedFeetY = deepInWagon ? feetY - h * 0.06 : feetY;
-    Widget sprite = Image.asset(asset, fit: BoxFit.contain);
+    Widget sprite =
+        Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
     if (shouldMirror) {
       sprite = Transform(
         alignment: Alignment.center,
@@ -1617,7 +1645,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       top: adjustedFeetY - heroHeight * m.feet,
       width: heroWidth,
       height: heroHeight,
-      child: IgnorePointer(child: sprite),
+      child: RepaintBoundary(child: IgnorePointer(child: sprite)),
     );
   }
 
@@ -1749,6 +1777,7 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
             width: 256,
           ),
           fit: widget.fit,
+          gaplessPlayback: true,
         );
       },
     );
