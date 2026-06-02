@@ -1496,11 +1496,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _sisterDogActive = false;
 
   // Petite soeur autonome : danse au repos, joue une anim toutes les ~20s.
-  // Placée près du chien (0.46) pour que ses anims chien s'alignent bien.
+  // PLACÉE AU CENTRE pour le test ; on la repositionnera plus tard.
   Widget _buildSister(double w, double h) {
-    final sisH = h * 0.34;
+    final sisH = h * 0.40;
     final sisW = sisH; // sprites 512x512 carrés
-    final sisX = 0.46 * w;
+    final sisX = 0.50 * w;
     final feetY = h * 0.74;
     return Positioned(
       left: sisX - sisW / 2,
@@ -1858,7 +1858,12 @@ class _SisterCharacterState extends State<_SisterCharacter>
       duration: const Duration(milliseconds: 4000),
     )..repeat();
     _ctrl.addStatusListener(_onStatus);
-    _timer = Timer.periodic(const Duration(seconds: 20), (_) => _playRandom());
+    // Première anim rapidement (test), puis toutes les 20 s.
+    Timer(const Duration(seconds: 6), () {
+      if (!mounted) return;
+      _playRandom();
+      _timer = Timer.periodic(const Duration(seconds: 20), (_) => _playRandom());
+    });
   }
 
   void _onStatus(AnimationStatus status) {
