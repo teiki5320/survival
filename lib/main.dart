@@ -383,30 +383,14 @@ class _WagonScreenState extends State<WagonScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Les 4 vraies jauges du voyage (anneaux unifiés).
+                      // HUD = uniquement les 4 anneaux. Les réserves
+                      // (bois/eau/bouffe) sont visibles là où on les utilise
+                      // (loco, filtre, hydro), pas besoin de les dupliquer ici.
                       const StatRingsBar(
                         ringSize: 34,
                         emojiSize: 15,
                         mainAxisSize: MainAxisSize.min,
                         alignment: MainAxisAlignment.start,
-                      ),
-                      const SizedBox(height: 6),
-                      // Réserves (ce qui sert à ravitailler les jauges).
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _resourceChip(Icons.park,
-                              gs.itemCount('wood'),
-                              const Color(0xFFD4884A)),
-                          const SizedBox(width: 6),
-                          _resourceChip(Icons.opacity,
-                              gs.itemCount('water'),
-                              const Color(0xFF6FAEDF)),
-                          const SizedBox(width: 6),
-                          _resourceChip(Icons.restaurant_menu,
-                              gs.itemCount('food'),
-                              const Color(0xFFE89B5C)),
-                        ],
                       ),
                       if (gs.hasCardRun) ...[
                         const SizedBox(height: 6),
@@ -503,37 +487,6 @@ class _WagonScreenState extends State<WagonScreen> {
 
   /// Mini-jauge horizontale icone + barre 80px. Couleur passe au rouge
   /// quand la valeur descend sous 25 %.
-  /// Pastille compteur ressource: icône + nombre (0-1000).
-  Widget _resourceChip(IconData icon, int count, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: color.withValues(alpha: 0.40),
-          width: 0.8,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11, color: color.withValues(alpha: 0.95)),
-          const SizedBox(width: 3),
-          Text(
-            '$count',
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Courier',
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _actionFab() {
     IconData icon = Icons.help_outline;
     VoidCallback? action;

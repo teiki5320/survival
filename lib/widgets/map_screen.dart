@@ -794,33 +794,22 @@ class _MapPainter extends CustomPainter {
 // HUD
 // ---------------------------------------------------------------------------
 
-/// Petite barre des 4 jauges + réserve de bois, en haut de la carte.
+/// Barre des 4 jauges (anneaux unifiés), en haut de la carte.
 class _MapStatsBar extends StatelessWidget {
   const _MapStatsBar();
 
   @override
   Widget build(BuildContext context) {
-    final gs = GameState.instance;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
+      child: const StatRingsBar(
+        ringSize: 34,
+        emojiSize: 15,
         mainAxisSize: MainAxisSize.min,
-        children: [
-          const StatRingsBar(
-            ringSize: 34,
-            emojiSize: 15,
-            mainAxisSize: MainAxisSize.min,
-          ),
-          const SizedBox(width: 10),
-          const Icon(Icons.park, color: Color(0xFFBFA46A), size: 14),
-          const SizedBox(width: 3),
-          Text('${gs.itemCount('wood')}',
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ],
       ),
     );
   }
