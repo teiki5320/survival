@@ -431,9 +431,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _petDogFrame = 0;
   int _petDogAccumMs = 0;
   int _petDogElapsedMs = 0;
-  static const int _petDogFrameMs = 450; // boucle douce 2 frames
-  static const int _petDogTotalMs = 3200;
-  static const int _petDogFrames = 2; // frames 5,6 du câlin (les propres)
+  bool _petDogHeld = false;
+  static const int _petDogFrameMs = 150;
+  static const int _petDogTotalMs = 4200;
+  // 9 frames coupées aux traits rouges : approche (1-3) -> câlin (4-9).
+  static const int _petDogFrames = 9;
 
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
@@ -863,6 +865,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _petDogFrame = 0;
         _petDogAccumMs = 0;
         _petDogElapsedMs = 0;
+        _petDogHeld = false;
         _heroDancing = false;
         _heroSleeping = false;
         _heroLyingDown = false;
@@ -1063,10 +1066,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _petDog = false;
           return;
         }
+        // Joue 1->9 (approche puis câlin) puis tient la dernière (câlin).
+        if (_petDogHeld) return;
         _petDogAccumMs += dtMs;
         while (_petDogAccumMs >= _petDogFrameMs) {
           _petDogAccumMs -= _petDogFrameMs;
-          _petDogFrame = (_petDogFrame + 1) % _petDogFrames;
+          _petDogFrame++;
+          if (_petDogFrame >= _petDogFrames) {
+            _petDogFrame = _petDogFrames - 1;
+            _petDogHeld = true;
+            break;
+          }
         }
       });
       return;
@@ -2235,8 +2245,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Sprite Shen + husky (caresse/câlin) calé au sol sur la position du chien.
   Widget _buildPetDog(double w, double h) {
-    final ph = h * 0.27;
-    final pw = ph * (282 / 324);
+    final ph = h * 0.30;
+    final pw = ph * (423 / 324);
     final feetY = h * 0.74;
     return Positioned(
       left: _dogX * w - pw / 2,
