@@ -556,13 +556,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     final r = math.Random();
 
-    // Duo avec la petite sœur : si Shen passe à côté d'elle (wagon 1), 1
-    // chance sur 2 de déclencher un câlin OU une lecture (sprite duo, masque
-    // les 2 solos).
+    // Duo lecture avec la petite sœur : si Shen passe à côté d'elle (wagon 1),
+    // 1 chance sur 2 de déclencher la lecture (sprite duo, masque les 2 solos).
+    // (Le câlin debout 'hugduo' est retiré : mal généré.)
     if (!widget.secondWagon &&
         (_heroX - _sisterX).abs() < 0.08 &&
         r.nextBool()) {
-      _startDuo(r.nextBool() ? 'hugduo' : 'readduo');
+      _startDuo('readduo');
       return;
     }
 
@@ -2229,7 +2229,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Sprite Shen + husky (caresse/câlin) calé au sol sur la position du chien.
   Widget _buildPetDog(double w, double h) {
-    final ph = h * 0.34;
+    final ph = h * 0.27; // réduit (était trop grand)
     final pw = ph * (407 / 327);
     final feetY = h * 0.74;
     return Positioned(
