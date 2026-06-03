@@ -589,10 +589,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     if (soif < 55 && soif <= faim && soif <= moral) {
       _startAutoSpecial('drink'); // a soif -> boit
-    } else if (faim < 55 && faim <= moral) {
-      _startAutoSpecial(r.nextBool() ? 'cook' : 'garden_tend'); // a faim
     } else if (moral < 62) {
-      const pool = ['read', 'warm_hands', 'dance', 'look_window'];
+      const pool = ['read', 'warm_hands', 'dance'];
       _startAutoSpecial(pool[r.nextInt(pool.length)]); // remonte le moral
     } else {
       // tout va bien : elle flâne ou fait une petite pause.
@@ -658,15 +656,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'pickup',
       'yawn',
       'stretch',
-      'look_window',
       'read',
       'wake_up',
       'warm_hands',
       'carry_walk',
-      'cook',
       'drink',
       'pet_dog',
-      'garden_tend',
     ];
     for (final anim in animations) {
       for (int i = 1; i <= _heroFrameCount; i++) {

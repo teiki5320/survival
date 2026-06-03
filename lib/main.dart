@@ -625,9 +625,6 @@ class _WagonScreenState extends State<WagonScreen> {
         GameState.instance.nudgeCardStat('moral', 10);
         _audio.playSfx('dog_bark');
       };
-    } else if (!_inWagon2 && _atStove) {
-      icon = Icons.soup_kitchen;
-      action = () => setState(() => _cookToken++);
     } else if (!_inWagon2 && _atHydro) {
       icon = Icons.yard;
       action = () => setState(() => _inHydroGame = true);
