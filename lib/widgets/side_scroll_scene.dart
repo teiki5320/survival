@@ -1457,6 +1457,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       if (widget.secondWagon) _buildWagon2Props(w, h),
                       if (widget.secondWagon && _bathing)
                         _buildBathAnim(w, h),
+                      // Vapeur du bain (devant la cuve, monte de l'eau).
+                      if (widget.secondWagon && _bathing)
+                        _steam(w, h,
+                            cx: GameState.instance.bathX,
+                            topY: GameState.instance.bathY - 0.04,
+                            boxWFrac: GameState.instance.bathH * (1376 / 768) * 0.7,
+                            boxHFrac: GameState.instance.bathH * 0.9,
+                            intensity: 1.15),
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
                       if (!widget.secondWagon &&
@@ -1753,6 +1761,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
             },
             onResize: (nh) => gs.showerPanelH = nh,
           ),
+          // Vapeur de douche : devant le panneau, autour d'elle (ambiance +
+          // léger voile). Seulement pendant la douche.
+          if (_showering)
+            _steam(w, h,
+                cx: gs.showerPanelX,
+                topY: 0.34,
+                boxWFrac: 0.22,
+                boxHFrac: 0.50,
+                intensity: 1.1),
           if (!_bathing)
             _w2Drag(
               w: w, h: h, cx: gs.bathX, topY: gs.bathY,
@@ -1829,6 +1846,34 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         fontFamily: 'monospace',
                         height: 1.35)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Voile de vapeur animé (bain/douche). Boîte centrée sur cx ; la vapeur
+  // monte du bas vers le haut. Cadencé sur _smoke (6s).
+  Widget _steam(
+    double w,
+    double h, {
+    required double cx,
+    required double topY,
+    required double boxWFrac,
+    required double boxHFrac,
+    double intensity = 1.0,
+  }) {
+    final bw = w * boxWFrac;
+    return Positioned(
+      left: w * cx - bw / 2,
+      top: h * topY,
+      width: bw,
+      height: h * boxHFrac,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: _smoke,
+          builder: (_, __) => CustomPaint(
+            painter: _SteamPainter(_smoke.value, intensity: intensity),
           ),
         ),
       ),
@@ -2577,6 +2622,40 @@ class _ParallaxLayer extends StatelessWidget {
 /// cluster of 3 overlapping radial-gradient blobs (so the silhouette is
 /// irregular, not a clean circle), drawn with a colour that lerps from
 /// near-black at the source to dusty grey as the puff ages.
+/// Voile de vapeur d'eau : volutes blanches floues qui montent et se
+/// dissipent. Utilisé pour le bain et la douche (ambiance + léger voile).
+class _SteamPainter extends CustomPainter {
+  _SteamPainter(this.t, {this.intensity = 1.0});
+  final double t; // 0..1 (boucle)
+  final double intensity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final n = (9 * intensity).round().clamp(3, 18);
+    final rnd = math.Random(7); // déterministe -> volutes stables
+    for (int i = 0; i < n; i++) {
+      final phase = rnd.nextDouble();
+      final x0 = 0.12 + 0.76 * rnd.nextDouble();
+      final drift = (rnd.nextDouble() - 0.5) * 0.28;
+      final life = (t + phase) % 1.0; // 0 (bas) -> 1 (haut)
+      final y = 1.0 - life;
+      final x = x0 + drift * life;
+      final r = size.width * (0.10 + 0.18 * life);
+      final op = math.sin(life * math.pi) * 0.18 * intensity;
+      if (op <= 0.01) continue;
+      final paint = Paint()
+        ..color = Color.fromRGBO(255, 255, 255, op)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
+      canvas.drawCircle(
+          Offset(x * size.width, y * size.height), r, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SteamPainter old) =>
+      old.t != t || old.intensity != intensity;
+}
+
 class _SmokePainter extends CustomPainter {
   _SmokePainter(this.t, {required this.running, this.intensity = 1.0});
   final double t;

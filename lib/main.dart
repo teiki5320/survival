@@ -467,59 +467,16 @@ class _WagonScreenState extends State<WagonScreen> {
               child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
+              // Ordre : boutons dev/secondaires EN HAUT (on scrolle pour les
+              // atteindre), boutons essentiels EN BAS — avec reverse:true le
+              // bas est toujours visible. L'ACTION contextuelle est en dernier
+              // (= tout en bas = jamais coupée).
               children: [
-                // Bouton ACTION contextuel — un seul rond qui s'allume
-                // quand le perso atteint un bord. Wagon 1 : bord gauche =
-                // loco, bord droit = 2e wagon. Wagon 2 : bord gauche =
-                // retour wagon 1. La carte est sur son propre bouton.
-                AnimatedBuilder(
-                  animation: GameState.instance,
-                  builder: (_, __) => _actionFab(),
-                ),
-                const SizedBox(height: 12),
-                // Cellier seulement : mode ajuster (placer/redimensionner +
-                // coordonnées). Pincer un prop = changer sa taille.
-                if (secondWagon) ...[
-                  FloatingActionButton.small(
-                    heroTag: 'w2_adjust',
-                    tooltip: _w2Adjust ? 'Terminer le placement' : 'Ajuster les objets',
-                    backgroundColor:
-                        _w2Adjust ? const Color(0xFFE8B96B) : null,
-                    foregroundColor:
-                        _w2Adjust ? const Color(0xFF2A2018) : null,
-                    onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
-                    child: Icon(_w2Adjust ? Icons.check : Icons.edit),
-                  ),
-                  const SizedBox(height: 12),
-                ],
                 FloatingActionButton.small(
-                  heroTag: 'open_cards',
-                  tooltip: 'Le voyage (cartes)',
-                  backgroundColor: const Color(0xFFE8B96B),
-                  foregroundColor: const Color(0xFF2A2018),
-                  onPressed: () => setState(() => _inCards = true),
-                  child: const Icon(Icons.style),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'open_map',
-                  tooltip: 'La carte du voyage',
-                  onPressed: () => setState(() => _onMap = true),
-                  child: const Icon(Icons.map),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'toggle_dance',
-                  tooltip: _dancing ? 'Arrêter de danser' : 'Danser',
-                  onPressed: () => setState(() => _dancing = !_dancing),
-                  child: Icon(_dancing ? Icons.stop : Icons.celebration),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'toggle_night',
-                  tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
-                  onPressed: _toggleNight,
-                  child: Icon(_night ? Icons.wb_sunny : Icons.nightlight_round),
+                  heroTag: 'toggle_run',
+                  tooltip: _running ? 'Arrêter le train' : 'Démarrer le train',
+                  onPressed: _toggleRun,
+                  child: Icon(_running ? Icons.pause : Icons.play_arrow),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
@@ -543,10 +500,56 @@ class _WagonScreenState extends State<WagonScreen> {
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
-                  heroTag: 'toggle_run',
-                  tooltip: _running ? 'Arrêter le train' : 'Démarrer le train',
-                  onPressed: _toggleRun,
-                  child: Icon(_running ? Icons.pause : Icons.play_arrow),
+                  heroTag: 'toggle_night',
+                  tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
+                  onPressed: _toggleNight,
+                  child: Icon(_night ? Icons.wb_sunny : Icons.nightlight_round),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'toggle_dance',
+                  tooltip: _dancing ? 'Arrêter de danser' : 'Danser',
+                  onPressed: () => setState(() => _dancing = !_dancing),
+                  child: Icon(_dancing ? Icons.stop : Icons.celebration),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'open_map',
+                  tooltip: 'La carte du voyage',
+                  onPressed: () => setState(() => _onMap = true),
+                  child: const Icon(Icons.map),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'open_cards',
+                  tooltip: 'Le voyage (cartes)',
+                  backgroundColor: const Color(0xFFE8B96B),
+                  foregroundColor: const Color(0xFF2A2018),
+                  onPressed: () => setState(() => _inCards = true),
+                  child: const Icon(Icons.style),
+                ),
+                const SizedBox(height: 12),
+                // Cellier seulement : mode ajuster (placer/redimensionner +
+                // coordonnées). Pincer un prop = changer sa taille.
+                if (secondWagon) ...[
+                  FloatingActionButton.small(
+                    heroTag: 'w2_adjust',
+                    tooltip: _w2Adjust
+                        ? 'Terminer le placement'
+                        : 'Ajuster les objets',
+                    backgroundColor:
+                        _w2Adjust ? const Color(0xFFE8B96B) : null,
+                    foregroundColor:
+                        _w2Adjust ? const Color(0xFF2A2018) : null,
+                    onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
+                    child: Icon(_w2Adjust ? Icons.check : Icons.edit),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                // Bouton ACTION contextuel — toujours visible (tout en bas).
+                AnimatedBuilder(
+                  animation: GameState.instance,
+                  builder: (_, __) => _actionFab(),
                 ),
               ],
             ),
