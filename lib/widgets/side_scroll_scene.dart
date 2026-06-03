@@ -46,6 +46,7 @@ class SideScrollScene extends StatefulWidget {
     this.specialAnimNext,
     this.specialAnimNextFrames = 25,
     this.initialHeroX = 0.5,
+    this.secondWagon = false,
   });
 
   /// Wagon visual progression, 0..3:
@@ -54,6 +55,13 @@ class SideScrollScene extends StatefulWidget {
   ///   2 — windowed (floor cleaned + windows put back; walls still rusty)
   ///   3 — clean (fully restored)
   final int wagonStage;
+
+  /// `true` rend le **2e wagon** (cellier/stockage) : background dédié
+  /// (`wagon2_messy`/`wagon2_clean` selon [wagonStage]) et tous les props de
+  /// vie du 1er wagon masqués (lit, hydro, lampe, poêle, filtre, table,
+  /// carnet, trousse, commode, gamelle, chien, sœur). Seule l'héroïne reste,
+  /// avec son autonomie. La porte gauche y ramène au 1er wagon.
+  final bool secondWagon;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -454,9 +462,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _idleBreak != null;
     if (busy) return;
 
+    final r = math.Random();
+
+    // 2e wagon : pas de props (poêle/filtre/jardin) -> elle se contente de
+    // flâner et de petites pauses, pas d'actions liées aux besoins.
+    if (widget.secondWagon) {
+      if (r.nextBool()) {
+        _walkTo(_heroXMin + r.nextDouble() * (_heroXMax - _heroXMin));
+      } else {
+        _startAutoSpecial(r.nextBool() ? 'yawn' : 'stretch');
+      }
+      return;
+    }
+
     final gs = GameState.instance;
     final soif = gs.cardSoif, faim = gs.cardFaim, moral = gs.cardMoral;
-    final r = math.Random();
 
     if (soif < 55 && soif <= faim && soif <= moral) {
       _startAutoSpecial('drink'); // a soif -> boit
@@ -618,6 +638,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/foreground_snow.png',
       'assets/background/wagon_windowed.png',
       'assets/background/wagon_clean.png',
+      'assets/background/wagon2_messy.png',
+      'assets/background/wagon2_clean.png',
       'assets/background/wagon_rails.png',
       'assets/objects/bed.png',
     ]) {
@@ -1202,17 +1224,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     normalised state so the in-app adjustment
                       //     mode can drag + resize them live; final
                       //     values get baked back into the defaults.
-                      Positioned(
-                        left: w * _bedLeft,
-                        top: h * _bedTop,
-                        width: w * _bedWidth,
-                        child: _nightTint(
-                          Image.asset(
-                            'assets/objects/bed.png',
-                            fit: BoxFit.contain,
+                      if (!widget.secondWagon)
+                        Positioned(
+                          left: w * _bedLeft,
+                          top: h * _bedTop,
+                          width: w * _bedWidth,
+                          child: _nightTint(
+                            Image.asset(
+                              'assets/objects/bed.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
-                      ),
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
@@ -1265,16 +1288,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     lampe, poêle, filtre eau, chien, table,
                       //     carnet, trousse). Rendus avant la fille pour
                       //     qu'elle puisse passer devant.
-                      for (final def in _propDefs)
-                        _buildProp(def: def, w: w, h: h),
+                      if (!widget.secondWagon)
+                        for (final def in _propDefs)
+                          _buildProp(def: def, w: w, h: h),
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
-                      if (_activeSpecial != 'pet_dog' && !_sisterDogActive)
+                      if (!widget.secondWagon &&
+                          _activeSpecial != 'pet_dog' &&
+                          !_sisterDogActive)
                         _buildStaticDog(w, h),
                       // Petite soeur autonome (anim toutes les ~20s).
-                      _buildSister(w, h),
+                      if (!widget.secondWagon) _buildSister(w, h),
                       // 4c. Lamp glow when lamp is on.
-                      if (GameState.instance.lampOn)
+                      if (!widget.secondWagon && GameState.instance.lampOn)
                         Positioned.fill(
                           child: IgnorePointer(
                             child: Opacity(
@@ -1712,10 +1738,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   String _wagonAssetFor(int stage) {
-    const assets = [
-      'assets/background/wagon_windowed.png',
-      'assets/background/wagon_clean.png',
-    ];
+    final assets = widget.secondWagon
+        ? const [
+            'assets/background/wagon2_messy.png',
+            'assets/background/wagon2_clean.png',
+          ]
+        : const [
+            'assets/background/wagon_windowed.png',
+            'assets/background/wagon_clean.png',
+          ];
     final i = stage.clamp(0, assets.length - 1);
     return assets[i];
   }

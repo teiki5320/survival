@@ -92,6 +92,13 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
   chien, props (hydro/lamp/stove/filter/table/notebook/firstaid/commode/bowl),
   silhouettes humaines + foreground life, animations atmosphère. **Filtre =
   asset tank dynamique** selon `waterTankGlasses` (6 frames 0→5).
+  - **Wagon = 2 stages** (windowed/clean) ; dirty+swept retirés.
+  - **`secondWagon: true`** rend le **2e wagon (cellier)** : background
+    `wagon2_messy`/`wagon2_clean` selon `wagon2Stage`, tous les props +
+    chien + sœur masqués, héroïne seule (autonomie = flâne uniquement).
+  - **Autonomie** : Shen agit selon ses besoins toutes les ~14s (boit/
+    cuisine/jardine/lit/danse/caresse/flâne) — cosmétique, stats gérées
+    par les cartes. **Chien autonome** (`_DogCharacter`) + sœur autonome.
 - `lib/widgets/locomotive_scene.dart` — Cabine loco avec ramassage bûches.
 - `lib/widgets/map_screen.dart` — Carte 14 gares, spline Catmull-Rom,
   train procédural. Plus de wood points (retirés).

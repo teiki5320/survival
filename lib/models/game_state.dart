@@ -36,6 +36,7 @@ class GameState extends ChangeNotifier {
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
+        'wagon2Stage': wagon2Stage,
         'waterTankGlasses': waterTankGlasses,
         'filterTier': filterTier,
         'hydroTier': hydroTier,
@@ -70,6 +71,7 @@ class GameState extends ChangeNotifier {
       }
       // 2 stages désormais (windowed/clean) : clamp pour vieilles sauvegardes.
       wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
+      wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
@@ -120,6 +122,9 @@ class GameState extends ChangeNotifier {
   }
 
   int wagonStage = 0;
+
+  /// 2e wagon (cellier) : 0 = en désordre (état initial), 1 = aménagé/propre.
+  int wagon2Stage = 0;
 
   // --- Water tank (filter prop) — 0..5 verres stockés ---
   int waterTankGlasses = 0;

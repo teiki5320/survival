@@ -103,6 +103,7 @@ class _WagonScreenState extends State<WagonScreen> {
   int _cookToken = 0;
 
   bool _inLocomotive = false;
+  bool _inWagon2 = false;
   bool _onMap = false;
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
@@ -117,6 +118,10 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _doorPushing = false;
   bool _doorPushRight = false;
   int _doorPushToken = 0;
+  // Destination visée par l'animation de porte en cours : 'loco', 'wagon2'
+  // (depuis le wagon 1, porte droite) ou 'wagon1' (depuis le wagon 2, porte
+  // gauche). Consommée dans _onDoorPushDone.
+  String? _pendingDoor;
   // Mirror of the heroine's X position. `_heroX` change quand le perso
   // bouge (60Hz) — pour éviter un setState à chaque tick qui rebuild
   // toute la scène et fait saccader, on l'expose via un ValueNotifier
@@ -167,6 +172,7 @@ class _WagonScreenState extends State<WagonScreen> {
   int _logsThrown = 0;
 
   static const _stageLabels = ['Vitres remises', 'Tout propre'];
+  static const _wagon2Labels = ['En désordre', 'Aménagé'];
 
   final _audio = AudioService();
 
@@ -212,34 +218,60 @@ class _WagonScreenState extends State<WagonScreen> {
     if (_doorPushing) return;
     setState(() {
       _doorPushing = true;
-      _doorPushRight = false;
+      _doorPushRight = false; // porte gauche
+      _pendingDoor = 'loco';
       _doorPushToken++;
     });
   }
 
-  void _openMapDoor() {
+  // Wagon 1, porte droite : anim d'ouverture vers la droite -> wagon 2.
+  void _enterWagon2() {
     if (_doorPushing) return;
     setState(() {
       _doorPushing = true;
       _doorPushRight = true;
+      _pendingDoor = 'wagon2';
+      _doorPushToken++;
+    });
+  }
+
+  // Wagon 2, porte gauche : anim d'ouverture vers la gauche -> wagon 1.
+  void _returnToWagon1() {
+    if (_doorPushing) return;
+    setState(() {
+      _doorPushing = true;
+      _doorPushRight = false;
+      _pendingDoor = 'wagon1';
       _doorPushToken++;
     });
   }
 
   void _onDoorPushDone() {
     if (!mounted) return;
-    if (_doorPushRight) {
-      setState(() {
-        _doorPushing = false;
-        _onMap = true;
-      });
-    } else {
-      setState(() {
-        _doorPushing = false;
-        _inLocomotive = true;
-      });
-      _audio.startFire();
+    switch (_pendingDoor) {
+      case 'loco':
+        setState(() {
+          _doorPushing = false;
+          _inLocomotive = true;
+        });
+        _audio.startFire();
+        break;
+      case 'wagon2':
+        setState(() {
+          _doorPushing = false;
+          _inWagon2 = true;
+          _heroSpawnX = SideScrollScene.heroXMin; // arrive côté gauche
+        });
+        break;
+      case 'wagon1':
+        setState(() {
+          _doorPushing = false;
+          _inWagon2 = false;
+          _heroSpawnX = SideScrollScene.heroXMax; // revient côté droit
+        });
+        break;
     }
+    _pendingDoor = null;
   }
 
   void _exitLocomotive() {
@@ -315,19 +347,24 @@ class _WagonScreenState extends State<WagonScreen> {
                     },
                     onReturn: _exitLocomotive,
                   )
-                : _buildWagon(key: const ValueKey('wagon')),
+                : _inWagon2
+                    ? _buildWagon(
+                        key: const ValueKey('wagon2'), secondWagon: true)
+                    : _buildWagon(key: const ValueKey('wagon')),
       ),
     );
   }
 
-  Widget _buildWagon({required Key key}) {
+  Widget _buildWagon({required Key key, bool secondWagon = false}) {
     return Stack(
       key: key,
       children: [
         Positioned.fill(
           child: SideScrollScene(
+            secondWagon: secondWagon,
             initialHeroX: _heroSpawnX,
-            wagonStage: _wagonStage,
+            wagonStage:
+                secondWagon ? GameState.instance.wagon2Stage : _wagonStage,
             running: _running,
             night: _night,
             dancing: _dancing,
@@ -410,8 +447,9 @@ class _WagonScreenState extends State<WagonScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 // Bouton ACTION contextuel — un seul rond qui s'allume
-                // quand le perso atteint un bord. Tap = entre dans la
-                // loco (bord gauche) ou ouvre la map (bord droit).
+                // quand le perso atteint un bord. Wagon 1 : bord gauche =
+                // loco, bord droit = 2e wagon. Wagon 2 : bord gauche =
+                // retour wagon 1. La carte est sur son propre bouton.
                 AnimatedBuilder(
                   animation: GameState.instance,
                   builder: (_, __) => _actionFab(),
@@ -424,6 +462,13 @@ class _WagonScreenState extends State<WagonScreen> {
                   foregroundColor: const Color(0xFF2A2018),
                   onPressed: () => setState(() => _inCards = true),
                   child: const Icon(Icons.style),
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.small(
+                  heroTag: 'open_map',
+                  tooltip: 'La carte du voyage',
+                  onPressed: () => setState(() => _onMap = true),
+                  child: const Icon(Icons.map),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
@@ -442,10 +487,19 @@ class _WagonScreenState extends State<WagonScreen> {
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
                   heroTag: 'cycle_wagon_stage',
-                  tooltip:
-                      'Wagon: ${_stageLabels[_wagonStage.clamp(0, _stageLabels.length - 1)]}',
+                  tooltip: _inWagon2
+                      ? 'Cellier: ${_wagon2Labels[GameState.instance.wagon2Stage.clamp(0, 1)]}'
+                      : 'Wagon: ${_stageLabels[_wagonStage.clamp(0, _stageLabels.length - 1)]}',
                   onPressed: () {
-                    setState(() => _wagonStage = (_wagonStage + 1) % 2);
+                    setState(() {
+                      if (_inWagon2) {
+                        final gs = GameState.instance;
+                        gs.wagon2Stage = (gs.wagon2Stage + 1) % 2;
+                        gs.save();
+                      } else {
+                        _wagonStage = (_wagonStage + 1) % 2;
+                      }
+                    });
                     _audio.playSfx('clean');
                   },
                   child: const Icon(Icons.cleaning_services),
@@ -472,22 +526,24 @@ class _WagonScreenState extends State<WagonScreen> {
     VoidCallback? action;
 
     if (_atLeftDoor && !_doorPushing) {
+      // Porte gauche : loco (wagon 1) ou retour wagon 1 (depuis wagon 2).
       icon = Icons.meeting_room;
-      action = _enterLocomotive;
-    } else if (_atRightDoor && !_doorPushing) {
-      icon = Icons.map;
-      action = _openMapDoor;
-    } else if (_atBed) {
+      action = _inWagon2 ? _returnToWagon1 : _enterLocomotive;
+    } else if (_atRightDoor && !_doorPushing && !_inWagon2) {
+      // Porte droite du wagon 1 : ouverture vers le 2e wagon.
+      icon = Icons.meeting_room;
+      action = _enterWagon2;
+    } else if (!_inWagon2 && _atBed) {
       icon = Icons.bed;
       action = () => setState(() => _lieDownToken++);
-    } else if (_atNotebook) {
+    } else if (!_inWagon2 && _atNotebook) {
       icon = Icons.menu_book;
       action = () {
         _triggerSpecial('read', frames: 49);
         // Lire réconforte : +moral.
         GameState.instance.nudgeCardStat('moral', 10);
       };
-    } else if (_atFilter) {
+    } else if (!_inWagon2 && _atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
       if (glasses == 0) {
         // Vide → remplir.
@@ -508,7 +564,7 @@ class _WagonScreenState extends State<WagonScreen> {
           GameState.instance.setWaterTankGlasses(glasses - 1);
         };
       }
-    } else if (_atDog) {
+    } else if (!_inWagon2 && _atDog) {
       icon = Icons.pets;
       action = () {
         _dogInteractCount++;
@@ -521,13 +577,13 @@ class _WagonScreenState extends State<WagonScreen> {
         GameState.instance.nudgeCardStat('moral', 10);
         _audio.playSfx('dog_bark');
       };
-    } else if (_atStove) {
+    } else if (!_inWagon2 && _atStove) {
       icon = Icons.soup_kitchen;
       action = () => setState(() => _cookToken++);
-    } else if (_atHydro) {
+    } else if (!_inWagon2 && _atHydro) {
       icon = Icons.yard;
       action = () => setState(() => _inHydroGame = true);
-    } else if (_atLamp) {
+    } else if (!_inWagon2 && _atLamp) {
       icon = GameState.instance.lampOn
           ? Icons.lightbulb
           : Icons.lightbulb_outline;
