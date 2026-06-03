@@ -80,7 +80,11 @@ class _LoadingScreenState extends State<LoadingScreen> {
   @override
   Widget build(BuildContext context) {
     final p = _progress.clamp(0.0, 1.0);
-    return DecoratedBox(
+    // Material transparent : fournit un DefaultTextStyle propre (sinon Flutter
+    // ajoute le double soulignage jaune sur les Text hors Material).
+    return Material(
+      type: MaterialType.transparency,
+      child: DecoratedBox(
       decoration: const BoxDecoration(
         gradient: RadialGradient(
           center: Alignment(0, -0.15),
@@ -170,6 +174,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

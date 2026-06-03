@@ -455,10 +455,16 @@ class _WagonScreenState extends State<WagonScreen> {
           ),
         ),
         Positioned(
-          right: 16,
+          top: 8,
           bottom: 16,
+          right: 16,
           child: SafeArea(
-            child: Column(
+            // Scrollable : en paysage la pile de boutons dépasse la hauteur
+            // de l'écran ; reverse=true garde le bas visible, on remonte pour
+            // atteindre les boutons du haut.
+            child: SingleChildScrollView(
+              reverse: true,
+              child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -543,6 +549,7 @@ class _WagonScreenState extends State<WagonScreen> {
                   child: Icon(_running ? Icons.pause : Icons.play_arrow),
                 ),
               ],
+            ),
             ),
           ),
         ),
