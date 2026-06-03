@@ -49,6 +49,7 @@ class SideScrollScene extends StatefulWidget {
     this.secondWagon = false,
     this.bathToken = 0,
     this.showerToken = 0,
+    this.wagon2Adjust = false,
   });
 
   /// Wagon visual progression, 0..3:
@@ -72,6 +73,10 @@ class SideScrollScene extends StatefulWidget {
 
   /// Idem pour la douche (près du panneau) : tour puis boucle de douche.
   final int showerToken;
+
+  /// Mode "ajuster" du cellier : props déplaçables (drag) + redimensionnables
+  /// (pincer) + HUD des coordonnées. Off = props figés (jeu normal).
+  final bool wagon2Adjust;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -371,8 +376,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _bathFrame = 0;
   bool _bathHeld = false;
   int _bathAccumMs = 0;
-  static const int _bathFrameMs = 140;
+  static const int _bathFrameMs = 105; // entrée pas trop lente
   static const int _bathFrames = 8;
+  double _scaleStartH = 0; // hauteur capturée au début d'un pincer (ajuster)
 
   // Douche (cellier) : Shen se tourne (use_back) puis se lave les cheveux
   // sous le pommeau, derrière le panneau. shower_1..8 en BOUCLE (+moral).
@@ -1103,10 +1109,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _walkAccumMs -= _walkFrameMs;
         _walkFrame = (_walkFrame + 1) % _heroFrameCount;
         // Roughly every 6 walk frames a foot is planted — kick a dust
-        // puff at the heroine's feet + footstep sound.
+        // puff at the heroine's feet. (Son de pas retiré : pas apprécié.)
         if (_walkFrame % 6 == 0) {
           _stepToken++;
-          AudioService().playSfx('footstep', volume: 0.4);
         }
       }
     });
@@ -1625,8 +1630,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// l'entry correspondante de [_propPos] (left/top centrés, height en
   /// fraction de h). Tous les sprites AutoSprite sont 512x512 (ratio
   /// 1:1) donc width = height.
-  // Props positionnables du cellier (drag au doigt, position sauvegardée).
-  // Boîte dimensionnée par sa hauteur (fraction h) + ratio de l'asset.
+  // Prop positionnable du cellier. En jeu normal : figé (IgnorePointer).
+  // En mode ajuster : déplaçable (1 doigt) + redimensionnable (pincer 2
+  // doigts) + contour + label.
   Widget _w2Drag({
     required double w,
     required double h,
@@ -1635,10 +1641,22 @@ class _SideScrollSceneState extends State<SideScrollScene>
     required double heightFrac,
     required double aspect,
     required Widget child,
+    required String label,
     required void Function(double dx, double dy) onMove,
+    required void Function(double newH) onResize,
   }) {
     final ph = h * heightFrac;
     final pw = ph * aspect;
+    final tinted = _nightTint(child);
+    if (!widget.wagon2Adjust) {
+      return Positioned(
+        left: w * cx - pw / 2,
+        top: h * topY,
+        width: pw,
+        height: ph,
+        child: IgnorePointer(child: tinted),
+      );
+    }
     return Positioned(
       left: w * cx - pw / 2,
       top: h * topY,
@@ -1646,81 +1664,173 @@ class _SideScrollSceneState extends State<SideScrollScene>
       height: ph,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onPanUpdate: (d) =>
-            setState(() => onMove(d.delta.dx / w, d.delta.dy / h)),
-        onPanEnd: (_) => GameState.instance.save(),
-        child: _nightTint(child),
+        onScaleStart: (_) => _scaleStartH = heightFrac,
+        onScaleUpdate: (d) {
+          setState(() {
+            if (d.pointerCount >= 2) {
+              onResize((_scaleStartH * d.scale).clamp(0.04, 1.4));
+            } else {
+              onMove(d.focalPointDelta.dx / w, d.focalPointDelta.dy / h);
+            }
+          });
+        },
+        onScaleEnd: (_) => GameState.instance.save(),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(child: tinted),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                        color: const Color(0xCCE8B96B), width: 1.2),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -14,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFFE8B96B),
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Tous les props déplaçables du cellier : 2 lanternes + baignoire +
-  // panneau douche + pommeau (eau animée). La baignoire est masquée pendant
-  // que Shen prend son bain (remplacée par l'anim qui contient sa propre cuve).
+  // Tous les props du cellier : Shen-douche + pommeau (eau on/off) + panneau
+  // + baignoire + 2 lanternes. Déplaçables/redimensionnables en mode ajuster.
+  // La baignoire est masquée pendant le bain (l'anim contient sa cuve).
   Widget _buildWagon2Props(double w, double h) {
     final gs = GameState.instance;
+    // Pommeau : eau qui coule UNIQUEMENT pendant la douche, sinon sec.
+    final pommeau = ValueListenableBuilder<int>(
+      valueListenable: _heroAnim,
+      builder: (_, __, ___) {
+        final wf = _showering ? (_showerFrame % 2) : 5; // 0/1 flux, 5 sec
+        return Image.asset('assets/objects/showerhead_${wf + 1}.png',
+            fit: BoxFit.contain, gaplessPlayback: true);
+      },
+    );
     Widget lamp() => const _AnimatedSprite(
         prefix: 'lamp', frameCount: 49, durationMs: 49 * 70);
     return Positioned.fill(
       child: Stack(
         children: [
-          // Shen sous la douche (derrière pommeau + panneau). Calée au sol
-          // sous le x du panneau (auto-align).
+          // Shen sous la douche (derrière pommeau + panneau).
           if (_showering) _buildShowerHeroine(w, h),
-          // Pommeau + eau qui coule (boucle), devant Shen (l'eau l'arrose).
           _w2Drag(
             w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
-            heightFrac: gs.showerHeadH, aspect: 229 / 672,
-            child: const _AnimatedSprite(
-              prefix: 'showerhead', frameCount: 6, durationMs: 6 * 140,
-              dir: 'assets/objects',
-            ),
+            heightFrac: gs.showerHeadH, aspect: 229 / 672, label: 'pommeau',
+            child: pommeau,
             onMove: (dx, dy) {
               gs.showerHeadX = (gs.showerHeadX + dx).clamp(0.02, 0.98);
               gs.showerHeadY = (gs.showerHeadY + dy).clamp(0.0, 0.85);
             },
+            onResize: (nh) => gs.showerHeadH = nh,
           ),
-          // Panneau de bois (douche) — devant Shen (cache le bas du corps).
           _w2Drag(
             w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
-            heightFrac: gs.showerPanelH, aspect: 1376 / 768,
+            heightFrac: gs.showerPanelH, aspect: 1376 / 768, label: 'panneau',
             child: Image.asset('assets/objects/shower_panel.png',
                 fit: BoxFit.contain, gaplessPlayback: true),
             onMove: (dx, dy) {
               gs.showerPanelX = (gs.showerPanelX + dx).clamp(0.02, 0.98);
               gs.showerPanelY = (gs.showerPanelY + dy).clamp(0.0, 0.85);
             },
+            onResize: (nh) => gs.showerPanelH = nh,
           ),
-          // Baignoire (masquée pendant le bain).
           if (!_bathing)
             _w2Drag(
               w: w, h: h, cx: gs.bathX, topY: gs.bathY,
-              heightFrac: gs.bathH, aspect: 1376 / 768,
+              heightFrac: gs.bathH, aspect: 1376 / 768, label: 'baignoire',
               child: Image.asset('assets/objects/bathtub.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
                 gs.bathX = (gs.bathX + dx).clamp(0.02, 0.98);
                 gs.bathY = (gs.bathY + dy).clamp(0.0, 0.85);
               },
+              onResize: (nh) => gs.bathH = nh,
             ),
-          // Lanternes.
           _w2Drag(
             w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
-            heightFrac: 0.12, aspect: 1.0, child: lamp(),
+            heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',
+            child: lamp(),
             onMove: (dx, dy) {
               gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
               gs.wagon2LampAy = (gs.wagon2LampAy + dy).clamp(0.04, 0.80);
             },
+            onResize: (nh) => gs.wagon2LampAH = nh,
           ),
           _w2Drag(
             w: w, h: h, cx: gs.wagon2LampBx, topY: gs.wagon2LampBy,
-            heightFrac: 0.12, aspect: 1.0, child: lamp(),
+            heightFrac: gs.wagon2LampBH, aspect: 1.0, label: 'lampe B',
+            child: lamp(),
             onMove: (dx, dy) {
               gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
               gs.wagon2LampBy = (gs.wagon2LampBy + dy).clamp(0.04, 0.80);
             },
+            onResize: (nh) => gs.wagon2LampBH = nh,
           ),
+          // HUD coordonnées (mode ajuster) : lecture des x/y/h pour rebaker.
+          if (widget.wagon2Adjust) _coordHud(gs),
         ],
+      ),
+    );
+  }
+
+  Widget _coordHud(GameState gs) {
+    String l(String n, double x, double y, double hh) =>
+        '$n  x${x.toStringAsFixed(2)}  y${y.toStringAsFixed(2)}  h${hh.toStringAsFixed(2)}';
+    final lines = [
+      l('baignoire', gs.bathX, gs.bathY, gs.bathH),
+      l('panneau  ', gs.showerPanelX, gs.showerPanelY, gs.showerPanelH),
+      l('pommeau  ', gs.showerHeadX, gs.showerHeadY, gs.showerHeadH),
+      l('lampe A  ', gs.wagon2LampAx, gs.wagon2LampAy, gs.wagon2LampAH),
+      l('lampe B  ', gs.wagon2LampBx, gs.wagon2LampBy, gs.wagon2LampBH),
+    ];
+    return Positioned(
+      left: 8,
+      bottom: 8,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('AJUSTER — pincer = taille',
+                  style: TextStyle(
+                      color: Color(0xFFE8B96B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold)),
+              for (final s in lines)
+                Text(s,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        height: 1.35)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1738,15 +1848,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // d'anim -> on réduit la boîte d'anim pour matcher la largeur de cuve.
     final animW = boxW * (0.701 / 0.929);
     final animH = animW * (336 / 396); // ratio cellule bain
-    final asset = 'assets/characters/bath_${_bathFrame + 1}.png';
     return Positioned(
       left: w * gs.bathX - animW / 2,
       top: contentBottom - 0.884 * animH,
       width: animW,
       height: animH,
       child: IgnorePointer(
-        child: _nightTint(
-          Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
+        // Écoute le ticker pour avancer les frames (sinon figée).
+        child: ValueListenableBuilder<int>(
+          valueListenable: _heroAnim,
+          builder: (_, __, ___) => _nightTint(
+            Image.asset('assets/characters/bath_${_bathFrame + 1}.png',
+                fit: BoxFit.contain, gaplessPlayback: true),
+          ),
         ),
       ),
     );
@@ -1756,18 +1870,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // panneau (auto-align). Le panneau (rendu après) cache le bas du corps.
   Widget _buildShowerHeroine(double w, double h) {
     final gs = GameState.instance;
-    final sh = h * 0.46;
+    final sh = h * 0.52;
     final sw = sh * (198 / 672);
     final feetY = h * 0.80; // sol du cellier
-    final asset = 'assets/characters/shower_${_showerFrame + 1}.png';
     return Positioned(
       left: w * gs.showerPanelX - sw / 2,
       top: feetY - sh,
       width: sw,
       height: sh,
       child: IgnorePointer(
-        child: _nightTint(
-          Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
+        child: ValueListenableBuilder<int>(
+          valueListenable: _heroAnim,
+          builder: (_, __, ___) => _nightTint(
+            Image.asset('assets/characters/shower_${_showerFrame + 1}.png',
+                fit: BoxFit.contain, gaplessPlayback: true),
+          ),
         ),
       ),
     );

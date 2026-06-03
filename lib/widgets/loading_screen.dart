@@ -79,8 +79,15 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFF1B1410),
+    final p = _progress.clamp(0.0, 1.0);
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment(0, -0.15),
+          radius: 1.1,
+          colors: [Color(0xFF2E2118), Color(0xFF160F0B)],
+        ),
+      ),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -88,35 +95,78 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const Text(
               'Train Cosy',
               style: TextStyle(
-                color: Color(0xFFE8D5B0),
-                fontSize: 30,
+                color: Color(0xFFF0DCB6),
+                fontSize: 34,
                 fontWeight: FontWeight.w600,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Le train se prépare…',
-              style: TextStyle(color: Color(0xFF9A8B76), fontSize: 14),
-            ),
-            const SizedBox(height: 26),
-            SizedBox(
-              width: 200,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: _progress == 0 ? null : _progress,
-                  minHeight: 6,
-                  backgroundColor: Colors.white12,
-                  valueColor:
-                      const AlwaysStoppedAnimation(Color(0xFFD9A05B)),
-                ),
+                letterSpacing: 3,
+                shadows: [
+                  Shadow(color: Color(0x66D9A05B), blurRadius: 18),
+                ],
               ),
             ),
             const SizedBox(height: 10),
+            const Text(
+              'Le train se prépare…',
+              style: TextStyle(
+                color: Color(0xFFB59C7E),
+                fontSize: 14,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 34),
+            SizedBox(
+              width: 250,
+              height: 26,
+              child: LayoutBuilder(
+                builder: (_, c) {
+                  final w = c.maxWidth;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.centerLeft,
+                    children: [
+                      // Rail / track.
+                      Container(
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3A2C1E),
+                          borderRadius: BorderRadius.circular(5),
+                          border: Border.all(
+                              color: const Color(0xFF4D3B28), width: 1),
+                        ),
+                      ),
+                      // Remplissage ambré avec halo.
+                      Container(
+                        width: (w * p).clamp(0.0, w),
+                        height: 9,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(5),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF2C078), Color(0xFFD97A35)],
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                                color: Color(0x88E0902F), blurRadius: 10),
+                          ],
+                        ),
+                      ),
+                      // Petit train qui avance au bout du remplissage.
+                      Positioned(
+                        left: (w * p - 13).clamp(0.0, w - 26),
+                        child: const Text('🚂', style: TextStyle(fontSize: 22)),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
             Text(
-              '${(_progress * 100).round()} %',
-              style: const TextStyle(color: Color(0xFF7A6E5E), fontSize: 12),
+              '${(p * 100).round()} %',
+              style: const TextStyle(
+                color: Color(0xFF9A876E),
+                fontSize: 13,
+                letterSpacing: 1,
+              ),
             ),
           ],
         ),

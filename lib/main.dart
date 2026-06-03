@@ -123,6 +123,8 @@ class _WagonScreenState extends State<WagonScreen> {
   // Incrémenté pour entrer/sortir du bain et de la douche (cellier).
   int _bathToken = 0;
   int _showerToken = 0;
+  // Mode ajuster (cellier) : déplacer/redimensionner les props + voir coords.
+  bool _w2Adjust = false;
   // Destination visée par l'animation de porte en cours : 'loco', 'wagon2'
   // (depuis le wagon 1, porte droite) ou 'wagon1' (depuis le wagon 2, porte
   // gauche). Consommée dans _onDoorPushDone.
@@ -373,6 +375,7 @@ class _WagonScreenState extends State<WagonScreen> {
         Positioned.fill(
           child: SideScrollScene(
             secondWagon: secondWagon,
+            wagon2Adjust: secondWagon && _w2Adjust,
             bathToken: _bathToken,
             showerToken: _showerToken,
             initialHeroX: _heroSpawnX,
@@ -468,6 +471,21 @@ class _WagonScreenState extends State<WagonScreen> {
                   builder: (_, __) => _actionFab(),
                 ),
                 const SizedBox(height: 12),
+                // Cellier seulement : mode ajuster (placer/redimensionner +
+                // coordonnées). Pincer un prop = changer sa taille.
+                if (secondWagon) ...[
+                  FloatingActionButton.small(
+                    heroTag: 'w2_adjust',
+                    tooltip: _w2Adjust ? 'Terminer le placement' : 'Ajuster les objets',
+                    backgroundColor:
+                        _w2Adjust ? const Color(0xFFE8B96B) : null,
+                    foregroundColor:
+                        _w2Adjust ? const Color(0xFF2A2018) : null,
+                    onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
+                    child: Icon(_w2Adjust ? Icons.check : Icons.edit),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 FloatingActionButton.small(
                   heroTag: 'open_cards',
                   tooltip: 'Le voyage (cartes)',

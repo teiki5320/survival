@@ -41,6 +41,7 @@ class GameState extends ChangeNotifier {
         'wagon2LampAy': wagon2LampAy,
         'wagon2LampBx': wagon2LampBx,
         'wagon2LampBy': wagon2LampBy,
+        'wagon2LampAH': wagon2LampAH, 'wagon2LampBH': wagon2LampBH,
         'bathX': bathX, 'bathY': bathY, 'bathH': bathH,
         'showerPanelX': showerPanelX, 'showerPanelY': showerPanelY,
         'showerPanelH': showerPanelH,
@@ -85,6 +86,8 @@ class GameState extends ChangeNotifier {
       wagon2LampAy = (data['wagon2LampAy'] as num?)?.toDouble() ?? wagon2LampAy;
       wagon2LampBx = (data['wagon2LampBx'] as num?)?.toDouble() ?? wagon2LampBx;
       wagon2LampBy = (data['wagon2LampBy'] as num?)?.toDouble() ?? wagon2LampBy;
+      wagon2LampAH = (data['wagon2LampAH'] as num?)?.toDouble() ?? wagon2LampAH;
+      wagon2LampBH = (data['wagon2LampBH'] as num?)?.toDouble() ?? wagon2LampBH;
       bathX = (data['bathX'] as num?)?.toDouble() ?? bathX;
       bathY = (data['bathY'] as num?)?.toDouble() ?? bathY;
       bathH = (data['bathH'] as num?)?.toDouble() ?? bathH;
@@ -150,12 +153,13 @@ class GameState extends ChangeNotifier {
 
   /// Position des 2 lanternes du cellier (fraction w pour x, h pour y).
   /// Déplaçables au doigt dans le wagon 2 ; sauvegardées.
-  double wagon2LampAx = 0.30, wagon2LampAy = 0.27;
-  double wagon2LampBx = 0.70, wagon2LampBy = 0.27;
+  double wagon2LampAx = 0.30, wagon2LampAy = 0.27, wagon2LampAH = 0.12;
+  double wagon2LampBx = 0.70, wagon2LampBy = 0.27, wagon2LampBH = 0.12;
 
   /// Props positionnables du cellier (x=fraction w du centre, y=fraction h du
-  /// haut, h=fraction h de la hauteur). Déplaçables au doigt, sauvegardés.
-  double bathX = 0.60, bathY = 0.52, bathH = 0.30;
+  /// haut, h=fraction h de la hauteur). Déplaçables + redimensionnables,
+  /// sauvegardés.
+  double bathX = 0.60, bathY = 0.50, bathH = 0.42;
   double showerPanelX = 0.85, showerPanelY = 0.54, showerPanelH = 0.24;
   double showerHeadX = 0.85, showerHeadY = 0.14, showerHeadH = 0.32;
 
