@@ -765,6 +765,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _specialAccumMs = 0;
           _nextSpecial = null;
           _pendingBath = true;
+          _showering = false; // exclusion mutuelle
+          _pendingShower = false;
         }
       });
     }
@@ -787,6 +789,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _specialAccumMs = 0;
           _nextSpecial = null;
           _pendingShower = true;
+          _bathing = false; // exclusion mutuelle
+          _bathHeld = false;
+          _pendingBath = false;
         }
       });
     }
@@ -892,11 +897,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _bathFrame = 0;
                 _bathHeld = false;
                 _bathAccumMs = 0;
+                // +moral à l'ENTRÉE seulement (pas de farm en toggle).
+                GameState.instance.nudgeCardStat('moral', 12);
               } else if (_pendingShower) {
                 _pendingShower = false;
                 _showering = true;
                 _showerFrame = 0;
                 _showerAccumMs = 0;
+                GameState.instance.nudgeCardStat('moral', 10);
               }
               return;
             }

@@ -548,18 +548,13 @@ class _WagonScreenState extends State<WagonScreen> {
       action = _enterWagon2;
     } else if (_atBath) {
       // Cellier, près de la baignoire : entrer / sortir du bain.
+      // (+moral géré dans la scène, à l'entrée uniquement.)
       icon = Icons.bathtub;
-      action = () {
-        setState(() => _bathToken++);
-        GameState.instance.nudgeCardStat('moral', 12);
-      };
+      action = () => setState(() => _bathToken++);
     } else if (_atShower) {
       // Cellier, près de la douche : se doucher / arrêter.
       icon = Icons.shower;
-      action = () {
-        setState(() => _showerToken++);
-        GameState.instance.nudgeCardStat('moral', 10);
-      };
+      action = () => setState(() => _showerToken++);
     } else if (!_inWagon2 && _atBed) {
       icon = Icons.bed;
       action = () => setState(() => _lieDownToken++);
