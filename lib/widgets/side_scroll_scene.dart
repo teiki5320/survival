@@ -1936,9 +1936,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // panneau (auto-align). Le panneau (rendu après) cache le bas du corps.
   Widget _buildShowerHeroine(double w, double h) {
     final gs = GameState.instance;
-    final sh = h * 0.46; // cohérent avec l'héroïne normale du cellier
+    final sh = h * 0.44; // un peu plus petite -> effet de profondeur
     final sw = sh * (198 / 672);
-    final feetY = h * 0.80; // sol du cellier
+    // Pieds calés DERRIÈRE le bas du panneau (un peu en profondeur) pour
+    // qu'ils ne dépassent pas en dessous.
+    final feetY = h * (gs.showerPanelY + gs.showerPanelH - 0.03);
     return Positioned(
       left: w * gs.showerPanelX - sw / 2,
       top: feetY - sh,
