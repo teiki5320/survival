@@ -41,6 +41,11 @@ class GameState extends ChangeNotifier {
         'wagon2LampAy': wagon2LampAy,
         'wagon2LampBx': wagon2LampBx,
         'wagon2LampBy': wagon2LampBy,
+        'bathX': bathX, 'bathY': bathY, 'bathH': bathH,
+        'showerPanelX': showerPanelX, 'showerPanelY': showerPanelY,
+        'showerPanelH': showerPanelH,
+        'showerHeadX': showerHeadX, 'showerHeadY': showerHeadY,
+        'showerHeadH': showerHeadH,
         'waterTankGlasses': waterTankGlasses,
         'filterTier': filterTier,
         'hydroTier': hydroTier,
@@ -80,6 +85,15 @@ class GameState extends ChangeNotifier {
       wagon2LampAy = (data['wagon2LampAy'] as num?)?.toDouble() ?? wagon2LampAy;
       wagon2LampBx = (data['wagon2LampBx'] as num?)?.toDouble() ?? wagon2LampBx;
       wagon2LampBy = (data['wagon2LampBy'] as num?)?.toDouble() ?? wagon2LampBy;
+      bathX = (data['bathX'] as num?)?.toDouble() ?? bathX;
+      bathY = (data['bathY'] as num?)?.toDouble() ?? bathY;
+      bathH = (data['bathH'] as num?)?.toDouble() ?? bathH;
+      showerPanelX = (data['showerPanelX'] as num?)?.toDouble() ?? showerPanelX;
+      showerPanelY = (data['showerPanelY'] as num?)?.toDouble() ?? showerPanelY;
+      showerPanelH = (data['showerPanelH'] as num?)?.toDouble() ?? showerPanelH;
+      showerHeadX = (data['showerHeadX'] as num?)?.toDouble() ?? showerHeadX;
+      showerHeadY = (data['showerHeadY'] as num?)?.toDouble() ?? showerHeadY;
+      showerHeadH = (data['showerHeadH'] as num?)?.toDouble() ?? showerHeadH;
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
@@ -138,6 +152,12 @@ class GameState extends ChangeNotifier {
   /// Déplaçables au doigt dans le wagon 2 ; sauvegardées.
   double wagon2LampAx = 0.30, wagon2LampAy = 0.27;
   double wagon2LampBx = 0.70, wagon2LampBy = 0.27;
+
+  /// Props positionnables du cellier (x=fraction w du centre, y=fraction h du
+  /// haut, h=fraction h de la hauteur). Déplaçables au doigt, sauvegardés.
+  double bathX = 0.60, bathY = 0.52, bathH = 0.30;
+  double showerPanelX = 0.85, showerPanelY = 0.54, showerPanelH = 0.24;
+  double showerHeadX = 0.85, showerHeadY = 0.14, showerHeadH = 0.32;
 
   // --- Water tank (filter prop) — 0..5 verres stockés ---
   int waterTankGlasses = 0;

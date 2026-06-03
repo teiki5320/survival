@@ -47,6 +47,7 @@ class SideScrollScene extends StatefulWidget {
     this.specialAnimNextFrames = 25,
     this.initialHeroX = 0.5,
     this.secondWagon = false,
+    this.bathToken = 0,
   });
 
   /// Wagon visual progression, 0..3:
@@ -62,6 +63,11 @@ class SideScrollScene extends StatefulWidget {
   /// carnet, trousse, commode, gamelle, chien, sœur). Seule l'héroïne reste,
   /// avec son autonomie. La porte gauche y ramène au 1er wagon.
   final bool secondWagon;
+
+  /// Incrémenté par le parent quand on appuie sur l'action "bain" (Shen est
+  /// près de la baignoire). Lance le tour (use_back) puis l'anim de bain ;
+  /// si elle est déjà dans le bain, la fait sortir.
+  final int bathToken;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -352,6 +358,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _idleBreakAccumMs = 0;
   static const int _idleBreakFrameMs = 65;
   static const int _idleBreakAfterMs = 15000;
+
+  // Bain (cellier) : après s'être tournée (use_back), Shen entre dans le bain.
+  // L'anim bath_1..8 (qui contient sa propre cuve) remplace l'héroïne + la
+  // baignoire statique. On joue 1->8 (entrée->détente) puis on tient la 8.
+  bool _bathing = false;
+  bool _pendingBath = false; // use_back en cours, le bain suit
+  int _bathFrame = 0;
+  bool _bathHeld = false;
+  int _bathAccumMs = 0;
+  static const int _bathFrameMs = 140;
+  static const int _bathFrames = 8;
 
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
@@ -712,6 +729,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _heroTarget = target;
       });
     }
+    if (oldWidget.bathToken != widget.bathToken) {
+      setState(() {
+        if (_bathing) {
+          // Déjà dans le bain -> sortir.
+          _bathing = false;
+          _bathHeld = false;
+          _bathFrame = 0;
+          _pendingBath = false;
+        } else {
+          // Se tourner vers la cuve (use_back) puis l'anim de bain s'enchaîne
+          // (cf. hook de fin de use_back dans _onHeroTick).
+          _heroDancing = false;
+          _heroSleeping = false;
+          _heroLyingDown = false;
+          _heroTarget = null;
+          _idleBreak = null;
+          _activeSpecial = 'use_back';
+          _activeSpecialFrames = 24;
+          _activeSpecialLoops = false;
+          _specialFrame = 0;
+          _specialAccumMs = 0;
+          _nextSpecial = null;
+          _pendingBath = true;
+        }
+      });
+    }
     if (oldWidget.doorPushToken != widget.doorPushToken) {
       setState(() {
         _doorPushing = true;
@@ -807,11 +850,38 @@ class _SideScrollSceneState extends State<SideScrollScene>
               return;
             } else {
               _activeSpecial = null;
+              // Fin du "tour" (use_back) -> on enchaîne sur le bain.
+              if (_pendingBath) {
+                _pendingBath = false;
+                _bathing = true;
+                _bathFrame = 0;
+                _bathHeld = false;
+                _bathAccumMs = 0;
+              }
               return;
             }
           }
         }
       });
+      return;
+    }
+
+    // Avance de l'anim bain (1->8 puis tient la détente).
+    if (_bathing) {
+      if (!_bathHeld) {
+        _animSet(() {
+          _bathAccumMs += dtMs;
+          while (_bathAccumMs >= _bathFrameMs) {
+            _bathAccumMs -= _bathFrameMs;
+            _bathFrame++;
+            if (_bathFrame >= _bathFrames) {
+              _bathFrame = _bathFrames - 1;
+              _bathHeld = true;
+              break;
+            }
+          }
+        });
+      }
       return;
     }
 
@@ -1317,8 +1387,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       if (!widget.secondWagon)
                         for (final def in _propDefs)
                           _buildProp(def: def, w: w, h: h),
-                      // Cellier : 2 lanternes déplaçables au doigt.
-                      if (widget.secondWagon) _buildWagon2Lanterns(w, h),
+                      // Cellier : props déplaçables (lanternes, baignoire,
+                      // panneau douche, pommeau) + anim bain quand elle baigne.
+                      if (widget.secondWagon) _buildWagon2Props(w, h),
+                      if (widget.secondWagon && _bathing)
+                        _buildBathAnim(w, h),
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
                       if (!widget.secondWagon &&
@@ -1492,47 +1565,126 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// l'entry correspondante de [_propPos] (left/top centrés, height en
   /// fraction de h). Tous les sprites AutoSprite sont 512x512 (ratio
   /// 1:1) donc width = height.
-  // Deux lanternes décoratives du cellier, déplaçables au doigt (drag).
-  // Position sauvegardée dans GameState (wagon2LampA/B). Toujours allumées.
-  Widget _buildWagon2Lanterns(double w, double h) {
+  // Props positionnables du cellier (drag au doigt, position sauvegardée).
+  // Boîte dimensionnée par sa hauteur (fraction h) + ratio de l'asset.
+  Widget _w2Drag({
+    required double w,
+    required double h,
+    required double cx,
+    required double topY,
+    required double heightFrac,
+    required double aspect,
+    required Widget child,
+    required void Function(double dx, double dy) onMove,
+  }) {
+    final ph = h * heightFrac;
+    final pw = ph * aspect;
+    return Positioned(
+      left: w * cx - pw / 2,
+      top: h * topY,
+      width: pw,
+      height: ph,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: (d) =>
+            setState(() => onMove(d.delta.dx / w, d.delta.dy / h)),
+        onPanEnd: (_) => GameState.instance.save(),
+        child: _nightTint(child),
+      ),
+    );
+  }
+
+  // Tous les props déplaçables du cellier : 2 lanternes + baignoire +
+  // panneau douche + pommeau (eau animée). La baignoire est masquée pendant
+  // que Shen prend son bain (remplacée par l'anim qui contient sa propre cuve).
+  Widget _buildWagon2Props(double w, double h) {
     final gs = GameState.instance;
-    final size = h * 0.12;
-
-    Widget lantern(double lx, double ly, void Function(double, double) move) {
-      return Positioned(
-        left: w * lx - size / 2,
-        top: h * ly,
-        width: size,
-        height: size,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: (d) {
-            setState(() => move(d.delta.dx / w, d.delta.dy / h));
-          },
-          onPanEnd: (_) => gs.save(),
-          child: _nightTint(
-            const _AnimatedSprite(
-              prefix: 'lamp',
-              frameCount: 49,
-              durationMs: 49 * 70,
-            ),
-          ),
-        ),
-      );
-    }
-
+    Widget lamp() => const _AnimatedSprite(
+        prefix: 'lamp', frameCount: 49, durationMs: 49 * 70);
     return Positioned.fill(
       child: Stack(
         children: [
-          lantern(gs.wagon2LampAx, gs.wagon2LampAy, (dx, dy) {
-            gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
-            gs.wagon2LampAy = (gs.wagon2LampAy + dy).clamp(0.04, 0.80);
-          }),
-          lantern(gs.wagon2LampBx, gs.wagon2LampBy, (dx, dy) {
-            gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
-            gs.wagon2LampBy = (gs.wagon2LampBy + dy).clamp(0.04, 0.80);
-          }),
+          // Pommeau + eau qui coule (boucle).
+          _w2Drag(
+            w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
+            heightFrac: gs.showerHeadH, aspect: 229 / 672,
+            child: const _AnimatedSprite(
+              prefix: 'showerhead', frameCount: 6, durationMs: 6 * 140,
+              dir: 'assets/objects',
+            ),
+            onMove: (dx, dy) {
+              gs.showerHeadX = (gs.showerHeadX + dx).clamp(0.02, 0.98);
+              gs.showerHeadY = (gs.showerHeadY + dy).clamp(0.0, 0.85);
+            },
+          ),
+          // Panneau de bois (douche).
+          _w2Drag(
+            w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
+            heightFrac: gs.showerPanelH, aspect: 1376 / 768,
+            child: Image.asset('assets/objects/shower_panel.png',
+                fit: BoxFit.contain, gaplessPlayback: true),
+            onMove: (dx, dy) {
+              gs.showerPanelX = (gs.showerPanelX + dx).clamp(0.02, 0.98);
+              gs.showerPanelY = (gs.showerPanelY + dy).clamp(0.0, 0.85);
+            },
+          ),
+          // Baignoire (masquée pendant le bain).
+          if (!_bathing)
+            _w2Drag(
+              w: w, h: h, cx: gs.bathX, topY: gs.bathY,
+              heightFrac: gs.bathH, aspect: 1376 / 768,
+              child: Image.asset('assets/objects/bathtub.png',
+                  fit: BoxFit.contain, gaplessPlayback: true),
+              onMove: (dx, dy) {
+                gs.bathX = (gs.bathX + dx).clamp(0.02, 0.98);
+                gs.bathY = (gs.bathY + dy).clamp(0.0, 0.85);
+              },
+            ),
+          // Lanternes.
+          _w2Drag(
+            w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
+            heightFrac: 0.12, aspect: 1.0, child: lamp(),
+            onMove: (dx, dy) {
+              gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
+              gs.wagon2LampAy = (gs.wagon2LampAy + dy).clamp(0.04, 0.80);
+            },
+          ),
+          _w2Drag(
+            w: w, h: h, cx: gs.wagon2LampBx, topY: gs.wagon2LampBy,
+            heightFrac: 0.12, aspect: 1.0, child: lamp(),
+            onMove: (dx, dy) {
+              gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
+              gs.wagon2LampBy = (gs.wagon2LampBy + dy).clamp(0.04, 0.80);
+            },
+          ),
         ],
+      ),
+    );
+  }
+
+  // Anim bain : bath_1..8 (cuve + Shen) calée sur la boîte de la baignoire
+  // statique (même largeur, bas aligné) pour une transition propre.
+  Widget _buildBathAnim(double w, double h) {
+    final gs = GameState.instance;
+    // Boîte de la baignoire statique.
+    final boxW = (h * gs.bathH) * (1376 / 768);
+    final boxH = h * gs.bathH;
+    // Bas de la cuve : ~0.884 de la hauteur de boîte dans les deux assets.
+    final contentBottom = h * gs.bathY + 0.884 * boxH;
+    // La cuve fait 70.1% de large dans bathtub.png mais ~92.9% dans la cellule
+    // d'anim -> on réduit la boîte d'anim pour matcher la largeur de cuve.
+    final animW = boxW * (0.701 / 0.929);
+    final animH = animW * (336 / 396); // ratio cellule bain
+    final asset = 'assets/characters/bath_${_bathFrame + 1}.png';
+    return Positioned(
+      left: w * gs.bathX - animW / 2,
+      top: contentBottom - 0.884 * animH,
+      width: animW,
+      height: animH,
+      child: IgnorePointer(
+        child: _nightTint(
+          Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
+        ),
       ),
     );
   }
@@ -1689,6 +1841,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildHeroine(double w, double h) {
+    // Pendant le bain, l'anim bath_* contient déjà Shen -> on masque le sprite.
+    if (_bathing) return const SizedBox.shrink();
     // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
     // est dessiné plus grand dans le cadre -> son sol est plus bas.
     final feetY = h * (widget.secondWagon ? 0.80 : 0.74);
