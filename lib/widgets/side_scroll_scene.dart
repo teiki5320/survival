@@ -407,7 +407,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _duoAccumMs = 0;
   int _duoElapsedMs = 0;
   static const int _duoFrameMs = 320; // bien plus lent
-  static const int _duoTotalMs = 8000;
+  static const int _duoTotalMs = 6000;
   int get _duoFrames => _duoAnim == 'readduo' ? 10 : 4;
   double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 463 / 517;
   double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.20 : 0.27;
@@ -431,9 +431,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _petDogFrame = 0;
   int _petDogAccumMs = 0;
   int _petDogElapsedMs = 0;
-  bool _petDogHeld = false;
   static const int _petDogFrameMs = 340; // bien plus lent
-  static const int _petDogTotalMs = 7500;
+  static const int _petDogTotalMs = 6000;
   // 9 frames coupées aux traits rouges : approche (1-3) -> câlin (4-9).
   static const int _petDogFrames = 9;
 
@@ -865,7 +864,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _petDogFrame = 0;
         _petDogAccumMs = 0;
         _petDogElapsedMs = 0;
-        _petDogHeld = false;
         _heroDancing = false;
         _heroSleeping = false;
         _heroLyingDown = false;
@@ -1043,12 +1041,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Duo sœur+Shen (lecture/câlin) : BOUCLE pendant _duoTotalMs puis fin
     // (les solos ne reviennent qu'à la fin -> plus de coupure en plein milieu).
     if (_duoActive) {
+      _duoElapsedMs += dtMs;
+      if (_duoElapsedMs >= _duoTotalMs) {
+        // FIN via setState (rebuild scène) pour retirer le sprite duo figé.
+        setState(() => _duoActive = false);
+        return;
+      }
       _animSet(() {
-        _duoElapsedMs += dtMs;
-        if (_duoElapsedMs >= _duoTotalMs) {
-          _duoActive = false;
-          return;
-        }
         _duoAccumMs += dtMs;
         while (_duoAccumMs >= _duoFrameMs) {
           _duoAccumMs -= _duoFrameMs;
@@ -1058,24 +1057,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
 
-    // Caresse chien : joue petdog 1->8, tient ~1.6s, puis fin.
+    // Caresse chien : approche (frames 1-3) puis BOUCLE le câlin (frames 4-9)
+    // -> ça ne reste jamais figé. La FIN passe par setState (et non _animSet)
+    // pour rebuild la scène et retirer le sprite -> sinon il reste affiché ET
+    // le solo debout réapparait par-dessus.
     if (_petDog) {
+      _petDogElapsedMs += dtMs;
+      if (_petDogElapsedMs >= _petDogTotalMs) {
+        setState(() => _petDog = false);
+        return;
+      }
       _animSet(() {
-        _petDogElapsedMs += dtMs;
-        if (_petDogElapsedMs >= _petDogTotalMs) {
-          _petDog = false;
-          return;
-        }
-        // Joue 1->9 (approche puis câlin) puis tient la dernière (câlin).
-        if (_petDogHeld) return;
         _petDogAccumMs += dtMs;
         while (_petDogAccumMs >= _petDogFrameMs) {
           _petDogAccumMs -= _petDogFrameMs;
           _petDogFrame++;
           if (_petDogFrame >= _petDogFrames) {
-            _petDogFrame = _petDogFrames - 1;
-            _petDogHeld = true;
-            break;
+            _petDogFrame = 3; // reboucle sur le câlin (4-9), pas de gel
           }
         }
       });
