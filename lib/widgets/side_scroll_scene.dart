@@ -1863,10 +1863,14 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
             .clamp(0, widget.frameCount - 1);
         final asset = '${widget.dir}/${widget.prefix}_${frame + 1}.png';
         // ResizeImage (props) : décode plus petit pour alléger le cache.
-        // resizeWidth null (perso) : pleine résolution.
-        final ImageProvider provider = widget.resizeWidth == null
-            ? AssetImage(asset)
-            : ResizeImage(AssetImage(asset), width: widget.resizeWidth);
+        // resizeWidth null (perso) : pleine résolution. if/else typé car le
+        // type commun de AssetImage/ResizeImage est Object (génériques ≠).
+        final ImageProvider provider;
+        if (widget.resizeWidth == null) {
+          provider = AssetImage(asset);
+        } else {
+          provider = ResizeImage(AssetImage(asset), width: widget.resizeWidth!);
+        }
         return Image(
           image: provider,
           fit: widget.fit,
