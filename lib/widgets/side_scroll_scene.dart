@@ -164,6 +164,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static const int _heroFrameCount = 49;
   static const double _heroXMin = SideScrollScene.heroXMin;
   static const double _heroXMax = SideScrollScene.heroXMax;
+
+  // Bornes de déplacement effectives. Dans le cellier (2e wagon) elle peut
+  // s'approcher de la porte (gauche), et tant qu'il est EN DÉSORDRE
+  // (wagonStage 0) elle ne peut pas avancer : le bazar la bloque près de
+  // l'entrée. Une fois AMÉNAGÉ (stage >= 1) elle circule dans tout le wagon.
+  double get _moveMin => widget.secondWagon ? 0.10 : _heroXMin;
+  double get _moveMax => widget.secondWagon
+      ? (widget.wagonStage >= 1 ? _heroXMax : 0.30)
+      : _heroXMax;
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
@@ -468,7 +477,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // flâner et de petites pauses, pas d'actions liées aux besoins.
     if (widget.secondWagon) {
       if (r.nextBool()) {
-        _walkTo(_heroXMin + r.nextDouble() * (_heroXMax - _heroXMin));
+        _walkTo(_moveMin + r.nextDouble() * (_moveMax - _moveMin));
       } else {
         _startAutoSpecial(r.nextBool() ? 'yawn' : 'stretch');
       }
@@ -488,7 +497,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     } else {
       // tout va bien : elle flâne ou fait une petite pause.
       if (r.nextBool()) {
-        _walkTo(_heroXMin + r.nextDouble() * (_heroXMax - _heroXMin));
+        _walkTo(_moveMin + r.nextDouble() * (_moveMax - _moveMin));
       } else {
         _startAutoSpecial(r.nextBool() ? 'yawn' : 'stretch');
       }
@@ -975,7 +984,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   void _walkTo(double normalizedX) {
-    final clamped = normalizedX.clamp(_heroXMin, _heroXMax);
+    final clamped = normalizedX.clamp(_moveMin, _moveMax);
     final wasSleeping = _heroSleeping;
     setState(() {
       _heroSleeping = false;
@@ -1561,9 +1570,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Petite soeur autonome : danse au repos, joue une anim toutes les ~20s.
   // PLACÉE AU CENTRE pour le test ; on la repositionnera plus tard.
   Widget _buildSister(double w, double h) {
-    final sisH = h * 0.40;
+    // Petite soeur = enfant : plus petite que Shen (0.36h) et décalée à
+    // gauche près du lit, plus au centre (ne vole plus la vedette).
+    final sisH = h * 0.28;
     final sisW = sisH; // sprites 512x512 carrés
-    final sisX = 0.50 * w;
+    final sisX = 0.33 * w;
     final feetY = h * 0.74;
     return Positioned(
       left: sisX - sisW / 2,
@@ -1610,8 +1621,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildHeroine(double w, double h) {
-    // Wagon's interior floor sits roughly at this Y.
-    final feetY = h * 0.74;
+    // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
+    // est dessiné plus grand dans le cadre -> son sol est plus bas.
+    final feetY = h * (widget.secondWagon ? 0.80 : 0.74);
     final anchorX = _heroX * w;
 
     // Cas spéciaux ancrés sur le lit : la fille n'est pas sur le sol,
@@ -1697,7 +1709,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final m = animMetricsFor(prefix);
     final bool deepInWagon = prefix == 'cook';
     final depthScale = deepInWagon ? 0.78 : 1.0;
-    final heroHeight = h * kHeroBaseHeight * m.scale * depthScale;
+    // Cellier plus grand -> on agrandit un peu Shen pour qu'elle ne paraisse
+    // pas minuscule dans le volume.
+    final wagonScale = widget.secondWagon ? 1.12 : 1.0;
+    final heroHeight =
+        h * kHeroBaseHeight * m.scale * depthScale * wagonScale;
     final heroWidth = heroHeight * m.aspect;
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
@@ -1912,10 +1928,12 @@ class _SisterCharacterState extends State<_SisterCharacter>
   bool _looping = true;
 
   // Pool d'animations autonomes (one-shot). dog=true => masque le chien.
+  // Plus d'anims avec chien : un seul chien à l'écran (celui de Shen /
+  // le chien autonome), la soeur ne duplique plus le chien.
   static const _pool = [
-    ('pet_dog', 8, 1800, true),
-    ('hug_dog', 8, 2000, true),
     ('dance', 25, 2400, false),
+    ('hug', 16, 2000, false),
+    ('read', 8, 2600, false),
   ];
 
   @override

@@ -110,7 +110,9 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inHydroGame = false;
   bool _inCards = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
-  double _dogHeight = 0.136;
+  // Chien un peu plus grand pour mieux matcher le husky des sprites de
+  // caresse (avant il faisait chiot riquiqui à côté).
+  double _dogHeight = 0.17;
   int _dogInteractCount = 0;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
@@ -260,7 +262,7 @@ class _WagonScreenState extends State<WagonScreen> {
         setState(() {
           _doorPushing = false;
           _inWagon2 = true;
-          _heroSpawnX = SideScrollScene.heroXMin; // arrive côté gauche
+          _heroSpawnX = 0.12; // arrive tout près de la porte (gauche) du cellier
         });
         break;
       case 'wagon1':
