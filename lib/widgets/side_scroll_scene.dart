@@ -386,8 +386,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _pendingShower = false;
   int _showerFrame = 0;
   int _showerAccumMs = 0;
-  static const int _showerFrameMs = 130;
-  static const int _showerFrames = 8;
+  static const int _showerFrameMs = 150; // un peu plus lent (shampoing)
+  static const int _showerWashCyclesMax = 3; // nb de boucles de lavage
+  bool _showerWashed = false; // lavage fini -> tient la pose propre
+  int _showerWashCycles = 0;
+  int _showerWaterTick = 0; // l'eau coule en continu pendant la douche
 
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
@@ -910,6 +913,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _showering = true;
                 _showerFrame = 0;
                 _showerAccumMs = 0;
+                _showerWashed = false;
+                _showerWashCycles = 0;
+                _showerWaterTick = 0;
                 GameState.instance.nudgeCardStat('moral', 10);
               }
               return;
@@ -939,13 +945,26 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
 
-    // Avance de l'anim douche (boucle 1->8).
+    // Douche : l'eau coule en continu ; le corps fait plusieurs boucles de
+    // shampoing (frames 1..7) puis tient la pose "lavée" (frame 8) jusqu'à
+    // ce que le joueur ressorte.
     if (_showering) {
       _animSet(() {
         _showerAccumMs += dtMs;
         while (_showerAccumMs >= _showerFrameMs) {
           _showerAccumMs -= _showerFrameMs;
-          _showerFrame = (_showerFrame + 1) % _showerFrames;
+          _showerWaterTick++;
+          if (_showerWashed) continue; // corps figé sur la frame propre
+          _showerFrame++;
+          if (_showerFrame >= 7) {
+            _showerWashCycles++;
+            if (_showerWashCycles >= _showerWashCyclesMax) {
+              _showerFrame = 7; // frame 8 = propre, on tient
+              _showerWashed = true;
+            } else {
+              _showerFrame = 1; // reboucle le shampoing
+            }
+          }
         }
       });
       return;
@@ -1728,7 +1747,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final pommeau = ValueListenableBuilder<int>(
       valueListenable: _heroAnim,
       builder: (_, __, ___) {
-        final wf = _showering ? (_showerFrame % 2) : 5; // 0/1 flux, 5 sec
+        // Eau qui coule en continu pendant la douche (même quand le corps
+        // tient la pose), sinon pommeau sec.
+        final wf = _showering ? (_showerWaterTick % 2) : 5; // 0/1 flux, 5 sec
         return Image.asset('assets/objects/showerhead_${wf + 1}.png',
             fit: BoxFit.contain, gaplessPlayback: true);
       },
@@ -1752,7 +1773,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           ),
           _w2Drag(
             w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
-            heightFrac: gs.showerPanelH, aspect: 1376 / 768, label: 'panneau',
+            heightFrac: gs.showerPanelH, aspect: 720 / 768, label: 'panneau',
             child: Image.asset('assets/objects/shower_panel.png',
                 fit: BoxFit.contain, gaplessPlayback: true),
             onMove: (dx, dy) {
@@ -1915,7 +1936,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // panneau (auto-align). Le panneau (rendu après) cache le bas du corps.
   Widget _buildShowerHeroine(double w, double h) {
     final gs = GameState.instance;
-    final sh = h * 0.52;
+    final sh = h * 0.46; // cohérent avec l'héroïne normale du cellier
     final sw = sh * (198 / 672);
     final feetY = h * 0.80; // sol du cellier
     return Positioned(
