@@ -1317,6 +1317,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       if (!widget.secondWagon)
                         for (final def in _propDefs)
                           _buildProp(def: def, w: w, h: h),
+                      // Cellier : 2 lanternes déplaçables au doigt.
+                      if (widget.secondWagon) _buildWagon2Lanterns(w, h),
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
                       if (!widget.secondWagon &&
@@ -1490,6 +1492,51 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// l'entry correspondante de [_propPos] (left/top centrés, height en
   /// fraction de h). Tous les sprites AutoSprite sont 512x512 (ratio
   /// 1:1) donc width = height.
+  // Deux lanternes décoratives du cellier, déplaçables au doigt (drag).
+  // Position sauvegardée dans GameState (wagon2LampA/B). Toujours allumées.
+  Widget _buildWagon2Lanterns(double w, double h) {
+    final gs = GameState.instance;
+    final size = h * 0.12;
+
+    Widget lantern(double lx, double ly, void Function(double, double) move) {
+      return Positioned(
+        left: w * lx - size / 2,
+        top: h * ly,
+        width: size,
+        height: size,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (d) {
+            setState(() => move(d.delta.dx / w, d.delta.dy / h));
+          },
+          onPanEnd: (_) => gs.save(),
+          child: _nightTint(
+            const _AnimatedSprite(
+              prefix: 'lamp',
+              frameCount: 49,
+              durationMs: 49 * 70,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          lantern(gs.wagon2LampAx, gs.wagon2LampAy, (dx, dy) {
+            gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
+            gs.wagon2LampAy = (gs.wagon2LampAy + dy).clamp(0.04, 0.80);
+          }),
+          lantern(gs.wagon2LampBx, gs.wagon2LampBy, (dx, dy) {
+            gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
+            gs.wagon2LampBy = (gs.wagon2LampBy + dy).clamp(0.04, 0.80);
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildProp({
     required _PropDef def,
     required double w,

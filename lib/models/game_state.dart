@@ -37,6 +37,10 @@ class GameState extends ChangeNotifier {
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
         'wagon2Stage': wagon2Stage,
+        'wagon2LampAx': wagon2LampAx,
+        'wagon2LampAy': wagon2LampAy,
+        'wagon2LampBx': wagon2LampBx,
+        'wagon2LampBy': wagon2LampBy,
         'waterTankGlasses': waterTankGlasses,
         'filterTier': filterTier,
         'hydroTier': hydroTier,
@@ -72,6 +76,10 @@ class GameState extends ChangeNotifier {
       // 2 stages désormais (windowed/clean) : clamp pour vieilles sauvegardes.
       wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
+      wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
+      wagon2LampAy = (data['wagon2LampAy'] as num?)?.toDouble() ?? wagon2LampAy;
+      wagon2LampBx = (data['wagon2LampBx'] as num?)?.toDouble() ?? wagon2LampBx;
+      wagon2LampBy = (data['wagon2LampBy'] as num?)?.toDouble() ?? wagon2LampBy;
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
@@ -125,6 +133,11 @@ class GameState extends ChangeNotifier {
 
   /// 2e wagon (cellier) : 0 = en désordre (état initial), 1 = aménagé/propre.
   int wagon2Stage = 0;
+
+  /// Position des 2 lanternes du cellier (fraction w pour x, h pour y).
+  /// Déplaçables au doigt dans le wagon 2 ; sauvegardées.
+  double wagon2LampAx = 0.30, wagon2LampAy = 0.27;
+  double wagon2LampBx = 0.70, wagon2LampBy = 0.27;
 
   // --- Water tank (filter prop) — 0..5 verres stockés ---
   int waterTankGlasses = 0;
