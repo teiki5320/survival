@@ -392,6 +392,29 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _showerWashCycles = 0;
   int _showerWaterTick = 0; // l'eau coule en continu pendant la douche
 
+  // Duo câlin sœur+Shen (wagon 1) : déclenché quand Shen est près de la sœur.
+  // sister_hug est un sprite DUO -> on masque les 2 solos pendant l'anim.
+  static const double _sisterX = 0.33; // = sisX dans _buildSister
+  bool _hugDuo = false;
+  int _hugFrame = 0;
+  int _hugAccumMs = 0;
+  bool _hugHeld = false;
+  int _hugHoldMs = 0;
+  static const int _hugFrameMs = 120;
+  static const int _hugFrames = 16;
+
+  void _startHugDuo() {
+    setState(() {
+      _hugDuo = true;
+      _hugFrame = 0;
+      _hugAccumMs = 0;
+      _hugHeld = false;
+      _hugHoldMs = 0;
+      _heroTarget = null;
+      _idleBreak = null;
+    });
+  }
+
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
   // up → arms down), then she's free to walk wherever the tap pointed.
@@ -508,9 +531,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _doorPushing ||
         _activeSpecial != null ||
         _idleBreak != null;
-    if (busy) return;
+    if (busy || _hugDuo) return;
 
     final r = math.Random();
+
+    // Duo câlin avec la petite sœur : si Shen passe à côté d'elle (wagon 1),
+    // 1 chance sur 2 de déclencher le câlin (sprite duo, masque les 2 solos).
+    if (!widget.secondWagon &&
+        (_heroX - _sisterX).abs() < 0.08 &&
+        r.nextBool()) {
+      _startHugDuo();
+      return;
+    }
 
     // 2e wagon : pas de props (poêle/filtre/jardin) -> elle se contente de
     // flâner et de petites pauses, pas d'actions liées aux besoins.
@@ -531,7 +563,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     } else if (faim < 55 && faim <= moral) {
       _startAutoSpecial(r.nextBool() ? 'cook' : 'garden_tend'); // a faim
     } else if (moral < 62) {
-      const pool = ['read', 'warm_hands', 'pet_dog', 'dance', 'look_window'];
+      const pool = ['read', 'warm_hands', 'dance', 'look_window'];
       _startAutoSpecial(pool[r.nextInt(pool.length)]); // remonte le moral
     } else {
       // tout va bien : elle flâne ou fait une petite pause.
@@ -964,6 +996,28 @@ class _SideScrollSceneState extends State<SideScrollScene>
             } else {
               _showerFrame = 1; // reboucle le shampoing
             }
+          }
+        }
+      });
+      return;
+    }
+
+    // Duo câlin sœur+Shen : joue sister_hug 1->16, tient ~1.6s, puis fin.
+    if (_hugDuo) {
+      _animSet(() {
+        if (_hugHeld) {
+          _hugHoldMs += dtMs;
+          if (_hugHoldMs >= 1600) _hugDuo = false; // fin -> solos réapparaissent
+          return;
+        }
+        _hugAccumMs += dtMs;
+        while (_hugAccumMs >= _hugFrameMs) {
+          _hugAccumMs -= _hugFrameMs;
+          _hugFrame++;
+          if (_hugFrame >= _hugFrames) {
+            _hugFrame = _hugFrames - 1;
+            _hugHeld = true;
+            break;
           }
         }
       });
@@ -1490,8 +1544,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           _activeSpecial != 'pet_dog' &&
                           !_sisterDogActive)
                         _buildStaticDog(w, h),
-                      // Petite soeur autonome (anim toutes les ~20s).
-                      if (!widget.secondWagon) _buildSister(w, h),
+                      // Petite soeur autonome (solo). Masquée pendant le duo
+                      // câlin (le sprite duo la contient déjà).
+                      if (!widget.secondWagon && !_hugDuo) _buildSister(w, h),
+                      // Duo câlin sœur+Shen (déclenché par proximité).
+                      if (!widget.secondWagon && _hugDuo) _buildHugDuo(w, h),
                       // 4c. Lamp glow when lamp is on.
                       if (!widget.secondWagon && GameState.instance.lampOn)
                         Positioned.fill(
@@ -2079,6 +2136,29 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
+  // Sprite DUO câlin (sœur + Shen accroupie) calé au sol sur la position de
+  // la sœur. Remplace les deux solos pendant le câlin.
+  Widget _buildHugDuo(double w, double h) {
+    final duoH = h * 0.46; // contient les deux persos
+    final duoW = duoH; // sprite 512x512 carré
+    final feetY = h * 0.74;
+    return Positioned(
+      left: _sisterX * w - duoW / 2,
+      top: feetY - duoH * 0.92,
+      width: duoW,
+      height: duoH,
+      child: IgnorePointer(
+        child: ValueListenableBuilder<int>(
+          valueListenable: _heroAnim,
+          builder: (_, __, ___) => _nightTint(
+            Image.asset('assets/characters/sister_hug_${_hugFrame + 1}.png',
+                fit: BoxFit.contain, gaplessPlayback: true),
+          ),
+        ),
+      ),
+    );
+  }
+
   int _dogAnimFrame = 0;
 
   Widget _buildStaticDog(double w, double h) {
@@ -2110,9 +2190,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildHeroine(double w, double h) {
-    // Pendant bain/douche, Shen est rendue par l'anim dédiée -> on masque
-    // le sprite héroïne normal.
-    if (_bathing || _showering) return const SizedBox.shrink();
+    // Pendant bain/douche/câlin, Shen est rendue par l'anim dédiée (duo) ->
+    // on masque le sprite héroïne normal.
+    if (_bathing || _showering || _hugDuo) return const SizedBox.shrink();
     // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
     // est dessiné plus grand dans le cadre -> son sol est plus bas.
     final feetY = h * (widget.secondWagon ? 0.80 : 0.74);
@@ -2419,13 +2499,12 @@ class _SisterCharacterState extends State<_SisterCharacter>
   int _frames = 25;
   bool _looping = true;
 
-  // Pool d'animations autonomes (one-shot). dog=true => masque le chien.
-  // Plus d'anims avec chien : un seul chien à l'écran (celui de Shen /
-  // le chien autonome), la soeur ne duplique plus le chien.
+  // Pool d'animations autonomes SOLO de la petite soeur (one-shot).
+  // 'hug' et 'read' sont des DUOS (sœur + Shen) -> retirés d'ici : le hug
+  // est désormais déclenché par la scène quand Shen est à côté (et masque
+  // les deux solos). 'read' est retiré (proportions inversées).
   static const _pool = [
     ('dance', 25, 2400, false),
-    ('hug', 16, 2000, false),
-    ('read', 8, 2600, false),
   ];
 
   @override

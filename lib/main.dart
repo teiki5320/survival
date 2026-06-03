@@ -617,13 +617,9 @@ class _WagonScreenState extends State<WagonScreen> {
     } else if (!_inWagon2 && _atDog) {
       icon = Icons.pets;
       action = () {
-        _dogInteractCount++;
-        if (_dogInteractCount.isOdd) {
-          _triggerSpecial('pet_dog', frames: 49);
-        } else {
-          _triggerSpecial('crouch', frames: 49);
-        }
-        // Câliner le chien remonte le moral.
+        // pet_dog retiré (chiot tan = pas le bon chien). On garde crouch :
+        // Shen s'accroupit et le VRAI chien (husky statique) remue la queue.
+        _triggerSpecial('crouch', frames: 49);
         GameState.instance.nudgeCardStat('moral', 10);
         _audio.playSfx('dog_bark');
       };
