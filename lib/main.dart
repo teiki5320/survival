@@ -125,6 +125,8 @@ class _WagonScreenState extends State<WagonScreen> {
   int _showerToken = 0;
   // Mode ajuster (cellier) : déplacer/redimensionner les props + voir coords.
   bool _w2Adjust = false;
+  // Caresse du chien (Shen + husky).
+  int _petDogToken = 0;
   // Destination visée par l'animation de porte en cours : 'loco', 'wagon2'
   // (depuis le wagon 1, porte droite) ou 'wagon1' (depuis le wagon 2, porte
   // gauche). Consommée dans _onDoorPushDone.
@@ -378,6 +380,7 @@ class _WagonScreenState extends State<WagonScreen> {
             wagon2Adjust: secondWagon && _w2Adjust,
             bathToken: _bathToken,
             showerToken: _showerToken,
+            petDogToken: _petDogToken,
             initialHeroX: _heroSpawnX,
             wagonStage:
                 secondWagon ? GameState.instance.wagon2Stage : _wagonStage,
@@ -617,9 +620,8 @@ class _WagonScreenState extends State<WagonScreen> {
     } else if (!_inWagon2 && _atDog) {
       icon = Icons.pets;
       action = () {
-        // pet_dog retiré (chiot tan = pas le bon chien). On garde crouch :
-        // Shen s'accroupit et le VRAI chien (husky statique) remue la queue.
-        _triggerSpecial('crouch', frames: 49);
+        // Sprite Shen + husky (caresse -> câlin), bon chien.
+        setState(() => _petDogToken++);
         GameState.instance.nudgeCardStat('moral', 10);
         _audio.playSfx('dog_bark');
       };
