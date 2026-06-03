@@ -409,8 +409,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _duoHoldMs = 0;
   static const int _duoFrameMs = 130;
   int get _duoFrames => _duoAnim == 'readduo' ? 10 : 6;
-  double get _duoAspect => _duoAnim == 'readduo' ? 316 / 336 : 264 / 672;
-  double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.40 : 0.50;
+  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 265 / 616;
+  double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.34 : 0.46;
 
   void _startDuo(String anim) {
     setState(() {
@@ -433,8 +433,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _petDogAccumMs = 0;
   bool _petDogHeld = false;
   int _petDogHoldMs = 0;
-  static const int _petDogFrameMs = 140;
-  static const int _petDogFrames = 8;
+  static const int _petDogFrameMs = 150;
+  static const int _petDogFrames = 4; // câlin stable (rangée bas re-découpée)
 
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
@@ -2212,7 +2212,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final feetY = h * 0.74;
     return Positioned(
       left: _sisterX * w - duoW / 2,
-      top: feetY - duoH * 0.96,
+      top: feetY - duoH, // contenu collé en bas -> pieds au sol
       width: duoW,
       height: duoH,
       child: IgnorePointer(
@@ -2229,12 +2229,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Sprite Shen + husky (caresse/câlin) calé au sol sur la position du chien.
   Widget _buildPetDog(double w, double h) {
-    final ph = h * 0.42;
-    final pw = ph * (396 / 336);
+    final ph = h * 0.34;
+    final pw = ph * (407 / 327);
     final feetY = h * 0.74;
     return Positioned(
       left: _dogX * w - pw / 2,
-      top: feetY - ph * 0.98,
+      top: feetY - ph, // contenu collé en bas
       width: pw,
       height: ph,
       child: IgnorePointer(
