@@ -434,7 +434,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _petDogHeld = false;
   int _petDogHoldMs = 0;
   static const int _petDogFrameMs = 150;
-  static const int _petDogFrames = 4; // câlin stable (rangée bas re-découpée)
+  // Les frames IA jitterent (husky qui change de pose) -> pose unique tenue.
+  static const int _petDogFrames = 1;
 
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
@@ -2240,8 +2241,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: IgnorePointer(
         child: ValueListenableBuilder<int>(
           valueListenable: _heroAnim,
+          // Pose unique (frame 2 = câlin le plus propre) tenue.
           builder: (_, __, ___) => _nightTint(
-            Image.asset('assets/characters/petdog_${_petDogFrame + 1}.png',
+            Image.asset('assets/characters/petdog_2.png',
                 fit: BoxFit.contain, gaplessPlayback: true),
           ),
         ),
