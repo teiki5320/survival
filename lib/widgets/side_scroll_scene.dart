@@ -406,10 +406,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _duoFrame = 0;
   int _duoAccumMs = 0;
   int _duoElapsedMs = 0;
-  static const int _duoFrameMs = 140;
-  static const int _duoTotalMs = 5000;
-  int get _duoFrames => _duoAnim == 'readduo' ? 10 : 8;
-  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 1.0;
+  static const int _duoFrameMs = 230; // plus lent
+  static const int _duoTotalMs = 8000; // plus long (ne coupe pas trop tôt)
+  int get _duoFrames => _duoAnim == 'readduo' ? 10 : 4;
+  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 463 / 517;
   double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.24 : 0.34;
 
   void _startDuo(String anim) {
@@ -432,8 +432,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _petDogAccumMs = 0;
   int _petDogElapsedMs = 0;
   bool _petDogHeld = false;
-  static const int _petDogFrameMs = 150;
-  static const int _petDogTotalMs = 4200;
+  static const int _petDogFrameMs = 240; // plus lent
+  static const int _petDogTotalMs = 7000; // plus long avant que le solo revienne
   // 9 frames coupées aux traits rouges : approche (1-3) -> câlin (4-9).
   static const int _petDogFrames = 9;
 
@@ -2245,7 +2245,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Sprite Shen + husky (caresse/câlin) calé au sol sur la position du chien.
   Widget _buildPetDog(double w, double h) {
-    final ph = h * 0.30;
+    final ph = h * 0.26; // un peu plus petit
     final pw = ph * (423 / 324);
     final feetY = h * 0.74;
     return Positioned(
