@@ -1216,6 +1216,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           running: widget.running,
                         ),
                       ),
+                      // Bloc intérieur (wagon + props + perso) descendu d'un
+                      // cran pour poser le wagon 1 sur les rails comme le
+                      // wagon 2 : le wagon 1 est cadré ~7.6% plus haut dans
+                      // son image (bas à 0.828 vs 0.904). On décale tout le
+                      // bloc ensemble -> l'alignement des props est préservé.
+                      // Offset nul pour le 2e wagon (déjà au bon niveau).
+                      Positioned.fill(
+                        child: Transform.translate(
+                          offset: Offset(
+                            0,
+                            widget.secondWagon
+                                ? 0.0
+                                : 0.076 * math.min(w / 1.7917, h),
+                          ),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
                       // 4. Wagon — fixed in the centre, picked from the
                       //    progression stage (windowed → clean). Night
                       //    ColorFilter tints both the same way.
@@ -1363,6 +1380,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                   ),
                               ],
                             ),
+                          ),
+                        ),
+                      ),
+                            ],
                           ),
                         ),
                       ),
