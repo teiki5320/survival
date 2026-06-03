@@ -397,20 +397,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _showerWashCycles = 0;
   int _showerWaterTick = 0; // l'eau coule en continu pendant la douche
 
-  // Duos sœur+Shen (wagon 1) : câlin (hugduo, 6 frames) ou lecture (readduo,
-  // 10 frames). Déclenchés quand Shen est près de la sœur ; les 2 solos
-  // disparaissent (le sprite duo les contient).
+  // Duos sœur+Shen (wagon 1) : lecture (readduo, 10f) ou câlin (sister_hug,
+  // 16f). Déclenchés quand Shen est près de la sœur ; les 2 solos
+  // disparaissent. L'anim BOUCLE pendant _duoTotalMs puis les solos reviennent.
   static const double _sisterX = 0.33; // = sisX dans _buildSister
   bool _duoActive = false;
-  String _duoAnim = 'hugduo';
+  String _duoAnim = 'readduo';
   int _duoFrame = 0;
   int _duoAccumMs = 0;
-  bool _duoHeld = false;
-  int _duoHoldMs = 0;
-  static const int _duoFrameMs = 130;
-  int get _duoFrames => _duoAnim == 'readduo' ? 10 : 6;
-  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 265 / 616;
-  double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.34 : 0.46;
+  int _duoElapsedMs = 0;
+  static const int _duoFrameMs = 140;
+  static const int _duoTotalMs = 5000;
+  int get _duoFrames => _duoAnim == 'readduo' ? 10 : 8;
+  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 1.0;
+  double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.24 : 0.34;
 
   void _startDuo(String anim) {
     setState(() {
@@ -418,8 +418,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _duoAnim = anim;
       _duoFrame = 0;
       _duoAccumMs = 0;
-      _duoHeld = false;
-      _duoHoldMs = 0;
+      _duoElapsedMs = 0;
       _heroTarget = null;
       _idleBreak = null;
     });
@@ -431,11 +430,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _petDog = false;
   int _petDogFrame = 0;
   int _petDogAccumMs = 0;
-  bool _petDogHeld = false;
-  int _petDogHoldMs = 0;
-  static const int _petDogFrameMs = 150;
-  // Les frames IA jitterent (husky qui change de pose) -> pose unique tenue.
-  static const int _petDogFrames = 1;
+  int _petDogElapsedMs = 0;
+  static const int _petDogFrameMs = 450; // boucle douce 2 frames
+  static const int _petDogTotalMs = 3200;
+  static const int _petDogFrames = 2; // frames 5,6 du câlin (les propres)
 
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
@@ -563,7 +561,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (!widget.secondWagon &&
         (_heroX - _sisterX).abs() < 0.08 &&
         r.nextBool()) {
-      _startDuo('readduo');
+      _startDuo(r.nextBool() ? 'readduo' : 'sister_hug');
       return;
     }
 
@@ -661,7 +659,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'warm_hands',
       'carry_walk',
       'drink',
-      'pet_dog',
     ];
     for (final anim in animations) {
       for (int i = 1; i <= _heroFrameCount; i++) {
@@ -865,8 +862,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _petDog = true;
         _petDogFrame = 0;
         _petDogAccumMs = 0;
-        _petDogHeld = false;
-        _petDogHoldMs = 0;
+        _petDogElapsedMs = 0;
         _heroDancing = false;
         _heroSleeping = false;
         _heroLyingDown = false;
@@ -1041,23 +1037,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
 
-    // Duo sœur+Shen (câlin/lecture) : joue 1->N, tient ~1.8s, puis fin.
+    // Duo sœur+Shen (lecture/câlin) : BOUCLE pendant _duoTotalMs puis fin
+    // (les solos ne reviennent qu'à la fin -> plus de coupure en plein milieu).
     if (_duoActive) {
       _animSet(() {
-        if (_duoHeld) {
-          _duoHoldMs += dtMs;
-          if (_duoHoldMs >= 1800) _duoActive = false; // solos réapparaissent
+        _duoElapsedMs += dtMs;
+        if (_duoElapsedMs >= _duoTotalMs) {
+          _duoActive = false;
           return;
         }
         _duoAccumMs += dtMs;
         while (_duoAccumMs >= _duoFrameMs) {
           _duoAccumMs -= _duoFrameMs;
-          _duoFrame++;
-          if (_duoFrame >= _duoFrames) {
-            _duoFrame = _duoFrames - 1;
-            _duoHeld = true;
-            break;
-          }
+          _duoFrame = (_duoFrame + 1) % _duoFrames;
         }
       });
       return;
@@ -1066,20 +1058,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Caresse chien : joue petdog 1->8, tient ~1.6s, puis fin.
     if (_petDog) {
       _animSet(() {
-        if (_petDogHeld) {
-          _petDogHoldMs += dtMs;
-          if (_petDogHoldMs >= 1600) _petDog = false;
+        _petDogElapsedMs += dtMs;
+        if (_petDogElapsedMs >= _petDogTotalMs) {
+          _petDog = false;
           return;
         }
         _petDogAccumMs += dtMs;
         while (_petDogAccumMs >= _petDogFrameMs) {
           _petDogAccumMs -= _petDogFrameMs;
-          _petDogFrame++;
-          if (_petDogFrame >= _petDogFrames) {
-            _petDogFrame = _petDogFrames - 1;
-            _petDogHeld = true;
-            break;
-          }
+          _petDogFrame = (_petDogFrame + 1) % _petDogFrames;
         }
       });
       return;
@@ -1923,6 +1910,29 @@ class _SideScrollSceneState extends State<SideScrollScene>
               },
               onResize: (nh) => gs.bathH = nh,
             ),
+          // Lueur chaude des lanternes la nuit (comme la lampe du wagon 1).
+          if (widget.night) ...[
+            Positioned.fill(
+              child: IgnorePointer(
+                child: FireGlow(
+                  animation: _sky,
+                  x: gs.wagon2LampAx,
+                  y: gs.wagon2LampAy + gs.wagon2LampAH * 0.45,
+                  radius: 0.22,
+                ),
+              ),
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                child: FireGlow(
+                  animation: _sky,
+                  x: gs.wagon2LampBx,
+                  y: gs.wagon2LampBy + gs.wagon2LampBH * 0.45,
+                  radius: 0.22,
+                ),
+              ),
+            ),
+          ],
           _w2Drag(
             w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
             heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',
@@ -2225,8 +2235,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Sprite Shen + husky (caresse/câlin) calé au sol sur la position du chien.
   Widget _buildPetDog(double w, double h) {
-    final ph = h * 0.27; // réduit (était trop grand)
-    final pw = ph * (407 / 327);
+    final ph = h * 0.27;
+    final pw = ph * (282 / 324);
     final feetY = h * 0.74;
     return Positioned(
       left: _dogX * w - pw / 2,
@@ -2236,9 +2246,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: IgnorePointer(
         child: ValueListenableBuilder<int>(
           valueListenable: _heroAnim,
-          // Pose unique (frame 2 = câlin le plus propre) tenue.
           builder: (_, __, ___) => _nightTint(
-            Image.asset('assets/characters/petdog_2.png',
+            Image.asset('assets/characters/petdog_${_petDogFrame + 1}.png',
                 fit: BoxFit.contain, gaplessPlayback: true),
           ),
         ),
