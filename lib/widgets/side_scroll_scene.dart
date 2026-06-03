@@ -48,6 +48,7 @@ class SideScrollScene extends StatefulWidget {
     this.initialHeroX = 0.5,
     this.secondWagon = false,
     this.bathToken = 0,
+    this.showerToken = 0,
   });
 
   /// Wagon visual progression, 0..3:
@@ -68,6 +69,9 @@ class SideScrollScene extends StatefulWidget {
   /// près de la baignoire). Lance le tour (use_back) puis l'anim de bain ;
   /// si elle est déjà dans le bain, la fait sortir.
   final int bathToken;
+
+  /// Idem pour la douche (près du panneau) : tour puis boucle de douche.
+  final int showerToken;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -369,6 +373,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _bathAccumMs = 0;
   static const int _bathFrameMs = 140;
   static const int _bathFrames = 8;
+
+  // Douche (cellier) : Shen se tourne (use_back) puis se lave les cheveux
+  // sous le pommeau, derrière le panneau. shower_1..8 en BOUCLE (+moral).
+  bool _showering = false;
+  bool _pendingShower = false;
+  int _showerFrame = 0;
+  int _showerAccumMs = 0;
+  static const int _showerFrameMs = 130;
+  static const int _showerFrames = 8;
 
   // Wake-up sequence: triggered when the player taps while she's
   // sleeping. Plays wake_up_* (sit up → stand) then stretch_* (arms
@@ -755,6 +768,28 @@ class _SideScrollSceneState extends State<SideScrollScene>
         }
       });
     }
+    if (oldWidget.showerToken != widget.showerToken) {
+      setState(() {
+        if (_showering) {
+          _showering = false;
+          _showerFrame = 0;
+          _pendingShower = false;
+        } else {
+          _heroDancing = false;
+          _heroSleeping = false;
+          _heroLyingDown = false;
+          _heroTarget = null;
+          _idleBreak = null;
+          _activeSpecial = 'use_back';
+          _activeSpecialFrames = 24;
+          _activeSpecialLoops = false;
+          _specialFrame = 0;
+          _specialAccumMs = 0;
+          _nextSpecial = null;
+          _pendingShower = true;
+        }
+      });
+    }
     if (oldWidget.doorPushToken != widget.doorPushToken) {
       setState(() {
         _doorPushing = true;
@@ -850,13 +885,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
               return;
             } else {
               _activeSpecial = null;
-              // Fin du "tour" (use_back) -> on enchaîne sur le bain.
+              // Fin du "tour" (use_back) -> on enchaîne sur le bain/la douche.
               if (_pendingBath) {
                 _pendingBath = false;
                 _bathing = true;
                 _bathFrame = 0;
                 _bathHeld = false;
                 _bathAccumMs = 0;
+              } else if (_pendingShower) {
+                _pendingShower = false;
+                _showering = true;
+                _showerFrame = 0;
+                _showerAccumMs = 0;
               }
               return;
             }
@@ -882,6 +922,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
           }
         });
       }
+      return;
+    }
+
+    // Avance de l'anim douche (boucle 1->8).
+    if (_showering) {
+      _animSet(() {
+        _showerAccumMs += dtMs;
+        while (_showerAccumMs >= _showerFrameMs) {
+          _showerAccumMs -= _showerFrameMs;
+          _showerFrame = (_showerFrame + 1) % _showerFrames;
+        }
+      });
       return;
     }
 
@@ -1604,7 +1656,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     return Positioned.fill(
       child: Stack(
         children: [
-          // Pommeau + eau qui coule (boucle).
+          // Shen sous la douche (derrière pommeau + panneau). Calée au sol
+          // sous le x du panneau (auto-align).
+          if (_showering) _buildShowerHeroine(w, h),
+          // Pommeau + eau qui coule (boucle), devant Shen (l'eau l'arrose).
           _w2Drag(
             w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
             heightFrac: gs.showerHeadH, aspect: 229 / 672,
@@ -1617,7 +1672,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               gs.showerHeadY = (gs.showerHeadY + dy).clamp(0.0, 0.85);
             },
           ),
-          // Panneau de bois (douche).
+          // Panneau de bois (douche) — devant Shen (cache le bas du corps).
           _w2Drag(
             w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
             heightFrac: gs.showerPanelH, aspect: 1376 / 768,
@@ -1681,6 +1736,27 @@ class _SideScrollSceneState extends State<SideScrollScene>
       top: contentBottom - 0.884 * animH,
       width: animW,
       height: animH,
+      child: IgnorePointer(
+        child: _nightTint(
+          Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
+        ),
+      ),
+    );
+  }
+
+  // Shen sous la douche : sprite plein corps calé au sol sous le x du
+  // panneau (auto-align). Le panneau (rendu après) cache le bas du corps.
+  Widget _buildShowerHeroine(double w, double h) {
+    final gs = GameState.instance;
+    final sh = h * 0.46;
+    final sw = sh * (198 / 672);
+    final feetY = h * 0.80; // sol du cellier
+    final asset = 'assets/characters/shower_${_showerFrame + 1}.png';
+    return Positioned(
+      left: w * gs.showerPanelX - sw / 2,
+      top: feetY - sh,
+      width: sw,
+      height: sh,
       child: IgnorePointer(
         child: _nightTint(
           Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
@@ -1841,8 +1917,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _buildHeroine(double w, double h) {
-    // Pendant le bain, l'anim bath_* contient déjà Shen -> on masque le sprite.
-    if (_bathing) return const SizedBox.shrink();
+    // Pendant bain/douche, Shen est rendue par l'anim dédiée -> on masque
+    // le sprite héroïne normal.
+    if (_bathing || _showering) return const SizedBox.shrink();
     // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
     // est dessiné plus grand dans le cadre -> son sol est plus bas.
     final feetY = h * (widget.secondWagon ? 0.80 : 0.74);

@@ -120,8 +120,9 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _doorPushing = false;
   bool _doorPushRight = false;
   int _doorPushToken = 0;
-  // Incrémenté pour entrer/sortir du bain (cellier).
+  // Incrémenté pour entrer/sortir du bain et de la douche (cellier).
   int _bathToken = 0;
+  int _showerToken = 0;
   // Destination visée par l'animation de porte en cours : 'loco', 'wagon2'
   // (depuis le wagon 1, porte droite) ou 'wagon1' (depuis le wagon 2, porte
   // gauche). Consommée dans _onDoorPushDone.
@@ -172,6 +173,9 @@ class _WagonScreenState extends State<WagonScreen> {
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
       _inWagon2 && _near(GameState.instance.bathX, 0.12);
+  // Proximité de la douche (panneau) dans le cellier.
+  bool get _atShower =>
+      _inWagon2 && _near(GameState.instance.showerPanelX, 0.12);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -370,6 +374,7 @@ class _WagonScreenState extends State<WagonScreen> {
           child: SideScrollScene(
             secondWagon: secondWagon,
             bathToken: _bathToken,
+            showerToken: _showerToken,
             initialHeroX: _heroSpawnX,
             wagonStage:
                 secondWagon ? GameState.instance.wagon2Stage : _wagonStage,
@@ -547,6 +552,13 @@ class _WagonScreenState extends State<WagonScreen> {
       action = () {
         setState(() => _bathToken++);
         GameState.instance.nudgeCardStat('moral', 12);
+      };
+    } else if (_atShower) {
+      // Cellier, près de la douche : se doucher / arrêter.
+      icon = Icons.shower;
+      action = () {
+        setState(() => _showerToken++);
+        GameState.instance.nudgeCardStat('moral', 10);
       };
     } else if (!_inWagon2 && _atBed) {
       icon = Icons.bed;
