@@ -1627,9 +1627,11 @@ class _ForegroundLifePainter extends CustomPainter {
       case 0: _drawTumbleweed(canvas, size, seed, lt); break;
       case 1: _drawPaperDebris(canvas, size, seed, lt); break;
       case 2: _drawDustDevil(canvas, size, seed, lt); break;
-      case 3: _drawFox(canvas, size, seed, lt); break;
-      case 4: _drawSnake(canvas, size, seed, lt); break;
-      case 5: _drawLizard(canvas, size, seed, lt); break;
+      // Animaux qui traversaient sous les rails retirés (pas réaliste) :
+      // renard / serpent / lézard désactivés -> seulement débris + vent.
+      case 3: break;
+      case 4: break;
+      case 5: break;
       case 6: _drawRollingBottle(canvas, size, seed, lt); break;
       case 7: _drawFootprintTrail(canvas, size, seed, lt); break;
       case 8: break; // bones handled in static
@@ -1706,70 +1708,8 @@ class _ForegroundLifePainter extends CustomPainter {
     }
   }
 
-  // 3. Fox / coyote trotting.
-  void _drawFox(Canvas canvas, Size size, double seed, double lt) {
-    final x = (1.1 - lt * 1.0) * size.width;
-    final y = (0.7 + (seed * 0.07 % 0.05)) * size.height;
-    final legPhase = math.sin(t * 5) * 3;
-    final p = Paint()
-      ..color = const Color.fromRGBO(120, 65, 30, 0.75)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.5)
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-    canvas.save();
-    canvas.translate(x, y);
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset.zero, width: 18, height: 7),
-      p,
-    );
-    canvas.drawCircle(const Offset(-10, -2), 3.5, p);
-    p.strokeWidth = 1.5;
-    canvas.drawLine(const Offset(-11, -4), const Offset(-13, -7), p);
-    canvas.drawLine(const Offset(-9, -4), const Offset(-7, -7), p);
-    p.strokeWidth = 2.0;
-    canvas.drawLine(Offset(-5, 3), Offset(-5 + legPhase, 9), p);
-    canvas.drawLine(Offset(-2, 3), Offset(-2 - legPhase, 9), p);
-    canvas.drawLine(Offset(4, 3), Offset(4 + legPhase, 9), p);
-    canvas.drawLine(Offset(7, 3), Offset(7 - legPhase, 9), p);
-    final tail = math.sin(t * 3) * 3;
-    canvas.drawLine(const Offset(9, 0), Offset(15, -3 + tail), p);
-    canvas.restore();
-  }
-
-  // 4. Snake slithering.
-  void _drawSnake(Canvas canvas, Size size, double seed, double lt) {
-    final x = (1.1 - lt * 1.5) * size.width;
-    final y = (0.75 + (seed * 0.07 % 0.05)) * size.height;
-    final p = Paint()
-      ..color = const Color.fromRGBO(60, 50, 30, 0.7)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round;
-    final path = Path()..moveTo(x, y);
-    for (int i = 0; i < 6; i++) {
-      final phase = t * 4 + i * 0.8;
-      final dx = x + i * 4;
-      final dy = y + math.sin(phase) * 3;
-      path.lineTo(dx, dy);
-    }
-    canvas.drawPath(path, p);
-  }
-
-  // 5. Lizard darting in zig-zag.
-  void _drawLizard(Canvas canvas, Size size, double seed, double lt) {
-    final x = (1.05 - lt * 2.0) * size.width;
-    final y = (0.7 + (seed * 0.07 % 0.08)) * size.height +
-        math.sin(lt * 14) * 6;
-    final p = Paint()
-      ..color = const Color.fromRGBO(50, 70, 40, 0.6);
-    canvas.drawOval(
-      Rect.fromCenter(center: Offset(x, y), width: 9, height: 3),
-      p,
-    );
-    p.strokeWidth = 1.2;
-    p.style = PaintingStyle.stroke;
-    canvas.drawLine(Offset(x - 5, y), Offset(x - 10, y + 1), p);
-  }
+  // 3-5. Renard / serpent / lézard retirés (animaux sous les rails pas
+  // réalistes). Les cases 3/4/5 de _drawByType sont désormais des no-op.
 
   // 6. Rolling bottle.
   void _drawRollingBottle(Canvas canvas, Size size, double seed, double lt) {

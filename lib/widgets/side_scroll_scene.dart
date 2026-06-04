@@ -391,7 +391,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _bathFrame = 0;
   bool _bathHeld = false;
   int _bathAccumMs = 0;
-  static const int _bathFrameMs = 105; // entrée pas trop lente
+  static const int _bathFrameMs = 210; // entrée bien plus lente, posée
   static const int _bathFrames = 8;
   double _scaleStartH = 0; // hauteur capturée au début d'un pincer (ajuster)
 
@@ -401,7 +401,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _pendingShower = false;
   int _showerFrame = 0;
   int _showerAccumMs = 0;
-  static const int _showerFrameMs = 150; // un peu plus lent (shampoing)
+  static const int _showerFrameMs = 280; // bien plus lent (shampoing posé)
   static const int _showerWashCyclesMax = 3; // nb de boucles de lavage
   bool _showerWashed = false; // lavage fini -> tient la pose propre
   int _showerWashCycles = 0;
@@ -566,15 +566,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     final r = math.Random();
 
-    // Duo lecture avec la petite sœur : si Shen passe à côté d'elle (wagon 1),
-    // 1 chance sur 2 de déclencher la lecture (sprite duo, masque les 2 solos).
-    // (Le câlin debout 'hugduo' est retiré : mal généré.)
-    if (!widget.secondWagon &&
-        (_heroX - _sisterX).abs() < 0.08 &&
-        r.nextBool()) {
-      _startDuo(r.nextBool() ? 'readduo' : 'sister_hug');
-      return;
-    }
+    // NOTE : le duo auto par proximité est désactivé — il faisait disparaître
+    // puis réapparaître la sœur (solo masqué par le sprite duo) dès que Shen
+    // passait à côté d'elle, ce qui paraissait buggé. Les duos restent
+    // déclenchables manuellement via le bouton action (duoToken).
 
     // Quand il fait froid (thermomètre), elle frissonne (plus souvent si
     // c'est très froid).
@@ -1472,19 +1467,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         bottom: 0,
                         child: AnimatedGrass(animation: _foreground),
                       ),
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.88,
-                        bottom: 0,
-                        child: ScurryingAnimal(
-                          animation: _foreground,
-                          running: widget.running,
-                        ),
-                      ),
+                      // Animaux qui couraient sous les rails retirés (pas
+                      // réaliste) : plus de ScurryingAnimal ici.
                       // 3b-ter. Foreground life (tumbleweed, paper, dust,
-                      //     fox, snake, lizard, bottles, footprints, bones,
-                      //     wildflowers) — cycled.
+                      //     bottles, footprints, bones, wildflowers) — cycled.
+                      //     Animaux (renard/serpent/lézard) retirés.
                       Positioned(
                         left: 0,
                         right: 0,
@@ -1916,10 +1903,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
           if (_showering)
             _steam(w, h,
                 cx: gs.showerPanelX,
-                topY: 0.34,
-                boxWFrac: 0.22,
-                boxHFrac: 0.50,
-                intensity: 1.1),
+                topY: 0.26,
+                boxWFrac: 0.40,
+                boxHFrac: 0.66,
+                intensity: 2.4),
           if (!_bathing)
             _w2Drag(
               w: w, h: h, cx: gs.bathX, topY: gs.bathY,
@@ -1932,25 +1919,36 @@ class _SideScrollSceneState extends State<SideScrollScene>
               },
               onResize: (nh) => gs.bathH = nh,
             ),
-          // Lueur chaude des lanternes la nuit (comme la lampe du wagon 1).
-          if (widget.night) ...[
+          // Lueur chaude des lanternes : éclairent largement le cellier.
+          // Visible aussi le jour (plus discret) ; bien plus marqué la nuit.
+          // Deux passes empilées par lanterne -> halo plus dense + plus large.
+          for (final lampPos in [
+            (gs.wagon2LampAx, gs.wagon2LampAy + gs.wagon2LampAH * 0.45),
+            (gs.wagon2LampBx, gs.wagon2LampBy + gs.wagon2LampBH * 0.45),
+          ]) ...[
             Positioned.fill(
               child: IgnorePointer(
-                child: FireGlow(
-                  animation: _sky,
-                  x: gs.wagon2LampAx,
-                  y: gs.wagon2LampAy + gs.wagon2LampAH * 0.45,
-                  radius: 0.22,
+                child: Opacity(
+                  opacity: widget.night ? 1.0 : 0.5,
+                  child: FireGlow(
+                    animation: _sky,
+                    x: lampPos.$1,
+                    y: lampPos.$2,
+                    radius: 0.46,
+                  ),
                 ),
               ),
             ),
             Positioned.fill(
               child: IgnorePointer(
-                child: FireGlow(
-                  animation: _sky,
-                  x: gs.wagon2LampBx,
-                  y: gs.wagon2LampBy + gs.wagon2LampBH * 0.45,
-                  radius: 0.22,
+                child: Opacity(
+                  opacity: widget.night ? 0.85 : 0.4,
+                  child: FireGlow(
+                    animation: _sky,
+                    x: lampPos.$1,
+                    y: lampPos.$2,
+                    radius: 0.26,
+                  ),
                 ),
               ),
             ),
@@ -2214,6 +2212,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // _sisterX pour que l'interaction (duo) la suive.
     return Positioned.fill(
       child: _SisterCharacter(
+        key: const ValueKey('sister'),
         tint: _nightTint,
         heightFrac: 0.28,
         feetY: 0.74,
@@ -2279,6 +2278,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // dans _dogX pour que la caresse le suive.
     return Positioned.fill(
       child: _DogCharacter(
+        key: const ValueKey('dog'),
         tint: _nightTint,
         heightFrac: widget.dogHeight,
         feetY: 0.74,
@@ -2585,6 +2585,7 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
 /// elle frissonne (sister_cold). Reporte sa position via [onSettled].
 class _SisterCharacter extends StatefulWidget {
   const _SisterCharacter({
+    super.key,
     required this.tint,
     required this.heightFrac,
     required this.feetY,
@@ -2639,19 +2640,24 @@ class _SisterCharacterState extends State<_SisterCharacter>
         widget.onSettled(_x);
       }
     });
-    _timer = Timer.periodic(const Duration(seconds: 12), (_) => _decide());
+    // Première décision rapide (1-3s) puis cadence régulière -> elle bouge
+    // sans attendre un long délai initial.
+    Timer(Duration(milliseconds: 1000 + _rng.nextInt(2000)), () {
+      if (mounted) _decide();
+    });
+    _timer = Timer.periodic(const Duration(seconds: 7), (_) => _decide());
   }
 
   void _decide() {
     if (!mounted || _anim == 'walk') return;
     final r = _rng.nextDouble();
-    if (GameState.instance.feltCold && r < 0.4) {
+    if (GameState.instance.feltCold && r < 0.35) {
       _play('cold', 8, 8 * 140);
-    } else if (r < 0.45) {
+    } else if (r < 0.55) {
       _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));
-    } else if (r < 0.75) {
+    } else if (r < 0.9) {
       _play('dance', 25, 2600);
-    } // sinon : reste idle (pose calme)
+    } // sinon (~10 %) : courte pause idle
   }
 
   void _play(String anim, int frames, int ms) {
@@ -2730,6 +2736,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
 /// [onSettled] pour que les interactions (caresse) le suivent.
 class _DogCharacter extends StatefulWidget {
   const _DogCharacter({
+    super.key,
     required this.tint,
     required this.heightFrac,
     required this.feetY,
@@ -2788,12 +2795,16 @@ class _DogCharacterState extends State<_DogCharacter>
         widget.onSettled(_x);
       }
     });
-    _timer = Timer.periodic(const Duration(seconds: 13), (_) => _decide());
+    // Première décision rapide (1-3s) puis cadence régulière.
+    Timer(Duration(milliseconds: 1000 + _rng.nextInt(2000)), () {
+      if (mounted) _decide();
+    });
+    _timer = Timer.periodic(const Duration(seconds: 7), (_) => _decide());
   }
 
   void _decide() {
     if (!mounted || _anim == 'walk') return;
-    if (_rng.nextDouble() < 0.45) {
+    if (_rng.nextDouble() < 0.5) {
       _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));
     } else {
       final p = _pool[_rng.nextInt(_pool.length)];
@@ -2845,8 +2856,8 @@ class _DogCharacterState extends State<_DogCharacter>
               return Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
             },
           );
-          // dog_walk pointe vers la gauche par défaut -> miroir si va à droite.
-          if (_anim == 'walk' && _faceRight) {
+          // dog_walk pointe vers la DROITE par défaut -> miroir si va à gauche.
+          if (_anim == 'walk' && !_faceRight) {
             sprite = Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
@@ -2936,21 +2947,23 @@ class _SteamPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final n = (9 * intensity).round().clamp(3, 18);
+    final n = (11 * intensity).round().clamp(3, 34);
     final rnd = math.Random(7); // déterministe -> volutes stables
     for (int i = 0; i < n; i++) {
       final phase = rnd.nextDouble();
-      final x0 = 0.12 + 0.76 * rnd.nextDouble();
-      final drift = (rnd.nextDouble() - 0.5) * 0.28;
+      final x0 = 0.08 + 0.84 * rnd.nextDouble();
+      final drift = (rnd.nextDouble() - 0.5) * 0.32;
       final life = (t + phase) % 1.0; // 0 (bas) -> 1 (haut)
       final y = 1.0 - life;
       final x = x0 + drift * life;
-      final r = size.width * (0.10 + 0.18 * life);
-      final op = math.sin(life * math.pi) * 0.18 * intensity;
+      final r = size.width * (0.12 + 0.22 * life);
+      // Opacité plafonnée pour rester laiteux sans masquer la scène.
+      final op =
+          (math.sin(life * math.pi) * 0.16 * intensity).clamp(0.0, 0.5).toDouble();
       if (op <= 0.01) continue;
       final paint = Paint()
         ..color = Color.fromRGBO(255, 255, 255, op)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14);
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 16);
       canvas.drawCircle(
           Offset(x * size.width, y * size.height), r, paint);
     }
