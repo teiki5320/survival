@@ -2219,6 +2219,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
         startX: _sisterX,
         minX: 0.18,
         maxX: 0.60,
+        night: widget.night,
+        bedCenterX: _bedLeft + _bedWidth / 2,
+        bedTopY: _bedTop,
+        bedWidth: _bedWidth,
         onSettled: (x) {
           _sisterX = x;
           widget.onSisterX?.call(x);
@@ -2575,14 +2579,11 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
   }
 }
 
-/// Petite soeur autonome dans le wagon. Au repos elle danse doucement
-/// (boucle `dance`). Toutes les ~20 s elle joue une animation one-shot tirée
-/// au hasard d'un pool (câlins/caresses au chien), puis revient au repos.
-/// `onDogInteraction` prévient le parent pour masquer le chien statique
-/// pendant qu'elle interagit (sa sprite contient déjà le chien).
-/// Petite sœur autonome : au repos (pose calme), parfois elle danse, et de
-/// temps en temps elle **se déplace** dans le wagon (sister_walk). La nuit,
-/// elle frissonne (sister_cold). Reporte sa position via [onSettled].
+/// Petite sœur autonome dans le wagon. Au repos = boucle idle debout
+/// (`sister_idle`, 49f). De temps en temps elle se déplace (`sister_walk`,
+/// vrai cycle de profil 49f), frissonne si froid (`sister_cold`). **La nuit**
+/// elle va se coucher sur le lit (`sister_sleep`, mirroré tête-oreiller) et se
+/// réveille au lever du jour. Reporte sa position via [onSettled].
 class _SisterCharacter extends StatefulWidget {
   const _SisterCharacter({
     super.key,
@@ -2593,6 +2594,10 @@ class _SisterCharacter extends StatefulWidget {
     required this.minX,
     required this.maxX,
     required this.onSettled,
+    this.night = false,
+    required this.bedCenterX,
+    required this.bedTopY,
+    required this.bedWidth,
   });
 
   final Widget Function(Widget child) tint;
@@ -2602,6 +2607,11 @@ class _SisterCharacter extends StatefulWidget {
   final double minX;
   final double maxX;
   final ValueChanged<double> onSettled;
+  // La nuit : elle va se coucher sur le lit (dodo groupé).
+  final bool night;
+  final double bedCenterX;
+  final double bedTopY;
+  final double bedWidth;
 
   @override
   State<_SisterCharacter> createState() => _SisterCharacterState();
@@ -2609,32 +2619,36 @@ class _SisterCharacter extends StatefulWidget {
 
 class _SisterCharacterState extends State<_SisterCharacter>
     with TickerProviderStateMixin {
-  late final AnimationController _ctrl; // frames (gestes : dance/cold/walk)
+  late final AnimationController _ctrl; // frames gestes (walk / cold / sleep)
   late final AnimationController _move; // déplacement
-  late final AnimationController _idle; // respiration au repos (continu)
+  late final AnimationController _idle; // boucle idle debout (continu)
   Timer? _timer;
   final _rng = math.Random();
 
   late double _x = widget.startX;
   double _fromX = 0, _toX = 0;
   bool _faceRight = true;
-  String? _anim; // null = idle (pose calme) ; 'dance' ; 'walk' ; 'cold'
-  int _frames = 25;
+  // null = idle (boucle debout) ; 'walk' ; 'cold' ; 'sleep' (sur le lit)
+  String? _anim;
+  int _frames = 49;
+  bool _goingToBed = false;
 
-  // Marche latérale : la sheet sister_walk est un "tour sur place"
-  // (profil -> face -> profil). On NE garde QUE les frames de profil propres
-  // (couture 25->1->3) sinon le milieu du cycle la montre de face = effet
-  // "pas à l'envers". 25 = contact jambe avant, 1->3 = strides de profil.
-  static const List<int> _walkProfileFrames = [24, 0, 1, 2];
-  // Pose idle : frame debout calme, bras le long du corps (sister_walk_19).
-  static const int _idlePoseFrame = 18;
+  static const int _walkFrames = 49;
+  static const int _idleFrames = 49;
+  static const int _sleepFrames = 49;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2));
+    _ctrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2));
     _ctrl.addStatusListener((s) {
-      if (s == AnimationStatus.completed && mounted && _anim != 'walk') {
+      // Walk + sleep bouclent (repeat) -> jamais "completed". Les gestes
+      // one-shot (cold) reviennent à l'idle en fin.
+      if (s == AnimationStatus.completed &&
+          mounted &&
+          _anim != 'walk' &&
+          _anim != 'sleep') {
         setState(() => _anim = null);
       }
     });
@@ -2644,33 +2658,50 @@ class _SisterCharacterState extends State<_SisterCharacter>
     });
     _move.addStatusListener((s) {
       if (s == AnimationStatus.completed && mounted) {
-        _ctrl.stop();
-        setState(() => _anim = null);
+        if (_goingToBed) {
+          _goingToBed = false;
+          _startSleep();
+        } else {
+          _ctrl.stop();
+          setState(() => _anim = null);
+        }
         widget.onSettled(_x);
       }
     });
-    // Respiration au repos : oscillation lente continue (jamais figée).
+    // Idle : boucle debout calme (sister_idle), tourne en continu.
     _idle = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 3200))
-      ..repeat(reverse: true);
-    // Première décision rapide (1-3s) puis cadence régulière -> elle bouge
-    // sans attendre un long délai initial.
-    Timer(Duration(milliseconds: 1000 + _rng.nextInt(2000)), () {
+        vsync: this, duration: const Duration(milliseconds: 4200))
+      ..repeat();
+    // Première décision rapide puis cadence régulière.
+    Timer(Duration(milliseconds: 800 + _rng.nextInt(1600)), () {
       if (mounted) _decide();
     });
     _timer = Timer.periodic(const Duration(seconds: 7), (_) => _decide());
   }
 
+  @override
+  void didUpdateWidget(covariant _SisterCharacter old) {
+    super.didUpdateWidget(old);
+    // Le jour se lève -> elle se réveille et reprend sa vie.
+    if (old.night && !widget.night && _anim == 'sleep') {
+      _ctrl.stop();
+      setState(() => _anim = null);
+    }
+  }
+
   void _decide() {
-    if (!mounted || _anim == 'walk') return;
+    if (!mounted || _anim == 'walk' || _anim == 'sleep') return;
+    // La nuit : direction le lit pour dormir.
+    if (widget.night) {
+      _walkTo(widget.bedCenterX, toBed: true);
+      return;
+    }
     final r = _rng.nextDouble();
     if (GameState.instance.feltCold && r < 0.35) {
       _play('cold', 8, 8 * 140);
-    } else if (r < 0.6) {
+    } else if (r < 0.62) {
       _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));
-    } else if (r < 0.8) {
-      _play('dance', 25, 2600);
-    } // sinon (~20 %) : pause -> idle respiration
+    } // sinon (~38 %) : pause -> boucle idle debout
   }
 
   void _play(String anim, int frames, int ms) {
@@ -2679,17 +2710,28 @@ class _SisterCharacterState extends State<_SisterCharacter>
     _ctrl.forward(from: 0);
   }
 
-  void _walkTo(double tx) {
+  void _walkTo(double tx, {bool toBed = false}) {
     _fromX = _x;
     _toX = tx.clamp(widget.minX, widget.maxX);
-    if ((_toX - _fromX).abs() < 0.03) return;
+    if ((_toX - _fromX).abs() < 0.02) {
+      if (toBed) _startSleep();
+      return;
+    }
     _faceRight = _toX > _fromX;
-    setState(() { _anim = 'walk'; _frames = 25; });
-    _ctrl.duration = const Duration(milliseconds: 650);
+    _goingToBed = toBed;
+    setState(() { _anim = 'walk'; _frames = _walkFrames; });
+    _ctrl.duration = const Duration(milliseconds: 1300); // cycle de marche
     _ctrl.repeat();
     _move.duration = Duration(
         milliseconds: ((_toX - _fromX).abs() * 5500).clamp(800, 4500).round());
     _move.forward(from: 0);
+  }
+
+  void _startSleep() {
+    _ctrl.stop();
+    setState(() { _anim = 'sleep'; _frames = _sleepFrames; });
+    _ctrl.duration = const Duration(milliseconds: 6500); // respiration lente
+    _ctrl.repeat();
   }
 
   @override
@@ -2707,6 +2749,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
       child: LayoutBuilder(
         builder: (_, c) {
           final w = c.maxWidth, h = c.maxHeight;
+          if (_anim == 'sleep') return _buildSleepOnBed(w, h);
           final sisH = h * widget.heightFrac;
           final sisW = sisH; // sprites carrés
           Widget sprite = AnimatedBuilder(
@@ -2714,36 +2757,22 @@ class _SisterCharacterState extends State<_SisterCharacter>
             builder: (_, __) {
               final String asset;
               if (_anim == null) {
-                // idle : pose debout calme (pas de frame de danse figée).
-                asset =
-                    'assets/characters/sister_walk_${_idlePoseFrame + 1}.png';
+                // Idle : boucle debout calme (sister_idle).
+                final f = (_idle.value * _idleFrames).floor().clamp(0, _idleFrames - 1);
+                asset = 'assets/characters/sister_idle_${f + 1}.png';
               } else if (_anim == 'walk') {
-                // Marche : uniquement les frames de profil curées.
-                final i = (_ctrl.value * _walkProfileFrames.length)
-                    .floor()
-                    .clamp(0, _walkProfileFrames.length - 1);
-                asset =
-                    'assets/characters/sister_walk_${_walkProfileFrames[i] + 1}.png';
+                // Marche : vrai cycle de profil (49 frames) -> plus de pas inversés.
+                final f = (_ctrl.value * _walkFrames).floor().clamp(0, _walkFrames - 1);
+                asset = 'assets/characters/sister_walk_${f + 1}.png';
               } else {
-                final f =
-                    (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
+                final f = (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
                 asset = 'assets/characters/sister_${_anim}_${f + 1}.png';
               }
-              Widget img = Image.asset(asset,
+              return Image.asset(asset,
                   fit: BoxFit.contain, gaplessPlayback: true);
-              // Respiration douce au repos : léger étirement vertical, pieds
-              // ancrés au sol -> elle "respire" au lieu d'être figée.
-              if (_anim == null) {
-                img = Transform.scale(
-                  scaleY: 1.0 + 0.02 * _idle.value,
-                  alignment: Alignment.bottomCenter,
-                  child: img,
-                );
-              }
-              return img;
             },
           );
-          // Marche de profil : sister_walk pointe à DROITE -> miroir si gauche.
+          // Profil orienté à DROITE par défaut -> miroir si elle va à gauche.
           if (_anim == 'walk' && !_faceRight) {
             sprite = Transform(
               alignment: Alignment.center,
@@ -2754,7 +2783,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
           return Stack(children: [
             Positioned(
               left: _x * w - sisW / 2,
-              top: widget.feetY * h - sisH * 0.84,
+              top: widget.feetY * h - sisH * 0.85,
               width: sisW,
               height: sisH,
               child: widget.tint(sprite),
@@ -2763,6 +2792,41 @@ class _SisterCharacterState extends State<_SisterCharacter>
         },
       ),
     );
+  }
+
+  // Sommeil sur le lit : le sprite sister_sleep a la tête à DROITE, l'oreiller
+  // du lit est à GAUCHE -> on miroir horizontalement pour poser la tête sur
+  // l'oreiller. Cadré sur le matelas à partir de la géométrie du lit.
+  Widget _buildSleepOnBed(double w, double h) {
+    // Contenu du sprite (mesuré) : corps horizontal, largeur ~0.766 du cadre,
+    // centre vertical ~0.361 du cadre.
+    final bodyLen = widget.bedWidth * 0.96 * w; // longueur du corps en px
+    final boxSize = bodyLen / 0.766;            // cadre carré 512 correspondant
+    final left = widget.bedCenterX * w - boxSize / 2;
+    final mattressY = (widget.bedTopY + 0.075) * h; // ligne du matelas
+    final top = mattressY - 0.361 * boxSize;
+    Widget img = AnimatedBuilder(
+      animation: _ctrl,
+      builder: (_, __) {
+        final f = (_ctrl.value * _sleepFrames).floor().clamp(0, _sleepFrames - 1);
+        return Image.asset('assets/characters/sister_sleep_${f + 1}.png',
+            fit: BoxFit.contain, gaplessPlayback: true);
+      },
+    );
+    img = Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0), // tête -> oreiller
+      child: img,
+    );
+    return Stack(children: [
+      Positioned(
+        left: left,
+        top: top,
+        width: boxSize,
+        height: boxSize,
+        child: widget.tint(img),
+      ),
+    ]);
   }
 }
 
