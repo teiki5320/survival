@@ -76,7 +76,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _enemyR = 0.060;
   static const double _reload = 0.28;
   static const double _impactDur = 0.32;
-  static const double _dieDur = 0.5;
+  static const double _dieDur = 1.2; // anim de chute (0.9s) + corps au sol
+  static const double _dieAnim = 0.9; // durée de l'anim de mort (49 frames)
 
   // Pillard : pieds à ~0.865 du cadre, contenu ~0.73 de haut (mesuré).
   static const double _pillFeet = 0.865;
@@ -406,24 +407,20 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     final boxSize = e.height / _pillContentH * h;
     final left = e.x * h - boxSize / 2;
     final top = e.feetY * h - _pillFeet * boxSize;
-    Widget img = Image.asset(
-      'assets/characters/pillard1_walk_${e.frame + 1}.png',
-      fit: BoxFit.contain,
-      gaplessPlayback: true,
-    );
+    final String asset;
+    double opacity = 1.0;
     if (e.dying) {
-      // Mort procédurale (en attendant les frames de chute) : il bascule
-      // vers la gauche et s'efface.
-      final d = (1 - e.dieT / _dieDur).clamp(0.0, 1.0);
-      img = Opacity(
-        opacity: (1 - d).clamp(0.0, 1.0),
-        child: Transform.rotate(
-          angle: -d * 1.25, // bascule au sol
-          alignment: Alignment.bottomCenter,
-          child: img,
-        ),
-      );
+      // Vraie anim de chute (frames pillard1_die, déjà retournées vers la
+      // gauche) jouée une fois ; le corps reste au sol puis s'efface.
+      final elapsed = _dieDur - e.dieT;
+      final df = (elapsed / _dieAnim * 49).floor().clamp(0, 48);
+      asset = 'assets/characters/pillard1_die_${df + 1}.png';
+      if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
+    } else {
+      asset = 'assets/characters/pillard1_walk_${e.frame + 1}.png';
     }
+    Widget img = Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+    if (opacity < 1.0) img = Opacity(opacity: opacity, child: img);
     return Positioned(
       left: left,
       top: top,
