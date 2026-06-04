@@ -62,7 +62,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // lucarne (_muzzle), on n'a donc plus besoin d'animer Shen au lance-pierre.
   static const double _roofY = 0.55; // niveau du toit du wagon
   static const double _miradorX = 0.18; // centre du mirador
-  static const Offset _muzzle = Offset(0.215, 0.40); // lucarne de tir
+  static const Offset _muzzle = Offset(0.205, 0.45); // lucarne de tir
   static const double _introDur = 2.0; // s : Shen monte dans le mirador
   static const double _groundY = 0.74; // ligne des pieds des pillards
   static const double _trainEdgeX = 0.13; // au-delà = dégâts au train
@@ -661,40 +661,43 @@ class _SceneryPainter extends CustomPainter {
       canvas.drawLine(Offset(x, roofTop + 6), Offset(x, h), plank);
     }
 
-    // Mirador (poste de tir) sur le toit. Placeholder en bois ; à remplacer
-    // par le vrai sprite. Lucarne de tir sombre côté droit, à hauteur du tir.
+    // Mirador placeholder : petite tourelle blindée COMPACTE, en métal,
+    // boulonnée sur le toit (bas profil, ça doit avoir l'air montable sur un
+    // train). À remplacer par le vrai sprite. Lucarne de tir à droite.
     final mx = miradorX * h;
-    final cw = 0.22 * h, ch = 0.18 * h;
-    final cabinTop = 0.40 * h - ch / 2;
-    final cabinBot = 0.40 * h + ch / 2;
-    final wood = Paint()..color = const Color(0xFF5A4632);
-    final woodDark = Paint()..color = const Color(0xFF3C2E20);
-    final legW = 0.02 * h;
-    for (final lx in [mx - cw / 2 + legW, mx + cw / 2 - legW]) {
-      canvas.drawRect(
-        Rect.fromLTWH(lx - legW / 2, cabinBot - 4, legW, roofTop - cabinBot + 8),
-        woodDark,
-      );
-    }
-    canvas.drawRect(Rect.fromLTWH(mx - cw / 2, cabinTop, cw, ch), wood);
-    canvas.drawRect(
-      Rect.fromLTWH(mx - cw / 2, cabinTop, cw, ch),
-      Paint()
-        ..color = const Color(0xFF2A2018)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3,
-    );
-    // Toit en bâtière.
-    final roofPath = Path()
-      ..moveTo(mx - cw / 2 - 6, cabinTop)
-      ..lineTo(mx, cabinTop - 0.09 * h)
-      ..lineTo(mx + cw / 2 + 6, cabinTop)
+    final tTop = 0.43 * h;
+    final twTop = 0.15 * h, twBot = 0.19 * h;
+    final steel = Paint()..color = const Color(0xFF676B72);
+    final steelDark = Paint()..color = const Color(0xFF44484E);
+    final body = Path()
+      ..moveTo(mx - twTop / 2, tTop)
+      ..lineTo(mx + twTop / 2, tTop)
+      ..lineTo(mx + twBot / 2, roofTop)
+      ..lineTo(mx - twBot / 2, roofTop)
       ..close();
-    canvas.drawPath(roofPath, woodDark);
-    // Lucarne de tir (ouverture sombre côté droit).
-    final mw = 0.10 * h, mh = 0.075 * h;
+    canvas.drawPath(body, steel);
+    canvas.drawPath(
+      body,
+      Paint()
+        ..color = const Color(0xFF2A2C30)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5,
+    );
+    // Capot supérieur arrondi (coupole).
+    canvas.drawArc(
+      Rect.fromLTWH(mx - twTop / 2, tTop - 0.045 * h, twTop, 0.09 * h),
+      math.pi, math.pi, true, steelDark,
+    );
+    // Rivets.
+    final rivet = Paint()..color = const Color(0xFF34373C);
+    for (final ry in [0.47, 0.52]) {
+      for (final rx in [-0.06, 0.0, 0.06]) {
+        canvas.drawCircle(Offset(mx + rx * h, ry * h), 1.8, rivet);
+      }
+    }
+    // Lucarne de tir blindée (fente sombre, côté droit, à hauteur du tir).
     canvas.drawRect(
-      Rect.fromLTWH(mx + cw / 2 - mw, 0.40 * h - mh / 2, mw, mh),
+      Rect.fromLTWH(mx + 0.015 * h, 0.45 * h - 0.018 * h, 0.075 * h, 0.036 * h),
       Paint()..color = const Color(0xFF14161C),
     );
   }
