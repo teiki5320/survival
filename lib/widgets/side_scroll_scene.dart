@@ -576,8 +576,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
 
-    // Quand il fait nuit (froid), elle frissonne de temps en temps.
-    if (widget.night && r.nextDouble() < 0.4) {
+    // Quand il fait froid (thermomètre), elle frissonne (plus souvent si
+    // c'est très froid).
+    if (GameState.instance.feltCold &&
+        r.nextDouble() < 0.35 + GameState.instance.coldness * 0.03) {
       _startAutoSpecial('cold', frames: 8);
       return;
     }
@@ -832,7 +834,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _heroTarget = null;
           _idleBreak = null;
           _activeSpecial = 'use_back';
-          _activeSpecialFrames = 24;
+          _activeSpecialFrames = 10;
           _activeSpecialLoops = false;
           _specialFrame = 0;
           _specialAccumMs = 0;
@@ -856,7 +858,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _heroTarget = null;
           _idleBreak = null;
           _activeSpecial = 'use_back';
-          _activeSpecialFrames = 24;
+          _activeSpecialFrames = 10;
           _activeSpecialLoops = false;
           _specialFrame = 0;
           _specialAccumMs = 0;
@@ -2092,7 +2094,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // qu'ils ne dépassent pas en dessous.
     final feetY = h * (gs.showerPanelY + gs.showerPanelH - 0.03);
     return Positioned(
-      left: w * gs.showerPanelX - sw / 2,
+      left: w * gs.showerHeadX - sw / 2,
       top: feetY - sh,
       width: sw,
       height: sh,
@@ -2213,7 +2215,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     return Positioned.fill(
       child: _SisterCharacter(
         tint: _nightTint,
-        night: widget.night,
         heightFrac: 0.28,
         feetY: 0.74,
         startX: _sisterX,
@@ -2591,7 +2592,6 @@ class _SisterCharacter extends StatefulWidget {
     required this.minX,
     required this.maxX,
     required this.onSettled,
-    this.night = false,
   });
 
   final Widget Function(Widget child) tint;
@@ -2601,7 +2601,6 @@ class _SisterCharacter extends StatefulWidget {
   final double minX;
   final double maxX;
   final ValueChanged<double> onSettled;
-  final bool night;
 
   @override
   State<_SisterCharacter> createState() => _SisterCharacterState();
@@ -2646,7 +2645,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
   void _decide() {
     if (!mounted || _anim == 'walk') return;
     final r = _rng.nextDouble();
-    if (widget.night && r < 0.35) {
+    if (GameState.instance.feltCold && r < 0.4) {
       _play('cold', 8, 8 * 140);
     } else if (r < 0.45) {
       _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));

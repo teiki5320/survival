@@ -468,6 +468,12 @@ class _WagonScreenState extends State<WagonScreen> {
             ),
           ),
         ),
+        // Thermomètre (haut-gauche) : montre la température cabine.
+        Positioned(
+          top: 8,
+          left: 8,
+          child: SafeArea(child: _thermometer()),
+        ),
         Positioned(
           top: 8,
           bottom: 16,
@@ -518,6 +524,21 @@ class _WagonScreenState extends State<WagonScreen> {
                   tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
                   onPressed: _toggleNight,
                   child: Icon(_night ? Icons.wb_sunny : Icons.nightlight_round),
+                ),
+                const SizedBox(height: 12),
+                // Test : cycle la température (chaud -> frais -> gel).
+                FloatingActionButton.small(
+                  heroTag: 'temp_test',
+                  tooltip: 'Température (test)',
+                  onPressed: () {
+                    final gs = GameState.instance;
+                    final next = gs.cabinTemp > 14
+                        ? 6.0
+                        : (gs.cabinTemp > 0 ? -6.0 : 20.0);
+                    gs.setCabinTemp(next);
+                    setState(() {});
+                  },
+                  child: const Icon(Icons.thermostat),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton.small(
@@ -576,6 +597,71 @@ class _WagonScreenState extends State<WagonScreen> {
 
   /// Mini-jauge horizontale icone + barre 80px. Couleur passe au rouge
   /// quand la valeur descend sous 25 %.
+  // Petit thermomètre HUD : tube + °C, bleu si Shen a froid.
+  Widget _thermometer() {
+    return AnimatedBuilder(
+      animation: GameState.instance,
+      builder: (_, __) {
+        final gs = GameState.instance;
+        final t = gs.cabinTemp;
+        final cold = gs.feltCold;
+        final f = ((t + 15) / 43).clamp(0.0, 1.0); // -15..28 -> 0..1
+        final fill = cold
+            ? const Color(0xFF5BA8E0)
+            : (t > 18 ? const Color(0xFFE08A3C) : const Color(0xFFE0C060));
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.7),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 9,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2E),
+                  borderRadius: BorderRadius.circular(5),
+                  border: Border.all(color: const Color(0xFF555555), width: 1),
+                ),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: FractionallySizedBox(
+                    heightFactor: f.clamp(0.05, 1.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: fill,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('${t.round()}°',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold)),
+                  if (cold)
+                    const Text('❄ froid',
+                        style:
+                            TextStyle(color: Color(0xFF8FD0FF), fontSize: 10)),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _actionFab() {
     IconData icon = Icons.help_outline;
     VoidCallback? action;

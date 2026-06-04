@@ -36,6 +36,9 @@ class GameState extends ChangeNotifier {
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
+        'cabinTemp': cabinTemp,
+        'stoveInstalled': stoveInstalled,
+        'outfitWarmth': outfitWarmth,
         'wagon2Stage': wagon2Stage,
         'wagon2LampAx': wagon2LampAx,
         'wagon2LampAy': wagon2LampAy,
@@ -81,6 +84,9 @@ class GameState extends ChangeNotifier {
       }
       // 2 stages désormais (windowed/clean) : clamp pour vieilles sauvegardes.
       wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
+      cabinTemp = (data['cabinTemp'] as num?)?.toDouble() ?? cabinTemp;
+      stoveInstalled = (data['stoveInstalled'] as bool?) ?? stoveInstalled;
+      outfitWarmth = (data['outfitWarmth'] as num?)?.toInt() ?? outfitWarmth;
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
       wagon2LampAy = (data['wagon2LampAy'] as num?)?.toDouble() ?? wagon2LampAy;
@@ -147,6 +153,27 @@ class GameState extends ChangeNotifier {
   }
 
   int wagonStage = 0;
+
+  // --- Température cabine (thermomètre) ---
+  // [cabinTemp] = température ressentie dans le wagon (°C). Pilotée à la main
+  // pour l'instant (contrôle de test) ; sera calculée auto plus tard (zone
+  // map + bois + météo + nuit).
+  double cabinTemp = 18.0;
+  // Protection contre le froid : meilleur wagon + poêle installé + habits
+  // chauds -> Shen supporte des températures plus basses (seuil plus bas).
+  bool stoveInstalled = true; // le poêle "à remettre dans le wagon"
+  int outfitWarmth = 0; // bonus tenue (0 = tenue de base)
+  double get coldThreshold =>
+      12.0 - wagonStage * 2 - (stoveInstalled ? 4 : 0) - outfitWarmth;
+  // Vrai si Shen (et la sœur) ont froid -> frissons + blocage gain moral.
+  bool get feltCold => cabinTemp < coldThreshold;
+  // 0 (juste à la limite) .. ~20 (gel) : pilote la fréquence des frissons.
+  double get coldness => (coldThreshold - cabinTemp).clamp(0.0, 20.0);
+  void setCabinTemp(double t) {
+    cabinTemp = t.clamp(-15.0, 28.0);
+    notifyListeners();
+    save();
+  }
 
   /// 2e wagon (cellier) : 0 = en désordre (état initial), 1 = aménagé/propre.
   int wagon2Stage = 0;
@@ -446,6 +473,8 @@ class GameState extends ChangeNotifier {
       case 'bois':
         cardBois = (cardBois + delta).clamp(0, statMax);
       case 'moral':
+        // Le froid empêche de GAGNER du moral (on peut encore en perdre).
+        if (delta > 0 && feltCold) delta = 0;
         cardMoral = (cardMoral + delta).clamp(0, statMax);
     }
     notifyListeners();
