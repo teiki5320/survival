@@ -11,6 +11,7 @@ import 'widgets/side_scroll_scene.dart';
 import 'widgets/cards_screen.dart';
 import 'widgets/stat_rings.dart';
 import 'widgets/games/hydro_game.dart';
+import 'widgets/games/roof_defense_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/loading_screen.dart';
 import 'widgets/wardrobe_screen.dart';
@@ -109,6 +110,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inWardrobe = false;
   bool _inHydroGame = false;
   bool _inCards = false;
+  bool _inShootGame = false; // mini-jeu défense du toit (gares)
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   // Chien un peu plus grand pour mieux matcher le husky des sprites de
   // caresse (avant il faisait chiot riquiqui à côté).
@@ -331,7 +333,12 @@ class _WagonScreenState extends State<WagonScreen> {
       backgroundColor: Colors.black,
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 600),
-        child: _inCards
+        child: _inShootGame
+            ? RoofDefenseGame(
+                key: const ValueKey('shoot_game'),
+                onExit: () => setState(() => _inShootGame = false),
+              )
+            : _inCards
             ? CardsScreen(
                 key: const ValueKey('cards'),
                 onClose: () => setState(() => _inCards = false),
@@ -562,6 +569,16 @@ class _WagonScreenState extends State<WagonScreen> {
                   foregroundColor: const Color(0xFF2A2018),
                   onPressed: () => setState(() => _inCards = true),
                   child: const Icon(Icons.style),
+                ),
+                const SizedBox(height: 12),
+                // Mini-jeu de gare : défense du toit au lance-pierre.
+                FloatingActionButton.small(
+                  heroTag: 'open_shoot',
+                  tooltip: 'Défendre le train (gare)',
+                  backgroundColor: const Color(0xFF8A3B2E),
+                  foregroundColor: Colors.white,
+                  onPressed: () => setState(() => _inShootGame = true),
+                  child: const Icon(Icons.gps_fixed),
                 ),
                 const SizedBox(height: 12),
                 // Cellier seulement : mode ajuster (placer/redimensionner +
