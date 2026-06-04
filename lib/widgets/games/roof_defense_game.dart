@@ -61,10 +61,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   final _rng = math.Random();
 
   // --- Géométrie (unités H), calée sur le décor gare_shoot ---
-  static const double _miradorX = 0.16; // centre du mirador (sur le wagon)
-  static const double _miradorBottomY = 0.47; // base du mirador
-  static const double _miradorH = 0.24; // hauteur du mirador
-  static const Offset _muzzle = Offset(0.205, 0.33); // d'où part le tir
   static const double _groundY = 0.72; // pieds des pillards (le quai)
   static const double _trainEdgeX = 0.26; // atteint le wagon -> dégâts
   static const double _introDur = 2.0;
@@ -102,8 +98,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _reloadTimer = 0;
 
   int _trainHp = 5;
+  int _maxHp = 5;
   int _kills = 0;
   _Status _status = _Status.playing;
+
+  // Placement du mirador (réglable en jeu via le bouton crayon). Le point de
+  // tir (_muzzle) suit le mirador.
+  double _mx = 0.16, _my = 0.47, _mh = 0.24;
+  bool _adjust = false;
+  double _scaleStartH = 0.24;
+  Offset get _muzzle => Offset(_mx + _mh * 0.20, _my - _mh * 0.58);
+
+  // Bonus choisi au niveau 4.
+  bool _doubleStone = false;
+  bool _awaitingChoice = false;
+  bool _perkChosen = false;
 
   double _introT = _introDur;
   bool _introDone = false;
@@ -134,6 +143,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (dt <= 0) return;
     if (dt > 0.05) dt = 0.05;
     if (_status != _Status.playing) return;
+    // En réglage du mirador ou en attente du choix de bonus : on gèle le jeu.
+    if (_adjust || _awaitingChoice) return;
 
     // Intro : Shen rejoint le mirador.
     if (!_introDone) {
@@ -224,7 +235,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _status = _Status.won;
       } else {
         _wave++;
-        _banner = 1.8;
+        // Avant la 4e vague : choix d'un bonus (double pierre / cœurs).
+        if (_wave == 3 && !_perkChosen) {
+          _awaitingChoice = true;
+        } else {
+          _banner = 1.8;
+        }
       }
     }
 
@@ -255,8 +271,33 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_reloadTimer > 0) return;
     final v = _launchVel();
     if (v.distance < 0.25) return;
-    _stones.add(_Stone(_muzzle, v));
+    if (_doubleStone) {
+      // Deux cailloux légèrement écartés : chacun ne tue qu'un pillard.
+      _stones.add(_Stone(_muzzle, _rot(v, -0.07)));
+      _stones.add(_Stone(_muzzle, _rot(v, 0.07)));
+    } else {
+      _stones.add(_Stone(_muzzle, v));
+    }
     _reloadTimer = _reload;
+  }
+
+  Offset _rot(Offset v, double a) {
+    final c = math.cos(a), s = math.sin(a);
+    return Offset(v.dx * c - v.dy * s, v.dx * s + v.dy * c);
+  }
+
+  void _pickPerk(bool doubleStone) {
+    setState(() {
+      if (doubleStone) {
+        _doubleStone = true;
+      } else {
+        _maxHp += 3;
+        _trainHp += 3;
+      }
+      _perkChosen = true;
+      _awaitingChoice = false;
+      _banner = 1.8;
+    });
   }
 
   void _restart() {
@@ -269,10 +310,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _spawnTimer = 0;
       _banner = 1.8;
       _trainHp = 5;
+      _maxHp = 5;
       _kills = 0;
       _reloadTimer = 0;
       _status = _Status.playing;
       _aiming = false;
+      _doubleStone = false;
+      _awaitingChoice = false;
+      _perkChosen = false;
       _introT = _introDur;
       _introDone = false;
     });
@@ -289,20 +334,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           _viewAspect = w / h;
           Offset u2p(Offset u) => Offset(u.dx * h, u.dy * h);
           final playing = _status == _Status.playing;
+          final canAim = playing && !_adjust && !_awaitingChoice;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onPanStart: playing
+            onPanStart: canAim
                 ? (d) {
                     _dragStart = d.localPosition;
                     _dragNow = d.localPosition;
                     setState(() => _aiming = true);
                   }
                 : null,
-            onPanUpdate: playing
+            onPanUpdate: canAim
                 ? (d) => setState(() => _dragNow = d.localPosition)
                 : null,
-            onPanEnd: playing
+            onPanEnd: canAim
                 ? (_) {
                     _fire();
                     setState(() => _aiming = false);
@@ -322,19 +368,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 // Pillards.
                 for (final e in _enemies) _buildEnemy(e, h),
 
-                // Mirador (poste de tir) sur le wagon.
-                Positioned(
-                  left: _miradorX * h - (_miradorH * 1.798 * h) / 2,
-                  top: (_miradorBottomY - _miradorH) * h,
-                  width: _miradorH * 1.798 * h,
-                  height: _miradorH * h,
-                  child: const IgnorePointer(
-                    child: Image(
-                      image: AssetImage('assets/objects/mirador.png'),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+                // Mirador (poste de tir) sur le wagon. Réglable en mode crayon.
+                _buildMirador(h),
 
                 // Intro : Shen rejoint le mirador puis disparaît dedans.
                 if (!_introDone) _introShen(h),
@@ -394,6 +429,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     ),
                   ),
 
+                if (_adjust) _coordHud(),
+                if (_awaitingChoice) _choiceOverlay(),
                 if (!playing) _endOverlay(),
               ],
             ),
@@ -430,9 +467,166 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     );
   }
 
+  // Mirador : posé selon _mx/_my/_mh. En mode crayon (_adjust), 1 doigt
+  // déplace, pincer redimensionne ; les coords s'affichent (HUD) pour rebaker.
+  Widget _buildMirador(double h) {
+    final mw = _mh * 1.798 * h; // ratio image mirador
+    final mhpx = _mh * h;
+    final left = _mx * h - mw / 2;
+    final top = (_my - _mh) * h;
+    const img = Image(
+      image: AssetImage('assets/objects/mirador.png'),
+      fit: BoxFit.contain,
+    );
+    if (!_adjust) {
+      return Positioned(
+        left: left,
+        top: top,
+        width: mw,
+        height: mhpx,
+        child: const IgnorePointer(child: img),
+      );
+    }
+    return Positioned(
+      left: left,
+      top: top,
+      width: mw,
+      height: mhpx,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onScaleStart: (_) => _scaleStartH = _mh,
+        onScaleUpdate: (d) => setState(() {
+          if (d.pointerCount >= 2) {
+            _mh = (_scaleStartH * d.scale).clamp(0.08, 0.6);
+          } else {
+            _mx += d.focalPointDelta.dx / h;
+            _my += d.focalPointDelta.dy / h;
+          }
+        }),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Positioned.fill(child: img),
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xCCE8B96B), width: 1.5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _coordHud() => Positioned(
+        left: 10,
+        bottom: 10,
+        child: IgnorePointer(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('MIRADOR — 1 doigt = bouger, pincer = taille',
+                    style: TextStyle(
+                        color: Color(0xFFE8B96B),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
+                Text(
+                  'mx ${_mx.toStringAsFixed(3)}   my ${_my.toStringAsFixed(3)}   mh ${_mh.toStringAsFixed(3)}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontFamily: 'monospace'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _choiceOverlay() => Positioned.fill(
+        child: Container(
+          color: Colors.black.withValues(alpha: 0.66),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Niveau 4 — choisis ton renfort',
+                    style: TextStyle(
+                        color: Color(0xFFFFD9A0),
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(height: 22),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _choiceCard(
+                      emoji: '🪨🪨',
+                      title: 'Double pierre',
+                      desc: '2 cailloux par tir\n(chacun tue 1 pillard)',
+                      onTap: () => _pickPerk(true),
+                    ),
+                    const SizedBox(width: 18),
+                    _choiceCard(
+                      emoji: '❤️',
+                      title: '+3 cœurs',
+                      desc: 'Train plus résistant\n(intégrité +3)',
+                      onTap: () => _pickPerk(false),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+  Widget _choiceCard({
+    required String emoji,
+    required String title,
+    required String desc,
+    required VoidCallback onTap,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 160,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2018),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE8B96B), width: 1.5),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 34)),
+              const SizedBox(height: 8),
+              Text(title,
+                  style: const TextStyle(
+                      color: Color(0xFFFFD9A0),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Text(desc,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
+            ],
+          ),
+        ),
+      );
+
   Widget _introShen(double h) {
     final p = (1 - _introT / _introDur).clamp(0.0, 1.0);
-    final sx = 0.42 + (_miradorX + 0.02 - 0.42) * p;
+    final sx = 0.42 + (_mx + 0.02 - 0.42) * p;
     final boxH = 0.26 * h;
     final boxW = boxH * 0.55;
     final frame = ((_introDur - _introT) * 18).floor() % 49 + 1;
@@ -476,6 +670,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 _hud('💥 $_kills'),
                 const SizedBox(width: 12),
                 FloatingActionButton.small(
+                  heroTag: 'shoot_adjust',
+                  tooltip: 'Placer le mirador',
+                  backgroundColor:
+                      _adjust ? const Color(0xFFE8B96B) : Colors.black54,
+                  foregroundColor:
+                      _adjust ? const Color(0xFF2A2018) : Colors.white,
+                  onPressed: () => setState(() => _adjust = !_adjust),
+                  child: Icon(_adjust ? Icons.check : Icons.edit),
+                ),
+                const SizedBox(width: 12),
+                FloatingActionButton.small(
                   heroTag: 'shoot_quit',
                   backgroundColor: Colors.black54,
                   onPressed: widget.onExit,
@@ -509,7 +714,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < _maxHp; i++)
               Icon(
                 i < _trainHp ? Icons.favorite : Icons.favorite_border,
                 color: const Color(0xFFE2614A),
@@ -628,16 +833,8 @@ class _ShotPainter extends CustomPainter {
       }
     }
 
-    // Visée.
+    // Visée : seulement l'arc de points prévisionnel (pas de "barre").
     if (aiming && launchVel != null) {
-      final pullEnd = anchor - launchVel! * (hUnit * 0.06);
-      canvas.drawLine(
-        anchor,
-        pullEnd,
-        Paint()
-          ..color = const Color(0xFFE8B96B)
-          ..strokeWidth = 3,
-      );
       final dot = Paint()..color = Colors.white.withValues(alpha: 0.85);
       Offset pos = Offset(anchor.dx / hUnit, anchor.dy / hUnit);
       Offset vel = launchVel!;
