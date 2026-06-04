@@ -17,16 +17,53 @@ paysage défile latéralement derrière, la locomotive est à gauche.
 **Esthétique cible** : Studio Ghibli + lofi anime, hand-painted, palette warm
 honey browns / cream / soft amber dedans, cold blue / pale fog dehors.
 
-**État actuel (2026-05-30)** : prototype solide avec page d'accueil + 16 anims
-héroïne + 8 anims chien + 4 parallax + silhouettes humaines + foreground life +
-audio branché (sans musique) + carte avec spline 14 gares. **Mini-jeu hydro
-(6 cups, sprites peints, mode ajuster)** + **filtre eau inline (tank animé)**.
-Wood game retiré.
+**État actuel (2026-06-03)** : prototype riche. Wagon 1 vivant (Shen + sœur +
+chien **autonomes ET mobiles**), **2e wagon (cellier)** avec bain/douche/
+lanternes posables, **moteur de cartes** (CardsScreen) + carte 14 gares,
+**thermomètre/froid** branché sur le moral. Mini-jeu hydro + filtre eau inline.
+Audio sans musique.
 
 **✅ DIRECTION VALIDÉE (2026-05-31)** : gameplay **Reigns-like** + histoire
-canon écrite (Shen fuit la 3e GM, cherche sa famille, train vers le refuge
-nord). Voir section "Direction Reigns — VALIDÉE" plus bas. Prochaine étape =
-implémentation (moteur de cartes).
+canon (Shen fuit la 3e GM, cherche sa famille, train → refuge nord). Le
+**moteur de cartes existe** (`lib/widgets/cards_screen.dart`, données
+`lib/data/cards_data.dart`, 4 stats soif/faim/bois/moral, fins). Reste à
+écrire/équilibrer le contenu + relier la map au gameplay.
+
+### Gros points faits cette session (2026-06-02→03)
+- **Wagon 1 = 2 stages** (windowed/clean). Posé sur les rails via un
+  `Transform.translate` qui descend tout le bloc intérieur (l'image était
+  cadrée trop haut).
+- **2e wagon (cellier)** : `SideScrollScene(secondWagon: true)`. Props posables
+  (baignoire, panneau douche, pommeau, 2 lanternes) en **mode AJUSTER** (FAB
+  crayon, cellier seulement) : 1 doigt = déplacer, **pincer = redimensionner**,
+  HUD des coordonnées. Coords/persistées dans GameState. Lanternes = FireGlow
+  la nuit. Mouvement de Shen bloqué près de la porte tant que le cellier est en
+  désordre (stage 0).
+- **Bain** : près de la baignoire → bouton → Shen se tourne (use_back court) →
+  anim `bath_1..8` (boucle le câlin... non : entrée→détente, tient). **Douche**
+  : près du panneau → tour → `shower_1..8` (shampoing long puis pose lavée),
+  Shen sous le **pommeau**, eau qui coule (pommeau `showerhead_1..6`) seulement
+  pendant la douche, + **vapeur** (`_SteamPainter`).
+- **Sœur + chien MOBILES** : `_SisterCharacter` / `_DogCharacter` se baladent
+  (sister_walk / dog_walk) vers une position aléatoire, sinon anim sur place ;
+  position vivante rapportée (`_sisterX`/`_dogX` + callbacks `onSisterX`/
+  `onDogX` vers main) pour que les actions suivent.
+- **Duos sœur+Shen** : lecture (`readduo_1..10`) et câlin (`sister_hug_1..4`),
+  déclenchés par proximité (auto) OU **bouton action** (test, alterne). Pendant
+  le duo, les 2 solos disparaissent ; fin via `setState` (sinon le sprite
+  figé restait + le solo réapparaissait par-dessus — bug corrigé).
+- **Chien** : caresse = sprite `petdog_1..9` (Shen + husky, approche→câlin),
+  remplace solo Shen + chien statique. (Ancien `pet_dog` chiot retiré.)
+- **Froid/Thermomètre** : `cabinTemp` + `feltCold` (seuil selon wagonStage +
+  poêle + habits). Froid **bloque le GAIN de moral**. Frissons (`cold` /
+  `sister_cold`) selon `feltCold`. HUD thermomètre + **bouton test** (cycle
+  chaud/frais/gel). Température encore **manuelle** (pas branchée map/bois).
+- **Découpe sprites** : technique **traits rouges** — l'utilisateur trace des
+  lignes rouges (#FF0000) entre les frames sur la sheet (fond vert), je coupe
+  pile dessus + normalise (bottom-center). Outils : `tools/key_out_green.py`,
+  `cut_bath_shower.py`, `cut_duos_cold.py`, `recut_clean.py`.
+- Bruits de pas **retirés**. Écran de chargement refait (barre + train + n° de
+  build affiché « build X.Y.Z »). Colonne de FAB **scrollable** (paysage).
 
 ---
 
@@ -42,7 +79,13 @@ implémentation (moteur de cartes).
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.13.0+48` dans `pubspec.yaml`.
+- **Version actuelle** : `0.49.0+123` dans `pubspec.yaml`. Le **n° de build**
+  s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
+  `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
+  TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
+- **Flutter dispo dans l'env web** : non par défaut, mais on peut télécharger
+  le SDK Dart + cloner Flutter 3.41.9 dans `/tmp` pour lancer `flutter analyze`
+  avant push (fait régulièrement → 0 erreur avant chaque commit).
 - **Dépendances** : `audioplayers: ^6.1.0`, `cupertino_icons: ^1.0.6`.
 
 ## Règles de commit / push
@@ -82,9 +125,17 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
 ## Architecture côté code
 
 - `lib/main.dart` — App + `WagonScreen`. État global : night, _heroSpawnX,
-  flags (_inLocomotive, _onMap, _inHydroGame, _inWardrobe, _doorPushing),
-  HUD survie (hunger/thirst/fatigue + chips bois/eau/food), bouton action
-  contextuel selon position. Routing : title → wagon/loco/map/wardrobe/hydro.
+  flags (`_inLocomotive`, `_inWagon2`, `_onMap`, `_inHydroGame`, `_inWardrobe`,
+  `_inCards`, `_doorPushing`), HUD (StatRingsBar + **thermomètre**), bouton
+  action **contextuel** selon position + tokens (`_bathToken`, `_showerToken`,
+  `_petDogToken`, `_duoToken`...), colonne de FAB **scrollable**.
+  - **Navigation portes** : wagon 1 porte gauche → loco, porte droite → wagon
+    2 ; wagon 2 porte gauche → wagon 1. `_pendingDoor` route le `_onDoorPushDone`.
+    La **carte** et les **cartes** sont sur leurs propres FAB.
+  - **Positions vivantes** : `_sisterLiveX`/`_dogLiveX` (màj via callbacks
+    `onSisterX`/`onDogX`) → `_atSister`/`_atDog` suivent leur déplacement.
+  - **Thermomètre** : `_thermometer()` (HUD haut-gauche) + FAB test qui cycle
+    chaud/frais/gel (`GameState.setCabinTemp`).
 - `lib/widgets/title_screen.dart` — Page d'accueil avec fond ville glacée
   `title_bg.png`, titre, sous-titre, "Continuer" / "Nouvelle partie".
 - `lib/widgets/side_scroll_scene.dart` (~2400 l.) — Scène wagon : 4 parallax
@@ -93,12 +144,29 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
   silhouettes humaines + foreground life, animations atmosphère. **Filtre =
   asset tank dynamique** selon `waterTankGlasses` (6 frames 0→5).
   - **Wagon = 2 stages** (windowed/clean) ; dirty+swept retirés.
-  - **`secondWagon: true`** rend le **2e wagon (cellier)** : background
-    `wagon2_messy`/`wagon2_clean` selon `wagon2Stage`, tous les props +
-    chien + sœur masqués, héroïne seule (autonomie = flâne uniquement).
-  - **Autonomie** : Shen agit selon ses besoins toutes les ~14s (boit/
-    cuisine/jardine/lit/danse/caresse/flâne) — cosmétique, stats gérées
-    par les cartes. **Chien autonome** (`_DogCharacter`) + sœur autonome.
+  - **`secondWagon: true`** = **cellier** : background `wagon2_messy`/`_clean`,
+    props wagon1 masqués. Props posables : **baignoire, panneau douche,
+    pommeau, 2 lanternes** (`_buildWagon2Props`, drag+pincer en `wagon2Adjust`,
+    coords dans GameState). feetY plus bas (sol dessiné plus bas).
+  - **Autonomie Shen** : `_autonomyTick` (~14s) lit les jauges (boit si soif…)
+    — cosmétique. Frissonne si `feltCold`.
+  - **Sœur/chien MOBILES** : `_SisterCharacter`/`_DogCharacter` se baladent
+    (2 controllers : frames + déplacement), rapportent leur x via `onSettled`.
+  - **Duos** (`_duoActive`, `_duoAnim` = readduo/sister_hug), **bain**
+    (`_bathing`), **douche** (`_showering`), **caresse chien** (`_petDog`) :
+    states qui masquent les solos + jouent un sprite dédié, **fin via
+    setState** (sinon sprite figé qui reste). Tokens depuis main.
+  - `_SteamPainter` = vapeur (bain/douche). FireGlow lanternes la nuit.
+- **Anims persos** (`assets/characters/`) : héroïne (walk_right, idle_right,
+  drink, read, dance, warm_hands, carry_walk, yawn, stretch, pickup,
+  sleep_right, use_back, door_push, open_door, crouch, wake_up, **cold**) ;
+  **bath_1..8, shower_1..8, petdog_1..9, readduo_1..10, sister_hug_1..4,
+  cold_1..8, sister_cold_1..8, sister_dance/walk**. **Retirés** : cook,
+  garden_tend, look_window, sister_read, pet_dog (chiot), hugduo,
+  sister_hug_dog, sister_pet_dog.
+- `lib/widgets/cards_screen.dart` + `lib/data/cards_data.dart` — **moteur de
+  cartes Reigns** (swipe, 2 choix, effets stats, flags, fins). `tools/
+  sim_game.py` rejoue 4000 runs pour équilibrer.
 - `lib/widgets/locomotive_scene.dart` — Cabine loco avec ramassage bûches.
 - `lib/widgets/map_screen.dart` — Carte 14 gares, spline Catmull-Rom,
   train procédural. Plus de wood points (retirés).
@@ -112,10 +180,14 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
   carotte + Passer un step. Tap plante mûre → harvest. **Mode ajuster
   intégré** (icône crayon top right) avec HUD coordonnées des 6 _Slot
   (x, y, size).
-- `lib/models/game_state.dart` — Singleton ChangeNotifier. Sauvegarde JSON
-  `dart:io`. State : énergie, hunger/thirst/fatigue, items, flags,
-  unlocked, wagonStage, **waterTankGlasses (0-5)**. Anciens hydroSlots et
-  waterJars + advanceFarm() inutilisés à présent (à nettoyer).
+- `lib/models/game_state.dart` — Singleton ChangeNotifier. Sauvegarde JSON.
+  State : 4 jauges cartes (cardSoif/Faim/Bois/Moral + `nudgeCardStat`),
+  items, flags, wagonStage (0/1), wagon2Stage, `waterTankGlasses` (0-5),
+  **coords props cellier** (bathX/Y/H, showerPanelX/Y/H, showerHeadX/Y/H,
+  wagon2LampA/B x/y/H), **thermomètre** (`cabinTemp`, `stoveInstalled`,
+  `outfitWarmth` → `coldThreshold`/`feltCold`/`coldness`, `setCabinTemp`).
+  `nudgeCardStat('moral', +n)` est **bloqué si `feltCold`** (froid = pas de
+  gain de moral). Anciens hydroSlots/waterJars à nettoyer.
 - `lib/services/audio_service.dart` — Singleton audio. setMusic désactivé
   (musique pas à refaire). startAmbientTrain/Fire + 9 playSfx.
 - `lib/data/world.dart` — 3 Locations narratives initiales (à étoffer).
@@ -333,39 +405,47 @@ l'enfant / la sœur), à nommer plus tard.
 
 ## Ce qui reste à faire
 
-### 🚨 Priorité absolue — implémenter Reigns (direction validée)
+### 🚨 Priorité — relier la vie du wagon au gameplay Reigns
+1. **Brancher le thermomètre en AUTO** : `cabinTemp` calculée depuis la **zone
+   de la map** (tempéré→nord glacé) + **bois** (feu) + **météo** + **nuit**.
+   Aujourd'hui c'est manuel (bouton test). Débrancher le test ensuite.
+2. **Poêle à réinstaller** : mécanique où `stoveInstalled` devient un vrai
+   objet à placer dans le wagon (impacte la résistance au froid).
+3. **Habits chauds** : outfits avec `outfitWarmth` (wardrobe a déjà 1 outfit).
+4. **Relier map ↔ cartes ↔ wagon** : avancer sur la map = piochage de cartes,
+   zone change la temp/ambiance. Écrire le **contenu cartes** (14 gares +
+   ~130 fillers + arcs persos) dans `cards_data.dart`.
 
-1. **Construire le moteur de cartes** : modèle de carte (texte + 2 choix +
-   effets sur les 4 stats + flags requis/posés), pile de cartes, swipe
-   G/D, écran de carte (hybride wagon en fond à confirmer).
-2. **Système de stats** faim/soif/bois/moral + conditions de fin (0 = mort/
-   abandon) + 5 fins.
-3. **Écrire le contenu** : 14 cartes de gare (avec variantes) +
-   ~130 cartes de remplissage + arcs des persos récurrents.
+### Priorité — vie des wagons (idées validées en discussion)
+5. **Interactions émergentes** : chien/sœur suivent ou rejoignent Shen ;
+   regroupement la nuit (dodo : Shen lit, sœur, chien panier).
+6. **Fix nuit sœur** : la nuit elle bouge presque plus (le check froid mange
+   la tranche walk) — rééquilibrer.
+7. **Activités cellier** : faire fondre la neige (→soif), étendoir, etc.
+   (cf. liste d'idées d'anims).
 
-### Priorité haute — feedback utilisateur récent
-
-4. **Refaire les musiques** — supprimées car « rock pas adapté ».
-5. **Brancher les 3 autres plantes** (tomato, eggplant, lettuce) dans
-   hydro_game (sprites prêts, juste UI à ajouter).
-
-### Priorité moyenne — qualité de vie
-
-5. **Nettoyer `hydroSlots` et `waterJars`** non utilisés dans game_state.dart.
-6. **Auto-consume** : si stats trop basses, Shen mange/boit auto depuis
-   les compteurs.
-7. **Cycle jour/nuit narratif** lié à un vrai rythme (à designer selon
-   direction gameplay).
-8. **Schedule autonomous** : Shen suit un planning si on part en routine.
+### Priorité moyenne
+8. **Refaire les musiques** (supprimées car « rock pas adapté »).
+9. **Brancher les 3 autres plantes** (tomato/eggplant/lettuce) dans hydro_game.
+10. **Auto-consume** : stats basses → Shen mange/boit auto.
+11. **Nettoyer** `hydroSlots`/`waterJars` morts + warnings (`_cookToken`,
+    `_horizonNightAsset`, `_nearWindow`…).
 
 ### Priorité basse — polish & contenu
+12. **Objets absents** : radio à manivelle (gare 4), sac à dos, jarres.
+13. **Prompts d'anims en attente** : douche en planches (panneau+pommeau déjà
+    là), activités cellier, persos qui ont froid en duo.
 
-9. **Tier 2-4 pour hydro / filtre** : système de progression via blueprints.
-10. **Plus de Locations + chaînes Questions** (les 14 gares).
-11. **Sauvegarde positions props** (stove, etc.).
-12. **Mécanique vêtements** : outfits supplémentaires.
-13. **Transparence locomotive sur wagon_swept.png**.
-14. **Objets encore absents** : radio à manivelle, sac à dos, jarres, bocaux.
+### ⚠️ Pièges connus / conventions
+- **Découpe sprites IA** : si une sheet se découpe mal (frames qui dérivent,
+  largeurs inégales), demander à l'utilisateur de tracer des **traits rouges
+  #FF0000** entre les frames (fond vert), puis couper aux traits + normaliser
+  (cf. `recut_clean.py`). Le fond doit être **vert #00FF00** (pas blanc : halo).
+- **Anims qui se figent + solo qui réapparait** : toute anim "state" (bain,
+  douche, duo, petdog) DOIT finir via `setState` (pas `_animSet`), sinon le
+  sprite figé reste affiché ET le solo réapparait par-dessus.
+- **Toujours `flutter analyze` avant push** (SDK récupérable dans /tmp).
+- **Toujours afficher/bumper le n° de build** dans `loading_screen.dart`.
 
 ---
 
@@ -393,24 +473,33 @@ l'enfant / la sœur), à nommer plus tard.
 
 ## Notes pour la prochaine session
 
-**Dernier sujet abordé (2026-05-31)** : direction **Reigns VALIDÉE** +
-**histoire canon écrite** (voir section "Direction Reigns — VALIDÉE").
-Shen, ex-étudiante, fuit la 3e GM et cherche sa famille perdue dans la
-fuite ; loco à bois + 1 wagon vers le refuge nord. 4 stats (faim/soif/
-bois/moral, 0 = fin), 14 gares, ~130 cartes de remplissage (10 entre
-chaque gare), 5 persos récurrents, 5 fins.
+**Dernier sujet abordé (2026-06-03)** : grosse session "vie des wagons" +
+cellier + thermomètre. On a posé le **2e wagon** (bain/douche/lanternes
+posables en mode ajuster), rendu **sœur + chien mobiles**, câblé les **duos**
+(lecture/câlin) + **caresse chien** + **bain/douche**, et installé le
+**thermomètre** (froid bloque le gain de moral, piloté à la main pour l'instant).
+Beaucoup d'itérations sur le **découpe/détourage des sprites IA** (technique
+des traits rouges adoptée).
 
-**À reprendre** : commencer l'implémentation — d'abord le moteur de cartes
-(modèle carte + swipe + effets stats + flags), puis le système de stats/
-fins, puis écrire le contenu. Trancher hybride vs full Reigns au moment du
-code (penché hybride). Noms des persos à définir (placeholders pour l'instant).
+**À reprendre (dans l'ordre suggéré)** :
+1. **Brancher le thermomètre en auto** (zone map + bois + météo + nuit) et
+   débrancher le bouton test.
+2. **Vie des wagons** : interactions émergentes (chien/sœur suivent Shen,
+   dodo groupé la nuit), fix nuit-sœur-qui-bouge-pas.
+3. **Contenu cartes** (`cards_data.dart`) + relier map↔cartes↔temp.
 
-**À ne PAS faire** :
-- Recommencer à proposer des mini-jeux variés (hydro/water/wood). Le hydro
-  est OK, le filtre eau OK inline, le wood retiré. C'est figé.
-- Recommencer à discuter du temps dans le jeu en termes abstraits. Le
-  user a choisi de penser en termes "Reigns-like sessions courtes".
-- Refaire la découpe des sprites plantes ou tank (cuts propres confirmés).
+**À ne PAS faire / refaire** :
+- Reproposer des mini-jeux modaux (hydro OK, filtre inline OK, wood retiré).
+- Re-découper bain/douche/duos/petdog sans les **traits rouges** + fond vert.
+- Oublier `flutter analyze` + le bump du **n° de build** dans loading_screen.
+- Remettre les bruits de pas (retirés exprès).
+- Remettre cook/garden_tend/look_window/sister_read/hugduo (anims retirées,
+  mal générées/détourées).
+
+**Persos à l'écran** : Shen (jeune femme, chemise blanche pieds nus — voulu),
+la **petite sœur** (pyjama, couettes — bien plus petite que Shen), le **husky**.
+Le câlin debout sœur (`hugduo`) était mal généré → on utilise `sister_hug`
+(sœur petite + Shen accroupie).
 
 ---
 
