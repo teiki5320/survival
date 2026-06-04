@@ -2609,8 +2609,9 @@ class _SisterCharacter extends StatefulWidget {
 
 class _SisterCharacterState extends State<_SisterCharacter>
     with TickerProviderStateMixin {
-  late final AnimationController _ctrl; // frames
+  late final AnimationController _ctrl; // frames (gestes : dance/cold/walk)
   late final AnimationController _move; // déplacement
+  late final AnimationController _idle; // respiration au repos (continu)
   Timer? _timer;
   final _rng = math.Random();
 
@@ -2619,6 +2620,14 @@ class _SisterCharacterState extends State<_SisterCharacter>
   bool _faceRight = true;
   String? _anim; // null = idle (pose calme) ; 'dance' ; 'walk' ; 'cold'
   int _frames = 25;
+
+  // Marche latérale : la sheet sister_walk est un "tour sur place"
+  // (profil -> face -> profil). On NE garde QUE les frames de profil propres
+  // (couture 25->1->3) sinon le milieu du cycle la montre de face = effet
+  // "pas à l'envers". 25 = contact jambe avant, 1->3 = strides de profil.
+  static const List<int> _walkProfileFrames = [24, 0, 1, 2];
+  // Pose idle : frame debout calme, bras le long du corps (sister_walk_19).
+  static const int _idlePoseFrame = 18;
 
   @override
   void initState() {
@@ -2640,6 +2649,10 @@ class _SisterCharacterState extends State<_SisterCharacter>
         widget.onSettled(_x);
       }
     });
+    // Respiration au repos : oscillation lente continue (jamais figée).
+    _idle = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 3200))
+      ..repeat(reverse: true);
     // Première décision rapide (1-3s) puis cadence régulière -> elle bouge
     // sans attendre un long délai initial.
     Timer(Duration(milliseconds: 1000 + _rng.nextInt(2000)), () {
@@ -2653,11 +2666,11 @@ class _SisterCharacterState extends State<_SisterCharacter>
     final r = _rng.nextDouble();
     if (GameState.instance.feltCold && r < 0.35) {
       _play('cold', 8, 8 * 140);
-    } else if (r < 0.55) {
+    } else if (r < 0.6) {
       _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));
-    } else if (r < 0.9) {
+    } else if (r < 0.8) {
       _play('dance', 25, 2600);
-    } // sinon (~10 %) : courte pause idle
+    } // sinon (~20 %) : pause -> idle respiration
   }
 
   void _play(String anim, int frames, int ms) {
@@ -2684,6 +2697,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
     _timer?.cancel();
     _ctrl.dispose();
     _move.dispose();
+    _idle.dispose();
     super.dispose();
   }
 
@@ -2696,18 +2710,40 @@ class _SisterCharacterState extends State<_SisterCharacter>
           final sisH = h * widget.heightFrac;
           final sisW = sisH; // sprites carrés
           Widget sprite = AnimatedBuilder(
-            animation: _ctrl,
+            animation: Listenable.merge([_ctrl, _idle]),
             builder: (_, __) {
-              // idle = pose calme (1re frame de dance figée).
-              final a = _anim ?? 'dance';
-              final f = _anim == null
-                  ? 0
-                  : (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
-              return Image.asset('assets/characters/sister_${a}_${f + 1}.png',
+              final String asset;
+              if (_anim == null) {
+                // idle : pose debout calme (pas de frame de danse figée).
+                asset =
+                    'assets/characters/sister_walk_${_idlePoseFrame + 1}.png';
+              } else if (_anim == 'walk') {
+                // Marche : uniquement les frames de profil curées.
+                final i = (_ctrl.value * _walkProfileFrames.length)
+                    .floor()
+                    .clamp(0, _walkProfileFrames.length - 1);
+                asset =
+                    'assets/characters/sister_walk_${_walkProfileFrames[i] + 1}.png';
+              } else {
+                final f =
+                    (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
+                asset = 'assets/characters/sister_${_anim}_${f + 1}.png';
+              }
+              Widget img = Image.asset(asset,
                   fit: BoxFit.contain, gaplessPlayback: true);
+              // Respiration douce au repos : léger étirement vertical, pieds
+              // ancrés au sol -> elle "respire" au lieu d'être figée.
+              if (_anim == null) {
+                img = Transform.scale(
+                  scaleY: 1.0 + 0.02 * _idle.value,
+                  alignment: Alignment.bottomCenter,
+                  child: img,
+                );
+              }
+              return img;
             },
           );
-          // sister_walk pointe vers la droite par défaut -> miroir si va à gauche.
+          // Marche de profil : sister_walk pointe à DROITE -> miroir si gauche.
           if (_anim == 'walk' && !_faceRight) {
             sprite = Transform(
               alignment: Alignment.center,
@@ -2761,6 +2797,7 @@ class _DogCharacterState extends State<_DogCharacter>
     with TickerProviderStateMixin {
   late final AnimationController _ctrl; // frames
   late final AnimationController _move; // déplacement
+  late final AnimationController _idle; // respiration au repos (continu)
   Timer? _timer;
   final _rng = math.Random();
 
@@ -2795,6 +2832,10 @@ class _DogCharacterState extends State<_DogCharacter>
         widget.onSettled(_x);
       }
     });
+    // Respiration au repos : le chien se soulève doucement (jamais figé).
+    _idle = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 2600))
+      ..repeat(reverse: true);
     // Première décision rapide (1-3s) puis cadence régulière.
     Timer(Duration(milliseconds: 1000 + _rng.nextInt(2000)), () {
       if (mounted) _decide();
@@ -2832,6 +2873,7 @@ class _DogCharacterState extends State<_DogCharacter>
     _timer?.cancel();
     _ctrl.dispose();
     _move.dispose();
+    _idle.dispose();
     super.dispose();
   }
 
@@ -2844,7 +2886,7 @@ class _DogCharacterState extends State<_DogCharacter>
           final dogH = h * widget.heightFrac;
           final dogW = dogH;
           Widget sprite = AnimatedBuilder(
-            animation: _ctrl,
+            animation: Listenable.merge([_ctrl, _idle]),
             builder: (_, __) {
               final String asset;
               if (_anim == null) {
@@ -2853,7 +2895,17 @@ class _DogCharacterState extends State<_DogCharacter>
                 final f = (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
                 asset = 'assets/objects/dog_${_anim}_${f + 1}.png';
               }
-              return Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+              Widget img = Image.asset(asset,
+                  fit: BoxFit.contain, gaplessPlayback: true);
+              // Respiration douce au repos, pattes ancrées au sol.
+              if (_anim == null) {
+                img = Transform.scale(
+                  scaleY: 1.0 + 0.018 * _idle.value,
+                  alignment: Alignment.bottomCenter,
+                  child: img,
+                );
+              }
+              return img;
             },
           );
           // dog_walk pointe vers la DROITE par défaut -> miroir si va à gauche.
