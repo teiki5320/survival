@@ -5,17 +5,16 @@ import 'package:flutter/scheduler.dart';
 
 import '../../models/game_state.dart';
 
-/// Mini-jeu de défense de gare au **lance-pierre** (poste de tir = mirador sur
-/// le wagon, à gauche). Des **pillards** arrivent de la droite le long du quai
-/// et avancent vers le train. On **maintient le doigt** pour bander la fronde :
-/// un **arc de visée** apparaît, on **relâche** pour lober un caillou (gravité).
-/// Il faut **survivre à plusieurs vagues** ; chaque pillard qui atteint le
-/// wagon entame l'intégrité du train (cœurs).
+/// Mini-jeu de défense de gare au lance-pierre. Des **pillards** arrivent de la
+/// droite le long du quai et avancent vers le train ; ils **disparaissent
+/// derrière le wagon** à gauche. On **maintient et glisse vers l'arrière** pour
+/// bander la fronde (arc de visée), on **relâche** : le caillou part **de la
+/// lucarne/porte arrière du wagon** en cloche (gravité), avec un petit effet de
+/// départ. Survivre aux vagues ; à chaque vague un **renfort** au choix.
 ///
-/// Coordonnées en **unités de hauteur** (1 unité = hauteur de la zone de jeu)
-/// pour une physique d'arc isotrope. Décor `gare_shoot`, mirador `mirador`,
-/// pillards `pillard1_walk_*`. Projectiles, impacts et mort gérés ici (mort
-/// procédurale en attendant de vraies frames de chute).
+/// Tout est en "unités décor" (origine = coin haut-gauche du décor affiché,
+/// 1 unité = hauteur affichée du décor `_S`) -> le gameplay reste collé à la
+/// gare quel que soit l'écran (décor en BoxFit.contain).
 class RoofDefenseGame extends StatefulWidget {
   const RoofDefenseGame({super.key, required this.onExit});
   final VoidCallback onExit;
@@ -34,27 +33,28 @@ class _Enemy {
     required this.height,
     required this.anim,
   });
-  double x; // unités H (centre)
-  double feetY; // ligne des pieds (unités H)
-  double speed; // unités/s vers la gauche
-  double height; // hauteur du perso (unités H)
-  double anim; // accumulateur d'animation (s)
+  double x;
+  double feetY;
+  double speed;
+  double height;
+  double anim;
   int frame = 0;
   int hp = 1;
   bool dying = false;
-  double dieT = 0; // temps de mort restant (s)
+  double dieT = 0;
 }
 
 class _Stone {
   _Stone(this.pos, this.vel);
-  Offset pos; // unités H
-  Offset vel; // unités/s
+  Offset pos;
+  Offset vel;
 }
 
 class _Impact {
-  _Impact(this.pos);
-  final Offset pos; // unités H
-  double t = 0; // 0..1 (durée _impactDur)
+  _Impact(this.pos, {this.launch = false});
+  final Offset pos;
+  final bool launch; // true = poussière de départ (lucarne)
+  double t = 0;
 }
 
 class _RoofDefenseGameState extends State<RoofDefenseGame>
@@ -62,33 +62,28 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   late final Ticker _ticker;
   final _rng = math.Random();
 
-  // --- Géométrie (unités H), calée sur le décor gare_shoot ---
-  static const double _groundY = 0.72; // pieds des pillards (le quai)
-  static const double _trainEdgeX = 0.26; // atteint le wagon -> dégâts
-  static const double _introDur = 2.0;
+  static const double _imgA = 1376 / 768; // ratio du décor gare_shoot
+  static const double _wagonClipFrac = 0.22; // largeur (ifx) du wagon à gauche
+  static const double _trainEdgeX = 0.30; // (sx) atteint le wagon -> dégâts
 
   static const double _g = 1.9;
   static const double _power = 5.6;
   static const double _maxSpeed = 3.0;
   static const double _stoneR = 0.013;
-  static const double _enemyR = 0.060;
-  static const double _reload = 0.28;
+  static const double _reload = 0.26;
   static const double _impactDur = 0.32;
-  static const double _dieDur = 1.2; // anim de chute (0.9s) + corps au sol
-  static const double _dieAnim = 0.9; // durée de l'anim de mort (49 frames)
-
-  // Pillard : pieds à ~0.865 du cadre, contenu ~0.73 de haut (mesuré).
+  static const double _dieDur = 1.2;
+  static const double _dieAnim = 0.9;
   static const double _pillFeet = 0.865;
   static const double _pillContentH = 0.73;
 
-  // (nombre, vitesse, intervalle) — courbe qui MONTE : départ lent et clair,
-  // fin intense où ça déborde si on joue mal (validé par simulation).
+  // Vitesses RÉDUITES (les pillards étaient trop rapides) mais courbe montante.
   static const List<(int, double, double)> _waves = [
-    (4, 0.12, 1.10),
-    (6, 0.20, 0.85),
-    (9, 0.34, 0.60),
-    (13, 0.50, 0.46),
-    (18, 0.68, 0.38),
+    (4, 0.09, 1.20),
+    (6, 0.13, 1.00),
+    (8, 0.18, 0.85),
+    (11, 0.25, 0.72),
+    (15, 0.32, 0.60),
   ];
 
   final List<_Enemy> _enemies = [];
@@ -106,37 +101,26 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   int _kills = 0;
   _Status _status = _Status.playing;
 
-  // Placement du mirador (réglable en jeu via le bouton crayon). Le point de
-  // tir (_muzzle) suit le mirador. Défaut calé pour iPhone (paysage) ; sur
-  // iPad le ratio plus carré le décale -> ajuster au crayon si besoin.
-  double _mx = 0.16, _my = 0.47, _mh = 0.24;
+  // Point de tir (lucarne / porte arrière du wagon) + ligne de sol des
+  // pillards. Réglables en mode crayon (-> coords pour rebaker).
+  double _muzX = 0.30, _muzY = 0.55;
+  double _groundY = 0.80;
   bool _adjust = false;
-  double _scaleStartH = 0.24;
-  Offset get _muzzle => Offset(_mx + _mh * 0.20, _my - _mh * 0.58);
+  Offset get _muzzle => Offset(_muzX, _muzY);
 
-  // Upgrades cumulés (choix après chaque vague).
   int _stonesPerShot = 1;
   double _reloadMult = 1.0;
   double _powerMult = 1.0;
   bool _awaitingChoice = false;
 
-  // Juice.
-  double _shake = 0; // intensité de tremblement restante
-  int _combo = 0; // pillards enchaînés sans fuite
-
-  double _introT = _introDur;
-  bool _introDone = false;
+  double _shake = 0;
+  int _combo = 0;
 
   bool _aiming = false;
   Offset _dragStart = Offset.zero;
   Offset _dragNow = Offset.zero;
-  // Géométrie d'affichage du décor (BoxFit.contain) : échelle + offsets, mis
-  // à jour à chaque build. Tout le gameplay est en "unités décor" (origine =
-  // coin haut-gauche du décor, 1 unité = hauteur affichée du décor _S) -> les
-  // positions restent collées à la gare quel que soit l'écran.
-  static const double _imgA = 1584 / 672; // ratio du décor gare_shoot
-  double _S = 1, _ox = 0, _oy = 0;
 
+  double _S = 1, _ox = 0, _oy = 0;
   Duration _last = Duration.zero;
 
   @override
@@ -157,18 +141,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (dt <= 0) return;
     if (dt > 0.05) dt = 0.05;
     if (_status != _Status.playing) return;
-    // En réglage du mirador ou en attente du choix de bonus : on gèle le jeu.
     if (_adjust || _awaitingChoice) return;
 
-    // Intro : Shen rejoint le mirador.
-    if (!_introDone) {
-      _introT -= dt;
-      if (_introT <= 0) _introDone = true;
-      setState(() {});
-      return;
-    }
-
-    // Impacts (toujours animés).
     for (final im in _impacts) {
       im.t += dt / _impactDur;
     }
@@ -193,7 +167,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
     }
 
-    // Pillards : avancent + animation de marche ; les mourants tombent.
     for (final e in _enemies) {
       if (e.dying) {
         e.dieT -= dt;
@@ -207,14 +180,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (e.dying) return e.dieT <= 0;
       if (e.x <= _trainEdgeX) {
         _trainHp--;
-        _combo = 0; // un pillard passe -> combo cassé
+        _combo = 0;
         if (_trainHp <= 0) _status = _Status.lost;
         return true;
       }
       return false;
     });
 
-    // Cailloux : balistique (+ vent latéral en zone froide).
     final wind = GameState.instance.inColdZone ? -0.22 : 0.0;
     for (final s in _stones) {
       s.vel = s.vel + Offset(wind * dt, _g * dt);
@@ -223,14 +195,18 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _stones.removeWhere((s) =>
         s.pos.dy > 1.15 || s.pos.dx > _imgA + 0.2 || s.pos.dx < -0.2);
 
-    // Collisions caillou <-> pillard vivant.
+    // Collisions caillou <-> pillard : hitbox CORPS (boîte) -> plus de cailloux
+    // qui traversent la tête.
     for (final s in _stones) {
       for (final e in _enemies) {
         if (e.dying) continue;
-        final cx = e.x;
-        final cy = e.feetY - e.height * 0.5;
-        final dx = s.pos.dx - cx, dy = s.pos.dy - cy;
-        if (dx * dx + dy * dy <= (_enemyR + _stoneR) * (_enemyR + _stoneR)) {
+        final hw = e.height * 0.24; // demi-largeur du corps
+        final top = e.feetY - e.height * 0.95;
+        final bot = e.feetY - e.height * 0.05;
+        if (s.pos.dx >= e.x - hw - _stoneR &&
+            s.pos.dx <= e.x + hw + _stoneR &&
+            s.pos.dy >= top &&
+            s.pos.dy <= bot) {
           e.hp--;
           _impacts.add(_Impact(s.pos));
           s.pos = const Offset(-99, -99);
@@ -239,7 +215,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             e.dieT = _dieDur;
             _kills++;
             _combo++;
-            _shake = 0.16; // petit tremblement à l'impact mortel
+            _shake = 0.16;
           }
           break;
         }
@@ -247,13 +223,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     _stones.removeWhere((s) => s.pos.dx < -90);
 
-    // Vague terminée ?
     if (_toSpawn == 0 && _enemies.isEmpty && _banner <= 0) {
       if (_wave >= _waves.length - 1) {
         _status = _Status.won;
       } else {
         _wave++;
-        _awaitingChoice = true; // un renfort à choisir après chaque vague
+        _awaitingChoice = true;
       }
     }
 
@@ -267,7 +242,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       x: _imgA + 0.14,
       feetY: _groundY + (_rng.nextDouble() - 0.5) * 0.03,
       speed: speed * (0.85 + _rng.nextDouble() * 0.3),
-      height: 0.22 + _rng.nextDouble() * 0.04,
+      height: 0.20 + _rng.nextDouble() * 0.04,
       anim: _rng.nextDouble() * 2,
     ));
   }
@@ -286,12 +261,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_reloadTimer > 0) return;
     final v = _launchVel();
     if (v.distance < 0.25) return;
-    // N cailloux légèrement écartés (chacun ne tue qu'un pillard).
     final n = _stonesPerShot;
     for (int i = 0; i < n; i++) {
       final a = n == 1 ? 0.0 : (i - (n - 1) / 2) * 0.08;
       _stones.add(_Stone(_muzzle, _rot(v, a)));
     }
+    _impacts.add(_Impact(_muzzle, launch: true)); // effet de départ
     _reloadTimer = _reload * _reloadMult;
   }
 
@@ -304,12 +279,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     setState(() {
       switch (perk) {
         case 'stone':
-          _stonesPerShot++; // +1 caillou par tir
+          _stonesPerShot++;
         case 'hearts':
           _maxHp += 2;
           _trainHp += 2;
         case 'speed':
-          _powerMult *= 1.12; // caillou plus rapide -> arc plus tendu, portée
+          _powerMult *= 1.12;
       }
       _awaitingChoice = false;
       _banner = 1.8;
@@ -337,8 +312,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _awaitingChoice = false;
       _shake = 0;
       _combo = 0;
-      _introT = _introDur;
-      _introDone = false;
     });
   }
 
@@ -349,12 +322,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       body: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          // Décor en entier (BoxFit.contain) : on calcule échelle + offsets,
-          // origine = coin haut-gauche du décor affiché.
           final scale = math.min(w / _imgA, h);
           _S = scale;
-          _ox = (w - _imgA * scale) / 2;
-          _oy = (h - scale) / 2;
+          final dispW = _imgA * scale, dispH = scale;
+          _ox = (w - dispW) / 2;
+          _oy = (h - dispH) / 2;
           Offset u2p(Offset u) => Offset(_ox + u.dx * _S, _oy + u.dy * _S);
           final playing = _status == _Status.playing;
           final canAim = playing && !_adjust && !_awaitingChoice;
@@ -385,102 +357,116 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             child: Transform.translate(
               offset: shakeOffset,
               child: Stack(
-              children: [
-                // Fond : dégradé ciel/sol pour les bandes hors décor (iPad).
-                const Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Color(0xFF7C8597),
-                          Color(0xFF3A3F49),
-                          Color(0xFF20242C),
-                        ],
-                        stops: [0.0, 0.62, 1.0],
-                      ),
-                    ),
-                  ),
-                ),
-                // Décor de gare ENTIER (calé sur la largeur).
-                const Positioned.fill(
-                  child: Image(
-                    image: AssetImage('assets/background/gare_shoot.png'),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-
-                // Pillards.
-                for (final e in _enemies) _buildEnemy(e),
-
-                // Mirador (poste de tir) sur le wagon. Réglable en mode crayon.
-                _buildMirador(),
-
-                // Intro : Shen rejoint le mirador puis disparaît dedans.
-                if (!_introDone) _introShen(),
-
-                // Cailloux + impacts + visée.
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: _ShotPainter(
-                        stones: _stones,
-                        impacts: _impacts,
-                        anchor: u2p(_muzzle),
-                        aiming: _aiming,
-                        launchVel: _aiming ? _launchVel() : null,
-                        g: _g,
-                        ox: _ox,
-                        oy: _oy,
-                        scale: _S,
-                      ),
-                    ),
-                  ),
-                ),
-
-                _hudBar(),
-
-                if (playing && _banner > 0)
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 26, vertical: 14),
+                children: [
+                  // Fond : dégradé ciel/sol pour les bandes hors décor.
+                  const Positioned.fill(
+                    child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Text(
-                        'Vague ${_wave + 1}',
-                        style: const TextStyle(
-                          color: Color(0xFFFFD9A0),
-                          fontSize: 34,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2,
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0xFF7C8597),
+                            Color(0xFF3A3F49),
+                            Color(0xFF20242C),
+                          ],
+                          stops: [0.0, 0.62, 1.0],
                         ),
                       ),
                     ),
                   ),
+                  // Décor de gare entier.
+                  const Positioned.fill(
+                    child: Image(
+                      image: AssetImage('assets/background/gare_shoot.png'),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
 
-                if (playing && _wave == 0 && _kills == 0 && _banner <= 0)
-                  const Positioned(
-                    bottom: 24,
-                    left: 0,
-                    right: 0,
+                  // Pillards.
+                  for (final e in _enemies) _buildEnemy(e),
+
+                  // Re-dessin du WAGON (bande gauche du décor) PAR-DESSUS les
+                  // pillards -> ils disparaissent derrière le wagon.
+                  Positioned.fill(
                     child: IgnorePointer(
-                      child: Center(
-                        child: Text(
-                          'Maintiens et glisse vers l’arrière, relâche pour tirer',
-                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                      child: ClipRect(
+                        clipper: _RectClip(
+                            Rect.fromLTWH(_ox, _oy, _wagonClipFrac * dispW, dispH)),
+                        child: const Image(
+                          image:
+                              AssetImage('assets/background/gare_shoot.png'),
+                          fit: BoxFit.contain,
                         ),
                       ),
                     ),
                   ),
 
-                if (_adjust) _coordHud(),
-                if (_awaitingChoice) _choiceOverlay(),
-                if (!playing) _endOverlay(),
-              ],
+                  // Cailloux + impacts + visée.
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: _ShotPainter(
+                          stones: _stones,
+                          impacts: _impacts,
+                          anchor: u2p(_muzzle),
+                          aiming: _aiming,
+                          launchVel: _aiming ? _launchVel() : null,
+                          g: _g,
+                          ox: _ox,
+                          oy: _oy,
+                          scale: _S,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Mode réglage : poignées lucarne + ligne de sol.
+                  if (_adjust) ..._adjustHandles(u2p),
+
+                  _hudBar(),
+
+                  if (playing && _banner > 0)
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 26, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Text(
+                          'Vague ${_wave + 1}',
+                          style: const TextStyle(
+                            color: Color(0xFFFFD9A0),
+                            fontSize: 34,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  if (playing && _wave == 0 && _kills == 0 && _banner <= 0)
+                    const Positioned(
+                      bottom: 24,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: Center(
+                          child: Text(
+                            'Maintiens et glisse vers l’arrière, relâche pour tirer',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 14),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  if (_adjust) _coordHud(),
+                  if (_awaitingChoice) _choiceOverlay(),
+                  if (!playing) _endOverlay(),
+                ],
               ),
             ),
           );
@@ -496,8 +482,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     final String asset;
     double opacity = 1.0;
     if (e.dying) {
-      // Vraie anim de chute (frames pillard1_die, déjà retournées vers la
-      // gauche) jouée une fois ; le corps reste au sol puis s'efface.
       final elapsed = _dieDur - e.dieT;
       final df = (elapsed / _dieAnim * 49).floor().clamp(0, 48);
       asset = 'assets/characters/pillard1_die_${df + 1}.png';
@@ -505,7 +489,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     } else {
       asset = 'assets/characters/pillard1_walk_${e.frame + 1}.png';
     }
-    Widget img = Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+    Widget img =
+        Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+    // Le sprite de MARCHE pointe à droite -> miroir pour aller vers la gauche.
+    // (Les frames de mort sont déjà retournées, on ne les miroite pas.)
+    if (!e.dying) {
+      img = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+        child: img,
+      );
+    }
     if (opacity < 1.0) img = Opacity(opacity: opacity, child: img);
     return Positioned(
       left: left,
@@ -516,57 +510,48 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     );
   }
 
-  // Mirador : posé selon _mx/_my/_mh. En mode crayon (_adjust), 1 doigt
-  // déplace, pincer redimensionne ; les coords s'affichent (HUD) pour rebaker.
-  Widget _buildMirador() {
-    final mw = _mh * 1.798 * _S; // ratio image mirador
-    final mhpx = _mh * _S;
-    final left = _ox + _mx * _S - mw / 2;
-    final top = _oy + (_my - _mh) * _S;
-    const img = Image(
-      image: AssetImage('assets/objects/mirador.png'),
-      fit: BoxFit.contain,
-    );
-    if (!_adjust) {
-      return Positioned(
-        left: left,
-        top: top,
-        width: mw,
-        height: mhpx,
-        child: const IgnorePointer(child: img),
-      );
-    }
-    return Positioned(
-      left: left,
-      top: top,
-      width: mw,
-      height: mhpx,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onScaleStart: (_) => _scaleStartH = _mh,
-        onScaleUpdate: (d) => setState(() {
-          if (d.pointerCount >= 2) {
-            _mh = (_scaleStartH * d.scale).clamp(0.08, 0.6);
-          } else {
-            _mx += d.focalPointDelta.dx / _S;
-            _my += d.focalPointDelta.dy / _S;
-          }
-        }),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            const Positioned.fill(child: img),
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xCCE8B96B), width: 1.5),
-                ),
-              ),
-            ),
-          ],
+  // Poignées de réglage : la lucarne (cercle déplaçable) + la ligne de sol.
+  List<Widget> _adjustHandles(Offset Function(Offset) u2p) {
+    final muz = u2p(_muzzle);
+    return [
+      // Ligne de sol (déplaçable verticalement).
+      Positioned(
+        left: 0,
+        right: 0,
+        top: _oy + _groundY * _S - 16,
+        height: 32,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (d) => setState(() {
+            _groundY = (_groundY + d.delta.dy / _S).clamp(0.4, 1.0);
+          }),
+          child: Center(
+            child: Container(height: 2, color: const Color(0xCC66E0FF)),
+          ),
         ),
       ),
-    );
+      // Lucarne (déplaçable).
+      Positioned(
+        left: muz.dx - 22,
+        top: muz.dy - 22,
+        width: 44,
+        height: 44,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: (d) => setState(() {
+            _muzX = (_muzX + d.delta.dx / _S).clamp(0.0, _imgA);
+            _muzY = (_muzY + d.delta.dy / _S).clamp(0.0, 1.0);
+          }),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFFE8B96B), width: 2),
+              color: const Color(0x55E8B96B),
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 
   Widget _coordHud() => Positioned(
@@ -583,13 +568,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('MIRADOR — 1 doigt = bouger, pincer = taille',
+                const Text('RÉGLAGE — bouge la lucarne (rond) + la ligne de sol',
                     style: TextStyle(
                         color: Color(0xFFE8B96B),
                         fontSize: 11,
                         fontWeight: FontWeight.bold)),
                 Text(
-                  'mx ${_mx.toStringAsFixed(3)}   my ${_my.toStringAsFixed(3)}   mh ${_mh.toStringAsFixed(3)}',
+                  'muzX ${_muzX.toStringAsFixed(3)}   muzY ${_muzY.toStringAsFixed(3)}   solY ${_groundY.toStringAsFixed(3)}',
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -620,21 +605,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     _choiceCard(
                       emoji: '🪨',
                       title: '+1 pierre',
-                      desc: 'Un caillou de plus\npar tir (max 1 kill chacun)',
+                      desc: 'Un caillou de plus\npar tir',
                       onTap: () => _pickPerk('stone'),
                     ),
                     const SizedBox(width: 14),
                     _choiceCard(
                       emoji: '❤️',
                       title: '+2 cœurs',
-                      desc: 'Train plus résistant\n(intégrité +2)',
+                      desc: 'Train plus résistant',
                       onTap: () => _pickPerk('hearts'),
                     ),
                     const SizedBox(width: 14),
                     _choiceCard(
                       emoji: '⚡',
                       title: 'Tir plus vif',
-                      desc: 'Caillou plus rapide\n(arc tendu, portée)',
+                      desc: 'Caillou plus rapide\n(portée)',
                       onTap: () => _pickPerk('speed'),
                     ),
                   ],
@@ -654,8 +639,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 160,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
+          width: 150,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
           decoration: BoxDecoration(
             color: const Color(0xFF2A2018),
             borderRadius: BorderRadius.circular(14),
@@ -664,50 +649,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 34)),
+              Text(emoji, style: const TextStyle(fontSize: 32)),
               const SizedBox(height: 8),
               Text(title,
                   style: const TextStyle(
                       color: Color(0xFFFFD9A0),
-                      fontSize: 18,
+                      fontSize: 17,
                       fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Text(desc,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
             ],
           ),
         ),
       );
-
-  Widget _introShen() {
-    final p = (1 - _introT / _introDur).clamp(0.0, 1.0);
-    final sx = 0.42 + (_mx + 0.02 - 0.42) * p;
-    final boxH = 0.26 * _S;
-    final boxW = boxH * 0.55;
-    final frame = ((_introDur - _introT) * 18).floor() % 49 + 1;
-    final opacity = p < 0.78 ? 1.0 : (1 - (p - 0.78) / 0.22).clamp(0.0, 1.0);
-    return Positioned(
-      left: _ox + sx * _S - boxW / 2,
-      top: _oy + _groundY * _S - boxH,
-      width: boxW,
-      height: boxH,
-      child: IgnorePointer(
-        child: Opacity(
-          opacity: opacity,
-          child: Transform(
-            alignment: Alignment.center,
-            transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-            child: Image.asset(
-              'assets/characters/walk_right_$frame.png',
-              fit: BoxFit.contain,
-              gaplessPlayback: true,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _hudBar() => Positioned(
         top: 0,
@@ -727,7 +683,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 const SizedBox(width: 12),
                 FloatingActionButton.small(
                   heroTag: 'shoot_adjust',
-                  tooltip: 'Placer le mirador',
+                  tooltip: 'Régler la lucarne / le sol',
                   backgroundColor:
                       _adjust ? const Color(0xFFE8B96B) : Colors.black54,
                   foregroundColor:
@@ -792,7 +748,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               Text(
                 won ? 'Train défendu !' : 'Le train est tombé…',
                 style: TextStyle(
-                  color: won ? const Color(0xFFB6E3A8) : const Color(0xFFE2614A),
+                  color:
+                      won ? const Color(0xFFB6E3A8) : const Color(0xFFE2614A),
                   fontSize: 30,
                   fontWeight: FontWeight.w700,
                 ),
@@ -833,7 +790,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 }
 
-/// Cailloux en vol, impacts, bande de fronde + trajectoire prévisionnelle.
+class _RectClip extends CustomClipper<Rect> {
+  _RectClip(this.rect);
+  final Rect rect;
+  @override
+  Rect getClip(Size size) => rect;
+  @override
+  bool shouldReclip(covariant _RectClip old) => old.rect != rect;
+}
+
 class _ShotPainter extends CustomPainter {
   _ShotPainter({
     required this.stones,
@@ -860,7 +825,6 @@ class _ShotPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Cailloux.
     final stonePaint = Paint()..color = const Color(0xFF6E6258);
     final stoneEdge = Paint()
       ..color = const Color(0xFF453E37)
@@ -872,12 +836,23 @@ class _ShotPainter extends CustomPainter {
       canvas.drawCircle(p, 0.013 * scale, stoneEdge);
     }
 
-    // Impacts : anneau qui s'étend + éclats.
     for (final im in impacts) {
       final c = _p(im.pos);
       final t = im.t.clamp(0.0, 1.0);
-      final r = (0.012 + 0.05 * t) * scale;
       final a = (1 - t);
+      if (im.launch) {
+        // Poussière de départ : petit nuage qui se dissipe vers le haut-droite.
+        final r = (0.01 + 0.04 * t) * scale;
+        canvas.drawCircle(
+          c + Offset(0.02 * scale * t, -0.015 * scale * t),
+          r,
+          Paint()
+            ..color = const Color(0xFFD8D2C4).withValues(alpha: 0.5 * a)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        );
+        continue;
+      }
+      final r = (0.012 + 0.05 * t) * scale;
       canvas.drawCircle(
         c,
         r,
@@ -886,16 +861,18 @@ class _ShotPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.5,
       );
-      final speck = Paint()..color = const Color(0xFFBFA98C).withValues(alpha: a);
+      final speck =
+          Paint()..color = const Color(0xFFBFA98C).withValues(alpha: a);
       for (int i = 0; i < 6; i++) {
         final ang = i * math.pi / 3 + t;
         final d = r * 1.1;
         canvas.drawCircle(
-            c + Offset(math.cos(ang) * d, math.sin(ang) * d), 2.0 * (1 - t), speck);
+            c + Offset(math.cos(ang) * d, math.sin(ang) * d),
+            2.0 * (1 - t),
+            speck);
       }
     }
 
-    // Visée : seulement l'arc de points prévisionnel (pas de "barre").
     if (aiming && launchVel != null) {
       final dot = Paint()..color = Colors.white.withValues(alpha: 0.85);
       Offset pos = Offset((anchor.dx - ox) / scale, (anchor.dy - oy) / scale);

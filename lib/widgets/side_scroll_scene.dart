@@ -311,17 +311,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
   }
 
-  String get _skyAsset {
-    if (GameState.instance.inColdZone) {
-      return widget.night
-          ? 'assets/background/sky_snow_night.png'
-          : 'assets/background/sky_snow.png';
-    }
-    return widget.night
-        ? 'assets/background/sky_night.png'
-        : 'assets/background/sky.png';
-  }
-
   String get _foregroundAsset {
     if (GameState.instance.inColdZone) {
       return 'assets/background/foreground_snow.png';
@@ -1377,27 +1366,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           enabled: !widget.night,
                         ),
                       ),
-                      // 1b. Drifting cloud overlay — sky.png at a low
-                      //     opacity, scrolling on its own faster
-                      //     controller. Gives the sky a second layer of
-                      //     motion (cloud parallax) over the horizon's
-                      //     own painted sky.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: 0,
-                        height: h * 0.30,
-                        child: IgnorePointer(
-                          child: Opacity(
-                            opacity: widget.night ? 0.18 : 0.30,
-                            child: _ParallaxLayer(
-                              controller: _sky,
-                              asset: _skyAsset,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
+                      // 1b. Overlay de nuages (sky.png) RETIRÉ à la demande
+                      //     (« couper les nuages au-dessus »).
                       // 2b. Birds — occasional silhouettes drifting through
                       //    the upper sky band. Sits in front of the horizon
                       //    so they read as nearer than the ruins.
@@ -1650,7 +1620,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                   Positioned.fill(
                                     child: ThoughtBubble(
                                       heroX: _heroX,
-                                      heroTopY: 0.30,
+                                      heroTopY: 0.46,
                                       emoji: _thoughtEmoji!,
                                     ),
                                   ),
@@ -2783,7 +2753,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
   Widget _buildSleepOnBed(double w, double h) {
     // Contenu du sprite (mesuré) : corps horizontal, largeur ~0.766 du cadre,
     // centre vertical ~0.361 du cadre.
-    final bodyLen = widget.bedWidth * 0.96 * w; // longueur du corps en px
+    final bodyLen = widget.bedWidth * 0.66 * w; // longueur du corps (réduite)
     final boxSize = bodyLen / 0.766;            // cadre carré 512 correspondant
     final left = widget.bedCenterX * w - boxSize / 2;
     final mattressY = (widget.bedTopY + 0.075) * h; // ligne du matelas
