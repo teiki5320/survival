@@ -25,23 +25,43 @@ class RoofDefenseGame extends StatefulWidget {
 
 enum _Status { playing, won, lost }
 
+enum _PillType { basic, brute, lanceur }
+
 class _Enemy {
   _Enemy({
+    required this.type,
     required this.x,
     required this.feetY,
     required this.speed,
     required this.height,
     required this.anim,
-  });
+    this.hp = 1,
+  }) : hpMax = hp;
+  final _PillType type;
   double x;
   double feetY;
   double speed;
   double height;
   double anim;
-  int frame = 0;
-  int hp = 1;
+  int hp;
+  final int hpMax;
   bool dying = false;
   double dieT = 0;
+  // Brute : coup de hache périodique (tous les ~_bruteStep).
+  bool attacking = false;
+  double attackT = 0;
+  double lastAtkX = 0;
+  // Lanceur : s'arrête à distance et lance.
+  bool throwing = false;
+  double throwT = 0;
+  bool threwThisCycle = false;
+}
+
+/// Caillou lancé par un Lanceur vers le train (vole vers la gauche).
+class _EnemyShot {
+  _EnemyShot(this.pos, this.vel);
+  Offset pos;
+  Offset vel;
 }
 
 class _Stone {
@@ -76,6 +96,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _dieAnim = 0.9;
   static const double _pillFeet = 0.865;
   static const double _pillContentH = 0.73;
+  // Comportements spéciaux.
+  static const double _bruteStep = 0.18; // ~2 m entre deux coups de hache
+  static const double _bruteAtkDur = 0.8; // durée d'un coup de hache
+  static const int _bruteHp = 4; // 4 cailloux pour tuer la brute
+  static const double _throwRange = 0.55; // ~3 m : distance d'arrêt du lanceur
+  static const double _throwPeriod = 1.3; // cadence de jet du lanceur
 
   // Vitesses RÉDUITES (les pillards étaient trop rapides) mais courbe montante.
   static const List<(int, double, double)> _waves = [
@@ -89,6 +115,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   final List<_Enemy> _enemies = [];
   final List<_Stone> _stones = [];
   final List<_Impact> _impacts = [];
+  final List<_EnemyShot> _enemyShots = []; // cailloux lancés par les lanceurs
 
   int _wave = 0;
   int _toSpawn = 0;
@@ -172,9 +199,43 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         e.dieT -= dt;
         continue;
       }
-      e.x -= e.speed * dt;
       e.anim += dt;
-      e.frame = (e.anim * 16).floor() % 49;
+      switch (e.type) {
+        case _PillType.basic:
+          e.x -= e.speed * dt;
+        case _PillType.brute:
+          // Marche lente ; tous les ~_bruteStep, coup de hache sur place.
+          if (e.attacking) {
+            e.attackT += dt;
+            if (e.attackT >= _bruteAtkDur) {
+              e.attacking = false;
+              e.lastAtkX = e.x;
+            }
+          } else {
+            e.x -= e.speed * dt;
+            if (e.lastAtkX - e.x >= _bruteStep) {
+              e.attacking = true;
+              e.attackT = 0;
+            }
+          }
+        case _PillType.lanceur:
+          // Avance jusqu'à ~3 m du train, puis lance des cailloux en boucle.
+          if (e.x > _trainEdgeX + _throwRange) {
+            e.x -= e.speed * dt;
+          } else {
+            e.throwing = true;
+            e.throwT += dt;
+            final phase = e.throwT % _throwPeriod;
+            if (phase >= _throwPeriod * 0.55 && !e.threwThisCycle) {
+              e.threwThisCycle = true;
+              _enemyShots.add(_EnemyShot(
+                Offset(e.x - e.height * 0.20, e.feetY - e.height * 0.55),
+                const Offset(-1.15, -0.35), // vers le train, léger arc
+              ));
+            }
+            if (phase < _throwPeriod * 0.55) e.threwThisCycle = false;
+          }
+      }
     }
     _enemies.removeWhere((e) {
       if (e.dying) return e.dieT <= 0;
@@ -194,6 +255,22 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     _stones.removeWhere((s) =>
         s.pos.dy > 1.15 || s.pos.dx > _imgA + 0.2 || s.pos.dx < -0.2);
+
+    // Cailloux lancés par les lanceurs : volent vers le train, l'endommagent.
+    for (final es in _enemyShots) {
+      es.vel = es.vel + Offset(0, _g * 0.5 * dt);
+      es.pos = es.pos + es.vel * dt;
+    }
+    _enemyShots.removeWhere((es) {
+      if (es.pos.dx <= _trainEdgeX) {
+        _trainHp--;
+        _combo = 0;
+        _shake = 0.2;
+        if (_trainHp <= 0) _status = _Status.lost;
+        return true;
+      }
+      return es.pos.dy > 1.15 || es.pos.dx < -0.2;
+    });
 
     // Collisions caillou <-> pillard : hitbox CORPS (boîte) -> plus de cailloux
     // qui traversent la tête.
@@ -237,14 +314,42 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     setState(() {});
   }
 
-  void _spawnEnemy(double speed) {
-    _enemies.add(_Enemy(
-      x: _imgA + 0.14,
-      feetY: _groundY + (_rng.nextDouble() - 0.5) * 0.03,
-      speed: speed * (0.85 + _rng.nextDouble() * 0.3),
-      height: 0.20 + _rng.nextDouble() * 0.04,
-      anim: _rng.nextDouble() * 2,
-    ));
+  void _spawnEnemy(double baseSpeed) {
+    final type = _pickType();
+    final feetY = _groundY + (_rng.nextDouble() - 0.5) * 0.02;
+    final anim = _rng.nextDouble() * 2;
+    const x0 = _imgA + 0.14;
+    switch (type) {
+      case _PillType.brute:
+        _enemies.add(_Enemy(
+          type: type, x: x0, feetY: feetY,
+          speed: baseSpeed * 0.45, height: 0.30, anim: anim, hp: _bruteHp,
+        )..lastAtkX = x0);
+      case _PillType.lanceur:
+        _enemies.add(_Enemy(
+          type: type, x: x0, feetY: feetY,
+          speed: baseSpeed * 0.9, height: 0.22, anim: anim,
+        ));
+      case _PillType.basic:
+        _enemies.add(_Enemy(
+          type: type, x: x0, feetY: feetY,
+          speed: baseSpeed * (0.85 + _rng.nextDouble() * 0.3),
+          height: 0.21, anim: anim,
+        ));
+    }
+  }
+
+  // Apparition progressive : que des basics au début, brutes + lanceurs à
+  // partir de la vague 3, de plus en plus souvent.
+  _PillType _pickType() {
+    final r = _rng.nextDouble();
+    if (_wave >= 2) {
+      if (r < 0.18) return _PillType.brute;
+      if (r < 0.40) return _PillType.lanceur;
+    } else if (_wave >= 1) {
+      if (r < 0.22) return _PillType.lanceur;
+    }
+    return _PillType.basic;
   }
 
   Offset _launchVel() {
@@ -296,6 +401,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _enemies.clear();
       _stones.clear();
       _impacts.clear();
+      _enemyShots.clear();
       _wave = 0;
       _toSpawn = 0;
       _spawnTimer = 0;
@@ -409,6 +515,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                         painter: _ShotPainter(
                           stones: _stones,
                           impacts: _impacts,
+                          enemyShots: _enemyShots,
                           anchor: u2p(_muzzle),
                           aiming: _aiming,
                           launchVel: _aiming ? _launchVel() : null,
@@ -475,38 +582,109 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     );
   }
 
+  // Asset "vivant" (marche / coup de hache / jet) selon le type et l'état.
+  String _liveAsset(_Enemy e) {
+    final wf = (e.anim * 16).floor() % 49 + 1;
+    switch (e.type) {
+      case _PillType.basic:
+        return 'assets/characters/pillard1_walk_$wf.png';
+      case _PillType.brute:
+        if (e.attacking) {
+          final af = (e.attackT / _bruteAtkDur * 49).floor().clamp(0, 48) + 1;
+          return 'assets/characters/brute_attack_$af.png';
+        }
+        return 'assets/characters/brute_walk_$wf.png';
+      case _PillType.lanceur:
+        if (e.throwing) {
+          final pf = ((e.throwT % _throwPeriod) / _throwPeriod * 49)
+                  .floor()
+                  .clamp(0, 48) +
+              1;
+          return 'assets/characters/lanceur_throw_$pf.png';
+        }
+        return 'assets/characters/lanceur_walk_$wf.png';
+    }
+  }
+
   Widget _buildEnemy(_Enemy e) {
     final boxSize = e.height / _pillContentH * _S;
     final left = _ox + e.x * _S - boxSize / 2;
     final top = _oy + e.feetY * _S - _pillFeet * boxSize;
-    final String asset;
+
+    String asset;
     double opacity = 1.0;
+    double rot = 0;
+    bool mirror = true; // les sprites pointent à droite -> miroir vers gauche
+
     if (e.dying) {
-      final elapsed = _dieDur - e.dieT;
-      final df = (elapsed / _dieAnim * 49).floor().clamp(0, 48);
-      asset = 'assets/characters/pillard1_die_${df + 1}.png';
-      if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
+      if (e.type == _PillType.basic) {
+        // Vraie anim de chute (frames déjà retournées -> pas de miroir).
+        final df = ((_dieDur - e.dieT) / _dieAnim * 49).floor().clamp(0, 48) + 1;
+        asset = 'assets/characters/pillard1_die_$df.png';
+        mirror = false;
+        if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
+      } else {
+        // Brute/lanceur : pas de sheet de mort -> on fige + bascule + fondu.
+        asset = _liveAsset(e);
+        final d = (1 - e.dieT / _dieDur).clamp(0.0, 1.0);
+        rot = -d * 1.1;
+        opacity = (1 - d).clamp(0.0, 1.0);
+      }
     } else {
-      asset = 'assets/characters/pillard1_walk_${e.frame + 1}.png';
+      asset = _liveAsset(e);
     }
+
     Widget img =
         Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
-    // Le sprite de MARCHE pointe à droite -> miroir pour aller vers la gauche.
-    // (Les frames de mort sont déjà retournées, on ne les miroite pas.)
-    if (!e.dying) {
+    if (mirror) {
       img = Transform(
         alignment: Alignment.center,
         transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
         child: img,
       );
     }
+    if (rot != 0) {
+      img = Transform.rotate(
+          angle: rot, alignment: Alignment.bottomCenter, child: img);
+    }
     if (opacity < 1.0) img = Opacity(opacity: opacity, child: img);
+
+    // Barre de vie de la brute (pips) tant qu'elle est blessée.
+    Widget content = img;
+    if (e.type == _PillType.brute && !e.dying && e.hp < e.hpMax) {
+      content = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(child: img),
+          Positioned(
+            top: boxSize * 0.06,
+            left: boxSize * 0.30,
+            right: boxSize * 0.30,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (int i = 0; i < e.hpMax; i++)
+                  Container(
+                    width: 6,
+                    height: 5,
+                    margin: const EdgeInsets.symmetric(horizontal: 1),
+                    color: i < e.hp
+                        ? const Color(0xFFE2614A)
+                        : const Color(0x55000000),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     return Positioned(
       left: left,
       top: top,
       width: boxSize,
       height: boxSize,
-      child: IgnorePointer(child: img),
+      child: IgnorePointer(child: content),
     );
   }
 
@@ -803,6 +981,7 @@ class _ShotPainter extends CustomPainter {
   _ShotPainter({
     required this.stones,
     required this.impacts,
+    required this.enemyShots,
     required this.anchor,
     required this.aiming,
     required this.launchVel,
@@ -813,6 +992,7 @@ class _ShotPainter extends CustomPainter {
   });
   final List<_Stone> stones;
   final List<_Impact> impacts;
+  final List<_EnemyShot> enemyShots;
   final Offset anchor;
   final bool aiming;
   final Offset? launchVel;
@@ -834,6 +1014,20 @@ class _ShotPainter extends CustomPainter {
       final p = _p(s.pos);
       canvas.drawCircle(p, 0.013 * scale, stonePaint);
       canvas.drawCircle(p, 0.013 * scale, stoneEdge);
+    }
+
+    // Cailloux lancés par les lanceurs (vers le train) — teinte rougeâtre.
+    final enemyPaint = Paint()..color = const Color(0xFF8A4A3A);
+    for (final es in enemyShots) {
+      canvas.drawCircle(_p(es.pos), 0.014 * scale, enemyPaint);
+      canvas.drawCircle(
+        _p(es.pos),
+        0.014 * scale,
+        Paint()
+          ..color = const Color(0xFF4A241C)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5,
+      );
     }
 
     for (final im in impacts) {
