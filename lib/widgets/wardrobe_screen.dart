@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/game_state.dart';
+
 /// Plein écran "armoire" : la fille en grand au centre, idle qui boucle,
-/// et une flèche de chaque côté pour cycler entre les tenues. Pour
-/// l'instant une seule tenue est dispo ; la structure est prête pour
-/// en ajouter (chaque tenue aura son propre dossier de 49 frames pour
-/// chaque anim — voir CLAUDE.md / brief vêtements).
+/// et une flèche de chaque côté pour cycler entre les tenues. Sélectionner
+/// une tenue applique son bonus de chaleur (`outfitWarmth`) qui agit sur le
+/// froid ressenti en jeu. Pour la voir VRAIMENT portée par le personnage
+/// animé il faudra régénérer ses sheets d'anim avec la tenue (voir CLAUDE.md
+/// / brief vêtements) ; ici on affiche le vêtement dans le placard.
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key, required this.onClose});
   final VoidCallback onClose;
@@ -22,22 +25,37 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     _Outfit(
       name: 'Chemise blanche',
       frontAsset: 'assets/characters/heroine_front.png',
+      warmth: 0,
+    ),
+    _Outfit(
+      name: 'Robe de lin',
+      frontAsset: 'assets/objects/outfit_robe.png',
+      warmth: 4,
     ),
   ];
 
   int _outfitIndex = 0;
 
-  void _prev() {
-    setState(() {
-      _outfitIndex = (_outfitIndex - 1 + _outfits.length) % _outfits.length;
-    });
+  @override
+  void initState() {
+    super.initState();
+    // Reprend la tenue actuellement portée (selon le bonus chaleur stocké).
+    final w = GameState.instance.outfitWarmth;
+    final i = _outfits.indexWhere((o) => o.warmth == w);
+    if (i >= 0) _outfitIndex = i;
   }
 
-  void _next() {
-    setState(() {
-      _outfitIndex = (_outfitIndex + 1) % _outfits.length;
-    });
+  // Sélectionner une tenue applique tout de suite son bonus de chaleur.
+  void _select(int i) {
+    setState(() => _outfitIndex = i);
+    GameState.instance.outfitWarmth = _outfits[i].warmth;
+    GameState.instance.save();
   }
+
+  void _prev() =>
+      _select((_outfitIndex - 1 + _outfits.length) % _outfits.length);
+
+  void _next() => _select((_outfitIndex + 1) % _outfits.length);
 
   @override
   Widget build(BuildContext context) {
@@ -119,6 +137,18 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
+                  // Bonus de chaleur de la tenue (0 = neutre).
+                  Text(
+                    _outfits[_outfitIndex].warmth > 0
+                        ? '🔥 Chaleur +${_outfits[_outfitIndex].warmth}'
+                        : 'Chaleur neutre',
+                    style: const TextStyle(
+                      color: Color(0xFFFFB066),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
                   Text(
                     '${_outfitIndex + 1} / ${_outfits.length}',
                     style: TextStyle(
@@ -150,9 +180,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 }
 
 class _Outfit {
-  const _Outfit({required this.name, required this.frontAsset});
+  const _Outfit({
+    required this.name,
+    required this.frontAsset,
+    this.warmth = 0,
+  });
   final String name;
   final String frontAsset;
+  // Bonus de chaleur appliqué à GameState.outfitWarmth quand portée.
+  final int warmth;
 }
 
 class _ArrowButton extends StatelessWidget {
