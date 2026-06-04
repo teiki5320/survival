@@ -6,7 +6,6 @@ import 'package:flutter/scheduler.dart';
 
 import '../data/anim_metrics.dart';
 import '../models/game_state.dart';
-import '../services/audio_service.dart';
 import 'atmosphere.dart';
 import 'train_rocking.dart';
 
@@ -53,6 +52,8 @@ class SideScrollScene extends StatefulWidget {
     this.duoToken = 0,
     this.duoAnim = 'readduo',
     this.wagon2Adjust = false,
+    this.onSisterX,
+    this.onDogX,
   });
 
   /// Wagon visual progression, 0..3:
@@ -85,6 +86,11 @@ class SideScrollScene extends StatefulWidget {
   /// [duoAnim] = 'readduo' (lecture) ou 'sister_hug' (câlin).
   final int duoToken;
   final String duoAnim;
+
+  /// Position vivante de la sœur / du chien (ils se baladent) -> le parent
+  /// l'utilise pour la proximité des actions (duo / caresse).
+  final ValueChanged<double>? onSisterX;
+  final ValueChanged<double>? onDogX;
 
   /// Mode "ajuster" du cellier : props déplaçables (drag) + redimensionnables
   /// (pincer) + HUD des coordonnées. Off = props figés (jeu normal).
@@ -260,9 +266,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Le chien a sa propre state machine. Sa hauteur vient du parent
   // (slider live), son Y reste fixe, son X glisse quand il marche.
-  static const double _dogTop = 0.673;
-  static const double _dogXMin = 0.35;
-  static const double _dogXMax = 0.70;
 
   // Horizon (middle background) clipping bounds — both are fractions
   // of the scene height. `_horizonTop` is the distance from the very
@@ -407,7 +410,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Duos sœur+Shen (wagon 1) : lecture (readduo, 10f) ou câlin (sister_hug,
   // 16f). Déclenchés quand Shen est près de la sœur ; les 2 solos
   // disparaissent. L'anim BOUCLE pendant _duoTotalMs puis les solos reviennent.
-  static const double _sisterX = 0.33; // = sisX dans _buildSister
+  double _sisterX = 0.33; // position vivante de la sœur (màj quand elle marche)
   bool _duoActive = false;
   String _duoAnim = 'readduo';
   int _duoFrame = 0;
@@ -433,7 +436,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Caresse du chien (Shen + husky, sprite petdog 8 frames) au niveau du
   // chien statique. Remplace solo Shen + chien statique pendant l'anim.
-  static const double _dogX = 0.525; // = dogX dans _buildStaticDog
+  double _dogX = 0.525; // position vivante du chien (màj quand il marche)
   bool _petDog = false;
   int _petDogFrame = 0;
   int _petDogAccumMs = 0;
@@ -1607,8 +1610,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
                       if (!widget.secondWagon &&
-                          !_petDog &&
-                          !_sisterDogActive)
+                          !_petDog)
                         _buildStaticDog(w, h),
                       // Caresse chien (Shen + husky) déclenchée par le bouton.
                       if (!widget.secondWagon && _petDog) _buildPetDog(w, h),
@@ -2202,27 +2204,24 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Masque le chien statique pendant que la soeur le câline/caresse
   // (sa sprite d'interaction contient déjà le chien).
-  bool _sisterDogActive = false;
 
   // Petite soeur autonome : danse au repos, joue une anim toutes les ~20s.
   // PLACÉE AU CENTRE pour le test ; on la repositionnera plus tard.
   Widget _buildSister(double w, double h) {
-    // Petite soeur = enfant : plus petite que Shen (0.36h) et décalée à
-    // gauche près du lit, plus au centre (ne vole plus la vedette).
-    final sisH = h * 0.28;
-    final sisW = sisH; // sprites 512x512 carrés
-    final sisX = 0.33 * w;
-    final feetY = h * 0.74;
-    return Positioned(
-      left: sisX - sisW / 2,
-      top: feetY - sisH * 0.84,
-      width: sisW,
-      height: sisH,
+    // Petite soeur MOBILE : se balade dans le wagon. Position rapportée dans
+    // _sisterX pour que l'interaction (duo) la suive.
+    return Positioned.fill(
       child: _SisterCharacter(
         tint: _nightTint,
         night: widget.night,
-        onDogInteraction: (active) {
-          if (mounted) setState(() => _sisterDogActive = active);
+        heightFrac: 0.28,
+        feetY: 0.74,
+        startX: _sisterX,
+        minX: 0.18,
+        maxX: 0.60,
+        onSettled: (x) {
+          _sisterX = x;
+          widget.onSisterX?.call(x);
         },
       ),
     );
@@ -2273,33 +2272,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
-  int _dogAnimFrame = 0;
 
   Widget _buildStaticDog(double w, double h) {
-    final dogH = h * widget.dogHeight;
-    final dogW = dogH;
-    final dogX = 0.525 * w;
-    final feetY = h * 0.74;
-
-    if (_activeSpecial == 'crouch') {
-      _dogAnimFrame = (_dogAnimFrame + 1) % 25;
-      final frame = _dogAnimFrame + 1;
-      final asset = 'assets/objects/dog_wag_tail_$frame.png';
-      return Positioned(
-        left: dogX - dogW * 0.3,
-        top: feetY - dogH * 0.8,
-        width: dogW,
-        height: dogH,
-        child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
-      );
-    }
-
-    return Positioned(
-      left: dogX - dogW / 2,
-      top: feetY - dogH * 0.75,
-      width: dogW,
-      height: dogH,
-      child: _DogCharacter(tint: _nightTint),
+    // Chien autonome MOBILE : se balade dans le wagon. Position rapportée
+    // dans _dogX pour que la caresse le suive.
+    return Positioned.fill(
+      child: _DogCharacter(
+        tint: _nightTint,
+        heightFrac: widget.dogHeight,
+        feetY: 0.74,
+        startX: _dogX,
+        minX: 0.30,
+        maxX: 0.80,
+        onSettled: (x) {
+          _dogX = x;
+          widget.onDogX?.call(x);
+        },
+      ),
     );
   }
 
@@ -2590,149 +2579,194 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
 /// au hasard d'un pool (câlins/caresses au chien), puis revient au repos.
 /// `onDogInteraction` prévient le parent pour masquer le chien statique
 /// pendant qu'elle interagit (sa sprite contient déjà le chien).
+/// Petite sœur autonome : au repos (pose calme), parfois elle danse, et de
+/// temps en temps elle **se déplace** dans le wagon (sister_walk). La nuit,
+/// elle frissonne (sister_cold). Reporte sa position via [onSettled].
 class _SisterCharacter extends StatefulWidget {
   const _SisterCharacter({
     required this.tint,
-    required this.onDogInteraction,
+    required this.heightFrac,
+    required this.feetY,
+    required this.startX,
+    required this.minX,
+    required this.maxX,
+    required this.onSettled,
     this.night = false,
   });
 
   final Widget Function(Widget child) tint;
-  final ValueChanged<bool> onDogInteraction;
-  final bool night; // froid -> elle frissonne parfois
+  final double heightFrac;
+  final double feetY;
+  final double startX;
+  final double minX;
+  final double maxX;
+  final ValueChanged<double> onSettled;
+  final bool night;
 
   @override
   State<_SisterCharacter> createState() => _SisterCharacterState();
 }
 
 class _SisterCharacterState extends State<_SisterCharacter>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
+    with TickerProviderStateMixin {
+  late final AnimationController _ctrl; // frames
+  late final AnimationController _move; // déplacement
   Timer? _timer;
   final _rng = math.Random();
 
-  // anim courante : nom du préfixe, nb de frames, durée, boucle ou one-shot,
-  // et si elle implique le chien (pour masquer le chien statique).
-  String _anim = 'dance';
+  late double _x = widget.startX;
+  double _fromX = 0, _toX = 0;
+  bool _faceRight = true;
+  String? _anim; // null = idle (pose calme) ; 'dance' ; 'walk' ; 'cold'
   int _frames = 25;
-  bool _looping = true;
-
-  // Pool d'animations autonomes SOLO de la petite soeur (one-shot).
-  // 'hug' et 'read' sont des DUOS (sœur + Shen) -> retirés d'ici : le hug
-  // est désormais déclenché par la scène quand Shen est à côté (et masque
-  // les deux solos). 'read' est retiré (proportions inversées).
-  static const _pool = [
-    ('dance', 25, 2400, false),
-  ];
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 4000),
-    )..repeat();
-    _ctrl.addStatusListener(_onStatus);
-    // Première anim rapidement (test), puis toutes les 20 s.
-    Timer(const Duration(seconds: 6), () {
-      if (!mounted) return;
-      _playRandom();
-      _timer = Timer.periodic(const Duration(seconds: 20), (_) => _playRandom());
+    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2));
+    _ctrl.addStatusListener((s) {
+      if (s == AnimationStatus.completed && mounted && _anim != 'walk') {
+        setState(() => _anim = null);
+      }
     });
-  }
-
-  void _onStatus(AnimationStatus status) {
-    // Fin d'un one-shot -> retour au repos (dance en boucle).
-    if (status == AnimationStatus.completed && !_looping) {
-      widget.onDogInteraction(false);
-      _setAnim('dance', 25, 4000, loop: true);
-    }
-  }
-
-  void _playRandom() {
-    if (!mounted || !_looping) return; // ne pas couper un one-shot en cours
-    // La nuit (froid), elle frissonne 1 fois sur 2.
-    if (widget.night && _rng.nextBool()) {
-      _setAnim('cold', 8, 8 * 130, loop: false); // -> sister_cold_N.png
-      return;
-    }
-    final pick = _pool[_rng.nextInt(_pool.length)];
-    final isDog = pick.$4;
-    if (isDog) widget.onDogInteraction(true);
-    _setAnim(pick.$1, pick.$2, pick.$3, loop: false);
-  }
-
-  void _setAnim(String anim, int frames, int ms, {required bool loop}) {
-    if (!mounted) return;
-    setState(() {
-      _anim = anim;
-      _frames = frames;
-      _looping = loop;
+    _move = AnimationController(vsync: this);
+    _move.addListener(() {
+      setState(() => _x = _fromX + (_toX - _fromX) * _move.value);
     });
+    _move.addStatusListener((s) {
+      if (s == AnimationStatus.completed && mounted) {
+        _ctrl.stop();
+        setState(() => _anim = null);
+        widget.onSettled(_x);
+      }
+    });
+    _timer = Timer.periodic(const Duration(seconds: 12), (_) => _decide());
+  }
+
+  void _decide() {
+    if (!mounted || _anim == 'walk') return;
+    final r = _rng.nextDouble();
+    if (widget.night && r < 0.35) {
+      _play('cold', 8, 8 * 140);
+    } else if (r < 0.45) {
+      _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));
+    } else if (r < 0.75) {
+      _play('dance', 25, 2600);
+    } // sinon : reste idle (pose calme)
+  }
+
+  void _play(String anim, int frames, int ms) {
+    setState(() { _anim = anim; _frames = frames; });
     _ctrl.duration = Duration(milliseconds: ms);
-    if (loop) {
-      _ctrl.repeat();
-    } else {
-      _ctrl.forward(from: 0);
-    }
+    _ctrl.forward(from: 0);
+  }
+
+  void _walkTo(double tx) {
+    _fromX = _x;
+    _toX = tx.clamp(widget.minX, widget.maxX);
+    if ((_toX - _fromX).abs() < 0.03) return;
+    _faceRight = _toX > _fromX;
+    setState(() { _anim = 'walk'; _frames = 25; });
+    _ctrl.duration = const Duration(milliseconds: 650);
+    _ctrl.repeat();
+    _move.duration = Duration(
+        milliseconds: ((_toX - _fromX).abs() * 5500).clamp(800, 4500).round());
+    _move.forward(from: 0);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    _ctrl.removeStatusListener(_onStatus);
     _ctrl.dispose();
+    _move.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: IgnorePointer(
-        child: AnimatedBuilder(
-          animation: _ctrl,
-          builder: (_, __) {
-            final frame =
-                (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
-            final asset = 'assets/characters/sister_${_anim}_${frame + 1}.png';
-            return widget.tint(
-              Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (_, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          final sisH = h * widget.heightFrac;
+          final sisW = sisH; // sprites carrés
+          Widget sprite = AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) {
+              // idle = pose calme (1re frame de dance figée).
+              final a = _anim ?? 'dance';
+              final f = _anim == null
+                  ? 0
+                  : (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
+              return Image.asset('assets/characters/sister_${a}_${f + 1}.png',
+                  fit: BoxFit.contain, gaplessPlayback: true);
+            },
+          );
+          // sister_walk pointe vers la droite par défaut -> miroir si va à gauche.
+          if (_anim == 'walk' && !_faceRight) {
+            sprite = Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+              child: sprite,
             );
-          },
-        ),
+          }
+          return Stack(children: [
+            Positioned(
+              left: _x * w - sisW / 2,
+              top: widget.feetY * h - sisH * 0.84,
+              width: sisW,
+              height: sisH,
+              child: widget.tint(sprite),
+            ),
+          ]);
+        },
       ),
     );
   }
 }
 
-/// Chien autonome dans le wagon. Au repos il est posé (dog_idle, statique),
-/// et toutes les ~15 s il joue une petite animation au hasard (s'étire,
-/// penche la tête, aboie, remue la queue, se couche), puis revient au repos.
+/// Chien autonome : au repos posé (dog_idle), parfois une petite anim sur
+/// place (s'étire, aboie…), et de temps en temps il **se déplace** dans le
+/// wagon (dog_walk) vers une nouvelle position. Reporte sa position posée via
+/// [onSettled] pour que les interactions (caresse) le suivent.
 class _DogCharacter extends StatefulWidget {
-  const _DogCharacter({required this.tint});
+  const _DogCharacter({
+    required this.tint,
+    required this.heightFrac,
+    required this.feetY,
+    required this.startX,
+    required this.minX,
+    required this.maxX,
+    required this.onSettled,
+  });
   final Widget Function(Widget child) tint;
+  final double heightFrac;
+  final double feetY;
+  final double startX;
+  final double minX;
+  final double maxX;
+  final ValueChanged<double> onSettled;
 
   @override
   State<_DogCharacter> createState() => _DogCharacterState();
 }
 
 class _DogCharacterState extends State<_DogCharacter>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
+    with TickerProviderStateMixin {
+  late final AnimationController _ctrl; // frames
+  late final AnimationController _move; // déplacement
   Timer? _timer;
   final _rng = math.Random();
 
-  String? _anim; // null = repos (dog_idle statique)
+  late double _x = widget.startX;
+  double _fromX = 0, _toX = 0;
+  bool _faceRight = true;
+  String? _anim; // null = idle ; 'walk' ; ou une anim du pool
   int _frames = 25;
 
-  // Pool d'animations courtes (toutes 25 frames).
   static const _pool = [
-    ('stretch_yawn', 2000),
-    ('head_tilt', 1500),
-    ('bark', 1400),
-    ('wag_tail', 1600),
-    ('lay_down', 2000),
-    ('sleep', 2600),
+    ('stretch_yawn', 2000), ('head_tilt', 1500), ('bark', 1400),
+    ('wag_tail', 1600), ('lay_down', 2000), ('sleep', 2600),
   ];
 
   @override
@@ -2740,49 +2774,96 @@ class _DogCharacterState extends State<_DogCharacter>
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2));
     _ctrl.addStatusListener((s) {
-      if (s == AnimationStatus.completed && mounted) {
-        setState(() => _anim = null); // retour au repos
+      if (s == AnimationStatus.completed && mounted && _anim != 'walk') {
+        setState(() => _anim = null);
       }
     });
-    _timer = Timer.periodic(const Duration(seconds: 15), (_) => _play());
+    _move = AnimationController(vsync: this);
+    _move.addListener(() {
+      setState(() => _x = _fromX + (_toX - _fromX) * _move.value);
+    });
+    _move.addStatusListener((s) {
+      if (s == AnimationStatus.completed && mounted) {
+        _ctrl.stop();
+        setState(() => _anim = null);
+        widget.onSettled(_x);
+      }
+    });
+    _timer = Timer.periodic(const Duration(seconds: 13), (_) => _decide());
   }
 
-  void _play() {
-    if (!mounted || _anim != null) return;
-    final pick = _pool[_rng.nextInt(_pool.length)];
-    setState(() {
-      _anim = pick.$1;
-      _frames = 25;
-    });
-    _ctrl.duration = Duration(milliseconds: pick.$2);
-    _ctrl.forward(from: 0);
+  void _decide() {
+    if (!mounted || _anim == 'walk') return;
+    if (_rng.nextDouble() < 0.45) {
+      _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));
+    } else {
+      final p = _pool[_rng.nextInt(_pool.length)];
+      setState(() { _anim = p.$1; _frames = 25; });
+      _ctrl.duration = Duration(milliseconds: p.$2);
+      _ctrl.forward(from: 0);
+    }
+  }
+
+  void _walkTo(double tx) {
+    _fromX = _x;
+    _toX = tx.clamp(widget.minX, widget.maxX);
+    if ((_toX - _fromX).abs() < 0.03) return;
+    _faceRight = _toX > _fromX;
+    setState(() { _anim = 'walk'; _frames = 49; });
+    _ctrl.duration = const Duration(milliseconds: 700);
+    _ctrl.repeat();
+    _move.duration = Duration(
+        milliseconds: ((_toX - _fromX).abs() * 5000).clamp(700, 4000).round());
+    _move.forward(from: 0);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
     _ctrl.dispose();
+    _move.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: IgnorePointer(
-        child: _anim == null
-            ? widget.tint(Image.asset('assets/objects/dog_idle.png',
-                fit: BoxFit.contain, gaplessPlayback: true))
-            : AnimatedBuilder(
-                animation: _ctrl,
-                builder: (_, __) {
-                  final frame =
-                      (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
-                  final asset =
-                      'assets/objects/dog_${_anim}_${frame + 1}.png';
-                  return widget.tint(Image.asset(asset,
-                      fit: BoxFit.contain, gaplessPlayback: true));
-                },
-              ),
+    return IgnorePointer(
+      child: LayoutBuilder(
+        builder: (_, c) {
+          final w = c.maxWidth, h = c.maxHeight;
+          final dogH = h * widget.heightFrac;
+          final dogW = dogH;
+          Widget sprite = AnimatedBuilder(
+            animation: _ctrl,
+            builder: (_, __) {
+              final String asset;
+              if (_anim == null) {
+                asset = 'assets/objects/dog_idle.png';
+              } else {
+                final f = (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
+                asset = 'assets/objects/dog_${_anim}_${f + 1}.png';
+              }
+              return Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+            },
+          );
+          // dog_walk pointe vers la gauche par défaut -> miroir si va à droite.
+          if (_anim == 'walk' && _faceRight) {
+            sprite = Transform(
+              alignment: Alignment.center,
+              transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+              child: sprite,
+            );
+          }
+          return Stack(children: [
+            Positioned(
+              left: _x * w - dogW / 2,
+              top: widget.feetY * h - dogH * 0.75,
+              width: dogW,
+              height: dogH,
+              child: widget.tint(sprite),
+            ),
+          ]);
+        },
       ),
     );
   }

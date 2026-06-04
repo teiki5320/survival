@@ -113,7 +113,6 @@ class _WagonScreenState extends State<WagonScreen> {
   // Chien un peu plus grand pour mieux matcher le husky des sprites de
   // caresse (avant il faisait chiot riquiqui à côté).
   double _dogHeight = 0.17;
-  int _dogInteractCount = 0;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -130,6 +129,9 @@ class _WagonScreenState extends State<WagonScreen> {
   // Interaction sœur (test manuel) : alterne lecture / câlin à chaque tap.
   int _duoToken = 0;
   String _duoAnimToPlay = 'readduo';
+  // Positions vivantes de la sœur / du chien (ils se baladent dans le wagon).
+  double _sisterLiveX = 0.33;
+  double _dogLiveX = 0.525;
   // Destination visée par l'animation de porte en cours : 'loco', 'wagon2'
   // (depuis le wagon 1, porte droite) ou 'wagon1' (depuis le wagon 2, porte
   // gauche). Consommée dans _onDoorPushDone.
@@ -176,15 +178,15 @@ class _WagonScreenState extends State<WagonScreen> {
   bool get _atLamp => _near(SideScrollScene.lampCenterX);
   bool get _atStove => _near(SideScrollScene.stoveCenterX);
   bool get _atHydro => _near(SideScrollScene.hydroCenterX);
-  bool get _atDog => _near(0.525, 0.10);
+  bool get _atDog => _near(_dogLiveX, 0.10);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
       _inWagon2 && _near(GameState.instance.bathX, 0.12);
   // Proximité de la douche (panneau) dans le cellier.
   bool get _atShower =>
       _inWagon2 && _near(GameState.instance.showerPanelX, 0.12);
-  // Proximité de la petite sœur (wagon 1, x=0.33).
-  bool get _atSister => !_inWagon2 && _near(0.33, 0.07);
+  // Proximité de la petite sœur (wagon 1, position vivante).
+  bool get _atSister => !_inWagon2 && _near(_sisterLiveX, 0.08);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -388,6 +390,8 @@ class _WagonScreenState extends State<WagonScreen> {
             petDogToken: _petDogToken,
             duoToken: _duoToken,
             duoAnim: _duoAnimToPlay,
+            onSisterX: (x) => setState(() => _sisterLiveX = x),
+            onDogX: (x) => setState(() => _dogLiveX = x),
             initialHeroX: _heroSpawnX,
             wagonStage:
                 secondWagon ? GameState.instance.wagon2Stage : _wagonStage,
