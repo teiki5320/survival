@@ -127,6 +127,9 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _w2Adjust = false;
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
+  // Interaction sœur (test manuel) : alterne lecture / câlin à chaque tap.
+  int _duoToken = 0;
+  String _duoAnimToPlay = 'readduo';
   // Destination visée par l'animation de porte en cours : 'loco', 'wagon2'
   // (depuis le wagon 1, porte droite) ou 'wagon1' (depuis le wagon 2, porte
   // gauche). Consommée dans _onDoorPushDone.
@@ -180,6 +183,8 @@ class _WagonScreenState extends State<WagonScreen> {
   // Proximité de la douche (panneau) dans le cellier.
   bool get _atShower =>
       _inWagon2 && _near(GameState.instance.showerPanelX, 0.12);
+  // Proximité de la petite sœur (wagon 1, x=0.33).
+  bool get _atSister => !_inWagon2 && _near(0.33, 0.07);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -381,6 +386,8 @@ class _WagonScreenState extends State<WagonScreen> {
             bathToken: _bathToken,
             showerToken: _showerToken,
             petDogToken: _petDogToken,
+            duoToken: _duoToken,
+            duoAnim: _duoAnimToPlay,
             initialHeroX: _heroSpawnX,
             wagonStage:
                 secondWagon ? GameState.instance.wagon2Stage : _wagonStage,
@@ -586,6 +593,15 @@ class _WagonScreenState extends State<WagonScreen> {
       // Cellier, près de la douche : se doucher / arrêter.
       icon = Icons.shower;
       action = () => setState(() => _showerToken++);
+    } else if (_atSister) {
+      // Test : tap près de la sœur -> alterne lecture / câlin.
+      icon = Icons.favorite;
+      action = () => setState(() {
+            _duoAnimToPlay =
+                _duoAnimToPlay == 'readduo' ? 'sister_hug' : 'readduo';
+            _duoToken++;
+            GameState.instance.nudgeCardStat('moral', 8);
+          });
     } else if (!_inWagon2 && _atBed) {
       icon = Icons.bed;
       action = () => setState(() => _lieDownToken++);

@@ -50,6 +50,8 @@ class SideScrollScene extends StatefulWidget {
     this.bathToken = 0,
     this.showerToken = 0,
     this.petDogToken = 0,
+    this.duoToken = 0,
+    this.duoAnim = 'readduo',
     this.wagon2Adjust = false,
   });
 
@@ -78,6 +80,11 @@ class SideScrollScene extends StatefulWidget {
   /// Incrémenté quand on caresse le chien (Shen près du husky) : joue le
   /// sprite petdog (Shen + husky).
   final int petDogToken;
+
+  /// Déclenche un duo avec la sœur (test manuel via le bouton action) :
+  /// [duoAnim] = 'readduo' (lecture) ou 'sister_hug' (câlin).
+  final int duoToken;
+  final String duoAnim;
 
   /// Mode "ajuster" du cellier : props déplaçables (drag) + redimensionnables
   /// (pincer) + HUD des coordonnées. Off = props figés (jeu normal).
@@ -871,6 +878,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _idleBreak = null;
         _activeSpecial = null;
       });
+    }
+    if (oldWidget.duoToken != widget.duoToken && !_duoActive) {
+      _startDuo(widget.duoAnim); // test manuel : lecture / câlin
     }
     if (oldWidget.doorPushToken != widget.doorPushToken) {
       setState(() {
