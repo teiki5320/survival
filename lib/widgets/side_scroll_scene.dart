@@ -329,13 +329,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     return 'assets/background/foreground_band.png';
   }
 
-  String get _horizonNightAsset {
-    if (GameState.instance.inColdZone) {
-      return 'assets/background/horizon_snow_night.png';
-    }
-    return 'assets/background/horizon_night.png';
-  }
-
   static const Duration _horizonRotatePeriod = Duration(seconds: 45);
   static const Duration _horizonCrossFade = Duration(seconds: 2);
   int _horizonIndex = 0;
@@ -1745,16 +1738,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ),
       ),
     );
-  }
-
-  /// True if the heroine is standing close to one of the wagon's
-  /// three back-wall windows — triggers the look_window idle break.
-  bool _nearWindow() {
-    const windowsX = [0.40, 0.55, 0.70];
-    for (final wx in windowsX) {
-      if ((_heroX - wx).abs() < 0.04) return true;
-    }
-    return false;
   }
 
   /// 0..1, how close the heroine is to either door — feeds the warm

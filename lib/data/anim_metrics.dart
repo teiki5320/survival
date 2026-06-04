@@ -85,7 +85,6 @@ const Map<String, AnimMetrics> kAnimMetrics = {
 
   // --- 512×512 debout (idle-breaks), mirror selon facing ---
   'yawn':          AnimMetrics(scale: 1.40, aspect: 1.0, feet: 0.861),
-  'look_window':   AnimMetrics(scale: 1.22, aspect: 1.0, feet: 0.891),
 
   // --- 512×512 composition orientée → noMirror ---
   'stretch':       AnimMetrics(
@@ -94,12 +93,7 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   'wake_up':       AnimMetrics(
     scale: 1.67, aspect: 1.0, feet: 0.859, noMirror: true,
   ),
-  'wake_up_clean': AnimMetrics(
-    scale: 1.40, aspect: 1.0, feet: 0.859, noMirror: true,
-  ),
-  'door_push':     AnimMetrics(scale: 1.46, aspect: 1.0, feet: 0.857),
   'open_door':     AnimMetrics(scale: 1.40, aspect: 1.0, feet: 0.88),
-  'crouch':        AnimMetrics(scale: 1.10, aspect: 1.0, feet: 0.833, noMirror: true),
 
   // --- Loco-only ---
   'warm_hands':    AnimMetrics(
@@ -111,9 +105,6 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   'drink':         AnimMetrics(
     scale: 1.36, aspect: 1.0, feet: 0.863, noMirror: true,
   ),
-  'cook':          AnimMetrics(
-    scale: 1.38, aspect: 1.0, feet: 0.859, noMirror: true,
-  ),
   'use_back':      AnimMetrics(
     scale: 1.42, aspect: 1.0, feet: 0.842, noMirror: true,
   ),
@@ -121,15 +112,9 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   'cold':          AnimMetrics(
     scale: 1.08, aspect: 198 / 672, feet: 0.984, noMirror: true,
   ),
-  'garden_tend':   AnimMetrics(
-    scale: 1.30, aspect: 1.0, feet: 0.871, noMirror: true,
-  ),
-  // Capés — gros mobilier dans la bbox gonfle le h_ratio.
+  // Capé — gros mobilier dans la bbox gonfle le h_ratio.
   'read':          AnimMetrics(
     scale: 0.90, aspect: 1.0, feet: 0.840, noMirror: true,
-  ),
-  'pet_dog':       AnimMetrics(
-    scale: 0.70, aspect: 1.0, feet: 0.845, noMirror: true,
   ),
 };
 
