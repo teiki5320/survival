@@ -39,6 +39,8 @@ class GameState extends ChangeNotifier {
         'cabinTemp': cabinTemp,
         'stoveInstalled': stoveInstalled,
         'outfitWarmth': outfitWarmth,
+        'shootWeaponLevel': shootWeaponLevel,
+        'shootBestStars': shootBestStars,
         'wagon2Stage': wagon2Stage,
         'wagon2LampAx': wagon2LampAx,
         'wagon2LampAy': wagon2LampAy,
@@ -87,6 +89,10 @@ class GameState extends ChangeNotifier {
       cabinTemp = (data['cabinTemp'] as num?)?.toDouble() ?? cabinTemp;
       stoveInstalled = (data['stoveInstalled'] as bool?) ?? stoveInstalled;
       outfitWarmth = (data['outfitWarmth'] as num?)?.toInt() ?? outfitWarmth;
+      shootWeaponLevel =
+          (data['shootWeaponLevel'] as num?)?.toInt() ?? shootWeaponLevel;
+      shootBestStars =
+          (data['shootBestStars'] as num?)?.toInt() ?? shootBestStars;
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
       wagon2LampAy = (data['wagon2LampAy'] as num?)?.toDouble() ?? wagon2LampAy;
@@ -163,6 +169,10 @@ class GameState extends ChangeNotifier {
   // chauds -> Shen supporte des températures plus basses (seuil plus bas).
   bool stoveInstalled = true; // le poêle "à remettre dans le wagon"
   int outfitWarmth = 0; // bonus tenue (0 = tenue de base)
+  // Mini-jeu de défense de gare : niveau d'arme débloqué (0=fronde, 1=arc,
+  // 2=arbalète, 3=cocktail) + meilleur score d'étoiles obtenu.
+  int shootWeaponLevel = 0;
+  int shootBestStars = 0;
   double get coldThreshold =>
       12.0 - wagonStage * 2 - (stoveInstalled ? 4 : 0) - outfitWarmth;
   // Vrai si Shen (et la sœur) ont froid -> frissons + blocage gain moral.

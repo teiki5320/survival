@@ -64,16 +64,28 @@ class _EnemyShot {
   Offset vel;
 }
 
+/// Baril explosif posé sur le quai : touché par un caillou -> explosion qui
+/// tue les pillards autour.
+class _Barrel {
+  _Barrel(this.x, this.feetY);
+  final double x;
+  final double feetY;
+}
+
 class _Stone {
-  _Stone(this.pos, this.vel);
+  _Stone(this.pos, this.vel, {this.pierce = 0, this.big = false});
   Offset pos;
   Offset vel;
+  int pierce; // nombre d'ennemis traversés en plus
+  final bool big; // caillou renforcé (combo) -> visuel plus gros
 }
 
 class _Impact {
-  _Impact(this.pos, {this.launch = false});
+  _Impact(this.pos, {this.launch = false, this.crit = false, this.blast = false});
   final Offset pos;
-  final bool launch; // true = poussière de départ (lucarne)
+  final bool launch; // poussière de départ (lucarne)
+  final bool crit; // coup à la tête (doré)
+  final bool blast; // explosion de baril / cocktail
   double t = 0;
 }
 
@@ -138,10 +150,20 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   int _stonesPerShot = 1;
   double _reloadMult = 1.0;
   double _powerMult = 1.0;
+  int _pierce = 0; // pénétration de base (perks + arme)
   bool _awaitingChoice = false;
+  List<String> _perkChoices = const ['stone', 'hearts', 'speed'];
 
   double _shake = 0;
   int _combo = 0;
+  int _score = 0;
+  int _hpLost = 0;
+  double _hitStop = 0; // micro-gel à l'impact
+  double _slowmo = 0; // ralenti dramatique
+  int _wonStars = 0; // étoiles de fin
+  bool _rewarded = false; // récompense distribuée une fois
+  bool _weaponUp = false; // une arme débloquée à la victoire
+  _Barrel? _barrel; // baril explosif de la vague en cours
 
   bool _aiming = false;
   Offset _dragStart = Offset.zero;
@@ -150,9 +172,23 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _S = 1, _ox = 0, _oy = 0;
   Duration _last = Duration.zero;
 
+  // Difficulté liée à la zone de la carte (nord glacé = plus dur).
+  double get _zoneSpeed => GameState.instance.inColdZone ? 1.18 : 1.0;
+  double get _zoneCount => GameState.instance.inColdZone ? 1.3 : 1.0;
+  // Arme niveau 3 (cocktail) = cailloux explosifs.
+  bool get _explosiveWeapon => GameState.instance.shootWeaponLevel >= 3;
+
+  // Applique l'arme débloquée (fronde -> arc -> arbalète -> cocktail).
+  void _applyWeapon() {
+    final lvl = GameState.instance.shootWeaponLevel.clamp(0, 3);
+    _powerMult = 1.0 + 0.10 * lvl; // plus rapide/portée
+    _pierce = lvl >= 2 ? 1 : 0; // arbalète : perce 1
+  }
+
   @override
   void initState() {
     super.initState();
+    _applyWeapon();
     _ticker = createTicker(_tick)..start();
   }
 
@@ -170,6 +206,18 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_status != _Status.playing) return;
     if (_adjust || _awaitingChoice) return;
 
+    // Hit-stop : micro-gel du monde à l'impact (juice).
+    if (_hitStop > 0) {
+      _hitStop -= dt;
+      setState(() {});
+      return;
+    }
+    // Ralenti dramatique : on étire le temps.
+    if (_slowmo > 0) {
+      _slowmo -= dt;
+      dt *= 0.35;
+    }
+
     for (final im in _impacts) {
       im.t += dt / _impactDur;
     }
@@ -178,8 +226,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_banner > 0) {
       _banner -= dt;
       if (_banner <= 0) {
-        _toSpawn = _waves[_wave].$1;
+        _toSpawn = (_waves[_wave].$1 * _zoneCount).round();
         _spawnTimer = 0.4;
+        _spawnBarrel();
       }
       setState(() {});
       return;
@@ -188,7 +237,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_toSpawn > 0) {
       _spawnTimer -= dt;
       if (_spawnTimer <= 0) {
-        _spawnEnemy(_waves[_wave].$2);
+        _spawnEnemy(_waves[_wave].$2 * _zoneSpeed);
         _toSpawn--;
         _spawnTimer = _waves[_wave].$3;
       }
@@ -241,6 +290,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (e.dying) return e.dieT <= 0;
       if (e.x <= _trainEdgeX) {
         _trainHp--;
+        _hpLost++;
         _combo = 0;
         if (_trainHp <= 0) _status = _Status.lost;
         return true;
@@ -264,6 +314,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _enemyShots.removeWhere((es) {
       if (es.pos.dx <= _trainEdgeX) {
         _trainHp--;
+        _hpLost++;
         _combo = 0;
         _shake = 0.2;
         if (_trainHp <= 0) _status = _Status.lost;
@@ -272,28 +323,43 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       return es.pos.dy > 1.15 || es.pos.dx < -0.2;
     });
 
-    // Collisions caillou <-> pillard : hitbox CORPS (boîte) -> plus de cailloux
-    // qui traversent la tête.
+    // Collisions caillou <-> pillard : hitbox CORPS (boîte) + zone TÊTE (crit)
+    // + perçage (le caillou peut traverser plusieurs ennemis).
     for (final s in _stones) {
       for (final e in _enemies) {
         if (e.dying) continue;
-        final hw = e.height * 0.24; // demi-largeur du corps
+        final hw = e.height * 0.24;
         final top = e.feetY - e.height * 0.95;
         final bot = e.feetY - e.height * 0.05;
+        final headBot = e.feetY - e.height * 0.78; // 20 % du haut = tête
         if (s.pos.dx >= e.x - hw - _stoneR &&
             s.pos.dx <= e.x + hw + _stoneR &&
             s.pos.dy >= top &&
             s.pos.dy <= bot) {
-          e.hp--;
-          _impacts.add(_Impact(s.pos));
-          s.pos = const Offset(-99, -99);
-          if (e.hp <= 0) {
-            e.dying = true;
-            e.dieT = _dieDur;
-            _kills++;
-            _combo++;
-            _shake = 0.16;
+          final head = s.pos.dy <= headBot;
+          e.hp -= head ? 2 : 1; // headshot = double dégât
+          e.x += 0.015; // léger recul (knockback)
+          _impacts.add(_Impact(s.pos, crit: head));
+          if (_explosiveWeapon) _explode(s.pos);
+          if (e.hp <= 0) _killEnemy(e, head: head);
+          if (s.pierce > 0) {
+            s.pierce--; // traverse et continue
+          } else {
+            s.pos = const Offset(-99, -99);
           }
+          break;
+        }
+      }
+    }
+    // Baril explosif touché.
+    if (_barrel != null) {
+      final b = _barrel!;
+      for (final s in _stones) {
+        if ((s.pos.dx - b.x).abs() < 0.05 &&
+            (s.pos.dy - (b.feetY - 0.06)).abs() < 0.07) {
+          _explode(Offset(b.x, b.feetY - 0.06), big: true);
+          _barrel = null;
+          s.pos = const Offset(-99, -99);
           break;
         }
       }
@@ -303,9 +369,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_toSpawn == 0 && _enemies.isEmpty && _banner <= 0) {
       if (_wave >= _waves.length - 1) {
         _status = _Status.won;
+        _onWin();
       } else {
         _wave++;
         _awaitingChoice = true;
+        _perkChoices =
+            (['stone', 'hearts', 'pierce', 'speed']..shuffle(_rng))
+                .take(3)
+                .toList();
       }
     }
 
@@ -352,6 +423,61 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     return _PillType.basic;
   }
 
+  void _spawnBarrel() {
+    final span = _imgA - _trainEdgeX - 0.9;
+    final x = _trainEdgeX + 0.5 + _rng.nextDouble() * (span > 0 ? span : 0.3);
+    _barrel = _Barrel(x.clamp(0.5, _imgA - 0.2), _groundY);
+  }
+
+  void _killEnemy(_Enemy e, {bool head = false}) {
+    if (e.dying) return;
+    e.dying = true;
+    e.dieT = _dieDur;
+    _kills++;
+    _combo++;
+    _score += 10 * (head ? 2 : 1) * (1 + _combo ~/ 5);
+    _shake = head ? 0.22 : 0.16;
+    _hitStop = 0.05;
+    // Dernier pillard de la vague abattu -> ralenti dramatique.
+    if (_toSpawn == 0 && !_enemies.any((x) => x != e && !x.dying)) {
+      _slowmo = 0.7;
+    }
+  }
+
+  void _explode(Offset pos, {bool big = false}) {
+    final r = big ? 0.22 : 0.10;
+    _impacts.add(_Impact(pos, blast: true));
+    _shake = big ? 0.32 : 0.20;
+    for (final e in _enemies) {
+      if (e.dying) continue;
+      final c = Offset(e.x, e.feetY - e.height * 0.5);
+      if ((c - pos).distance < r) {
+        e.hp = 0;
+        _killEnemy(e);
+      }
+    }
+  }
+
+  void _onWin() {
+    if (_rewarded) return;
+    _rewarded = true;
+    _wonStars = _hpLost == 0 ? 3 : (_hpLost <= 2 ? 2 : 1);
+    final gs = GameState.instance;
+    if (_wonStars > gs.shootBestStars) gs.shootBestStars = _wonStars;
+    _weaponUp = gs.shootWeaponLevel < 3;
+    if (_weaponUp) gs.shootWeaponLevel++; // arme suivante débloquée
+    gs.nudgeCardStat('bois', 8); // récompense pour le jeu principal
+    gs.nudgeCardStat('moral', 6);
+    gs.save();
+  }
+
+  static const List<String> _weaponNames = [
+    'Fronde',
+    'Arc',
+    'Arbalète',
+    'Cocktail',
+  ];
+
   Offset _launchVel() {
     final pullPx = _dragStart - _dragNow;
     final pull = Offset(pullPx.dx / _S, pullPx.dy / _S);
@@ -367,9 +493,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     final v = _launchVel();
     if (v.distance < 0.25) return;
     final n = _stonesPerShot;
+    final reinforced = _combo >= 5; // tir renforcé à partir de x5
+    final pierce = _pierce + (reinforced ? 3 : 0);
     for (int i = 0; i < n; i++) {
       final a = n == 1 ? 0.0 : (i - (n - 1) / 2) * 0.08;
-      _stones.add(_Stone(_muzzle, _rot(v, a)));
+      _stones.add(_Stone(_muzzle, _rot(v, a), pierce: pierce, big: reinforced));
     }
     _impacts.add(_Impact(_muzzle, launch: true)); // effet de départ
     _reloadTimer = _reload * _reloadMult;
@@ -388,6 +516,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         case 'hearts':
           _maxHp += 2;
           _trainHp += 2;
+        case 'pierce':
+          _pierce++; // caillou perçant : traverse 1 ennemi de plus
         case 'speed':
           _powerMult *= 1.12;
       }
@@ -414,10 +544,18 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _aiming = false;
       _stonesPerShot = 1;
       _reloadMult = 1.0;
-      _powerMult = 1.0;
       _awaitingChoice = false;
       _shake = 0;
       _combo = 0;
+      _score = 0;
+      _hpLost = 0;
+      _hitStop = 0;
+      _slowmo = 0;
+      _wonStars = 0;
+      _rewarded = false;
+      _weaponUp = false;
+      _barrel = null;
+      _applyWeapon();
     });
   }
 
@@ -488,6 +626,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       fit: BoxFit.contain,
                     ),
                   ),
+
+                  // Baril explosif de la vague (skill shot).
+                  if (_barrel != null) _buildBarrel(_barrel!),
 
                   // Pillards.
                   for (final e in _enemies) _buildEnemy(e),
@@ -604,6 +745,29 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         }
         return 'assets/characters/lanceur_walk_$wf.png';
     }
+  }
+
+  // Baril explosif posé sur le quai (placeholder dessiné).
+  Widget _buildBarrel(_Barrel b) {
+    final s = 0.085 * _S;
+    return Positioned(
+      left: _ox + b.x * _S - s / 2,
+      top: _oy + b.feetY * _S - s,
+      width: s,
+      height: s,
+      child: IgnorePointer(
+        child: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF8A3B2E),
+            borderRadius: BorderRadius.circular(3),
+            border: Border.all(color: const Color(0xFF3A1C16), width: 1.5),
+          ),
+          alignment: Alignment.center,
+          child: const Text('☠',
+              style: TextStyle(color: Color(0xFFFFD24A), fontSize: 14)),
+        ),
+      ),
+    );
   }
 
   Widget _buildEnemy(_Enemy e) {
@@ -764,6 +928,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         ),
       );
 
+  static const Map<String, (String, String, String)> _perkData = {
+    'stone': ('🪨', '+1 pierre', 'Un caillou de plus\npar tir'),
+    'hearts': ('❤️', '+2 cœurs', 'Train plus résistant'),
+    'pierce': ('🎯', 'Caillou perçant', 'Traverse 1 ennemi\nde plus'),
+    'speed': ('⚡', 'Tir plus vif', 'Caillou plus rapide\n(portée)'),
+  };
+
   Widget _choiceOverlay() => Positioned.fill(
         child: Container(
           color: Colors.black.withValues(alpha: 0.66),
@@ -780,26 +951,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _choiceCard(
-                      emoji: '🪨',
-                      title: '+1 pierre',
-                      desc: 'Un caillou de plus\npar tir',
-                      onTap: () => _pickPerk('stone'),
-                    ),
-                    const SizedBox(width: 14),
-                    _choiceCard(
-                      emoji: '❤️',
-                      title: '+2 cœurs',
-                      desc: 'Train plus résistant',
-                      onTap: () => _pickPerk('hearts'),
-                    ),
-                    const SizedBox(width: 14),
-                    _choiceCard(
-                      emoji: '⚡',
-                      title: 'Tir plus vif',
-                      desc: 'Caillou plus rapide\n(portée)',
-                      onTap: () => _pickPerk('speed'),
-                    ),
+                    for (final perk in _perkChoices) ...[
+                      _choiceCard(
+                        emoji: _perkData[perk]!.$1,
+                        title: _perkData[perk]!.$2,
+                        desc: _perkData[perk]!.$3,
+                        onTap: () => _pickPerk(perk),
+                      ),
+                      const SizedBox(width: 14),
+                    ],
                   ],
                 ),
               ],
@@ -857,7 +1017,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 const SizedBox(width: 12),
                 _hearts(),
                 const Spacer(),
-                _hud(_combo > 1 ? '💥 $_kills   🔥x$_combo' : '💥 $_kills'),
+                _hud('$_score pts   💥$_kills${_combo > 1 ? '   🔥x$_combo' : ''}'),
                 const SizedBox(width: 12),
                 FloatingActionButton.small(
                   heroTag: 'shoot_adjust',
@@ -933,9 +1093,39 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 ),
               ),
               const SizedBox(height: 8),
-              Text('Pillards repoussés : $_kills',
+              if (won) ...[
+                // Étoiles selon les cœurs gardés.
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (int i = 0; i < 3; i++)
+                      Icon(
+                        i < _wonStars ? Icons.star : Icons.star_border,
+                        color: const Color(0xFFFFD24A),
+                        size: 40,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+              Text('Pillards repoussés : $_kills   •   $_score pts',
                   style: const TextStyle(color: Colors.white70, fontSize: 16)),
-              const SizedBox(height: 26),
+              if (won && _weaponUp) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '🔓 Nouvelle arme : ${_weaponNames[GameState.instance.shootWeaponLevel.clamp(0, 3)]}',
+                  style: const TextStyle(
+                      color: Color(0xFFE8B96B),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600),
+                ),
+              ],
+              if (won) ...[
+                const SizedBox(height: 4),
+                const Text('Butin ramené au train : +bois, +moral',
+                    style: TextStyle(color: Color(0xFFB6E3A8), fontSize: 13)),
+              ],
+              const SizedBox(height: 22),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1012,8 +1202,13 @@ class _ShotPainter extends CustomPainter {
       ..strokeWidth = 1.5;
     for (final s in stones) {
       final p = _p(s.pos);
-      canvas.drawCircle(p, 0.013 * scale, stonePaint);
-      canvas.drawCircle(p, 0.013 * scale, stoneEdge);
+      final rr = (s.big ? 0.020 : 0.013) * scale;
+      if (s.big) {
+        canvas.drawCircle(p, rr * 1.6,
+            Paint()..color = const Color(0x55FFD24A)); // halo renforcé
+      }
+      canvas.drawCircle(p, rr, s.big ? (Paint()..color = const Color(0xFFE8B96B)) : stonePaint);
+      canvas.drawCircle(p, rr, stoneEdge);
     }
 
     // Cailloux lancés par les lanceurs (vers le train) — teinte rougeâtre.
@@ -1046,17 +1241,41 @@ class _ShotPainter extends CustomPainter {
         );
         continue;
       }
+      if (im.blast) {
+        // Explosion (baril / cocktail) : grosse boule orange.
+        final r = (0.04 + 0.16 * t) * scale;
+        canvas.drawCircle(
+          c,
+          r,
+          Paint()
+            ..color = const Color(0xFFFF8A3A).withValues(alpha: 0.55 * a)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        );
+        canvas.drawCircle(
+          c,
+          r,
+          Paint()
+            ..color = const Color(0xFFFFD24A).withValues(alpha: 0.8 * a)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3,
+        );
+        continue;
+      }
       final r = (0.012 + 0.05 * t) * scale;
+      final ringColor = im.crit
+          ? const Color(0xFFFFD24A) // headshot : doré
+          : const Color(0xFFFFE2B0);
       canvas.drawCircle(
         c,
-        r,
+        r * (im.crit ? 1.5 : 1.0),
         Paint()
-          ..color = const Color(0xFFFFE2B0).withValues(alpha: 0.7 * a)
+          ..color = ringColor.withValues(alpha: 0.8 * a)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 2.5,
+          ..strokeWidth = im.crit ? 3.5 : 2.5,
       );
-      final speck =
-          Paint()..color = const Color(0xFFBFA98C).withValues(alpha: a);
+      final speck = Paint()
+        ..color = (im.crit ? const Color(0xFFFFD24A) : const Color(0xFFBFA98C))
+            .withValues(alpha: a);
       for (int i = 0; i < 6; i++) {
         final ang = i * math.pi / 3 + t;
         final d = r * 1.1;
