@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../../models/game_state.dart';
+
 /// Mini-jeu de défense de gare au **lance-pierre** (poste de tir = mirador sur
 /// le wagon, à gauche). Des **pillards** arrivent de la droite le long du quai
 /// et avancent vers le train. On **maintient le doigt** pour bander la fronde :
@@ -79,12 +81,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _pillFeet = 0.865;
   static const double _pillContentH = 0.73;
 
+  // (nombre, vitesse, intervalle) — courbe qui MONTE : départ lent et clair,
+  // fin intense où ça déborde si on joue mal (validé par simulation).
   static const List<(int, double, double)> _waves = [
-    (4, 0.085, 1.15),
-    (5, 0.095, 1.00),
-    (6, 0.110, 0.90),
-    (7, 0.125, 0.80),
-    (9, 0.145, 0.70),
+    (4, 0.12, 1.10),
+    (6, 0.20, 0.85),
+    (9, 0.34, 0.60),
+    (13, 0.50, 0.46),
+    (18, 0.68, 0.38),
   ];
 
   final List<_Enemy> _enemies = [];
@@ -109,10 +113,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _scaleStartH = 0.24;
   Offset get _muzzle => Offset(_mx + _mh * 0.20, _my - _mh * 0.58);
 
-  // Bonus choisi au niveau 4.
-  bool _doubleStone = false;
+  // Upgrades cumulés (choix après chaque vague).
+  int _stonesPerShot = 1;
+  double _reloadMult = 1.0;
+  double _powerMult = 1.0;
   bool _awaitingChoice = false;
-  bool _perkChosen = false;
+
+  // Juice.
+  double _shake = 0; // intensité de tremblement restante
+  int _combo = 0; // pillards enchaînés sans fuite
 
   double _introT = _introDur;
   bool _introDone = false;
@@ -193,15 +202,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (e.dying) return e.dieT <= 0;
       if (e.x <= _trainEdgeX) {
         _trainHp--;
+        _combo = 0; // un pillard passe -> combo cassé
         if (_trainHp <= 0) _status = _Status.lost;
         return true;
       }
       return false;
     });
 
-    // Cailloux : balistique.
+    // Cailloux : balistique (+ vent latéral en zone froide).
+    final wind = GameState.instance.inColdZone ? -0.22 : 0.0;
     for (final s in _stones) {
-      s.vel = s.vel + Offset(0, _g * dt);
+      s.vel = s.vel + Offset(wind * dt, _g * dt);
       s.pos = s.pos + s.vel * dt;
     }
     _stones.removeWhere((s) =>
@@ -222,6 +233,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             e.dying = true;
             e.dieT = _dieDur;
             _kills++;
+            _combo++;
+            _shake = 0.16; // petit tremblement à l'impact mortel
           }
           break;
         }
@@ -235,16 +248,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _status = _Status.won;
       } else {
         _wave++;
-        // Avant la 4e vague : choix d'un bonus (double pierre / cœurs).
-        if (_wave == 3 && !_perkChosen) {
-          _awaitingChoice = true;
-        } else {
-          _banner = 1.8;
-        }
+        _awaitingChoice = true; // un renfort à choisir après chaque vague
       }
     }
 
     if (_reloadTimer > 0) _reloadTimer -= dt;
+    if (_shake > 0) _shake = (_shake - dt).clamp(0.0, 1.0);
     setState(() {});
   }
 
@@ -261,9 +270,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   Offset _launchVel() {
     final pullPx = _dragStart - _dragNow;
     final pull = Offset(pullPx.dx / _viewH, pullPx.dy / _viewH);
-    var v = pull * _power;
+    var v = pull * (_power * _powerMult);
+    final maxs = _maxSpeed * _powerMult;
     final sp = v.distance;
-    if (sp > _maxSpeed) v = v * (_maxSpeed / sp);
+    if (sp > maxs) v = v * (maxs / sp);
     return v;
   }
 
@@ -271,14 +281,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_reloadTimer > 0) return;
     final v = _launchVel();
     if (v.distance < 0.25) return;
-    if (_doubleStone) {
-      // Deux cailloux légèrement écartés : chacun ne tue qu'un pillard.
-      _stones.add(_Stone(_muzzle, _rot(v, -0.07)));
-      _stones.add(_Stone(_muzzle, _rot(v, 0.07)));
-    } else {
-      _stones.add(_Stone(_muzzle, v));
+    // N cailloux légèrement écartés (chacun ne tue qu'un pillard).
+    final n = _stonesPerShot;
+    for (int i = 0; i < n; i++) {
+      final a = n == 1 ? 0.0 : (i - (n - 1) / 2) * 0.08;
+      _stones.add(_Stone(_muzzle, _rot(v, a)));
     }
-    _reloadTimer = _reload;
+    _reloadTimer = _reload * _reloadMult;
   }
 
   Offset _rot(Offset v, double a) {
@@ -286,15 +295,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     return Offset(v.dx * c - v.dy * s, v.dx * s + v.dy * c);
   }
 
-  void _pickPerk(bool doubleStone) {
+  void _pickPerk(String perk) {
     setState(() {
-      if (doubleStone) {
-        _doubleStone = true;
-      } else {
-        _maxHp += 3;
-        _trainHp += 3;
+      switch (perk) {
+        case 'stone':
+          _stonesPerShot++; // +1 caillou par tir
+        case 'hearts':
+          _maxHp += 2;
+          _trainHp += 2;
+        case 'speed':
+          _powerMult *= 1.12; // caillou plus rapide -> arc plus tendu, portée
       }
-      _perkChosen = true;
       _awaitingChoice = false;
       _banner = 1.8;
     });
@@ -315,9 +326,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _reloadTimer = 0;
       _status = _Status.playing;
       _aiming = false;
-      _doubleStone = false;
+      _stonesPerShot = 1;
+      _reloadMult = 1.0;
+      _powerMult = 1.0;
       _awaitingChoice = false;
-      _perkChosen = false;
+      _shake = 0;
+      _combo = 0;
       _introT = _introDur;
       _introDone = false;
     });
@@ -335,6 +349,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           Offset u2p(Offset u) => Offset(u.dx * h, u.dy * h);
           final playing = _status == _Status.playing;
           final canAim = playing && !_adjust && !_awaitingChoice;
+          final shakeOffset = _shake > 0
+              ? Offset(_rng.nextDouble() - 0.5, _rng.nextDouble() - 0.5) *
+                  (_shake / 0.16) *
+                  14
+              : Offset.zero;
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
@@ -354,7 +373,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     setState(() => _aiming = false);
                   }
                 : null,
-            child: Stack(
+            child: Transform.translate(
+              offset: shakeOffset,
+              child: Stack(
               children: [
                 // Décor de gare (wagon à gauche, quai à droite).
                 Positioned.fill(
@@ -433,6 +454,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 if (_awaitingChoice) _choiceOverlay(),
                 if (!playing) _endOverlay(),
               ],
+              ),
             ),
           );
         },
@@ -559,7 +581,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Niveau 4 — choisis ton renfort',
+                const Text('Renfort — choisis-en un',
                     style: TextStyle(
                         color: Color(0xFFFFD9A0),
                         fontSize: 24,
@@ -569,17 +591,24 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _choiceCard(
-                      emoji: '🪨🪨',
-                      title: 'Double pierre',
-                      desc: '2 cailloux par tir\n(chacun tue 1 pillard)',
-                      onTap: () => _pickPerk(true),
+                      emoji: '🪨',
+                      title: '+1 pierre',
+                      desc: 'Un caillou de plus\npar tir (max 1 kill chacun)',
+                      onTap: () => _pickPerk('stone'),
                     ),
-                    const SizedBox(width: 18),
+                    const SizedBox(width: 14),
                     _choiceCard(
                       emoji: '❤️',
-                      title: '+3 cœurs',
-                      desc: 'Train plus résistant\n(intégrité +3)',
-                      onTap: () => _pickPerk(false),
+                      title: '+2 cœurs',
+                      desc: 'Train plus résistant\n(intégrité +2)',
+                      onTap: () => _pickPerk('hearts'),
+                    ),
+                    const SizedBox(width: 14),
+                    _choiceCard(
+                      emoji: '⚡',
+                      title: 'Tir plus vif',
+                      desc: 'Caillou plus rapide\n(arc tendu, portée)',
+                      onTap: () => _pickPerk('speed'),
                     ),
                   ],
                 ),
@@ -667,7 +696,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 const SizedBox(width: 12),
                 _hearts(),
                 const Spacer(),
-                _hud('💥 $_kills'),
+                _hud(_combo > 1 ? '💥 $_kills   🔥x$_combo' : '💥 $_kills'),
                 const SizedBox(width: 12),
                 FloatingActionButton.small(
                   heroTag: 'shoot_adjust',
