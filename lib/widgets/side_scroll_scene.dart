@@ -406,10 +406,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _duoFrame = 0;
   int _duoAccumMs = 0;
   int _duoElapsedMs = 0;
-  static const int _duoFrameMs = 320; // bien plus lent
+  int get _duoFrameMs => _duoAnim == 'readduo' ? 430 : 300; // lecture plus lente
   static const int _duoTotalMs = 6000;
   int get _duoFrames => _duoAnim == 'readduo' ? 10 : 4;
-  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 463 / 517;
+  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 260 / 301;
   double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.20 : 0.27;
 
   void _startDuo(String anim) {
