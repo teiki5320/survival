@@ -57,8 +57,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   final _rng = math.Random();
 
   // --- Géométrie (unités H) ---
-  static const Offset _shen = Offset(0.22, 0.43); // ancre fronde (mains)
-  static const double _shenFeetY = 0.55; // pieds de Shen sur le toit
+  // Mirador (poste de tir) posé sur le toit du wagon, à gauche. Shen y entre
+  // au début du niveau puis reste cachée dedans : les tirs partent de sa
+  // lucarne (_muzzle), on n'a donc plus besoin d'animer Shen au lance-pierre.
+  static const double _roofY = 0.55; // niveau du toit du wagon
+  static const double _miradorX = 0.18; // centre du mirador
+  static const Offset _muzzle = Offset(0.215, 0.40); // lucarne de tir
+  static const double _introDur = 2.0; // s : Shen monte dans le mirador
   static const double _groundY = 0.74; // ligne des pieds des pillards
   static const double _trainEdgeX = 0.13; // au-delà = dégâts au train
   static const double _g = 1.9; // gravité (unités/s²)
@@ -91,6 +96,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   int _kills = 0;
   _Status _status = _Status.playing;
 
+  // Intro : Shen marche jusqu'au mirador et y disparaît avant la 1re vague.
+  double _introT = _introDur;
+  bool _introDone = false;
+
   // --- Visée ---
   bool _aiming = false;
   Offset _dragStart = Offset.zero; // px
@@ -117,6 +126,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (dt <= 0) return;
     if (dt > 0.05) dt = 0.05; // clamp (lag / pause)
     if (_status != _Status.playing) return;
+
+    // Intro : Shen monte dans le mirador, on attend avant la 1re vague.
+    if (!_introDone) {
+      _introT -= dt;
+      if (_introT <= 0) _introDone = true;
+      setState(() {});
+      return;
+    }
 
     // Bandeau de vague : on attend avant de faire apparaître les pillards.
     if (_banner > 0) {
@@ -221,7 +238,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_reloadTimer > 0) return;
     final v = _launchVel();
     if (v.distance < 0.25) return; // trop faible = pas de tir
-    _stones.add(_Stone(_shen, v));
+    _stones.add(_Stone(_muzzle, v));
     _reloadTimer = _reload;
   }
 
@@ -238,6 +255,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _reloadTimer = 0;
       _status = _Status.playing;
       _aiming = false;
+      _introT = _introDur;
+      _introDone = false;
     });
   }
 
@@ -279,7 +298,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   child: CustomPaint(
                     painter: _SceneryPainter(
                       groundY: _groundY,
-                      shenFeetY: _shenFeetY,
+                      roofY: _roofY,
+                      miradorX: _miradorX,
                     ),
                   ),
                 ),
@@ -296,19 +316,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     ),
                   ),
 
-                // Shen sur le toit (placeholder idle, face à droite).
-                Positioned(
-                  left: _shen.dx * h - 0.13 * h,
-                  top: _shenFeetY * h - 0.28 * h,
-                  width: 0.26 * h,
-                  height: 0.28 * h,
-                  child: const IgnorePointer(
-                    child: Image(
-                      image: AssetImage('assets/characters/idle_right_1.png'),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
+                // Intro : Shen marche vers le mirador puis disparaît dedans.
+                if (!_introDone) _introShen(h),
 
                 // Cailloux + bande de visée + trajectoire.
                 Positioned.fill(
@@ -316,7 +325,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     child: CustomPaint(
                       painter: _ShotPainter(
                         stones: _stones,
-                        anchor: u2p(_shen),
+                        anchor: u2p(_muzzle),
                         aiming: _aiming,
                         launchVel: _aiming ? _launchVel() : null,
                         g: _g,
@@ -405,6 +414,37 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             ),
           );
         },
+      ),
+    );
+  }
+
+  // Shen qui marche vers le mirador et y disparaît (intro). Réutilise les
+  // frames walk_right existantes (mirorées : elle va vers la gauche).
+  Widget _introShen(double h) {
+    final p = (1 - _introT / _introDur).clamp(0.0, 1.0);
+    final sx = 0.36 + (_miradorX + 0.02 - 0.36) * p;
+    final boxH = 0.30 * h;
+    final boxW = boxH * 0.55;
+    final frame = ((_introDur - _introT) * 18).floor() % 49 + 1;
+    final opacity = p < 0.8 ? 1.0 : (1 - (p - 0.8) / 0.2).clamp(0.0, 1.0);
+    return Positioned(
+      left: sx * h - boxW / 2,
+      top: _roofY * h - boxH,
+      width: boxW,
+      height: boxH,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: opacity,
+          child: Transform(
+            alignment: Alignment.center,
+            transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+            child: Image.asset(
+              'assets/characters/walk_right_$frame.png',
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -550,10 +590,12 @@ class _PillardState extends State<_Pillard>
 class _SceneryPainter extends CustomPainter {
   _SceneryPainter({
     required this.groundY,
-    required this.shenFeetY,
+    required this.roofY,
+    required this.miradorX,
   });
   final double groundY;
-  final double shenFeetY;
+  final double roofY;
+  final double miradorX;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -596,7 +638,7 @@ class _SceneryPainter extends CustomPainter {
     }
 
     // Toit du wagon (à gauche) : bloc sombre arrondi qui dépasse du bord.
-    final roofTop = shenFeetY * h;
+    final roofTop = roofY * h;
     final roofRect = RRect.fromRectAndCorners(
       Rect.fromLTWH(-w * 0.05, roofTop, w * 0.40, h - roofTop),
       topRight: const Radius.circular(16),
@@ -618,6 +660,43 @@ class _SceneryPainter extends CustomPainter {
     for (double x = 0; x < w * 0.34; x += 26) {
       canvas.drawLine(Offset(x, roofTop + 6), Offset(x, h), plank);
     }
+
+    // Mirador (poste de tir) sur le toit. Placeholder en bois ; à remplacer
+    // par le vrai sprite. Lucarne de tir sombre côté droit, à hauteur du tir.
+    final mx = miradorX * h;
+    final cw = 0.22 * h, ch = 0.18 * h;
+    final cabinTop = 0.40 * h - ch / 2;
+    final cabinBot = 0.40 * h + ch / 2;
+    final wood = Paint()..color = const Color(0xFF5A4632);
+    final woodDark = Paint()..color = const Color(0xFF3C2E20);
+    final legW = 0.02 * h;
+    for (final lx in [mx - cw / 2 + legW, mx + cw / 2 - legW]) {
+      canvas.drawRect(
+        Rect.fromLTWH(lx - legW / 2, cabinBot - 4, legW, roofTop - cabinBot + 8),
+        woodDark,
+      );
+    }
+    canvas.drawRect(Rect.fromLTWH(mx - cw / 2, cabinTop, cw, ch), wood);
+    canvas.drawRect(
+      Rect.fromLTWH(mx - cw / 2, cabinTop, cw, ch),
+      Paint()
+        ..color = const Color(0xFF2A2018)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+    // Toit en bâtière.
+    final roofPath = Path()
+      ..moveTo(mx - cw / 2 - 6, cabinTop)
+      ..lineTo(mx, cabinTop - 0.09 * h)
+      ..lineTo(mx + cw / 2 + 6, cabinTop)
+      ..close();
+    canvas.drawPath(roofPath, woodDark);
+    // Lucarne de tir (ouverture sombre côté droit).
+    final mw = 0.10 * h, mh = 0.075 * h;
+    canvas.drawRect(
+      Rect.fromLTWH(mx + cw / 2 - mw, 0.40 * h - mh / 2, mw, mh),
+      Paint()..color = const Color(0xFF14161C),
+    );
   }
 
   @override
