@@ -3,22 +3,19 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
-/// Mini-jeu de défense du toit du train, proposé aux gares.
+/// Mini-jeu de défense de gare au **lance-pierre** (poste de tir = mirador sur
+/// le wagon, à gauche). Des **pillards** arrivent de la droite le long du quai
+/// et avancent vers le train. On **maintient le doigt** pour bander la fronde :
+/// un **arc de visée** apparaît, on **relâche** pour lober un caillou (gravité).
+/// Il faut **survivre à plusieurs vagues** ; chaque pillard qui atteint le
+/// wagon entame l'intégrité du train (cœurs).
 ///
-/// Shen est sur le toit du wagon (à gauche), des **pillards** arrivent de la
-/// droite et avancent vers le train. Elle les repousse au **lance-pierre** :
-/// on glisse pour tirer la fronde vers l'arrière puis on relâche — le caillou
-/// part en **arc** (gravité). On doit **survivre à plusieurs vagues** ; chaque
-/// pillard qui atteint le wagon entame l'intégrité du train (cœurs).
-///
-/// Tout est en **unités de hauteur** (1 unité = hauteur de la zone de jeu) pour
-/// que la physique de l'arc soit isotrope quel que soit le ratio d'écran.
-/// Sprites en placeholders pour l'instant : `silhouette_*.png` (pillards) et
-/// `idle_right_1` (Shen). À remplacer par les vrais sprites générés.
+/// Coordonnées en **unités de hauteur** (1 unité = hauteur de la zone de jeu)
+/// pour une physique d'arc isotrope. Décor `gare_shoot`, mirador `mirador`,
+/// pillards `pillard1_walk_*`. Projectiles, impacts et mort gérés ici (mort
+/// procédurale en attendant de vraies frames de chute).
 class RoofDefenseGame extends StatefulWidget {
   const RoofDefenseGame({super.key, required this.onExit});
-
-  /// Appelé quand le joueur quitte (victoire validée ou abandon).
   final VoidCallback onExit;
 
   @override
@@ -33,16 +30,17 @@ class _Enemy {
     required this.feetY,
     required this.speed,
     required this.height,
-    required this.sil,
-    required this.phase,
+    required this.anim,
   });
   double x; // unités H (centre)
   double feetY; // ligne des pieds (unités H)
   double speed; // unités/s vers la gauche
-  double height; // hauteur sprite (unités H)
-  int sil; // index silhouette 1..13
-  double phase; // déphasage du dandinement
+  double height; // hauteur du perso (unités H)
+  double anim; // accumulateur d'animation (s)
+  int frame = 0;
   int hp = 1;
+  bool dying = false;
+  double dieT = 0; // temps de mort restant (s)
 }
 
 class _Stone {
@@ -51,30 +49,39 @@ class _Stone {
   Offset vel; // unités/s
 }
 
+class _Impact {
+  _Impact(this.pos);
+  final Offset pos; // unités H
+  double t = 0; // 0..1 (durée _impactDur)
+}
+
 class _RoofDefenseGameState extends State<RoofDefenseGame>
     with SingleTickerProviderStateMixin {
   late final Ticker _ticker;
   final _rng = math.Random();
 
-  // --- Géométrie (unités H) ---
-  // Mirador (poste de tir) posé sur le toit du wagon, à gauche. Shen y entre
-  // au début du niveau puis reste cachée dedans : les tirs partent de sa
-  // lucarne (_muzzle), on n'a donc plus besoin d'animer Shen au lance-pierre.
-  static const double _roofY = 0.55; // niveau du toit du wagon
-  static const double _miradorX = 0.18; // centre du mirador
-  static const Offset _muzzle = Offset(0.205, 0.45); // lucarne de tir
-  static const double _introDur = 2.0; // s : Shen monte dans le mirador
-  static const double _groundY = 0.74; // ligne des pieds des pillards
-  static const double _trainEdgeX = 0.13; // au-delà = dégâts au train
-  static const double _g = 1.9; // gravité (unités/s²)
-  static const double _power = 5.2; // vitesse = pull * power
-  static const double _maxSpeed = 2.6;
-  static const double _stoneR = 0.013;
-  static const double _enemyR = 0.058;
-  static const double _reload = 0.28; // s entre deux tirs
+  // --- Géométrie (unités H), calée sur le décor gare_shoot ---
+  static const double _miradorX = 0.16; // centre du mirador (sur le wagon)
+  static const double _miradorBottomY = 0.47; // base du mirador
+  static const double _miradorH = 0.24; // hauteur du mirador
+  static const Offset _muzzle = Offset(0.205, 0.33); // d'où part le tir
+  static const double _groundY = 0.72; // pieds des pillards (le quai)
+  static const double _trainEdgeX = 0.26; // atteint le wagon -> dégâts
+  static const double _introDur = 2.0;
 
-  // --- Vagues ---
-  // (nombre de pillards, vitesse, intervalle d'apparition)
+  static const double _g = 1.9;
+  static const double _power = 5.6;
+  static const double _maxSpeed = 3.0;
+  static const double _stoneR = 0.013;
+  static const double _enemyR = 0.060;
+  static const double _reload = 0.28;
+  static const double _impactDur = 0.32;
+  static const double _dieDur = 0.5;
+
+  // Pillard : pieds à ~0.865 du cadre, contenu ~0.73 de haut (mesuré).
+  static const double _pillFeet = 0.865;
+  static const double _pillContentH = 0.73;
+
   static const List<(int, double, double)> _waves = [
     (4, 0.085, 1.15),
     (5, 0.095, 1.00),
@@ -85,26 +92,26 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   final List<_Enemy> _enemies = [];
   final List<_Stone> _stones = [];
+  final List<_Impact> _impacts = [];
 
-  int _wave = 0; // index vague courante
-  int _toSpawn = 0; // pillards restant à faire apparaître dans la vague
+  int _wave = 0;
+  int _toSpawn = 0;
   double _spawnTimer = 0;
-  double _banner = 1.8; // bandeau "Vague X" (s) avant de lancer la vague
+  double _banner = 1.8;
   double _reloadTimer = 0;
 
   int _trainHp = 5;
   int _kills = 0;
   _Status _status = _Status.playing;
 
-  // Intro : Shen marche jusqu'au mirador et y disparaît avant la 1re vague.
   double _introT = _introDur;
   bool _introDone = false;
 
-  // --- Visée ---
   bool _aiming = false;
-  Offset _dragStart = Offset.zero; // px
-  Offset _dragNow = Offset.zero; // px
-  double _viewH = 1; // hauteur zone de jeu en px (pour px<->unités)
+  Offset _dragStart = Offset.zero;
+  Offset _dragNow = Offset.zero;
+  double _viewH = 1;
+  double _viewAspect = 1.6;
 
   Duration _last = Duration.zero;
 
@@ -124,10 +131,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     double dt = (elapsed - _last).inMicroseconds / 1e6;
     _last = elapsed;
     if (dt <= 0) return;
-    if (dt > 0.05) dt = 0.05; // clamp (lag / pause)
+    if (dt > 0.05) dt = 0.05;
     if (_status != _Status.playing) return;
 
-    // Intro : Shen monte dans le mirador, on attend avant la 1re vague.
+    // Intro : Shen rejoint le mirador.
     if (!_introDone) {
       _introT -= dt;
       if (_introT <= 0) _introDone = true;
@@ -135,7 +142,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       return;
     }
 
-    // Bandeau de vague : on attend avant de faire apparaître les pillards.
+    // Impacts (toujours animés).
+    for (final im in _impacts) {
+      im.t += dt / _impactDur;
+    }
+    _impacts.removeWhere((im) => im.t >= 1);
+
     if (_banner > 0) {
       _banner -= dt;
       if (_banner <= 0) {
@@ -146,7 +158,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       return;
     }
 
-    // Apparition des pillards de la vague.
     if (_toSpawn > 0) {
       _spawnTimer -= dt;
       if (_spawnTimer <= 0) {
@@ -156,11 +167,18 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
     }
 
-    // Pillards : avancent vers la gauche.
+    // Pillards : avancent + animation de marche ; les mourants tombent.
     for (final e in _enemies) {
+      if (e.dying) {
+        e.dieT -= dt;
+        continue;
+      }
       e.x -= e.speed * dt;
+      e.anim += dt;
+      e.frame = (e.anim * 16).floor() % 49;
     }
     _enemies.removeWhere((e) {
+      if (e.dying) return e.dieT <= 0;
       if (e.x <= _trainEdgeX) {
         _trainHp--;
         if (_trainHp <= 0) _status = _Status.lost;
@@ -169,31 +187,35 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       return false;
     });
 
-    // Cailloux : balistique + sortie d'écran.
-    final aspect = _viewAspect;
+    // Cailloux : balistique.
     for (final s in _stones) {
       s.vel = s.vel + Offset(0, _g * dt);
       s.pos = s.pos + s.vel * dt;
     }
     _stones.removeWhere((s) =>
-        s.pos.dy > 1.15 || s.pos.dx > aspect + 0.2 || s.pos.dx < -0.2);
+        s.pos.dy > 1.15 || s.pos.dx > _viewAspect + 0.2 || s.pos.dx < -0.2);
 
-    // Collisions caillou <-> pillard.
+    // Collisions caillou <-> pillard vivant.
     for (final s in _stones) {
       for (final e in _enemies) {
-        if (e.hp <= 0) continue;
-        final dx = s.pos.dx - e.x;
-        final dy = s.pos.dy - (e.feetY - e.height * 0.45);
+        if (e.dying) continue;
+        final cx = e.x;
+        final cy = e.feetY - e.height * 0.5;
+        final dx = s.pos.dx - cx, dy = s.pos.dy - cy;
         if (dx * dx + dy * dy <= (_enemyR + _stoneR) * (_enemyR + _stoneR)) {
           e.hp--;
-          s.pos = const Offset(-99, -99); // marque pour suppression
-          _kills++;
+          _impacts.add(_Impact(s.pos));
+          s.pos = const Offset(-99, -99);
+          if (e.hp <= 0) {
+            e.dying = true;
+            e.dieT = _dieDur;
+            _kills++;
+          }
           break;
         }
       }
     }
     _stones.removeWhere((s) => s.pos.dx < -90);
-    _enemies.removeWhere((e) => e.hp <= 0);
 
     // Vague terminée ?
     if (_toSpawn == 0 && _enemies.isEmpty && _banner <= 0) {
@@ -210,23 +232,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   void _spawnEnemy(double speed) {
-    final aspect = _viewAspect;
     _enemies.add(_Enemy(
-      x: aspect + 0.12,
-      feetY: _groundY + (_rng.nextDouble() - 0.5) * 0.04,
+      x: _viewAspect + 0.14,
+      feetY: _groundY + (_rng.nextDouble() - 0.5) * 0.03,
       speed: speed * (0.85 + _rng.nextDouble() * 0.3),
-      height: 0.20 + _rng.nextDouble() * 0.05,
-      sil: 1 + _rng.nextInt(13),
-      phase: _rng.nextDouble() * math.pi * 2,
+      height: 0.22 + _rng.nextDouble() * 0.04,
+      anim: _rng.nextDouble() * 2,
     ));
   }
 
-  // Ratio largeur/hauteur de la zone de jeu, mis à jour à chaque build.
-  double _viewAspect = 1.6;
-
-  // Vitesse de tir courante d'après le drag (unités/s), pour preview + tir.
   Offset _launchVel() {
-    final pullPx = _dragStart - _dragNow; // tirer vers l'arrière
+    final pullPx = _dragStart - _dragNow;
     final pull = Offset(pullPx.dx / _viewH, pullPx.dy / _viewH);
     var v = pull * _power;
     final sp = v.distance;
@@ -237,7 +253,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void _fire() {
     if (_reloadTimer > 0) return;
     final v = _launchVel();
-    if (v.distance < 0.25) return; // trop faible = pas de tir
+    if (v.distance < 0.25) return;
     _stones.add(_Stone(_muzzle, v));
     _reloadTimer = _reload;
   }
@@ -246,6 +262,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     setState(() {
       _enemies.clear();
       _stones.clear();
+      _impacts.clear();
       _wave = 0;
       _toSpawn = 0;
       _spawnTimer = 0;
@@ -270,7 +287,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           _viewH = h;
           _viewAspect = w / h;
           Offset u2p(Offset u) => Offset(u.dx * h, u.dy * h);
-
           final playing = _status == _Status.playing;
 
           return GestureDetector(
@@ -293,38 +309,42 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 : null,
             child: Stack(
               children: [
-                // Décor (ciel, horizon, sol, rails, toit du wagon).
+                // Décor de gare (wagon à gauche, quai à droite).
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: _SceneryPainter(
-                      groundY: _groundY,
-                      roofY: _roofY,
-                      miradorX: _miradorX,
-                    ),
+                  child: Image.asset(
+                    'assets/background/gare_shoot.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.centerLeft,
                   ),
                 ),
 
                 // Pillards.
-                for (final e in _enemies)
-                  Positioned(
-                    left: e.x * h - (e.height * h * 0.30),
-                    top: e.feetY * h - e.height * h,
-                    width: e.height * h * 0.60,
-                    height: e.height * h,
-                    child: IgnorePointer(
-                      child: _Pillard(sil: e.sil, phase: e.phase),
+                for (final e in _enemies) _buildEnemy(e, h),
+
+                // Mirador (poste de tir) sur le wagon.
+                Positioned(
+                  left: _miradorX * h - (_miradorH * 1.798 * h) / 2,
+                  top: (_miradorBottomY - _miradorH) * h,
+                  width: _miradorH * 1.798 * h,
+                  height: _miradorH * h,
+                  child: const IgnorePointer(
+                    child: Image(
+                      image: AssetImage('assets/objects/mirador.png'),
+                      fit: BoxFit.contain,
                     ),
                   ),
+                ),
 
-                // Intro : Shen marche vers le mirador puis disparaît dedans.
+                // Intro : Shen rejoint le mirador puis disparaît dedans.
                 if (!_introDone) _introShen(h),
 
-                // Cailloux + bande de visée + trajectoire.
+                // Cailloux + impacts + visée.
                 Positioned.fill(
                   child: IgnorePointer(
                     child: CustomPaint(
                       painter: _ShotPainter(
                         stones: _stones,
+                        impacts: _impacts,
                         anchor: u2p(_muzzle),
                         aiming: _aiming,
                         launchVel: _aiming ? _launchVel() : null,
@@ -335,80 +355,44 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   ),
                 ),
 
-                // HUD.
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: SafeArea(
-                    bottom: false,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      child: Row(
-                        children: [
-                          _hud('Vague ${_wave + 1}/${_waves.length}'),
-                          const SizedBox(width: 12),
-                          _hearts(),
-                          const Spacer(),
-                          _hud('💥 $_kills'),
-                          const SizedBox(width: 12),
-                          FloatingActionButton.small(
-                            heroTag: 'shoot_quit',
-                            backgroundColor: Colors.black54,
-                            onPressed: widget.onExit,
-                            child: const Icon(Icons.close),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
+                _hudBar(),
 
-                // Bandeau "Vague X".
                 if (playing && _banner > 0)
                   Center(
-                    child: _banner > 0
-                        ? Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 26, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Text(
-                              'Vague ${_wave + 1}',
-                              style: const TextStyle(
-                                color: Color(0xFFFFD9A0),
-                                fontSize: 34,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 2,
-                              ),
-                            ),
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-
-                // Aide visée (au tout début).
-                if (playing && _wave == 0 && _kills == 0 && _banner <= 0)
-                  const Positioned(
-                    bottom: 28,
-                    left: 0,
-                    right: 0,
-                    child: IgnorePointer(
-                      child: Center(
-                        child: Text(
-                          'Glisse vers l’arrière puis relâche pour tirer',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                          ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 26, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        'Vague ${_wave + 1}',
+                        style: const TextStyle(
+                          color: Color(0xFFFFD9A0),
+                          fontSize: 34,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2,
                         ),
                       ),
                     ),
                   ),
 
-                // Fin de partie.
+                if (playing && _wave == 0 && _kills == 0 && _banner <= 0)
+                  const Positioned(
+                    bottom: 24,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: Center(
+                        child: Text(
+                          'Maintiens et glisse vers l’arrière, relâche pour tirer',
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ),
+                    ),
+                  ),
+
                 if (!playing) _endOverlay(),
               ],
             ),
@@ -418,18 +402,47 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     );
   }
 
-  // Shen qui marche vers le mirador et y disparaît (intro). Réutilise les
-  // frames walk_right existantes (mirorées : elle va vers la gauche).
+  Widget _buildEnemy(_Enemy e, double h) {
+    final boxSize = e.height / _pillContentH * h;
+    final left = e.x * h - boxSize / 2;
+    final top = e.feetY * h - _pillFeet * boxSize;
+    Widget img = Image.asset(
+      'assets/characters/pillard1_walk_${e.frame + 1}.png',
+      fit: BoxFit.contain,
+      gaplessPlayback: true,
+    );
+    if (e.dying) {
+      // Mort procédurale (en attendant les frames de chute) : il bascule
+      // vers la gauche et s'efface.
+      final d = (1 - e.dieT / _dieDur).clamp(0.0, 1.0);
+      img = Opacity(
+        opacity: (1 - d).clamp(0.0, 1.0),
+        child: Transform.rotate(
+          angle: -d * 1.25, // bascule au sol
+          alignment: Alignment.bottomCenter,
+          child: img,
+        ),
+      );
+    }
+    return Positioned(
+      left: left,
+      top: top,
+      width: boxSize,
+      height: boxSize,
+      child: IgnorePointer(child: img),
+    );
+  }
+
   Widget _introShen(double h) {
     final p = (1 - _introT / _introDur).clamp(0.0, 1.0);
-    final sx = 0.36 + (_miradorX + 0.02 - 0.36) * p;
-    final boxH = 0.30 * h;
+    final sx = 0.42 + (_miradorX + 0.02 - 0.42) * p;
+    final boxH = 0.26 * h;
     final boxW = boxH * 0.55;
     final frame = ((_introDur - _introT) * 18).floor() % 49 + 1;
-    final opacity = p < 0.8 ? 1.0 : (1 - (p - 0.8) / 0.2).clamp(0.0, 1.0);
+    final opacity = p < 0.78 ? 1.0 : (1 - (p - 0.78) / 0.22).clamp(0.0, 1.0);
     return Positioned(
       left: sx * h - boxW / 2,
-      top: _roofY * h - boxH,
+      top: _groundY * h - boxH,
       width: boxW,
       height: boxH,
       child: IgnorePointer(
@@ -448,6 +461,34 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       ),
     );
   }
+
+  Widget _hudBar() => Positioned(
+        top: 0,
+        left: 0,
+        right: 0,
+        child: SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              children: [
+                _hud('Vague ${_wave + 1}/${_waves.length}'),
+                const SizedBox(width: 12),
+                _hearts(),
+                const Spacer(),
+                _hud('💥 $_kills'),
+                const SizedBox(width: 12),
+                FloatingActionButton.small(
+                  heroTag: 'shoot_quit',
+                  backgroundColor: Colors.black54,
+                  onPressed: widget.onExit,
+                  child: const Icon(Icons.close),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
 
   Widget _hud(String s) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -534,182 +575,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 }
 
-/// Pillard placeholder : silhouette sombre orientée vers la gauche (vers le
-/// train), avec un léger dandinement vertical pour simuler la marche.
-class _Pillard extends StatefulWidget {
-  const _Pillard({required this.sil, required this.phase});
-  final int sil;
-  final double phase;
-
-  @override
-  State<_Pillard> createState() => _PillardState();
-}
-
-class _PillardState extends State<_Pillard>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _c =
-      AnimationController(vsync: this, duration: const Duration(milliseconds: 520))
-        ..repeat();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _c,
-      builder: (_, child) {
-        final bob = math.sin(_c.value * math.pi * 2 + widget.phase) * 3;
-        return Transform.translate(offset: Offset(0, bob), child: child);
-      },
-      // Miroir : les silhouettes regardent à droite -> on les retourne vers
-      // la gauche (sens de marche vers le train).
-      child: Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-        child: ColorFiltered(
-          colorFilter: const ColorFilter.mode(
-            Color(0xFF20242E),
-            BlendMode.srcATop,
-          ),
-          child: Image.asset(
-            'assets/characters/silhouette_${widget.sil}.png',
-            fit: BoxFit.contain,
-            gaplessPlayback: true,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Décor : ciel, horizon, sol, rails, et le toit du wagon (à gauche).
-class _SceneryPainter extends CustomPainter {
-  _SceneryPainter({
-    required this.groundY,
-    required this.roofY,
-    required this.miradorX,
-  });
-  final double groundY;
-  final double roofY;
-  final double miradorX;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width, h = size.height;
-    final gy = groundY * h;
-
-    // Ciel.
-    final sky = Paint()
-      ..shader = const LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF2C3A4F), Color(0xFF55617A), Color(0xFF8A8FA0)],
-        stops: [0.0, 0.55, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, w, gy));
-    canvas.drawRect(Rect.fromLTWH(0, 0, w, gy), sky);
-
-    // Horizon lointain (collines floues).
-    final hill = Paint()..color = const Color(0xFF6A7081);
-    final path = Path()..moveTo(0, gy);
-    for (double x = 0; x <= w; x += w / 8) {
-      path.lineTo(x, gy - 30 - 18 * math.sin(x / w * 6));
-    }
-    path
-      ..lineTo(w, gy)
-      ..close();
-    canvas.drawPath(path, hill);
-
-    // Sol.
-    canvas.drawRect(
-      Rect.fromLTWH(0, gy, w, h - gy),
-      Paint()..color = const Color(0xFF3A3A40),
-    );
-    // Ballast / rail.
-    final railY = gy + (h - gy) * 0.30;
-    canvas.drawLine(Offset(0, railY), Offset(w, railY),
-        Paint()..color = const Color(0xFF20232A)..strokeWidth = 4);
-    final tie = Paint()..color = const Color(0xFF2A2C33)..strokeWidth = 6;
-    for (double x = 0; x < w; x += 38) {
-      canvas.drawLine(Offset(x, railY - 6), Offset(x - 10, railY + 10), tie);
-    }
-
-    // Toit du wagon (à gauche) : bloc sombre arrondi qui dépasse du bord.
-    final roofTop = roofY * h;
-    final roofRect = RRect.fromRectAndCorners(
-      Rect.fromLTWH(-w * 0.05, roofTop, w * 0.40, h - roofTop),
-      topRight: const Radius.circular(16),
-    );
-    canvas.drawRRect(
-      roofRect,
-      Paint()..color = const Color(0xFF4A3A2C),
-    );
-    // Liseré clair du bord du toit.
-    canvas.drawLine(
-      Offset(0, roofTop),
-      Offset(w * 0.35, roofTop),
-      Paint()
-        ..color = const Color(0xFF6B5236)
-        ..strokeWidth = 5,
-    );
-    // Planches du toit.
-    final plank = Paint()..color = const Color(0x33000000)..strokeWidth = 2;
-    for (double x = 0; x < w * 0.34; x += 26) {
-      canvas.drawLine(Offset(x, roofTop + 6), Offset(x, h), plank);
-    }
-
-    // Mirador placeholder : petite tourelle blindée COMPACTE, en métal,
-    // boulonnée sur le toit (bas profil, ça doit avoir l'air montable sur un
-    // train). À remplacer par le vrai sprite. Lucarne de tir à droite.
-    final mx = miradorX * h;
-    final tTop = 0.43 * h;
-    final twTop = 0.15 * h, twBot = 0.19 * h;
-    final steel = Paint()..color = const Color(0xFF676B72);
-    final steelDark = Paint()..color = const Color(0xFF44484E);
-    final body = Path()
-      ..moveTo(mx - twTop / 2, tTop)
-      ..lineTo(mx + twTop / 2, tTop)
-      ..lineTo(mx + twBot / 2, roofTop)
-      ..lineTo(mx - twBot / 2, roofTop)
-      ..close();
-    canvas.drawPath(body, steel);
-    canvas.drawPath(
-      body,
-      Paint()
-        ..color = const Color(0xFF2A2C30)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5,
-    );
-    // Capot supérieur arrondi (coupole).
-    canvas.drawArc(
-      Rect.fromLTWH(mx - twTop / 2, tTop - 0.045 * h, twTop, 0.09 * h),
-      math.pi, math.pi, true, steelDark,
-    );
-    // Rivets.
-    final rivet = Paint()..color = const Color(0xFF34373C);
-    for (final ry in [0.47, 0.52]) {
-      for (final rx in [-0.06, 0.0, 0.06]) {
-        canvas.drawCircle(Offset(mx + rx * h, ry * h), 1.8, rivet);
-      }
-    }
-    // Lucarne de tir blindée (fente sombre, côté droit, à hauteur du tir).
-    canvas.drawRect(
-      Rect.fromLTWH(mx + 0.015 * h, 0.45 * h - 0.018 * h, 0.075 * h, 0.036 * h),
-      Paint()..color = const Color(0xFF14161C),
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _SceneryPainter old) => false;
-}
-
-/// Cailloux en vol + bande de fronde + trajectoire prévisionnelle en pointillé.
+/// Cailloux en vol, impacts, bande de fronde + trajectoire prévisionnelle.
 class _ShotPainter extends CustomPainter {
   _ShotPainter({
     required this.stones,
+    required this.impacts,
     required this.anchor,
     required this.aiming,
     required this.launchVel,
@@ -717,9 +587,10 @@ class _ShotPainter extends CustomPainter {
     required this.hUnit,
   });
   final List<_Stone> stones;
-  final Offset anchor; // px
+  final List<_Impact> impacts;
+  final Offset anchor;
   final bool aiming;
-  final Offset? launchVel; // unités/s
+  final Offset? launchVel;
   final double g;
   final double hUnit;
 
@@ -737,9 +608,31 @@ class _ShotPainter extends CustomPainter {
       canvas.drawCircle(p, 0.013 * hUnit, stoneEdge);
     }
 
-    // Visée : fronde + trajectoire.
+    // Impacts : anneau qui s'étend + éclats.
+    for (final im in impacts) {
+      final c = Offset(im.pos.dx * hUnit, im.pos.dy * hUnit);
+      final t = im.t.clamp(0.0, 1.0);
+      final r = (0.012 + 0.05 * t) * hUnit;
+      final a = (1 - t);
+      canvas.drawCircle(
+        c,
+        r,
+        Paint()
+          ..color = const Color(0xFFFFE2B0).withValues(alpha: 0.7 * a)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5,
+      );
+      final speck = Paint()..color = const Color(0xFFBFA98C).withValues(alpha: a);
+      for (int i = 0; i < 6; i++) {
+        final ang = i * math.pi / 3 + t;
+        final d = r * 1.1;
+        canvas.drawCircle(
+            c + Offset(math.cos(ang) * d, math.sin(ang) * d), 2.0 * (1 - t), speck);
+      }
+    }
+
+    // Visée.
     if (aiming && launchVel != null) {
-      // Bande de la fronde (de l'ancre vers la position "tirée").
       final pullEnd = anchor - launchVel! * (hUnit * 0.06);
       canvas.drawLine(
         anchor,
@@ -748,12 +641,11 @@ class _ShotPainter extends CustomPainter {
           ..color = const Color(0xFFE8B96B)
           ..strokeWidth = 3,
       );
-      // Trajectoire : on simule en unités H puis on convertit.
       final dot = Paint()..color = Colors.white.withValues(alpha: 0.85);
       Offset pos = Offset(anchor.dx / hUnit, anchor.dy / hUnit);
       Offset vel = launchVel!;
       const double step = 0.045;
-      for (int i = 0; i < 26; i++) {
+      for (int i = 0; i < 30; i++) {
         vel = vel + Offset(0, g * step);
         pos = pos + vel * step;
         if (pos.dy > 1.2) break;
