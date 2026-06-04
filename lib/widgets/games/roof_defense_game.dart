@@ -130,8 +130,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   bool _aiming = false;
   Offset _dragStart = Offset.zero;
   Offset _dragNow = Offset.zero;
-  double _viewH = 1;
-  double _viewAspect = 1.6;
+  // Géométrie d'affichage du décor (BoxFit.contain) : échelle + offsets, mis
+  // à jour à chaque build. Tout le gameplay est en "unités décor" (origine =
+  // coin haut-gauche du décor, 1 unité = hauteur affichée du décor _S) -> les
+  // positions restent collées à la gare quel que soit l'écran.
+  static const double _imgA = 1584 / 672; // ratio du décor gare_shoot
+  double _S = 1, _ox = 0, _oy = 0;
 
   Duration _last = Duration.zero;
 
@@ -217,7 +221,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       s.pos = s.pos + s.vel * dt;
     }
     _stones.removeWhere((s) =>
-        s.pos.dy > 1.15 || s.pos.dx > _viewAspect + 0.2 || s.pos.dx < -0.2);
+        s.pos.dy > 1.15 || s.pos.dx > _imgA + 0.2 || s.pos.dx < -0.2);
 
     // Collisions caillou <-> pillard vivant.
     for (final s in _stones) {
@@ -260,7 +264,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   void _spawnEnemy(double speed) {
     _enemies.add(_Enemy(
-      x: _viewAspect + 0.14,
+      x: _imgA + 0.14,
       feetY: _groundY + (_rng.nextDouble() - 0.5) * 0.03,
       speed: speed * (0.85 + _rng.nextDouble() * 0.3),
       height: 0.22 + _rng.nextDouble() * 0.04,
@@ -270,7 +274,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   Offset _launchVel() {
     final pullPx = _dragStart - _dragNow;
-    final pull = Offset(pullPx.dx / _viewH, pullPx.dy / _viewH);
+    final pull = Offset(pullPx.dx / _S, pullPx.dy / _S);
     var v = pull * (_power * _powerMult);
     final maxs = _maxSpeed * _powerMult;
     final sp = v.distance;
@@ -345,9 +349,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       body: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          _viewH = h;
-          _viewAspect = w / h;
-          Offset u2p(Offset u) => Offset(u.dx * h, u.dy * h);
+          // Décor en entier (BoxFit.contain) : on calcule échelle + offsets,
+          // origine = coin haut-gauche du décor affiché.
+          final scale = math.min(w / _imgA, h);
+          _S = scale;
+          _ox = (w - _imgA * scale) / 2;
+          _oy = (h - scale) / 2;
+          Offset u2p(Offset u) => Offset(_ox + u.dx * _S, _oy + u.dy * _S);
           final playing = _status == _Status.playing;
           final canAim = playing && !_adjust && !_awaitingChoice;
           final shakeOffset = _shake > 0
@@ -378,23 +386,39 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               offset: shakeOffset,
               child: Stack(
               children: [
-                // Décor de gare (wagon à gauche, quai à droite).
-                Positioned.fill(
-                  child: Image.asset(
-                    'assets/background/gare_shoot.png',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.centerLeft,
+                // Fond : dégradé ciel/sol pour les bandes hors décor (iPad).
+                const Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xFF7C8597),
+                          Color(0xFF3A3F49),
+                          Color(0xFF20242C),
+                        ],
+                        stops: [0.0, 0.62, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
+                // Décor de gare ENTIER (calé sur la largeur).
+                const Positioned.fill(
+                  child: Image(
+                    image: AssetImage('assets/background/gare_shoot.png'),
+                    fit: BoxFit.contain,
                   ),
                 ),
 
                 // Pillards.
-                for (final e in _enemies) _buildEnemy(e, h),
+                for (final e in _enemies) _buildEnemy(e),
 
                 // Mirador (poste de tir) sur le wagon. Réglable en mode crayon.
-                _buildMirador(h),
+                _buildMirador(),
 
                 // Intro : Shen rejoint le mirador puis disparaît dedans.
-                if (!_introDone) _introShen(h),
+                if (!_introDone) _introShen(),
 
                 // Cailloux + impacts + visée.
                 Positioned.fill(
@@ -407,7 +431,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                         aiming: _aiming,
                         launchVel: _aiming ? _launchVel() : null,
                         g: _g,
-                        hUnit: h,
+                        ox: _ox,
+                        oy: _oy,
+                        scale: _S,
                       ),
                     ),
                   ),
@@ -463,10 +489,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     );
   }
 
-  Widget _buildEnemy(_Enemy e, double h) {
-    final boxSize = e.height / _pillContentH * h;
-    final left = e.x * h - boxSize / 2;
-    final top = e.feetY * h - _pillFeet * boxSize;
+  Widget _buildEnemy(_Enemy e) {
+    final boxSize = e.height / _pillContentH * _S;
+    final left = _ox + e.x * _S - boxSize / 2;
+    final top = _oy + e.feetY * _S - _pillFeet * boxSize;
     final String asset;
     double opacity = 1.0;
     if (e.dying) {
@@ -492,11 +518,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   // Mirador : posé selon _mx/_my/_mh. En mode crayon (_adjust), 1 doigt
   // déplace, pincer redimensionne ; les coords s'affichent (HUD) pour rebaker.
-  Widget _buildMirador(double h) {
-    final mw = _mh * 1.798 * h; // ratio image mirador
-    final mhpx = _mh * h;
-    final left = _mx * h - mw / 2;
-    final top = (_my - _mh) * h;
+  Widget _buildMirador() {
+    final mw = _mh * 1.798 * _S; // ratio image mirador
+    final mhpx = _mh * _S;
+    final left = _ox + _mx * _S - mw / 2;
+    final top = _oy + (_my - _mh) * _S;
     const img = Image(
       image: AssetImage('assets/objects/mirador.png'),
       fit: BoxFit.contain,
@@ -522,8 +548,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           if (d.pointerCount >= 2) {
             _mh = (_scaleStartH * d.scale).clamp(0.08, 0.6);
           } else {
-            _mx += d.focalPointDelta.dx / h;
-            _my += d.focalPointDelta.dy / h;
+            _mx += d.focalPointDelta.dx / _S;
+            _my += d.focalPointDelta.dy / _S;
           }
         }),
         child: Stack(
@@ -654,16 +680,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         ),
       );
 
-  Widget _introShen(double h) {
+  Widget _introShen() {
     final p = (1 - _introT / _introDur).clamp(0.0, 1.0);
     final sx = 0.42 + (_mx + 0.02 - 0.42) * p;
-    final boxH = 0.26 * h;
+    final boxH = 0.26 * _S;
     final boxW = boxH * 0.55;
     final frame = ((_introDur - _introT) * 18).floor() % 49 + 1;
     final opacity = p < 0.78 ? 1.0 : (1 - (p - 0.78) / 0.22).clamp(0.0, 1.0);
     return Positioned(
-      left: sx * h - boxW / 2,
-      top: _groundY * h - boxH,
+      left: _ox + sx * _S - boxW / 2,
+      top: _oy + _groundY * _S - boxH,
       width: boxW,
       height: boxH,
       child: IgnorePointer(
@@ -816,7 +842,9 @@ class _ShotPainter extends CustomPainter {
     required this.aiming,
     required this.launchVel,
     required this.g,
-    required this.hUnit,
+    required this.ox,
+    required this.oy,
+    required this.scale,
   });
   final List<_Stone> stones;
   final List<_Impact> impacts;
@@ -824,7 +852,11 @@ class _ShotPainter extends CustomPainter {
   final bool aiming;
   final Offset? launchVel;
   final double g;
-  final double hUnit;
+  final double ox;
+  final double oy;
+  final double scale;
+
+  Offset _p(Offset u) => Offset(ox + u.dx * scale, oy + u.dy * scale);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -835,16 +867,16 @@ class _ShotPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
     for (final s in stones) {
-      final p = Offset(s.pos.dx * hUnit, s.pos.dy * hUnit);
-      canvas.drawCircle(p, 0.013 * hUnit, stonePaint);
-      canvas.drawCircle(p, 0.013 * hUnit, stoneEdge);
+      final p = _p(s.pos);
+      canvas.drawCircle(p, 0.013 * scale, stonePaint);
+      canvas.drawCircle(p, 0.013 * scale, stoneEdge);
     }
 
     // Impacts : anneau qui s'étend + éclats.
     for (final im in impacts) {
-      final c = Offset(im.pos.dx * hUnit, im.pos.dy * hUnit);
+      final c = _p(im.pos);
       final t = im.t.clamp(0.0, 1.0);
-      final r = (0.012 + 0.05 * t) * hUnit;
+      final r = (0.012 + 0.05 * t) * scale;
       final a = (1 - t);
       canvas.drawCircle(
         c,
@@ -866,15 +898,14 @@ class _ShotPainter extends CustomPainter {
     // Visée : seulement l'arc de points prévisionnel (pas de "barre").
     if (aiming && launchVel != null) {
       final dot = Paint()..color = Colors.white.withValues(alpha: 0.85);
-      Offset pos = Offset(anchor.dx / hUnit, anchor.dy / hUnit);
+      Offset pos = Offset((anchor.dx - ox) / scale, (anchor.dy - oy) / scale);
       Offset vel = launchVel!;
       const double step = 0.045;
       for (int i = 0; i < 30; i++) {
         vel = vel + Offset(0, g * step);
         pos = pos + vel * step;
         if (pos.dy > 1.2) break;
-        final px = Offset(pos.dx * hUnit, pos.dy * hUnit);
-        if (i.isEven) canvas.drawCircle(px, 2.2, dot);
+        if (i.isEven) canvas.drawCircle(_p(pos), 2.2, dot);
       }
     }
   }
