@@ -107,7 +107,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   _Status _status = _Status.playing;
 
   // Placement du mirador (réglable en jeu via le bouton crayon). Le point de
-  // tir (_muzzle) suit le mirador.
+  // tir (_muzzle) suit le mirador. Défaut calé pour iPhone (paysage) ; sur
+  // iPad le ratio plus carré le décale -> ajuster au crayon si besoin.
   double _mx = 0.16, _my = 0.47, _mh = 0.24;
   bool _adjust = false;
   double _scaleStartH = 0.24;
