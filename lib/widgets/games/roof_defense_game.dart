@@ -146,9 +146,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _wagonClipFrac = 0.12; // le wagon est petit, à gauche
   static const double _trainEdgeX = 0.24;
 
-  static const double _g = 1.9;
-  static const double _power = 9.0;
-  static const double _maxSpeed = 3.4;
+  // Tir ralenti (on a le temps de voir la pierre voler + la caméra la suit).
+  static const double _g = 1.05;
+  static const double _power = 6.0;
+  static const double _maxSpeed = 2.3;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
@@ -1071,21 +1072,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _gameOver(won: true);
       return;
     }
-    // Coffre de fin de vague (récompense aléatoire).
-    _chestOpened = false;
-    final waveBonus = (_wave + 1) * 2;
-    final roll = _rng.nextDouble();
-    _chestExtra = '';
-    if (roll < 0.18) {
-      _chestExtra = 'heart';
-      _chestScrap = waveBonus;
-    } else if (roll < 0.36) {
-      _chestExtra = 'perk';
-      _chestScrap = waveBonus;
-    } else {
-      _chestScrap = waveBonus + 5 + _rng.nextInt(15); // ferraille variable
-    }
-    setState(() => _phase = _Phase.chest);
+    // Récompense ferraille + un BONUS à CHOISIR à chaque victoire de vague.
+    _runScrap += (_wave + 1) * 2 + 3 + _rng.nextInt(8);
+    _wave++;
+    _perkChoices =
+        ([..._perkData.keys]..shuffle(_rng)).take(_perkCount).toList();
+    setState(() => _phase = _Phase.perk);
   }
 
   void _openChest() {
@@ -2466,16 +2458,27 @@ class _ShotPainter extends CustomPainter {
     }
 
     if (aiming && launchVel != null) {
-      final dot = Paint()..color = Colors.white.withValues(alpha: 0.85);
+      // Arc de visée : trait PLEIN rouge, qui suit la vraie trajectoire de la
+      // pierre (même physique) jusqu'au sol.
       Offset pos = Offset((anchor.dx - ox) / scale, (anchor.dy - oy) / scale);
       Offset vel = launchVel!;
-      const double step = 0.045;
-      for (int i = 0; i < 30; i++) {
+      const double step = 0.03;
+      final path = Path()..moveTo(_p(pos).dx, _p(pos).dy);
+      for (int i = 0; i < 80; i++) {
         vel = vel + Offset(0, g * step);
         pos = pos + vel * step;
-        if (pos.dy > 1.2) break;
-        if (i.isEven) canvas.drawCircle(_p(pos), 2.2, dot);
+        path.lineTo(_p(pos).dx, _p(pos).dy);
+        if (pos.dy > 1.05 || pos.dx > 3.0) break;
       }
+      canvas.drawPath(
+        path,
+        Paint()
+          ..color = const Color(0xFFE23B2E).withValues(alpha: 0.92)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 4
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round,
+      );
     }
   }
 
