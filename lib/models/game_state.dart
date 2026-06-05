@@ -41,6 +41,9 @@ class GameState extends ChangeNotifier {
         'outfitWarmth': outfitWarmth,
         'shootWeaponLevel': shootWeaponLevel,
         'shootBestStars': shootBestStars,
+        'shootBestScore': shootBestScore,
+        'scrap': scrap,
+        'shootUpgrades': shootUpgrades,
         'wagon2Stage': wagon2Stage,
         'wagon2LampAx': wagon2LampAx,
         'wagon2LampAy': wagon2LampAy,
@@ -93,6 +96,13 @@ class GameState extends ChangeNotifier {
           (data['shootWeaponLevel'] as num?)?.toInt() ?? shootWeaponLevel;
       shootBestStars =
           (data['shootBestStars'] as num?)?.toInt() ?? shootBestStars;
+      shootBestScore =
+          (data['shootBestScore'] as num?)?.toInt() ?? shootBestScore;
+      scrap = (data['scrap'] as num?)?.toInt() ?? scrap;
+      if (data['shootUpgrades'] is Map) {
+        shootUpgrades = (data['shootUpgrades'] as Map).map(
+            (k, v) => MapEntry(k as String, (v as num).toInt()));
+      }
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
       wagon2LampAy = (data['wagon2LampAy'] as num?)?.toDouble() ?? wagon2LampAy;
@@ -173,6 +183,9 @@ class GameState extends ChangeNotifier {
   // 2=arbalète, 3=cocktail) + meilleur score d'étoiles obtenu.
   int shootWeaponLevel = 0;
   int shootBestStars = 0;
+  int shootBestScore = 0; // record en mode survie
+  int scrap = 0; // ferraille (monnaie du mini-jeu)
+  Map<String, int> shootUpgrades = {}; // niveaux des améliorations d'atelier
   double get coldThreshold =>
       12.0 - wagonStage * 2 - (stoveInstalled ? 4 : 0) - outfitWarmth;
   // Vrai si Shen (et la sœur) ont froid -> frissons + blocage gain moral.
