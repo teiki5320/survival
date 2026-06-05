@@ -18,6 +18,26 @@ class _LoadingScreenState extends State<LoadingScreen> {
   double _progress = 0;
   bool _started = false;
 
+  // On ne précharge QUE l'essentiel immédiat (sinon décoder les ~1650 PNG du
+  // jeu en pleine résolution fait crasher iOS par OOM). Le reste (anims rares,
+  // sprites de combat, etc.) se décode à la volée au 1er usage.
+  static bool _essential(String a) {
+    if (a.startsWith('assets/background/')) return true;
+    if (a.startsWith('assets/objects/')) return true;
+    if (a.startsWith('assets/characters/')) {
+      final f = a.split('/').last;
+      const keep = [
+        'idle_right_',
+        'walk_right_',
+        'heroine_front',
+        'sister_idle_',
+        'sister_walk_',
+      ];
+      return keep.any(f.startsWith);
+    }
+    return false;
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -33,7 +53,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
       assets = manifest
           .listAssets()
           .where((a) =>
-              a.startsWith('assets/') && a.toLowerCase().endsWith('.png'))
+              a.toLowerCase().endsWith('.png') && _essential(a))
           .toList();
     } catch (_) {
       // Si le manifest échoue, on laisse simplement passer (le jeu
@@ -175,7 +195,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const SizedBox(height: 8),
             // Numéro de build (pour vérifier qu'on teste la bonne version).
             const Text(
-              'build 0.65.0',
+              'build 0.66.0',
               style: TextStyle(color: Color(0xFF6B5E4E), fontSize: 11),
             ),
           ],

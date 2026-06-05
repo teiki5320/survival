@@ -18,13 +18,13 @@ import 'widgets/wardrobe_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Augmente le cache d'images Flutter. Par défaut ~100MB, trop petit
-  // pour 13 anims × 49 frames hero + 4 props animés 49 frames × 512²
-  // + 9 anims chien + à venir cook/pet_dog/garden/drink. iPhone 16
-  // Plus a 8GB RAM, on s'autorise 1.5GB pour éviter toute purge du
-  // cache qui cause des saccades au démarrage d'anim (re-decode JIT).
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 1500 * 1024 * 1024;
-  PaintingBinding.instance.imageCache.maximumSize = 4000;
+  // Cache d'images : plafond RAISONNABLE pour éviter l'OOM (l'app a grossi à
+  // ~1650 PNG / 200 Mo ; un cache à 1.5 Go + préchargement total faisait
+  // crasher iOS par dépassement mémoire). 450 Mo suffit pour les anims actives
+  // (le LRU évince les frames anciennes ; au pire une petite saccade, jamais
+  // de crash).
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 450 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 800;
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,

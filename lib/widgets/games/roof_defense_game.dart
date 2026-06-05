@@ -421,14 +421,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
     }
 
-    _updateEnemies(dt);
-    _updateProjectiles(dt);
-    _updateLoot(dt);
-    _updateFires(dt);
-
-    // Fin de vague.
-    if (_toSpawn == 0 && _enemies.isEmpty && _banner <= 0) {
-      _endWave();
+    // Filet de sécurité : une frame fautive ne doit jamais tuer le ticker.
+    try {
+      _updateEnemies(dt);
+      _updateProjectiles(dt);
+      _updateLoot(dt);
+      _updateFires(dt);
+      if (_toSpawn == 0 && _enemies.isEmpty && _banner <= 0) {
+        _endWave();
+      }
+    } catch (e, st) {
+      debugPrint('roof_defense tick error: $e\n$st');
     }
 
     if (_reloadTimer > 0) _reloadTimer -= dt;
@@ -1170,7 +1173,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     } else {
       asset = _liveAsset(e);
     }
-    Widget img = Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+    // cacheWidth : on décode petit (les pillards s'affichent en ~100-180 px) ->
+    // mémoire image divisée par ~4, évite l'OOM en combat.
+    Widget img = Image.asset(asset,
+        fit: BoxFit.contain, gaplessPlayback: true, cacheWidth: 256);
     if (e.golden && !e.dying) {
       img = ColorFiltered(
         colorFilter: const ColorFilter.mode(Color(0x99FFD24A), BlendMode.srcATop),
