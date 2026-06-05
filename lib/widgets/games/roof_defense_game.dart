@@ -382,16 +382,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // Config (nombre, vitesse, intervalle) de la vague courante.
   (int, double, double) _waveConfig() {
     if (_mode == _Mode.campaign) {
-      // Difficulté calibrée par simulation (2000 runs/profil) : un joueur
-      // "correct" perd ~70% (pousse à upgrader à l'atelier = boucle addictive),
-      // un "bon" gagne ~90%, un "expert" gagne toujours. Le décor "vue de loin"
-      // allonge la distance, donc on monte la vitesse plus franchement.
+      // Vagues plus LONGUES (plus d'ennemis) + bonus réduits (demande user :
+      // « vagues trop courtes, bonus trop importants »). Calibré par simulation.
       const waves = [
-        (6, 0.16, 0.80),
-        (10, 0.23, 0.64),
-        (14, 0.33, 0.48),
-        (18, 0.45, 0.38),
-        (23, 0.58, 0.30),
+        (8, 0.16, 0.78),
+        (13, 0.23, 0.62),
+        (18, 0.33, 0.48),
+        (24, 0.45, 0.38),
+        (30, 0.58, 0.30),
       ];
       return waves[_wave.clamp(0, waves.length - 1)];
     }
@@ -784,7 +782,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _frenzy = (_frenzy + (head ? 0.14 : 0.09)).clamp(0.0, 1.0);
       if (_frenzy >= 1.0) {
         _inFrenzy = true;
-        _frenzyT = 5.0;
+        _frenzyT = 3.5;
         _frenzy = 0;
         _slowmo = 0.5;
         _floats.add(_FloatText(Offset(_imgA * 0.5, 0.28), 'FRÉNÉSIE !',
@@ -936,7 +934,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _stones.add(_Stone(
         _muzzle,
         _rot(v, a),
-        pierce: _pierce + (reinforced ? 2 : 0),
+        pierce: _pierce + (reinforced ? 1 : 0),
         ricochet: _ricochet,
         splits: _split,
         big: reinforced,
@@ -1028,8 +1026,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       case 'stone':
         _stonesPerShot++;
       case 'hearts':
-        _maxHp += 2;
-        _trainHp += 2;
+        _maxHp += 1;
+        _trainHp += 1;
       case 'pierce':
         _pierce++;
       case 'ricochet':
@@ -1041,7 +1039,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       case 'freeze':
         _freeze++;
       case 'speed':
-        _powerMult *= 1.12;
+        _powerMult *= 1.10;
     }
     // Évolution d'arme : 3 fois le même perk dans une run -> gros bonus unique.
     _perkLevels[perk] = (_perkLevels[perk] ?? 0) + 1;
@@ -1058,17 +1056,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   // Bonus d'évolution (en plus du 3e palier) quand on se spécialise.
+  // Volontairement modeste : récompense la spécialisation sans rendre le
+  // joueur invincible (demande user : bonus moins importants).
   void _applyEvolution(String perk) {
     switch (perk) {
       case 'stone':
-        _stonesPerShot += 2; // vraie volée
+        _stonesPerShot += 1;
       case 'hearts':
-        _maxHp += 3;
-        _trainHp += 3;
+        _maxHp += 2;
+        _trainHp += 2;
       case 'pierce':
-        _pierce += 3; // quasi transperçant
+        _pierce += 1;
       case 'ricochet':
-        _ricochet += 2;
+        _ricochet += 1;
       case 'split':
         _split += 1;
       case 'fire':
@@ -1076,7 +1076,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       case 'freeze':
         _freeze += 1;
       case 'speed':
-        _powerMult *= 1.25;
+        _powerMult *= 1.12;
     }
   }
 
