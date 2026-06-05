@@ -52,11 +52,11 @@ List<StoryCard> _gare1(Set<String> f) => [
         text:
             "La locomotive s'ébranle. Par la porte du wagon, ta ville natale s'embrase — le quai, la foule, les autres trains qui ne partiront jamais. Quelque part là-dedans, tes parents et ta petite sœur.",
         left: _c("Regarder jusqu'au bout",
-            fx: {Stat.moral: -6},
-            result: "Tu fixes les flammes jusqu'à ce que la fumée avale tout. Tu n'oublieras pas. Jamais."),
+            fx: {Stat.moral: -6}, flags: ['asset_bed'],
+            result: "Tu fixes les flammes jusqu'à ce que la fumée avale tout. Tu n'oublieras pas. Jamais. Puis tu t'aménages un coin pour dormir dans le wagon."),
         right: _c("Fermer la porte",
-            fx: {Stat.moral: 3},
-            result: "Tu claques la porte sur le brasier. Survivre d'abord. Pleurer plus tard."),
+            fx: {Stat.moral: 3}, flags: ['asset_bed'],
+            result: "Tu claques la porte sur le brasier. Survivre d'abord. Tu pousses une paillasse dans un coin : ton premier lit."),
       ),
       StoryCard(
         id: 'G1b',
@@ -152,9 +152,12 @@ List<StoryCard> _gare4(Set<String> f) => [
         text:
             "Un mur couvert de messages de disparus. Au milieu, une écriture maladroite d'enfant : « JE VAIS AU NORD. JE T'ATTENDS. » Pas de nom.",
         left: _c("Y croire, foncer au nord",
-            fx: {Stat.moral: 14, Stat.bois: -8}, flags: ['indiceSoeur'], result: "Tu graves sa réponse à côté et tu pousses la loco. Si c'est elle, elle ne t'attendra pas en vain."),
+            fx: {Stat.moral: 14, Stat.bois: -8},
+            flags: ['indiceSoeur', 'asset_filter'],
+            result: "Tu graves sa réponse à côté et tu pousses la loco. Au passage, tu récupères un filtre à eau dans les ruines du village — de l'eau potable, enfin. Si c'est elle, elle ne t'attendra pas en vain."),
         right: _c("Rester méfiante",
-            fx: {Stat.moral: -4}, result: "Des milliers d'enfants ont écrit ça. Tu n'oses pas y croire. Pas encore."),
+            fx: {Stat.moral: -4}, flags: ['asset_filter'],
+            result: "Des milliers d'enfants ont écrit ça. Tu n'oses pas y croire. Pas encore. Tu fouilles le village et en ramènes au moins un filtre à eau."),
       ),
     ];
 

@@ -1479,7 +1479,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     normalised state so the in-app adjustment
                       //     mode can drag + resize them live; final
                       //     values get baked back into the defaults.
-                      if (!widget.secondWagon)
+                      if (!widget.secondWagon && _bedUnlocked)
                         Positioned(
                           left: w * _bedLeft,
                           top: h * _bedTop,
@@ -2063,14 +2063,22 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   // Props débloqués par l'histoire (choix de cartes -> apparaissent dans le
-  // wagon = sentiment de progression). Pour l'instant seul l'hydro est gaté
-  // (débloqué à la serre, gare 10) ; le reste est toujours présent.
+  // wagon = sentiment de progression). lit (gare 1), filtre (gare 4),
+  // hydro (gare 10). Le reste est toujours présent.
   bool _propUnlocked(String key) {
-    if (key == 'hydro') {
-      return GameState.instance.cardFlags.contains('asset_hydro');
+    final f = GameState.instance.cardFlags;
+    switch (key) {
+      case 'hydro':
+        return f.contains('asset_hydro');
+      case 'filter':
+        return f.contains('asset_filter');
+      default:
+        return true;
     }
-    return true;
   }
+
+  bool get _bedUnlocked =>
+      GameState.instance.cardFlags.contains('asset_bed');
 
   Widget _buildProp({
     required _PropDef def,
