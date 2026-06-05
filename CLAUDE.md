@@ -178,7 +178,7 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.75.0+158` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.76.0+166` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
@@ -401,8 +401,24 @@ brancher sur l'histoire :
   `combatTierHigh` = wagon intact + butin, `combatTierLow` = dégâts à colmater.
 
 **Reste à faire côté intégration** : boutique IAP (4,99 €=500 ferraille,
-confort seulement), brancher plus de gares sur le tier (gare 5 sœur, etc.),
-une **idée de combat distincte par gare**, et rebrancher `_showAllProps=false`.
+confort seulement), une **idée de combat distincte par gare**, et rebrancher
+`_showAllProps=false`.
+
+**✅ CONTENU CARTES ÉTOFFÉ (2026-06-05, build 0.76.0)** — `cards_data.dart` :
+- **~10 fillers par segment** (123 au total, contre 71 avant) -> bien plus de
+  variété entre runs. drawCount reste à 4 (balance simulée préservée).
+- **Arcs persos câblés via `requires`/flags** : **chien** (`aLeChien` : garde,
+  réconfort, trouvailles), **Le Vieux** (`leVieuxABord` → enseigne la loco,
+  raconte sa fille, puis descend au camp gare 6 = `vieuxParti`), **radio**
+  (`aLaRadio` trouvée gare 4 → chaîne `radio1`(g5)/`radio2`(g7)/`radio3`(g9),
+  la voix se révèle être maman), **sœur** (`aLaSoeur` : cabane, billes, fleur,
+  promesses).
+- **Gares 5 et 11 branchées sur le combat** (comme gare 3) : `combatTierHigh`
+  /`combatTierLow` changent l'état où on retrouve la sœur (g5) et l'issue du
+  barrage (g11).
+- **5e fin = SECRÈTE `secret`** ("La voix retrouvée") : déclenchée si
+  `aLaSoeur` + `cardSoin>=2` + moral>=65 + **`radio3`** (avoir suivi la radio
+  jusqu'au bout). Sinon `famille` / `ensemble` / `abandon` / `mort` comme avant.
 
 **✅ LA MAP EST LE MENU (2026-06-05, build 0.74.0)** :
 - **Taper une gare sur la map lance son combat** (`MapScreen.onGareSelected` →
