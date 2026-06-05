@@ -130,6 +130,8 @@ class _WagonScreenState extends State<WagonScreen> {
   // l'index de gare pour appliquer le score (récompenses + flags) au retour.
   bool _shootFromGare = false;
   int _shootGareIndex = 0;
+  // Vrai si la map a été ouverte depuis la loco (pour y revenir en quittant).
+  bool _mapFromLoco = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   // Chien un peu plus grand pour mieux matcher le husky des sprites de
   // caresse (avant il faisait chiot riquiqui à côté).
@@ -328,8 +330,15 @@ class _WagonScreenState extends State<WagonScreen> {
   void _exitMap() {
     setState(() {
       _onMap = false;
-      _heroSpawnX = SideScrollScene.heroXMax;
+      // Revenir à l'endroit d'où la map a été ouverte (loco ou wagon).
+      if (_mapFromLoco) {
+        _mapFromLoco = false;
+        _inLocomotive = true;
+      } else {
+        _heroSpawnX = SideScrollScene.heroXMax;
+      }
     });
+    if (_inLocomotive) _audio.startFire();
   }
 
   void _toggleRun() {
@@ -424,6 +433,7 @@ class _WagonScreenState extends State<WagonScreen> {
                     onOpenMap: () => setState(() {
                       _inLocomotive = false;
                       _onMap = true;
+                      _mapFromLoco = true;
                     }),
                     onThrowLog: () {
                       // Nourrir le foyer = brûler 1 bûche de la réserve et
@@ -622,7 +632,10 @@ class _WagonScreenState extends State<WagonScreen> {
                 FloatingActionButton.small(
                   heroTag: 'open_map',
                   tooltip: 'La carte du voyage',
-                  onPressed: () => setState(() => _onMap = true),
+                  onPressed: () => setState(() {
+                    _onMap = true;
+                    _mapFromLoco = false;
+                  }),
                   child: const Icon(Icons.map),
                 ),
                 const SizedBox(height: 12),

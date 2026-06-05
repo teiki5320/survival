@@ -96,6 +96,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   double _mapStartW = 0.2;
   // Ratio largeur/hauteur du cadre de la carte (paysage).
   static const double _mapAspect = 1.85;
+  // Inclinaison 3/4 de la carte (rad) pour la coller au mur de droite.
+  static const double _mapTurn = -0.55;
 
 
   static const List<String> _coldHorizons = [
@@ -380,6 +382,17 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       ),
     );
 
+    // Vue 3/4 : on incline la carte autour de l'axe vertical pour qu'elle
+    // épouse le mur de droite (le bord droit recule vers le fond). Inverser
+    // le signe de _mapTurn si l'angle part du mauvais côté.
+    final turned = _nightTint(Transform(
+      alignment: Alignment.center,
+      transform: Matrix4.identity()
+        ..setEntry(3, 2, 0.0012)
+        ..rotateY(_mapTurn),
+      child: frame,
+    ));
+
     return Positioned(
       left: left,
       top: top,
@@ -398,12 +411,12 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   );
                 });
               },
-              child: _nightTint(frame),
+              child: turned,
             )
           : GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: widget.onOpenMap,
-              child: _nightTint(frame),
+              child: turned,
             ),
     );
   }
