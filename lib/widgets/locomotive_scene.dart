@@ -96,8 +96,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   double _mapStartW = 0.2;
   // Ratio largeur/hauteur du cadre de la carte (paysage).
   static const double _mapAspect = 1.85;
-  // Inclinaison 3/4 de la carte (rad) pour la coller au mur de droite.
-  static const double _mapTurn = 0.85;
 
 
   static const List<String> _coldHorizons = [
@@ -389,7 +387,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       alignment: Alignment.center,
       transform: Matrix4.identity()
         ..setEntry(3, 2, 0.0008)
-        ..rotateY(_mapTurn),
+        ..rotateY(gs.locoMapTurnY)
+        ..rotateZ(gs.locoMapLeanZ),
       child: frame,
     ));
 
@@ -407,6 +406,46 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
               onTap: widget.onOpenMap,
               child: turned,
             ),
+    );
+  }
+
+  void _nudgeRot(double dTurn, double dLean) =>
+      setState(() => GameState.instance.nudgeLocoMapRot(dTurn, dLean));
+
+  // Une ligne de réglage rotation : libellé + valeur + boutons − / +.
+  Widget _rotRow(String label, double value, VoidCallback minus, VoidCallback plus) {
+    Widget btn(String t, VoidCallback onTap) => GestureDetector(
+          onTap: onTap,
+          child: Container(
+            width: 30,
+            height: 26,
+            alignment: Alignment.center,
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFF3A4656),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(t,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700)),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 92,
+            child: Text('$label ${value.toStringAsFixed(2)}',
+                style: const TextStyle(color: Colors.white, fontSize: 12)),
+          ),
+          btn('−', minus),
+          btn('+', plus),
+        ],
+      ),
     );
   }
 
@@ -613,33 +652,45 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
             ),
             // Couche de geste plein écran (ajuster la carte partout).
             if (_mapAdjust && widget.onOpenMap != null) _mapAdjustLayer(w, h),
-            // HUD coordonnées de la carte (mode ajuster).
+            // Panneau de réglage de la carte (mode ajuster) : coords + rotation.
             if (_mapAdjust)
               Positioned(
                 left: 12,
                 bottom: 12,
                 child: SafeArea(
-                  child: IgnorePointer(
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Builder(builder: (_) {
-                        final gs = GameState.instance;
-                        return Text(
-                          'carte  cx ${gs.locoMapCx.toStringAsFixed(3)}  '
-                          'cy ${gs.locoMapCy.toStringAsFixed(3)}  '
-                          'w ${gs.locoMapW.toStringAsFixed(3)}',
-                          style: const TextStyle(
-                            color: Color(0xFFFFD9A0),
-                            fontSize: 11,
-                            fontFamily: 'Courier',
-                          ),
-                        );
-                      }),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.82),
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    child: Builder(builder: (_) {
+                      final gs = GameState.instance;
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'glisser/pincer = déplacer/taille\n'
+                            'cx ${gs.locoMapCx.toStringAsFixed(2)}  '
+                            'cy ${gs.locoMapCy.toStringAsFixed(2)}  '
+                            'w ${gs.locoMapW.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: Color(0xFFFFD9A0),
+                              fontSize: 11,
+                              fontFamily: 'Courier',
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          _rotRow('3/4', gs.locoMapTurnY,
+                              () => _nudgeRot(-0.05, 0),
+                              () => _nudgeRot(0.05, 0)),
+                          _rotRow('penché', gs.locoMapLeanZ,
+                              () => _nudgeRot(0, -0.03),
+                              () => _nudgeRot(0, 0.03)),
+                        ],
+                      );
+                    }),
                   ),
                 ),
               ),

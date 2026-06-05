@@ -64,6 +64,7 @@ class GameState extends ChangeNotifier {
         'showerHeadX': showerHeadX, 'showerHeadY': showerHeadY,
         'showerHeadH': showerHeadH,
         'locoMapCx': locoMapCx, 'locoMapCy': locoMapCy, 'locoMapW': locoMapW,
+        'locoMapTurnY': locoMapTurnY, 'locoMapLeanZ': locoMapLeanZ,
         'waterTankGlasses': waterTankGlasses,
         'filterTier': filterTier,
         'hydroTier': hydroTier,
@@ -146,6 +147,8 @@ class GameState extends ChangeNotifier {
       // Migration : les vieilles sauvegardes avaient une carte minuscule.
       // On la ré-agrandit une fois pour qu'elle soit visible/manipulable.
       if (locoMapW < 0.30) locoMapW = 0.5;
+      locoMapTurnY = (data['locoMapTurnY'] as num?)?.toDouble() ?? locoMapTurnY;
+      locoMapLeanZ = (data['locoMapLeanZ'] as num?)?.toDouble() ?? locoMapLeanZ;
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
@@ -401,10 +404,20 @@ class GameState extends ChangeNotifier {
   /// de la scène) + largeur (fraction de la largeur). Déplaçable + pinçable en
   /// mode ajuster, persistée.
   double locoMapCx = 0.82, locoMapCy = 0.30, locoMapW = 0.5;
+  // Rotation 3/4 (axe vertical) + penché (axe écran), réglables à la main.
+  double locoMapTurnY = 1.05; // tour 3/4 pour épouser le mur de droite
+  double locoMapLeanZ = -0.08; // penché léger vers la gauche
   void setLocoMap(double cx, double cy, double w) {
     locoMapCx = cx.clamp(0.04, 0.96);
     locoMapCy = cy.clamp(0.04, 0.96);
     locoMapW = w.clamp(0.08, 0.95);
+    notifyListeners();
+    save();
+  }
+
+  void nudgeLocoMapRot(double dTurn, double dLean) {
+    locoMapTurnY = (locoMapTurnY + dTurn).clamp(-1.4, 1.4);
+    locoMapLeanZ = (locoMapLeanZ + dLean).clamp(-0.6, 0.6);
     notifyListeners();
     save();
   }
