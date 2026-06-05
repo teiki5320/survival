@@ -355,6 +355,7 @@ class _WagonScreenState extends State<WagonScreen> {
         child: _inShootGame
             ? RoofDefenseGame(
                 key: const ValueKey('shoot_game'),
+                gareIndex: _shootGareIndex,
                 onExit: () => setState(() {
                   _inShootGame = false;
                   if (_shootFromGare) {
@@ -420,6 +421,10 @@ class _WagonScreenState extends State<WagonScreen> {
                     key: const ValueKey('locomotive'),
                     night: _night,
                     logsThrown: _logsThrown,
+                    onOpenMap: () => setState(() {
+                      _inLocomotive = false;
+                      _onMap = true;
+                    }),
                     onThrowLog: () {
                       // Nourrir le foyer = brûler 1 bûche de la réserve et
                       // remonter la jauge Bois. Sans bûche, le geste ne donne
@@ -469,8 +474,8 @@ class _WagonScreenState extends State<WagonScreen> {
             doorPushRight: _doorPushRight,
             onDoorPushDone: _onDoorPushDone,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
-            // Carte murale (wagon 1) -> ouvre la map (= le menu).
-            onOpenMap: secondWagon ? null : () => setState(() => _onMap = true),
+            // La carte est désormais dans la LOCOMOTIVE (plus dans le wagon).
+            onOpenMap: null,
             dogHeight: _dogHeight,
             specialAnim: _specialAnim,
             specialAnimFrames: _specialAnimFrames,

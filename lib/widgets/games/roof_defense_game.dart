@@ -14,8 +14,12 @@ import '../../models/game_state.dart';
 /// 1 unité = hauteur affichée `_S`) -> tout reste collé à la gare quel que soit
 /// l'écran (décor en BoxFit.contain).
 class RoofDefenseGame extends StatefulWidget {
-  const RoofDefenseGame({super.key, required this.onExit, this.onResult});
+  const RoofDefenseGame(
+      {super.key, required this.onExit, this.onResult, this.gareIndex = 0});
   final VoidCallback onExit;
+
+  /// Index de la gare (0-based) -> choisit le décor de combat.
+  final int gareIndex;
 
   /// Si fourni : combat de GARE. Le jeu démarre direct en campagne (pas de
   /// menu) et appelle onResult(score sur 100) quand le joueur valide.
@@ -270,6 +274,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // Mode "combat de gare" : lancé depuis l'écran cartes, démarre direct en
   // campagne (pas de menu) et renvoie un score /100 via onResult.
   bool get _gareMode => widget.onResult != null;
+
+  // Décor de combat par gare (14 gares -> 9 décors `gare_combat_N.png`,
+  // ordonnés tempéré -> froid). Facile à réordonner ici.
+  static const List<int> _gareDecor = [
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 7, 9, 8, 9, 9,
+  ];
+  String get _decorAsset {
+    final i = widget.gareIndex.clamp(0, _gareDecor.length - 1);
+    return 'assets/background/gare_combat_${_gareDecor[i]}.png';
+  }
 
   @override
   void initState() {
@@ -1197,9 +1211,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                     ),
                   ),
-                  const Positioned.fill(
+                  Positioned.fill(
                     child: Image(
-                      image: AssetImage('assets/background/gare_shoot.png'),
+                      image: AssetImage(_decorAsset),
                       fit: BoxFit.contain,
                     ),
                   ),
@@ -1215,9 +1229,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       child: ClipRect(
                         clipper: _RectClip(Rect.fromLTWH(
                             _ox, _oy, _wagonClipFrac * dispW, dispH)),
-                        child: const Image(
-                          image:
-                              AssetImage('assets/background/gare_shoot.png'),
+                        child: Image(
+                          image: AssetImage(_decorAsset),
                           fit: BoxFit.contain,
                         ),
                       ),

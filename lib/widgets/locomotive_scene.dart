@@ -8,6 +8,7 @@ import '../data/anim_metrics.dart';
 import '../models/game_state.dart';
 import '../services/audio_service.dart';
 import 'atmosphere.dart';
+import 'map_screen.dart';
 import 'stat_rings.dart';
 import 'train_rocking.dart';
 
@@ -34,6 +35,7 @@ class LocomotiveScene extends StatefulWidget {
     required this.onReturn,
     required this.logsThrown,
     required this.onThrowLog,
+    this.onOpenMap,
     this.night = false,
   });
 
@@ -41,6 +43,9 @@ class LocomotiveScene extends StatefulWidget {
   final bool night;
   final int logsThrown;
   final VoidCallback onThrowLog;
+
+  /// Ouvre la carte du voyage (depuis la carte accrochée dans la cabine).
+  final VoidCallback? onOpenMap;
 
   @override
   State<LocomotiveScene> createState() => _LocomotiveSceneState();
@@ -84,6 +89,13 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // Brief shake offset applied to the whole scene right after a log
   // thuds into the firebox. Decays to zero over ~400 ms.
   double _shake = 0;
+
+  // Carte murale de la cabine : mode ajuster (déplacer + pincer) + largeur de
+  // départ d'un pinch. La carte ouvre la map au tap hors mode ajuster.
+  bool _mapAdjust = false;
+  double _mapStartW = 0.2;
+  // Ratio largeur/hauteur du cadre de la carte (paysage).
+  static const double _mapAspect = 1.85;
 
 
   static const List<String> _coldHorizons = [
@@ -341,6 +353,61 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     );
   }
 
+  // Carte du voyage accrochée dans la cabine. Tap = ouvre la map. En mode
+  // ajuster : 1 doigt = déplacer, pincer = redimensionner ; coords persistées.
+  Widget _buildLocoMap(double w, double h) {
+    final gs = GameState.instance;
+    final boxW = gs.locoMapW * w;
+    final boxH = boxW / _mapAspect;
+    final left = gs.locoMapCx * w - boxW / 2;
+    final top = gs.locoMapCy * h - boxH / 2;
+
+    final frame = Container(
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF5A3E22),
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(
+            color: _mapAdjust ? const Color(0xFFE8B96B) : const Color(0xFF3A2614),
+            width: _mapAdjust ? 2 : 1),
+        boxShadow: const [
+          BoxShadow(color: Color(0x66000000), blurRadius: 5, offset: Offset(0, 2)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(2),
+        child: const MiniRouteMap(aged: true),
+      ),
+    );
+
+    return Positioned(
+      left: left,
+      top: top,
+      width: boxW,
+      height: boxH,
+      child: _mapAdjust
+          ? GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onScaleStart: (_) => _mapStartW = gs.locoMapW,
+              onScaleUpdate: (d) {
+                setState(() {
+                  gs.setLocoMap(
+                    gs.locoMapCx + d.focalPointDelta.dx / w,
+                    gs.locoMapCy + d.focalPointDelta.dy / h,
+                    d.scale != 1.0 ? _mapStartW * d.scale : gs.locoMapW,
+                  );
+                });
+              },
+              child: _nightTint(frame),
+            )
+          : GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onOpenMap,
+              child: _nightTint(frame),
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -513,12 +580,44 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                               .clamp(0.4, 1.0),
                         ),
                       ),
+                      // Carte du voyage accrochée dans la cabine (tap = map).
+                      if (widget.onOpenMap != null) _buildLocoMap(w, h),
                     ],
                   ),
                 ),
                 ),
               ),
             ),
+            // HUD coordonnées de la carte (mode ajuster).
+            if (_mapAdjust)
+              Positioned(
+                left: 12,
+                bottom: 12,
+                child: SafeArea(
+                  child: IgnorePointer(
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Builder(builder: (_) {
+                        final gs = GameState.instance;
+                        return Text(
+                          'carte  cx ${gs.locoMapCx.toStringAsFixed(3)}  '
+                          'cy ${gs.locoMapCy.toStringAsFixed(3)}  '
+                          'w ${gs.locoMapW.toStringAsFixed(3)}',
+                          style: const TextStyle(
+                            color: Color(0xFFFFD9A0),
+                            fontSize: 11,
+                            fontFamily: 'Courier',
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+              ),
             // HUD réserve + anneaux, centré en haut.
             Positioned(
               top: 24,
@@ -582,6 +681,24 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       child: const Icon(Icons.local_fire_department),
                     ),
                     const SizedBox(height: 12),
+                    // Ajuster la carte (déplacer / pincer pour redimensionner).
+                    if (widget.onOpenMap != null) ...[
+                      FloatingActionButton.small(
+                        heroTag: 'loco_map_adjust',
+                        tooltip: _mapAdjust
+                            ? 'Terminer le placement de la carte'
+                            : 'Ajuster la carte',
+                        backgroundColor: _mapAdjust
+                            ? const Color(0xFFE8B96B)
+                            : const Color(0xFF3A4656),
+                        foregroundColor:
+                            _mapAdjust ? const Color(0xFF2A2018) : Colors.white,
+                        onPressed: () =>
+                            setState(() => _mapAdjust = !_mapAdjust),
+                        child: Icon(_mapAdjust ? Icons.check : Icons.edit),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     FloatingActionButton.small(
                       heroTag: 'return_to_wagon',
                       tooltip: 'Retourner au wagon',

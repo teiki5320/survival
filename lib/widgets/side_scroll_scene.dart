@@ -2155,6 +2155,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // VRAIE map (décor + tracé en boucle + gares) en miniature, avec un effet
     // sépia/vieilli, encadrée d'un cadre bois.
     if (def.key == 'wallmap') {
+      // La carte a été déplacée dans la locomotive : on ne l'affiche dans le
+      // wagon que si un callback onOpenMap est fourni (sinon prop masqué).
+      if (widget.onOpenMap == null) {
+        return const SizedBox.shrink();
+      }
       final mapWidget = Container(
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(

@@ -63,6 +63,7 @@ class GameState extends ChangeNotifier {
         'showerPanelH': showerPanelH,
         'showerHeadX': showerHeadX, 'showerHeadY': showerHeadY,
         'showerHeadH': showerHeadH,
+        'locoMapCx': locoMapCx, 'locoMapCy': locoMapCy, 'locoMapW': locoMapW,
         'waterTankGlasses': waterTankGlasses,
         'filterTier': filterTier,
         'hydroTier': hydroTier,
@@ -139,6 +140,9 @@ class GameState extends ChangeNotifier {
       showerHeadX = (data['showerHeadX'] as num?)?.toDouble() ?? showerHeadX;
       showerHeadY = (data['showerHeadY'] as num?)?.toDouble() ?? showerHeadY;
       showerHeadH = (data['showerHeadH'] as num?)?.toDouble() ?? showerHeadH;
+      locoMapCx = (data['locoMapCx'] as num?)?.toDouble() ?? locoMapCx;
+      locoMapCy = (data['locoMapCy'] as num?)?.toDouble() ?? locoMapCy;
+      locoMapW = (data['locoMapW'] as num?)?.toDouble() ?? locoMapW;
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
@@ -389,6 +393,18 @@ class GameState extends ChangeNotifier {
   double bathX = 0.48, bathY = 0.48, bathH = 0.31;
   double showerPanelX = 0.72, showerPanelY = 0.47, showerPanelH = 0.32;
   double showerHeadX = 0.75, showerHeadY = 0.22, showerHeadH = 0.32;
+
+  /// Carte du voyage accrochée dans la LOCOMOTIVE : centre (cx,cy en fractions
+  /// de la scène) + largeur (fraction de la largeur). Déplaçable + pinçable en
+  /// mode ajuster, persistée.
+  double locoMapCx = 0.82, locoMapCy = 0.30, locoMapW = 0.20;
+  void setLocoMap(double cx, double cy, double w) {
+    locoMapCx = cx.clamp(0.04, 0.96);
+    locoMapCy = cy.clamp(0.04, 0.96);
+    locoMapW = w.clamp(0.06, 0.6);
+    notifyListeners();
+    save();
+  }
 
   // --- Water tank (filter prop) — 0..5 verres stockés ---
   int waterTankGlasses = 0;

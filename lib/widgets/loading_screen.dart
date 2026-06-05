@@ -22,6 +22,9 @@ class _LoadingScreenState extends State<LoadingScreen> {
   // jeu en pleine résolution fait crasher iOS par OOM). Le reste (anims rares,
   // sprites de combat, etc.) se décode à la volée au 1er usage.
   static bool _essential(String a) {
+    // Les décors de combat de gare (gros, ~2 Mo chacun) ne sont PAS préchargés
+    // au démarrage (OOM) : ils se décodent à la volée au lancement du combat.
+    if (a.contains('/gare_combat_')) return false;
     if (a.startsWith('assets/background/')) return true;
     if (a.startsWith('assets/objects/')) return true;
     if (a.startsWith('assets/characters/')) {
@@ -195,7 +198,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const SizedBox(height: 8),
             // Numéro de build (pour vérifier qu'on teste la bonne version).
             const Text(
-              'build 0.74.1',
+              'build 0.75.0',
               style: TextStyle(color: Color(0xFF6B5E4E), fontSize: 11),
             ),
           ],
