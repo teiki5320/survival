@@ -172,8 +172,11 @@ class _ArcPath {
 // ---------------------------------------------------------------------------
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.onClose});
+  const MapScreen({super.key, required this.onClose, this.onGareSelected});
   final VoidCallback onClose;
+
+  /// Tap sur une gare -> lance le combat de cette gare (la map = le menu).
+  final void Function(int gareIndex)? onGareSelected;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -320,6 +323,27 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
             ),
+            // Gares cliquables (hors mode placement) : tap -> combat de la gare.
+            // La map sert de menu : on choisit la gare où se battre.
+            if (!_stationAdjust && widget.onGareSelected != null)
+              for (int i = 0; i < _stations.length; i++)
+                Builder(builder: (_) {
+                  final s = _stations[i];
+                  final pos = path.at(s.t);
+                  final px = pos.dx * mapW;
+                  final py = pos.dy * mapH;
+                  return Positioned(
+                    left: px - 24,
+                    top: py - 24,
+                    width: 48,
+                    height: 48,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onGareSelected!(i),
+                      child: const SizedBox.expand(),
+                    ),
+                  );
+                }),
             if (_stationAdjust) ...[
               for (int i = 0; i < _stations.length; i++)
                 Builder(builder: (_) {

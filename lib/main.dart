@@ -124,6 +124,10 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inHydroGame = false;
   bool _inCards = false;
   bool _inShootGame = false; // mini-jeu défense du toit (gares)
+  // Combat lancé depuis une gare de la map (la map = le menu). On mémorise
+  // l'index de gare pour appliquer le score (récompenses + flags) au retour.
+  bool _shootFromGare = false;
+  int _shootGareIndex = 0;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   // Chien un peu plus grand pour mieux matcher le husky des sprites de
   // caresse (avant il faisait chiot riquiqui à côté).
@@ -349,7 +353,26 @@ class _WagonScreenState extends State<WagonScreen> {
         child: _inShootGame
             ? RoofDefenseGame(
                 key: const ValueKey('shoot_game'),
-                onExit: () => setState(() => _inShootGame = false),
+                onExit: () => setState(() {
+                  _inShootGame = false;
+                  if (_shootFromGare) {
+                    _shootFromGare = false;
+                    _onMap = true; // retour à la map (le menu)
+                  }
+                }),
+                // Lancé depuis une gare -> mode gare (score /100). Le score est
+                // appliqué (ressources + flags) puis on revient à la map.
+                onResult: _shootFromGare
+                    ? (score) {
+                        GameState.instance
+                            .applyCombatRewards(_shootGareIndex, score);
+                        setState(() {
+                          _inShootGame = false;
+                          _shootFromGare = false;
+                          _onMap = true;
+                        });
+                      }
+                    : null,
               )
             : _inCards
             ? CardsScreen(
@@ -370,6 +393,13 @@ class _WagonScreenState extends State<WagonScreen> {
             ? MapScreen(
                 key: const ValueKey('map'),
                 onClose: _exitMap,
+                // La map est le menu : taper une gare lance son combat.
+                onGareSelected: (i) => setState(() {
+                  _shootGareIndex = i;
+                  _shootFromGare = true;
+                  _onMap = false;
+                  _inShootGame = true;
+                }),
               )
             : _inLocomotive
                 ? LocomotiveScene(
@@ -425,6 +455,8 @@ class _WagonScreenState extends State<WagonScreen> {
             doorPushRight: _doorPushRight,
             onDoorPushDone: _onDoorPushDone,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
+            // Carte murale (wagon 1) -> ouvre la map (= le menu).
+            onOpenMap: secondWagon ? null : () => setState(() => _onMap = true),
             dogHeight: _dogHeight,
             specialAnim: _specialAnim,
             specialAnimFrames: _specialAnimFrames,
@@ -584,16 +616,8 @@ class _WagonScreenState extends State<WagonScreen> {
                   child: const Icon(Icons.style),
                 ),
                 const SizedBox(height: 12),
-                // Mini-jeu de gare : défense du toit au lance-pierre.
-                FloatingActionButton.small(
-                  heroTag: 'open_shoot',
-                  tooltip: 'Défendre le train (gare)',
-                  backgroundColor: const Color(0xFF8A3B2E),
-                  foregroundColor: Colors.white,
-                  onPressed: () => setState(() => _inShootGame = true),
-                  child: const Icon(Icons.gps_fixed),
-                ),
-                const SizedBox(height: 12),
+                // (Le combat se lance désormais en tapant une gare sur la map,
+                // elle-même ouverte par la carte murale du wagon 1.)
                 // Cellier seulement : mode ajuster (placer/redimensionner +
                 // coordonnées). Pincer un prop = changer sa taille.
                 if (secondWagon) ...[

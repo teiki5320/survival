@@ -37,6 +37,7 @@ class SideScrollScene extends StatefulWidget {
     this.doorPushRight = false,
     this.onDoorPushDone,
     this.onOpenWardrobe,
+    this.onOpenMap,
     this.dogHeight = 0.136,
     this.specialAnim,
     this.specialAnimFrames = 25,
@@ -127,6 +128,9 @@ class SideScrollScene extends StatefulWidget {
   /// Fired when the user taps the commode (wardrobe). The parent opens
   /// the full-screen outfit selector.
   final VoidCallback? onOpenWardrobe;
+
+  /// Ouvre la carte du voyage (depuis la carte accrochée au mur du wagon 1).
+  final VoidCallback? onOpenMap;
 
   /// Hauteur du chien en fraction de h (réglable via slider parent).
   final double dogHeight;
@@ -241,6 +245,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _PropDef('firstaid', 'Secours',   animated: false),
     _PropDef('commode',  'Commode',   animated: false),
     _PropDef('bowl',     'Gamelle',   animated: false),
+    _PropDef('wallmap',  'Carte',     animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -253,6 +258,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'firstaid': _PropPos(0.296, 0.635, 0.110),
     'commode':  _PropPos(0.539, 0.571, 0.139),
     'bowl':     _PropPos(0.481, 0.669, 0.080),
+    // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
+    'wallmap':  _PropPos(0.205, 0.300, 0.150),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
@@ -2072,6 +2079,34 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // asset_bed / asset_filter / asset_hydro sont déjà posés dans cards_data).
   static const bool _showAllProps = true;
 
+  // Carte dessinée (placeholder tant que l'asset wallmap.png n'est pas fourni).
+  Widget _wallMapPlaceholder() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9D2A8),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFF5A3E22), width: 3),
+        boxShadow: const [
+          BoxShadow(color: Color(0x66000000), blurRadius: 6, offset: Offset(0, 3)),
+        ],
+      ),
+      child: const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.map, color: Color(0xFF7A5230), size: 22),
+            Text('CARTE',
+                style: TextStyle(
+                    color: Color(0xFF7A5230),
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1)),
+          ],
+        ),
+      ),
+    );
+  }
+
   bool _propUnlocked(String key) {
     if (_showAllProps) return true;
     final f = GameState.instance.cardFlags;
@@ -2139,6 +2174,28 @@ class _SideScrollSceneState extends State<SideScrollScene>
           child: child,
         ),
         child: wrapped,
+      );
+    }
+
+    // Carte murale : tap = ouvre la map (le "menu" du jeu). Affiche l'asset
+    // wallmap.png s'il existe, sinon un cadre/carte dessiné (placeholder) pour
+    // que le prop soit déjà fonctionnel avant que l'image ne soit fournie.
+    if (def.key == 'wallmap') {
+      final mapWidget = Image.asset(
+        'assets/objects/wallmap.png',
+        fit: boxFit,
+        errorBuilder: (_, __, ___) => _wallMapPlaceholder(),
+      );
+      return Positioned(
+        left: left,
+        top: top,
+        width: propW,
+        height: propH,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onOpenMap,
+          child: _nightTint(mapWidget),
+        ),
       );
     }
 
