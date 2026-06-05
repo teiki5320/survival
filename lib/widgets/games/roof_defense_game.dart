@@ -1048,6 +1048,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             child: Transform.translate(
               offset: shakeOffset,
               child: Stack(
+                fit: StackFit.expand, // sinon le Stack (tout en Positioned)
+                // se réduit à 0×0 sous les contraintes lâches de
+                // l'AnimatedSwitcher -> body invisible (écran bleu).
                 children: [
                   const Positioned.fill(
                     child: DecoratedBox(
