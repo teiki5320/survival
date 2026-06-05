@@ -57,6 +57,8 @@ class _Enemy {
   final bool golden; // pillard doré : jackpot de ferraille
   bool dying = false;
   double dieT = 0;
+  // Ragdoll de mort : le pillard part en pantin (recule + saute + tourne).
+  double dieVX = 0, dieVY = 0, dieRot = 0, dieRotV = 0;
   double slowT = 0; // gel : ralenti restant
   bool attacking = false;
   double attackT = 0;
@@ -146,15 +148,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _wagonClipFrac = 0.12; // le wagon est petit, à gauche
   static const double _trainEdgeX = 0.24;
 
-  // Tir ralenti (on a le temps de voir la pierre voler + la caméra la suit).
-  static const double _g = 1.05;
-  static const double _power = 6.0;
-  static const double _maxSpeed = 2.3;
+  // Tir bien ralenti (on suit la pierre tranquillement, façon lobé).
+  static const double _g = 0.7;
+  static const double _power = 4.3;
+  static const double _maxSpeed = 1.7;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
   static const double _dieDur = 1.2;
-  static const double _dieAnim = 0.9;
   static const double _pillFeet = 0.865;
   static const double _pillContentH = 0.73;
   static const double _bruteAtkDur = 0.8;
@@ -269,6 +270,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _zoom = 2.7; // gros plan train (le pillard est hors champ)
   static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
+  double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
 
   // --- Mode DUEL de test (réglage du feeling) : 1 seul lanceur, 3 PV, on tire
   //     chacun son tour, il recule quand touché. À élargir une fois calé. ---
@@ -324,6 +326,25 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // Cycle de run
   // ---------------------------------------------------------------------------
   void _applyMeta() {
+    // Mode duel : on DÉMARRE toujours avec la pierre standard basique (aucun
+    // upgrade), pour régler le feeling de base. Les bonus viennent ensuite par
+    // les choix de victoire.
+    if (_duelTest) {
+      _baseDmg = 1;
+      _maxHp = 5;
+      _trainHp = 5;
+      _stonesPerShot = 1;
+      _powerMult = 1.0;
+      _pierce = 0;
+      _perkCount = 3;
+      _ricochet = _split = _fire = _freeze = 0;
+      _magnet = _shieldMax = _bombMax = 0;
+      _shield = _bombLeft = 0;
+      _perkLevels.clear();
+      _evolved.clear();
+      _nearMiss = false;
+      return;
+    }
     final up = GameState.instance.shootUpgrades;
     final lvl = GameState.instance.shootWeaponLevel.clamp(0, 3);
     _baseDmg = 1 + (up['dmg'] ?? 0);
@@ -520,6 +541,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
     if (_reloadTimer > 0) _reloadTimer -= dt;
     if (_shake > 0) _shake = (_shake - dt).clamp(0.0, 1.0);
+    if (_camPunch > 0) _camPunch = (_camPunch - dt * 3.0).clamp(0.0, 1.0);
     setState(() {});
   }
 
@@ -527,6 +549,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     for (final e in _enemies) {
       if (e.dying) {
         e.dieT -= dt;
+        // Ragdoll : intègre vol + chute + rotation.
+        e.dieVY += _g * 2.4 * dt;
+        e.x += e.dieVX * dt;
+        e.feetY = (e.feetY + e.dieVY * dt).clamp(0.0, _groundY + 0.12);
+        e.dieRot += e.dieRotV * dt;
         continue;
       }
       e.anim += dt;
@@ -818,14 +845,28 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (e.dying) return;
     e.dying = true;
     e.dieT = _dieDur;
+    // Point 2 — RAGDOLL : il part en pantin (recule + saute + tourne). Un
+    // headshot l'envoie plus fort.
+    e.dieVX = (head ? 0.9 : 0.55) + _rng.nextDouble() * 0.2;
+    e.dieVY = head ? -1.3 : -0.95;
+    e.dieRotV = (head ? 7.0 : 4.5) * (_rng.nextBool() ? 1 : -1);
+    // Point 8 — finish cinématique : coup de zoom + ralenti sur le kill.
+    _camPunch = 1.0;
+    _slowmo = math.max(_slowmo, head ? 0.45 : 0.3);
     _kills++;
     _combo++;
     _streak++;
     _streakT = 1.2;
     final gain = 10 * (head ? 2 : 1) * (1 + _combo ~/ 5);
     _score += gain;
-    _shake = math.max(_shake, head ? 0.22 : 0.16);
-    _hitStop = 0.05;
+    _shake = math.max(_shake, head ? 0.30 : 0.18);
+    _hitStop = head ? 0.09 : 0.05;
+    // Point 1 — headshot qui claque.
+    if (head) {
+      _floats.add(_FloatText(Offset(_imgA * 0.5, 0.30), 'EN PLEINE TÊTE !',
+          const Color(0xFFFFD24A),
+          big: true));
+    }
     _floats.add(_FloatText(
         Offset(e.x, e.feetY - e.height * 0.6), '+$gain',
         head ? const Color(0xFFFFD24A) : Colors.white));
@@ -1234,7 +1275,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           final w = c.maxWidth, h = c.maxHeight;
           // Caméra zoomée : 1 unité = hauteur écran × zoom. Le décor (plus
           // large que l'écran) est panoté horizontalement par la caméra.
-          final scale = h * _zoom;
+          // Zoom + petit "punch" sur le coup fatal (finish cinématique).
+          final scale = h * _zoom * (1 + 0.06 * _camPunch);
           _S = scale;
           final dispW = _imgA * scale, dispH = scale;
           final viewHalf = (w / scale) / 2;
@@ -1411,18 +1453,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     double rot = 0;
     bool mirror = true;
     if (e.dying) {
-      if (e.type == _PillType.basic) {
-        final df =
-            ((_dieDur - e.dieT) / _dieAnim * 49).floor().clamp(0, 48) + 1;
-        asset = 'assets/characters/pillard1_die_$df.png';
-        mirror = false;
-        if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
-      } else {
-        asset = _liveAsset(e);
-        final d = (1 - e.dieT / _dieDur).clamp(0.0, 1.0);
-        rot = -d * 1.1;
-        opacity = (1 - d).clamp(0.0, 1.0);
-      }
+      // Ragdoll : on garde le sprite vivant et on le fait TOURNER (pantin).
+      asset = _liveAsset(e);
+      rot = e.dieRot;
+      if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
     } else {
       asset = _liveAsset(e);
     }
@@ -1451,7 +1485,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     if (rot != 0) {
       img = Transform.rotate(
-          angle: rot, alignment: Alignment.bottomCenter, child: img);
+          angle: rot,
+          alignment: e.dying ? Alignment.center : Alignment.bottomCenter,
+          child: img);
     }
     if (opacity < 1.0) img = Opacity(opacity: opacity, child: img);
 
