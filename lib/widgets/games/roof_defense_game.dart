@@ -970,7 +970,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void _quitToMenu() {
     final gs = GameState.instance;
     if (_runScrap > 0) {
-      gs.scrap += _runScrap;
+      gs.scrap += (_runScrap * (_mode == _Mode.endless ? 0.5 : 1.0)).round();
       _runScrap = 0;
       gs.save();
     }
@@ -991,8 +991,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_newRecord) gs.shootBestScore = _score;
     // Ferraille (encaissée + remise à 0 pour ne pas double-compter si on
     // continue en survie) + récompense au jeu principal.
-    _shownScrap = _runScrap;
-    gs.scrap += _runScrap;
+    // Entraînement (survie) : ferraille divisée par 2 pour ne pas
+    // déséquilibrer la campagne.
+    _shownScrap = (_runScrap * (_mode == _Mode.endless ? 0.5 : 1.0)).round();
+    gs.scrap += _shownScrap;
     _runScrap = 0;
     if (won) {
       gs.nudgeCardStat('bois', 8);
@@ -1605,7 +1607,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           _menuBtn('Campagne', const Color(0xFFE8B96B),
               () => _startRun(_Mode.campaign)),
           const SizedBox(height: 12),
-          _menuBtn('Survie', const Color(0xFF8A3B2E),
+          _menuBtn('Entraînement (survie)', const Color(0xFF8A3B2E),
               () => _startRun(_Mode.endless)),
           const SizedBox(height: 12),
           _menuBtn('Atelier 🔧', const Color(0xFF3A4656),

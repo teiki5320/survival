@@ -247,9 +247,13 @@ List<StoryCard> _gare10(Set<String> f) => [
         text:
             "Une serre intacte, chaude, verdoyante. Ta sœur court entre les plants en riant. Un répit irréel. On pourrait... rester ici ?",
         left: _c("S'accorder un vrai repos",
-            fx: {Stat.faim: 20, Stat.soif: 16, Stat.moral: 18}, result: "Quelques jours de chaleur et de rires. Vous reprenez des forces et de l'âme. Puis le nord rappelle."),
+            fx: {Stat.faim: 20, Stat.soif: 16, Stat.moral: 18},
+            flags: ['asset_hydro'],
+            result: "Quelques jours de chaleur et de rires. Vous reprenez des forces et de l'âme. Avant de partir, vous démontez de quoi monter une petite tour hydroponique dans le wagon. Puis le nord rappelle."),
         right: _c("Faire le plein et repartir vite",
-            fx: {Stat.faim: 12, Stat.soif: 10, Stat.bois: 12, Stat.moral: -4}, result: "« Papa et maman attendent. » Elle comprend. Vous repartez le ventre plein, le cœur lourd."),
+            fx: {Stat.faim: 12, Stat.soif: 10, Stat.bois: 12, Stat.moral: -4},
+            flags: ['asset_hydro'],
+            result: "« Papa et maman attendent. » Elle comprend. Vous emportez des plants et le matériel hydroponique, et repartez le ventre plein, le cœur lourd."),
       ),
     ];
 

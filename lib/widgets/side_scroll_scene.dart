@@ -1545,7 +1545,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     qu'elle puisse passer devant.
                       if (!widget.secondWagon)
                         for (final def in _propDefs)
-                          _buildProp(def: def, w: w, h: h),
+                          if (_propUnlocked(def.key))
+                            _buildProp(def: def, w: w, h: h),
                       // Cellier : props déplaçables (lanternes, baignoire,
                       // panneau douche, pommeau) + anim bain quand elle baigne.
                       if (widget.secondWagon) _buildWagon2Props(w, h),
@@ -2059,6 +2060,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ),
       ),
     );
+  }
+
+  // Props débloqués par l'histoire (choix de cartes -> apparaissent dans le
+  // wagon = sentiment de progression). Pour l'instant seul l'hydro est gaté
+  // (débloqué à la serre, gare 10) ; le reste est toujours présent.
+  bool _propUnlocked(String key) {
+    if (key == 'hydro') {
+      return GameState.instance.cardFlags.contains('asset_hydro');
+    }
+    return true;
   }
 
   Widget _buildProp({
