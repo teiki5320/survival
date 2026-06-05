@@ -158,7 +158,7 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.70.0+152` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.71.0+153` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
@@ -359,12 +359,30 @@ brancher sur l'histoire :
    (4,99 € = 500 ferraille). **ÉTHIQUE : l'argent réel ne doit JAMAIS bloquer
    l'histoire** — seulement accélérer le confort de combat.
 
-**Câblage technique en cours** (à finir) : `RoofDefenseGame` a déjà un
-`onResult` (callback `score100`) dans son constructeur mais il n'est **pas
-encore utilisé** ni relié. Reste : calculer `score100` en fin de combat,
-overlay « Continuer/Réessayer », `GameState.applyCombatRewards(score100)`,
-méthode moteur pour rafraîchir les cartes de gare selon le tier de score,
-et lancer le combat depuis `cards_screen` à l'arrivée en gare.
+**✅ CÂBLAGE COMBAT↔GARE↔SCORE FAIT (2026-06-05, build 0.71.0)** :
+- `RoofDefenseGame` **mode gare** : si `onResult` fourni → démarre direct en
+  campagne (pas de menu), calcule `_score100` (gagné = 70..100 selon cœurs
+  restants ; perdu = 0..65 selon vagues+kills), écran de fin **« Récolter et
+  continuer »** (→ `onResult(score100)`) / **« Réessayer »**, bouton abandon
+  (= défense perdue). Le lancement standalone (FAB `open_shoot` dans main) reste
+  en **mode menu** (pas d'`onResult`).
+- `GameState.applyCombatRewards(gareIndex, score100)` : score → **ressources**
+  (bois/eau/faim/moral, loot réel non atténué) + **flags de tier** sur
+  `cardFlags` (`combatTierHigh/Mid/Low` reset à chaque combat, `combatGood_N`
+  si ≥70, `combatDone_N`) + **`gareBestScore`** (Map index→/100, persisté =
+  méta « 100 % en ~20 parties »).
+- `ReignsEngine` : getter `current` + `rebuildGareCards()` (re-résout la
+  variante de gare avec les flags de tier APRÈS le combat).
+- `CardsScreen` : `_presentCurrentCard()` lance le **combat plein écran**
+  (`Positioned.fill` → contraintes tight, pas de piège AnimatedSwitcher) à
+  l'arrivée d'une gare **non encore défendue** (sauf **gare tuto idx 0**),
+  puis `_onCombatResult` applique les récompenses, rebuild, révèle la carte.
+- **Exemple de branche** : gare 3 (Halte 47, pillards) a un beat réactif —
+  `combatTierHigh` = wagon intact + butin, `combatTierLow` = dégâts à colmater.
+
+**Reste à faire côté intégration** : boutique IAP (4,99 €=500 ferraille,
+confort seulement), brancher plus de gares sur le tier (gare 5 sœur, etc.),
+une **idée de combat distincte par gare**, et rebrancher `_showAllProps=false`.
 
 ### Carte du monde
 
@@ -518,20 +536,20 @@ l'enfant / la sœur), à nommer plus tard.
 
 ## Ce qui reste à faire
 
-### 🚨 Priorité ABSOLUE — finir le câblage COMBAT ↔ GARE ↔ SCORE
-0a. **Brancher `onResult(score100)`** de `RoofDefenseGame` : calculer le score
-    /100 en fin de combat (cœurs restants + vagues + kills/ferraille), overlay
-    fin « Continuer / Réessayer ».
-0b. **`GameState.applyCombatRewards(score100)`** : convertir le score en
-    ressources (bois/eau/nourriture) injectées dans les stats Reigns.
-0c. **Brancher score → histoire** : tier de score pose des flags (ex. bon score
-    gare 5 → flag qui débloque la carte « sauver la sœur »). Méthode moteur pour
-    rafraîchir/choisir les cartes de gare selon le tier.
-0d. **Lancer le combat depuis l'arrivée en gare** (depuis `cards_screen` /
-    map), une **idée de combat par gare** (14 angles différents).
-0e. **Boutique IAP** (4,99 € = 500 ferraille) — confort de combat seulement,
+### 🚨 Priorité — suite de l'intégration COMBAT ↔ GARE ↔ SCORE
+**Socle FAIT (0.71.0)** : score /100, récompenses ressources, flags de tier,
+combat lancé à chaque gare depuis `cards_screen`, exemple de branche gare 3.
+Reste :
+0a. **Une idée de combat distincte par gare** (14 angles : décor, type de
+    pillards dominant, objectif). Aujourd'hui toutes les gares lancent la même
+    campagne 5 vagues.
+0b. **Brancher plus de gares sur le tier** : gare 5 (sauver la sœur selon
+    `combatGood_4`), gare 11/13 (climax pillards), etc. Mécanique en place
+    (`combatTier*`/`combatGood_N` lisibles dans `gareCards(flags)`).
+0c. **Boutique IAP** (4,99 € = 500 ferraille) — confort de combat seulement,
     **jamais bloquer l'histoire** (éthique validée).
-0f. **Rebrancher l'apparition progressive des objets** : repasser
+0d. **Décider du combat à la gare 1** (idx 0) : actuellement SAUTÉ (tuto).
+0e. **Rebrancher l'apparition progressive des objets** : repasser
     `side_scroll_scene._showAllProps` à `false` une fois le reste validé (les
     flags `asset_bed/filter/hydro` sont déjà posés dans `cards_data`).
 
