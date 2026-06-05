@@ -757,24 +757,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       child: const Icon(Icons.local_fire_department),
                     ),
                     const SizedBox(height: 12),
-                    // Ajuster la carte (déplacer / pincer pour redimensionner).
-                    if (widget.onOpenMap != null) ...[
-                      FloatingActionButton.small(
-                        heroTag: 'loco_map_adjust',
-                        tooltip: _mapAdjust
-                            ? 'Terminer le placement de la carte'
-                            : 'Ajuster la carte',
-                        backgroundColor: _mapAdjust
-                            ? const Color(0xFFE8B96B)
-                            : const Color(0xFF3A4656),
-                        foregroundColor:
-                            _mapAdjust ? const Color(0xFF2A2018) : Colors.white,
-                        onPressed: () =>
-                            setState(() => _mapAdjust = !_mapAdjust),
-                        child: Icon(_mapAdjust ? Icons.check : Icons.edit),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
                     FloatingActionButton.small(
                       heroTag: 'return_to_wagon',
                       tooltip: 'Retourner au wagon',

@@ -1667,16 +1667,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       const SizedBox(width: 8),
                     ],
                     FloatingActionButton.small(
-                      heroTag: 'shoot_adjust',
-                      backgroundColor:
-                          _adjust ? const Color(0xFFE8B96B) : Colors.black54,
-                      foregroundColor:
-                          _adjust ? const Color(0xFF2A2018) : Colors.white,
-                      onPressed: () => setState(() => _adjust = !_adjust),
-                      child: Icon(_adjust ? Icons.check : Icons.edit),
-                    ),
-                    const SizedBox(width: 8),
-                    FloatingActionButton.small(
                       heroTag: 'shoot_quit',
                       backgroundColor: Colors.black54,
                       // En mode gare : pas de menu, abandonner = défense perdue
