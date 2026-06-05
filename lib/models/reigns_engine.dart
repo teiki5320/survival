@@ -288,6 +288,28 @@ class ReignsEngine {
     return _emit();
   }
 
+  /// État courant (re-émission de la carte en tête de file), sans rien
+  /// consommer. Sert à rafraîchir l'UI après un combat de gare qui a posé
+  /// des flags de tier.
+  EngineState get current => _emit();
+
+  /// Reconstruit les cartes de GARE en tête de file avec les flags actuels.
+  /// Appelé après le combat de gare (qui pose combatTier*/combatGood_*) pour
+  /// que la variante de gare affichée reflète le score obtenu.
+  void rebuildGareCards() {
+    final seg = segments[_gs.cardGareIndex ?? 0];
+    var removed = 0;
+    while (_queue.isNotEmpty && _queue.first.kind == CardKind.gare) {
+      _queue.removeAt(0);
+      removed++;
+    }
+    final fresh = seg.gareCards(flags);
+    _queue.insertAll(0, fresh);
+    // Ajuste le total du segment si le nombre de beats de gare a changé.
+    _segmentTotal += fresh.length - removed;
+    if (_segmentTotal < 1) _segmentTotal = 1;
+  }
+
   EngineState _emit() {
     final card = _queue.isEmpty ? null : _queue.first;
     return EngineState(

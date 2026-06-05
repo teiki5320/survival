@@ -44,6 +44,8 @@ class GameState extends ChangeNotifier {
         'shootBestScore': shootBestScore,
         'scrap': scrap,
         'shootUpgrades': shootUpgrades,
+        'gareBestScore':
+            gareBestScore.map((k, v) => MapEntry(k.toString(), v)),
         'wagon2Stage': wagon2Stage,
         'wagon2LampAx': wagon2LampAx,
         'wagon2LampAy': wagon2LampAy,
@@ -102,6 +104,10 @@ class GameState extends ChangeNotifier {
       if (data['shootUpgrades'] is Map) {
         shootUpgrades = (data['shootUpgrades'] as Map).map(
             (k, v) => MapEntry(k as String, (v as num).toInt()));
+      }
+      if (data['gareBestScore'] is Map) {
+        gareBestScore = (data['gareBestScore'] as Map).map(
+            (k, v) => MapEntry(int.parse(k as String), (v as num).toInt()));
       }
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
@@ -186,6 +192,36 @@ class GameState extends ChangeNotifier {
   int shootBestScore = 0; // record en mode survie
   int scrap = 0; // ferraille (monnaie du mini-jeu)
   Map<String, int> shootUpgrades = {}; // niveaux des améliorations d'atelier
+  // Meilleur score de combat (/100) par gare (index 0-based) : méta-progression
+  // "atteindre 100% sur chaque gare en ~20 parties".
+  Map<int, int> gareBestScore = {};
+
+  /// Récompenses du combat de gare : convertit le score /100 en ressources
+  /// (bois/eau/nourriture/moral) injectées dans les jauges Reigns, et pose des
+  /// flags de "tier" + de réussite que les cartes de gare lisent pour brancher
+  /// l'histoire. Garde le meilleur score de la gare.
+  void applyCombatRewards(int gareIndex, int score100) {
+    final s = score100.clamp(0, 100);
+    // Un bon score ravitaille vraiment le train (loot réel, non atténué).
+    applyCardDeltas({
+      'bois': (s / 100 * 20).round(),
+      'soif': (s / 100 * 12).round(),
+      'faim': (s / 100 * 12).round(),
+      'moral': (s / 100 * 10).round(),
+    });
+    // Tier (on nettoie l'ancien avant de reposer) + flag de réussite par gare.
+    cardFlags.removeWhere((f) => f.startsWith('combatTier'));
+    cardFlags.add(s >= 80
+        ? 'combatTierHigh'
+        : s >= 50
+            ? 'combatTierMid'
+            : 'combatTierLow');
+    if (s >= 70) cardFlags.add('combatGood_$gareIndex');
+    cardFlags.add('combatDone_$gareIndex');
+    if (s > (gareBestScore[gareIndex] ?? 0)) gareBestScore[gareIndex] = s;
+    notifyListeners();
+    save();
+  }
   double get coldThreshold =>
       12.0 - wagonStage * 2 - (stoveInstalled ? 4 : 0) - outfitWarmth;
   // Vrai si Shen (et la sœur) ont froid -> frissons + blocage gain moral.

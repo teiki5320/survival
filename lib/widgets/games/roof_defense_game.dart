@@ -262,10 +262,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double get _zoneSpeed => GameState.instance.inColdZone ? 1.18 : 1.0;
   double get _zoneCount => GameState.instance.inColdZone ? 1.3 : 1.0;
 
+  // Mode "combat de gare" : lancé depuis l'écran cartes, démarre direct en
+  // campagne (pas de menu) et renvoie un score /100 via onResult.
+  bool get _gareMode => widget.onResult != null;
+
   @override
   void initState() {
     super.initState();
     _ticker = createTicker(_tick)..start();
+    // En mode gare : pas de menu, on attaque la campagne tout de suite.
+    if (_gareMode) _setupRun(_Mode.campaign);
   }
 
   @override
@@ -293,8 +299,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _freeze = 0;
   }
 
-  void _startRun(_Mode mode) {
-    setState(() {
+  void _startRun(_Mode mode) => setState(() => _setupRun(mode));
+
+  // Corps du démarrage de run (sans setState : appelable depuis initState).
+  void _setupRun(_Mode mode) {
+    {
       _mode = mode;
       _enemies.clear();
       _stones.clear();
@@ -328,7 +337,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _applyMeta();
       _phase = _Phase.playing;
       _banner = 1.8;
-    });
+    }
+  }
+
+  /// Score /100 du combat de gare : si gagné, 70..100 selon les cœurs restants ;
+  /// si perdu, 0..65 selon les vagues survécues + un bonus de kills.
+  int get _score100 {
+    if (_won) {
+      final hpFrac = _maxHp > 0 ? _trainHp / _maxHp : 0.0;
+      return (70 + 30 * hpFrac).round().clamp(70, 100);
+    }
+    final waveFrac = (_wave / _campaignWaves).clamp(0.0, 1.0);
+    final killBonus = _kills.clamp(0, 15);
+    return (waveFrac * 50 + killBonus).round().clamp(0, 65);
   }
 
   // Config (nombre, vitesse, intervalle) de la vague courante.
@@ -1004,7 +1025,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _shownScrap = (_runScrap * (_mode == _Mode.endless ? 0.5 : 1.0)).round();
     gs.scrap += _shownScrap;
     _runScrap = 0;
-    if (won) {
+    // Hors mode gare : petit bonus direct. En mode gare, les ressources sont
+    // attribuées par applyCombatRewards(score100) quand on valide l'écran de fin.
+    if (won && !_gareMode) {
       gs.nudgeCardStat('bois', 8);
       gs.nudgeCardStat('moral', 6);
     }
@@ -1417,8 +1440,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     FloatingActionButton.small(
                       heroTag: 'shoot_quit',
                       backgroundColor: Colors.black54,
-                      onPressed: _quitToMenu,
-                      child: const Icon(Icons.close),
+                      // En mode gare : pas de menu, abandonner = défense perdue
+                      // (on file vers l'écran de fin pour récolter le score).
+                      onPressed:
+                          _gareMode ? () => _gameOver(won: false) : _quitToMenu,
+                      child: Icon(_gareMode ? Icons.flag : Icons.close),
                     ),
                   ],
                 ),
@@ -1842,6 +1868,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 ],
               ),
             const SizedBox(height: 8),
+            if (_gareMode)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text('Score de gare : ${_score100} / 100',
+                    style: const TextStyle(
+                        color: Color(0xFFE8B96B),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800)),
+              ),
             Text('Score $_score   •   💥$_kills   •   🔩+$_shownScrap',
                 style: const TextStyle(color: Colors.white70, fontSize: 15)),
             if (_newRecord)
@@ -1869,23 +1904,33 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               alignment: WrapAlignment.center,
               spacing: 12,
               runSpacing: 10,
-              children: [
-                if (_won && _mode == _Mode.campaign)
-                  _menuBtn('Continuer en survie', const Color(0xFF8A3B2E), () {
-                    // reprend là où on s'est arrêté, en survie.
-                    setState(() {
-                      _mode = _Mode.endless;
-                      _phase = _Phase.playing;
-                      _won = false;
-                      _banner = 1.8;
-                      _wave++;
-                    });
-                  }),
-                _menuBtn('Rejouer', const Color(0xFFE8B96B),
-                    () => _startRun(_mode)),
-                _menuBtn('Menu', const Color(0xFF3A4656),
-                    () => setState(() => _phase = _Phase.menu)),
-              ],
+              children: _gareMode
+                  ? [
+                      // Combat de gare : on récolte le score (ressources +
+                      // branche d'histoire) puis on rend la main à l'écran cartes.
+                      _menuBtn('Récolter et continuer', const Color(0xFFE8B96B),
+                          () => widget.onResult!(_score100)),
+                      _menuBtn('Réessayer', const Color(0xFF8A3B2E),
+                          () => _startRun(_Mode.campaign)),
+                    ]
+                  : [
+                      if (_won && _mode == _Mode.campaign)
+                        _menuBtn('Continuer en survie', const Color(0xFF8A3B2E),
+                            () {
+                          // reprend là où on s'est arrêté, en survie.
+                          setState(() {
+                            _mode = _Mode.endless;
+                            _phase = _Phase.playing;
+                            _won = false;
+                            _banner = 1.8;
+                            _wave++;
+                          });
+                        }),
+                      _menuBtn('Rejouer', const Color(0xFFE8B96B),
+                          () => _startRun(_mode)),
+                      _menuBtn('Menu', const Color(0xFF3A4656),
+                          () => setState(() => _phase = _Phase.menu)),
+                    ],
             ),
           ],
         ),

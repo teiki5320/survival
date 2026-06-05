@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import '../data/cards_data.dart';
 import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
+import 'games/roof_defense_game.dart';
 
 class CardsScreen extends StatefulWidget {
   const CardsScreen({super.key, required this.onClose});
@@ -55,6 +56,11 @@ class _CardsScreenState extends State<CardsScreen>
   late final AnimationController _gareCtrl;
   int _announcedGare = -1;
   String _gareLabel = '';
+
+  // Combat de gare en cours (index de gare) : superpose le mini-jeu plein
+  // écran. null = pas de combat. Déclenché à l'arrivée à une gare non encore
+  // défendue (sauf la gare tuto 0).
+  int? _combatGare;
 
   // Tic 1s : régénère les crédits en temps réel + rafraîchit le compte à
   // rebours affiché. Flash quand on tente un swipe sans crédit.
@@ -105,8 +111,8 @@ class _CardsScreenState extends State<CardsScreen>
       GameState.instance.refreshCredits();
       setState(() {});
     });
-    // annonce la première gare au démarrage
-    _maybeAnnounceGare();
+    // Présente la première carte (combat de gare si besoin, sinon annonce).
+    _presentCurrentCard();
   }
 
   @override
@@ -119,6 +125,42 @@ class _CardsScreenState extends State<CardsScreen>
       c.dispose();
     }
     super.dispose();
+  }
+
+  /// Présente la carte courante : si c'est une gare pas encore défendue (hors
+  /// gare tuto 0), lance le COMBAT plein écran d'abord ; sinon enchaîne sur
+  /// l'annonce de gare classique.
+  void _presentCurrentCard() {
+    // NB : appelé depuis initState (avant le 1er build) et depuis
+    // _revealPending (déjà dans un setState) -> on assigne sans setState.
+    final card = _state.card;
+    if (card != null && card.kind == CardKind.gare) {
+      final idx = _engine.gareIndex;
+      final done = GameState.instance.cardFlags.contains('combatDone_$idx');
+      if (idx >= 1 && !done) {
+        _combatGare = idx;
+        return; // l'annonce de gare se fera après le combat
+      }
+    }
+    _maybeAnnounceGare();
+  }
+
+  /// Fin du combat de gare : applique les récompenses (ressources + flags de
+  /// tier), reconstruit la variante de gare selon le score, puis révèle la
+  /// carte de gare.
+  void _onCombatResult(int idx, int score) {
+    GameState.instance.applyCombatRewards(idx, score);
+    _engine.rebuildGareCards();
+    // Pulse les jauges qui viennent d'être ravitaillées.
+    for (final st in Stat.values) {
+      _pulseSign[st] = 1;
+      _pulse[st]?.forward(from: 0);
+    }
+    setState(() {
+      _combatGare = null;
+      _state = _engine.current;
+    });
+    _maybeAnnounceGare();
   }
 
   /// Si la carte courante est une gare jamais annoncée, déclenche l'overlay
@@ -185,7 +227,7 @@ class _CardsScreenState extends State<CardsScreen>
     _resultText = null;
     _resultDeltas = const {};
     _enterCtrl.forward(from: 0);
-    _maybeAnnounceGare();
+    _presentCurrentCard();
   }
 
   void _tapAdvance() {
@@ -225,6 +267,14 @@ class _CardsScreenState extends State<CardsScreen>
                     ),
             ),
             _gareAnnounce(),
+            if (_combatGare != null)
+              Positioned.fill(
+                child: RoofDefenseGame(
+                  key: ValueKey('gareCombat_$_combatGare'),
+                  onExit: () {},
+                  onResult: (score) => _onCombatResult(_combatGare!, score),
+                ),
+              ),
           ],
         ),
       ),

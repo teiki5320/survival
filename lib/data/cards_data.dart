@@ -142,6 +142,36 @@ List<StoryCard> _gare3(Set<String> f) => [
             fx: {Stat.moral: -8},
             result: "Tu restes à bord. Mais le doute te ronge : et si c'était elle qui l'avait laissé là — un signe, pour toi ?"),
       ),
+      // Beat réactif au COMBAT de gare (posé par applyCombatRewards) : la
+      // façon dont tu as repoussé les pillards change la suite.
+      if (f.contains('combatTierHigh'))
+        StoryCard(
+          id: 'G3win',
+          kind: CardKind.gare,
+          speaker: 'Halte 47',
+          text:
+              "Les derniers pillards détalent dans la brume. Le wagon n'a pas une éraflure — tu les as tenus à distance, pierre après pierre.",
+          left: _c("Souffler un instant",
+              fx: {Stat.moral: 8},
+              result: "Tu reposes le lance-pierre, les mains tremblantes. Vivante. Intacte."),
+          right: _c("Fouiller ce qu'ils ont lâché",
+              fx: {Stat.faim: 6, Stat.bois: 4},
+              result: "Dans leurs sacs abandonnés : un peu de bois, deux conserves. Le butin des vaincus."),
+        )
+      else if (f.contains('combatTierLow'))
+        StoryCard(
+          id: 'G3lose',
+          kind: CardKind.gare,
+          speaker: 'Halte 47',
+          text:
+              "Ils ont cogné le wagon avant de fuir. Des planches arrachées, une réserve éventrée. Tu as tenu — de justesse.",
+          left: _c("Colmater les dégâts",
+              fx: {Stat.bois: -6, Stat.moral: -3},
+              result: "Tu cloues ce que tu peux. Le froid passera par les fentes, désormais."),
+          right: _c("Repartir sans regarder",
+              fx: {Stat.faim: -5},
+              result: "Tu pousses la loco, les dégâts dans le dos. Pas le temps de pleurer sur des planches."),
+        ),
     ];
 
 List<StoryCard> _gare4(Set<String> f) => [
