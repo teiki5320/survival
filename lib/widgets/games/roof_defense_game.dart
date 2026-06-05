@@ -25,7 +25,7 @@ enum _Phase { menu, atelier, playing, chest, perk, gameover }
 
 enum _Mode { campaign, endless }
 
-enum _PillType { basic, brute, lanceur }
+enum _PillType { basic, brute, lanceur, boss }
 
 class _Enemy {
   _Enemy({
@@ -36,6 +36,7 @@ class _Enemy {
     required this.height,
     required this.anim,
     this.hp = 1,
+    this.golden = false,
   }) : hpMax = hp;
   final _PillType type;
   double x;
@@ -45,6 +46,7 @@ class _Enemy {
   double anim;
   int hp;
   final int hpMax;
+  final bool golden; // pillard doré : jackpot de ferraille
   bool dying = false;
   double dieT = 0;
   double slowT = 0; // gel : ralenti restant
@@ -54,6 +56,9 @@ class _Enemy {
   bool throwing = false;
   double throwT = 0;
   bool threwThisCycle = false;
+  bool melee = false; // arrivé au train -> frappe au corps à corps
+  double meleeT = 0;
+  double bossThrowT = 0; // cadence de jet du boss
 }
 
 class _Stone {
@@ -148,6 +153,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const int _bruteHp = 4;
   static const double _throwRange = 0.55;
   static const double _throwPeriod = 1.3;
+  static const double _meleePeriod = 1.1; // un coup au train toutes les ~1.1s
   static const int _campaignWaves = 5;
 
   // --- Améliorations d'atelier (clé -> (libellé, desc, coûts par niveau)) ---
@@ -234,6 +240,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _shake = 0;
   double _hitStop = 0;
   double _slowmo = 0;
+  bool _storm = false; // vague de tempête : voile sombre + vent fort
 
   // placement
   double _muzX = 0.30, _muzY = 0.55, _groundY = 0.80;
@@ -312,6 +319,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _shake = 0;
       _hitStop = 0;
       _slowmo = 0;
+      _storm = false;
       _aiming = false;
       _applyMeta();
       _phase = _Phase.playing;
@@ -323,11 +331,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   (int, double, double) _waveConfig() {
     if (_mode == _Mode.campaign) {
       const waves = [
-        (4, 0.09, 1.20),
-        (6, 0.13, 1.00),
-        (8, 0.18, 0.85),
-        (11, 0.25, 0.72),
-        (15, 0.32, 0.60),
+        (5, 0.10, 1.05),
+        (8, 0.15, 0.85),
+        (11, 0.22, 0.70),
+        (14, 0.30, 0.56),
+        (18, 0.40, 0.46),
       ];
       return waves[_wave.clamp(0, waves.length - 1)];
     }
@@ -393,9 +401,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_banner > 0) {
       _banner -= dt;
       if (_banner <= 0) {
+        _storm = _wave >= 2 &&
+            (GameState.instance.inColdZone || _rng.nextDouble() < 0.35);
         _toSpawn = (_waveConfig().$1 * _zoneCount).round();
         _spawnTimer = 0.4;
         _spawnBarrel();
+        if (_isBossWave) _spawnBoss();
       }
       setState(() {});
       return;
@@ -426,6 +437,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   void _updateEnemies(double dt) {
+    final throwP = _storm ? _throwPeriod * 0.7 : _throwPeriod;
     for (final e in _enemies) {
       if (e.dying) {
         e.dieT -= dt;
@@ -434,10 +446,24 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       e.anim += dt;
       if (e.slowT > 0) e.slowT -= dt;
       final spd = e.slowT > 0 ? e.speed * 0.4 : e.speed;
+
+      // Corps à corps : arrivé au wagon, le pillard reste et frappe le train.
+      if (e.melee) {
+        e.meleeT -= dt;
+        if (e.meleeT <= 0) {
+          _damageTrain(amount: e.type == _PillType.boss ? 2 : 1);
+          e.meleeT = _meleePeriod;
+          _shake = math.max(_shake, 0.22);
+        }
+        continue;
+      }
+
       switch (e.type) {
         case _PillType.basic:
           e.x -= spd * dt;
         case _PillType.brute:
+        case _PillType.boss:
+          // Avance + coup de hache périodique ; le boss lance aussi.
           if (e.attacking) {
             e.attackT += dt;
             if (e.attackT >= _bruteAtkDur) {
@@ -451,32 +477,44 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               e.attackT = 0;
             }
           }
+          if (e.type == _PillType.boss) {
+            e.bossThrowT -= dt;
+            if (e.bossThrowT <= 0) {
+              e.bossThrowT = 2.2;
+              _enemyShots.add(_EnemyShot(
+                Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.6),
+                const Offset(-1.2, -0.4),
+              ));
+            }
+          }
         case _PillType.lanceur:
           if (e.x > _trainEdgeX + _throwRange) {
             e.x -= spd * dt;
           } else {
             e.throwing = true;
             e.throwT += dt;
-            final phase = e.throwT % _throwPeriod;
-            if (phase >= _throwPeriod * 0.55 && !e.threwThisCycle) {
+            final phase = e.throwT % throwP;
+            if (phase >= throwP * 0.55 && !e.threwThisCycle) {
               e.threwThisCycle = true;
-              _enemyShots.add(_EnemyShot(
-                Offset(e.x - e.height * 0.20, e.feetY - e.height * 0.55),
-                const Offset(-1.15, -0.35),
-              ));
+              final n = (_storm && _rng.nextDouble() < 0.4) ? 2 : 1; // volée
+              for (int k = 0; k < n; k++) {
+                _enemyShots.add(_EnemyShot(
+                  Offset(e.x - e.height * 0.20, e.feetY - e.height * 0.55),
+                  Offset(-1.15, -0.35 - k * 0.12),
+                ));
+              }
             }
-            if (phase < _throwPeriod * 0.55) e.threwThisCycle = false;
+            if (phase < throwP * 0.55) e.threwThisCycle = false;
           }
       }
-    }
-    _enemies.removeWhere((e) {
-      if (e.dying) return e.dieT <= 0;
-      if (e.x <= _trainEdgeX) {
-        _damageTrain();
-        return true;
+      // Atteint le wagon -> passe en corps à corps (sauf lanceur, à distance).
+      if (e.type != _PillType.lanceur && e.x <= _trainEdgeX) {
+        e.x = _trainEdgeX;
+        e.melee = true;
+        e.meleeT = 0.3;
       }
-      return false;
-    });
+    }
+    _enemies.removeWhere((e) => e.dying && e.dieT <= 0);
   }
 
   void _updateProjectiles(double dt) {
@@ -611,9 +649,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _fires.removeWhere((p) => p.life <= 0);
   }
 
-  void _damageTrain() {
-    _trainHp--;
-    _hpLost++;
+  void _damageTrain({int amount = 1}) {
+    _trainHp -= amount;
+    _hpLost += amount;
     _combo = 0;
     _streak = 0;
     _shake = math.max(_shake, 0.18);
@@ -669,10 +707,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             big: true));
       }
     }
-    // Butin.
-    final v = e.type == _PillType.brute
-        ? 5
-        : (e.type == _PillType.lanceur ? 2 : 1);
+    // Butin (boss + doré = jackpot).
+    final int v;
+    if (e.type == _PillType.boss) {
+      v = 60;
+    } else if (e.golden) {
+      v = 25;
+    } else if (e.type == _PillType.brute) {
+      v = 5;
+    } else if (e.type == _PillType.lanceur) {
+      v = 2;
+    } else {
+      v = 1;
+    }
     _loot.add(_Loot(Offset(e.x, e.feetY - e.height * 0.5),
         Offset((_rng.nextDouble() - 0.5) * 0.3, -0.4), v));
     // Dernier de la vague -> ralenti.
@@ -740,24 +787,46 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           speed: baseSpeed * 0.9, height: 0.22, anim: anim,
         ));
       case _PillType.basic:
+        // Pillard doré rare : rapide, fragile, jackpot de ferraille.
+        final golden = _wave >= 2 && _rng.nextDouble() < 0.06;
         _enemies.add(_Enemy(
           type: type, x: x0, feetY: feetY,
-          speed: baseSpeed * (0.85 + _rng.nextDouble() * 0.3),
-          height: 0.21, anim: anim,
+          speed: baseSpeed * (golden ? 1.5 : (0.85 + _rng.nextDouble() * 0.3)),
+          height: 0.21, anim: anim, golden: golden,
         ));
+      case _PillType.boss:
+        return; // le boss n'apparaît pas par le spawn normal
     }
   }
 
   _PillType _pickType() {
     final r = _rng.nextDouble();
     final w = _wave;
-    if (w >= 2) {
-      if (r < 0.18) return _PillType.brute;
-      if (r < 0.40) return _PillType.lanceur;
-    } else if (w >= 1) {
-      if (r < 0.22) return _PillType.lanceur;
+    if (w >= 1) {
+      if (r < 0.12 + 0.02 * w) return _PillType.brute;
+      if (r < 0.38 + 0.02 * w) return _PillType.lanceur;
     }
     return _PillType.basic;
+  }
+
+  bool get _isBossWave => _mode == _Mode.campaign
+      ? _wave == _campaignWaves - 1
+      : (_wave > 0 && _wave % 4 == 3);
+
+  void _spawnBoss() {
+    final hp = 22 + (_mode == _Mode.endless ? _wave * 2 : 0);
+    _enemies.add(_Enemy(
+      type: _PillType.boss,
+      x: _imgA + 0.2,
+      feetY: _groundY + 0.01,
+      speed: 0.06,
+      height: 0.42,
+      anim: 0,
+      hp: hp,
+    )..lastAtkX = _imgA + 0.2);
+    _floats.add(_FloatText(Offset(_imgA * 0.5, 0.30), '⚠ CHEF PILLARD',
+        const Color(0xFFE2614A),
+        big: true));
   }
 
   // ---------------------------------------------------------------------------
@@ -1043,10 +1112,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     ),
                   ),
 
+                  // Voile de tempête (assombrit la scène).
+                  if (_storm && _phase == _Phase.playing)
+                    const Positioned.fill(
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(color: Color(0x44101820)),
+                        ),
+                      ),
+                    ),
+
                   // Textes flottants.
                   for (final f in _floats) _buildFloat(f),
 
                   if (_adjust) ..._adjustHandles(u2p),
+                  if (_phase == _Phase.playing) _bossBar(),
                   if (_phase == _Phase.playing) _hudBar(),
                   if (_phase == _Phase.playing && _banner > 0) _bannerWidget(),
                   if (_adjust) _coordHud(),
@@ -1091,6 +1171,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       asset = _liveAsset(e);
     }
     Widget img = Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+    if (e.golden && !e.dying) {
+      img = ColorFiltered(
+        colorFilter: const ColorFilter.mode(Color(0x99FFD24A), BlendMode.srcATop),
+        child: img,
+      );
+    }
     if (e.slowT > 0 && !e.dying) {
       img = ColorFiltered(
         colorFilter: const ColorFilter.mode(Color(0x6688D8FF), BlendMode.srcATop),
@@ -1153,8 +1239,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       case _PillType.basic:
         return 'assets/characters/pillard1_walk_$wf.png';
       case _PillType.brute:
-        if (e.attacking) {
-          final af = (e.attackT / _bruteAtkDur * 49).floor().clamp(0, 48) + 1;
+      case _PillType.boss:
+        // Le boss réutilise les sprites de la brute (agrandis).
+        if (e.attacking || e.melee) {
+          final af = e.attacking
+              ? (e.attackT / _bruteAtkDur * 49).floor().clamp(0, 48) + 1
+              : (e.anim * 14).floor() % 49 + 1;
           return 'assets/characters/brute_attack_$af.png';
         }
         return 'assets/characters/brute_walk_$wf.png';
@@ -1332,6 +1422,51 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           ),
         ),
       );
+
+  Widget _bossBar() {
+    _Enemy? boss;
+    for (final e in _enemies) {
+      if (e.type == _PillType.boss && !e.dying) {
+        boss = e;
+        break;
+      }
+    }
+    if (boss == null) return const SizedBox.shrink();
+    final frac = (boss.hp / boss.hpMax).clamp(0.0, 1.0);
+    return Positioned(
+      top: 56,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('⚠ CHEF PILLARD',
+                  style: TextStyle(
+                      color: Color(0xFFE2614A),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 3),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: SizedBox(
+                  width: 260,
+                  height: 12,
+                  child: LinearProgressIndicator(
+                    value: frac,
+                    backgroundColor: Colors.black54,
+                    valueColor:
+                        const AlwaysStoppedAnimation(Color(0xFFE2614A)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _bannerWidget() => Center(
         child: Container(
