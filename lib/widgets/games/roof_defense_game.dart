@@ -89,13 +89,14 @@ class _Stone {
   final bool fire;
   final bool freeze;
   final int dmg;
+  final List<Offset> trail = []; // petites positions récentes (traînée d'air)
+  int bounces = 0; // rebonds sur la ligne de marche
 }
 
 class _EnemyShot {
-  _EnemyShot(this.pos, this.vel, {this.harmless = false});
+  _EnemyShot(this.pos, this.vel);
   Offset pos;
   Offset vel;
-  final bool harmless; // raté : tombe court, ne touche pas la fenêtre
 }
 
 class _Impact {
@@ -295,7 +296,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _camY = 0, _camYTarget = 0, _camYHome = 0, _camYMin = 0, _camYMax = 0;
   bool _camInit = false;
 
-  bool get _explosiveWeapon => GameState.instance.shootWeaponLevel >= 3;
+  bool get _explosiveWeapon =>
+      !_duelTest && GameState.instance.shootWeaponLevel >= 3;
   double get _zoneSpeed => GameState.instance.inColdZone ? 1.18 : 1.0;
   double get _zoneCount => GameState.instance.inColdZone ? 1.3 : 1.0;
 
@@ -624,30 +626,43 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void _updateProjectiles(double dt) {
     final wind = GameState.instance.inColdZone ? -0.22 : 0.0;
     for (final s in _stones) {
+      // Traînée d'air : on mémorise quelques positions récentes.
+      s.trail.add(s.pos);
+      if (s.trail.length > 7) s.trail.removeAt(0);
       s.vel = s.vel + Offset(wind * dt, _g * dt);
       s.pos = s.pos + s.vel * dt;
+      // Rebond sur la ligne de marche des pillards (le sol).
+      if (s.pos.dy >= _groundY && s.vel.dy > 0) {
+        s.pos = Offset(s.pos.dx, _groundY);
+        s.vel = Offset(s.vel.dx * 0.62, -s.vel.dy * 0.5);
+        s.bounces++;
+      }
     }
+    // Retiré quand il sort, ou après quelques rebonds devenus faibles.
     _stones.removeWhere((s) =>
-        s.pos.dy > 1.15 || s.pos.dx > _imgA + 0.2 || s.pos.dx < -0.2);
+        s.pos.dx > _imgA + 0.2 ||
+        s.pos.dx < -0.2 ||
+        (s.bounces >= 3 && s.vel.distance < 0.25));
 
     for (final es in _enemyShots) {
       es.vel = es.vel + Offset(0, _g * 0.5 * dt);
       es.pos = es.pos + es.vel * dt;
     }
     _enemyShots.removeWhere((es) {
-      if (es.harmless) {
-        // Raté : tombe au sol (petit éclat), aucun dégât.
-        if (es.pos.dy >= _groundY) {
-          _impacts.add(_Impact(Offset(es.pos.dx, _groundY)));
-          return true;
-        }
-        return es.pos.dx < -0.2 || es.pos.dy > 1.15;
+      // Tombé au sol avant la fenêtre -> raté court (poussière), aucun dégât.
+      if (es.pos.dy >= _groundY && es.vel.dy > 0 && es.pos.dx > _muzX) {
+        _impacts.add(_Impact(Offset(es.pos.dx, _groundY)));
+        return true;
       }
-      if (es.pos.dx <= _trainEdgeX) {
-        // Touché à la fenêtre : petit halo dans la fenêtre + un cœur en moins.
-        _damageTrain();
-        _windowHalo = 1.2;
-        _shake = math.max(_shake, 0.22);
+      // Atteint le plan de la fenêtre : touche si assez proche, sinon raté de peu.
+      if (es.pos.dx <= _muzX) {
+        if ((es.pos.dy - _muzY).abs() < 0.045) {
+          _damageTrain();
+          _windowHalo = 1.2;
+          _shake = math.max(_shake, 0.22);
+        } else {
+          _impacts.add(_Impact(es.pos)); // éclat juste à côté de la fenêtre
+        }
         return true;
       }
       return es.pos.dy > 1.15 || es.pos.dx < -0.2;
@@ -674,9 +689,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
       if (hit == null) continue;
       final e = hit;
+      // Zones : tête (gros dégâts), corps, jambes (juste un peu de vie).
       final headBot = e.feetY - e.height * 0.78;
+      final legTop = e.feetY - e.height * 0.30;
       final head = s.pos.dy <= headBot;
-      e.hp -= s.dmg * (head ? 2 : 1);
+      final leg = s.pos.dy >= legTop;
+      final zoneMult = head ? 3 : (leg ? 1 : 2);
+      e.hp -= s.dmg * zoneMult;
+      if (leg && !head) {
+        _floats.add(_FloatText(Offset(e.x, e.feetY - e.height * 0.2), 'jambe',
+            const Color(0xFFE2C28A)));
+      }
       // Recul : touché mais pas mort -> le pillard tombe en arrière (plus
       // loin), ce qui oblige à recorriger le tir suivant.
       if (e.hp > 0) {
@@ -805,9 +828,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           final e = alive.first;
           e.throwing = true;
           e.attackT = 0;
-          // Au niveau 1 il rate souvent (≈55%).
-          final miss = _rng.nextDouble() < 0.55;
-          _enemyThrowAt(e, miss: miss);
+          _enemyThrowAt(e);
           _enemyThrowing = true;
         }
       }
@@ -819,23 +840,26 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
   }
 
-  // Lance un projectile du pillard vers la FENÊTRE (touche) ou court (raté),
-  // en vol lent qu'on peut suivre à la caméra.
-  void _enemyThrowAt(_Enemy e, {required bool miss}) {
+  // Bruit ~gaussien dans ~[-1,1] (somme de 3 uniformes) : la plupart des tirs
+  // tombent PRÈS de la cible, rarement loin.
+  double _gauss() =>
+      (_rng.nextDouble() + _rng.nextDouble() + _rng.nextDouble() - 1.5) / 1.5;
+
+  // Le pillard VISE toujours la fenêtre, avec une erreur réaliste : quand il
+  // loupe, c'est de peu (juste à côté / un peu court), jamais "à 2m de lui".
+  // [spread] grossit l'erreur (niveau 1 = gros, baissera avec le niveau).
+  void _enemyThrowAt(_Enemy e) {
     final from = Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55);
     final ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
-    const t = 2.4; // vol lent
-    final Offset to;
-    if (miss) {
-      // Tombe court, au sol, entre le pillard et la fenêtre.
-      to = Offset((_muzzle.dx + 0.55 + _rng.nextDouble() * 0.5)
-          .clamp(_trainEdgeX + 0.3, from.dx - 0.2), _groundY);
-    } else {
-      to = _muzzle; // la fenêtre
-    }
+    const t = 2.4; // vol lent (suivable à la caméra)
+    const spread = 0.14; // niveau 1 : dispersion autour de la fenêtre
+    final to = Offset(
+      _muzX + _gauss() * spread, // un peu court / un peu long
+      _muzY + _gauss() * spread * 0.8, // un peu haut / un peu bas
+    );
     final vx = (to.dx - from.dx) / t;
     final vy = (to.dy - from.dy) / t - 0.5 * ge * t;
-    _enemyShots.add(_EnemyShot(from, Offset(vx, vy), harmless: miss));
+    _enemyShots.add(_EnemyShot(from, Offset(vx, vy)));
   }
 
   // Caméra : suit la pierre en vol (la plus avancée), marque un temps sur
@@ -859,7 +883,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     final flight = _camLaunchHold <= 0 &&
         (lead != null || eShot != null || _enemyAiming || _enemyThrowing);
 
-    if (flight) {
+    if (_aiming && _playerTurn && _camLaunchHold <= 0 && !flight) {
+      // On RECULE au fur et à mesure qu'on tend l'arc (tension = dézoom).
+      final maxs = _maxSpeed * _powerMult;
+      final f =
+          (_launchVel().distance / (maxs <= 0 ? 1 : maxs)).clamp(0.0, 1.0);
+      _zoomTarget = _zoomRest + (_zoomWide - _zoomRest) * f;
+      final foeX = foe?.x ?? (_camHome + 1.2);
+      _camTarget = _camHome + (((_muzX + foeX) / 2) - _camHome) * f;
+      _camYTarget = _camYHome;
+    } else if (flight) {
       // Reculé : cadre l'espace entre la fenêtre, le pillard et le projectile.
       _zoomTarget = _zoomWide;
       var lx = _muzX, rx = foe?.x ?? (_camHome + 1.0);
@@ -1061,7 +1094,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _enemies.add(_Enemy(
           type: type, x: x, feetY: feetY,
           speed: 0, height: 0.17, anim: anim,
-          hp: _duelTest ? 3 : 1,
+          hp: _duelTest ? 6 : 1,
         )..throwT = _rng.nextDouble() * 1.5);
       case _PillType.basic:
         // Pillard doré rare : jackpot de ferraille, mais il décampe au bout de
@@ -2609,6 +2642,15 @@ class _ShotPainter extends CustomPainter {
     for (final s in stones) {
       final p = _p(s.pos);
       final rr = (s.big ? 0.012 : 0.008) * scale;
+      // Petite traînée d'air derrière le caillou (points qui s'estompent).
+      for (int i = 0; i < s.trail.length; i++) {
+        final f = (i + 1) / (s.trail.length + 1);
+        canvas.drawCircle(
+          _p(s.trail[i]),
+          rr * (0.35 + 0.5 * f),
+          Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: 0.28 * f),
+        );
+      }
       if (s.big) {
         canvas.drawCircle(p, rr * 1.6, Paint()..color = const Color(0x55FFD24A));
       }
