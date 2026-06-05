@@ -25,6 +25,19 @@ Future<void> main() async {
   // de crash).
   PaintingBinding.instance.imageCache.maximumSizeBytes = 450 * 1024 * 1024;
   PaintingBinding.instance.imageCache.maximumSize = 800;
+  // Affiche l'exception À L'ÉCRAN (au lieu d'un écran muet) -> diagnostic.
+  ErrorWidget.builder = (FlutterErrorDetails d) => Material(
+        color: const Color(0xFF2A0A0A),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'ERREUR:\n${d.exception}',
+              style: const TextStyle(color: Color(0xFFFFC0C0), fontSize: 12),
+            ),
+          ),
+        ),
+      );
   await SystemChrome.setPreferredOrientations(const [
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
