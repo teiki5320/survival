@@ -143,8 +143,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _trainEdgeX = 0.24;
 
   static const double _g = 1.9;
-  static const double _power = 5.6;
-  static const double _maxSpeed = 3.0;
+  static const double _power = 9.0;
+  static const double _maxSpeed = 3.4;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
@@ -247,7 +247,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   bool _storm = false; // vague de tempête : voile sombre + vent fort
 
   // placement
-  double _muzX = 0.16, _muzY = 0.64, _groundY = 0.76;
+  double _muzX = 0.16, _muzY = 0.64, _groundY = 0.865;
   Offset get _muzzle => Offset(_muzX, _muzY);
 
   // visée
@@ -872,7 +872,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void _fireShot() {
     if (_reloadTimer > 0) return;
     final v = _launchVel();
-    if (v.distance < 0.25) return;
+    if (v.distance < 0.12) return;
     _spawnStones(v);
     _reloadTimer = _reload;
   }
@@ -1932,7 +1932,7 @@ class _ShotPainter extends CustomPainter {
       ..strokeWidth = 1.5;
     for (final s in stones) {
       final p = _p(s.pos);
-      final rr = (s.big ? 0.020 : 0.013) * scale;
+      final rr = (s.big ? 0.012 : 0.008) * scale;
       if (s.big) {
         canvas.drawCircle(p, rr * 1.6, Paint()..color = const Color(0x55FFD24A));
       }
@@ -1943,7 +1943,7 @@ class _ShotPainter extends CustomPainter {
 
     final enemyPaint = Paint()..color = const Color(0xFF8A4A3A);
     for (final es in enemyShots) {
-      canvas.drawCircle(_p(es.pos), 0.014 * scale, enemyPaint);
+      canvas.drawCircle(_p(es.pos), 0.009 * scale, enemyPaint);
     }
 
     for (final im in impacts) {
