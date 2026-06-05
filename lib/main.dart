@@ -15,6 +15,7 @@ import 'widgets/games/roof_defense_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/loading_screen.dart';
 import 'widgets/wardrobe_screen.dart';
+import 'widgets/workshop_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -124,6 +125,7 @@ class _WagonScreenState extends State<WagonScreen> {
   bool _inHydroGame = false;
   bool _inCards = false;
   bool _inShootGame = false; // mini-jeu défense du toit (gares)
+  bool _inWorkshop = false; // atelier + quotidien + collection (depuis la map)
   // Combat lancé depuis une gare de la map (la map = le menu). On mémorise
   // l'index de gare pour appliquer le score (récompenses + flags) au retour.
   bool _shootFromGare = false;
@@ -389,6 +391,14 @@ class _WagonScreenState extends State<WagonScreen> {
                 key: const ValueKey('wardrobe'),
                 onClose: () => setState(() => _inWardrobe = false),
               )
+            : _inWorkshop
+            ? WorkshopScreen(
+                key: const ValueKey('workshop'),
+                onClose: () => setState(() {
+                  _inWorkshop = false;
+                  _onMap = true; // retour à la map (le menu)
+                }),
+              )
             : _onMap
             ? MapScreen(
                 key: const ValueKey('map'),
@@ -399,6 +409,10 @@ class _WagonScreenState extends State<WagonScreen> {
                   _shootFromGare = true;
                   _onMap = false;
                   _inShootGame = true;
+                }),
+                onOpenWorkshop: () => setState(() {
+                  _onMap = false;
+                  _inWorkshop = true;
                 }),
               )
             : _inLocomotive

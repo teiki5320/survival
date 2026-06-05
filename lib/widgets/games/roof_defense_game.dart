@@ -160,18 +160,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _meleePeriod = 1.1; // un coup au train toutes les ~1.1s
   static const int _campaignWaves = 5;
 
-  // --- Améliorations d'atelier (clé -> (libellé, desc, coûts par niveau)) ---
-  static const Map<String, (String, String, List<int>)> _shopDefs = {
-    'dmg': ('Cailloux plus durs', 'Dégâts de base +1', [40, 80, 140, 220]),
-    'hearts': ('Blindage du train', 'Cœur de départ +1', [50, 100, 170, 260]),
-    'range': ('Meilleure fronde', 'Portée/vitesse +8%', [35, 70, 120]),
-    'stones': ('Double charge', 'Démarre avec +1 pierre', [120, 260]),
-    'choices': ('Plus de choix', '4 cartes de renfort', [150]),
-    // Méta-progression "transformative" : débloque des MÉCANIQUES, pas des %.
-    'magnet': ('Aimant à ferraille', 'Ramasse le butin tout seul', [120]),
-    'shield': ('Bouclier de wagon', 'Encaisse 1 coup gratuit/vague', [160, 300]),
-    'bomb': ('Bombe de secours', 'Frappe TOUT l\'écran (1/vague)', [200]),
-  };
+  // --- Améliorations d'atelier : défs partagées dans GameState ---
+  static const Map<String, (String, String, List<int>)> _shopDefs =
+      GameState.shootShopDefs;
 
   static const Map<String, (String, String, String)> _perkData = {
     'stone': ('🪨', '+1 pierre', 'Un caillou de plus par tir'),
@@ -2018,11 +2009,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           ),
           ElevatedButton(
             onPressed: canBuy
-                ? () => setState(() {
-                      gs.scrap -= cost;
-                      gs.shootUpgrades[key] = lvl + 1;
-                      gs.save();
-                    })
+                ? () => setState(() => gs.buyShootUpgrade(key))
                 : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE8B96B),

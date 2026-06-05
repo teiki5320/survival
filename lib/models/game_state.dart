@@ -206,6 +206,34 @@ class GameState extends ChangeNotifier {
   int shootBestScore = 0; // record en mode survie
   int scrap = 0; // ferraille (monnaie du mini-jeu)
   Map<String, int> shootUpgrades = {}; // niveaux des améliorations d'atelier
+
+  // Définitions de l'atelier (clé -> (libellé, desc, coûts par niveau)).
+  // Partagé entre le combat et l'écran Atelier ouvert depuis la map.
+  static const Map<String, (String, String, List<int>)> shootShopDefs = {
+    'dmg': ('Cailloux plus durs', 'Dégâts de base +1', [40, 80, 140, 220]),
+    'hearts': ('Blindage du train', 'Cœur de départ +1', [50, 100, 170, 260]),
+    'range': ('Meilleure fronde', 'Portée/vitesse +8%', [35, 70, 120]),
+    'stones': ('Double charge', 'Démarre avec +1 pierre', [120, 260]),
+    'choices': ('Plus de choix', '4 cartes de renfort', [150]),
+    'magnet': ('Aimant à ferraille', 'Ramasse le butin tout seul', [120]),
+    'shield': ('Bouclier de wagon', 'Encaisse 1 coup gratuit/vague', [160, 300]),
+    'bomb': ('Bombe de secours', 'Frappe TOUT l\'écran (1/vague)', [200]),
+  };
+
+  /// Achète une amélioration d'atelier (paie en ferraille). Renvoie true si OK.
+  bool buyShootUpgrade(String key) {
+    final def = shootShopDefs[key];
+    if (def == null) return false;
+    final lvl = shootUpgrades[key] ?? 0;
+    if (lvl >= def.$3.length) return false; // déjà au max
+    final cost = def.$3[lvl];
+    if (scrap < cost) return false;
+    scrap -= cost;
+    shootUpgrades[key] = lvl + 1;
+    notifyListeners();
+    save();
+    return true;
+  }
   // Meilleur score de combat (/100) par gare (index 0-based) : méta-progression
   // "atteindre 100% sur chaque gare en ~20 parties".
   Map<int, int> gareBestScore = {};

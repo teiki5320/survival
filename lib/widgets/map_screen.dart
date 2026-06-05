@@ -172,11 +172,19 @@ class _ArcPath {
 // ---------------------------------------------------------------------------
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.onClose, this.onGareSelected});
+  const MapScreen({
+    super.key,
+    required this.onClose,
+    this.onGareSelected,
+    this.onOpenWorkshop,
+  });
   final VoidCallback onClose;
 
   /// Tap sur une gare -> lance le combat de cette gare (la map = le menu).
   final void Function(int gareIndex)? onGareSelected;
+
+  /// Ouvre l'atelier & quotidien (méta-progression hors-combat).
+  final VoidCallback? onOpenWorkshop;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -251,6 +259,10 @@ class _MapScreenState extends State<MapScreen>
                       child: const Icon(Icons.close),
                     ),
                     const SizedBox(height: 8),
+                    if (widget.onOpenWorkshop != null) ...[
+                      _WorkshopFab(onPressed: widget.onOpenWorkshop!),
+                      const SizedBox(height: 8),
+                    ],
                     FloatingActionButton.small(
                       heroTag: 'map_adjust',
                       tooltip: 'Placer les gares',
@@ -835,6 +847,47 @@ class _MapStatsBar extends StatelessWidget {
         emojiSize: 20,
         mainAxisSize: MainAxisSize.min,
       ),
+    );
+  }
+}
+
+/// FAB "Atelier & Quotidien" avec une pastille verte quand un coffre ou une
+/// mission journalière est réclamable (incitation à revenir).
+class _WorkshopFab extends StatelessWidget {
+  const _WorkshopFab({required this.onPressed});
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final gs = GameState.instance;
+    final hasReward = gs.dailyChestAvailable ||
+        GameState.dailyMissions.keys.any(gs.dailyReady);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        FloatingActionButton.small(
+          heroTag: 'map_workshop',
+          tooltip: 'Atelier & quotidien',
+          backgroundColor: const Color(0xFF3A4656),
+          foregroundColor: Colors.white,
+          onPressed: onPressed,
+          child: const Icon(Icons.build),
+        ),
+        if (hasReward)
+          Positioned(
+            right: -1,
+            top: -1,
+            child: Container(
+              width: 13,
+              height: 13,
+              decoration: BoxDecoration(
+                color: const Color(0xFF5BD16A),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF1A1410), width: 2),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
