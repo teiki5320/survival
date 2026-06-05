@@ -892,6 +892,106 @@ class _WorkshopFab extends StatelessWidget {
   }
 }
 
+/// Mini-carte du parcours : réutilise le décor de la vraie map + son tracé
+/// en BOUCLE (ronde) + les gares, à afficher en petit (ex. carte accrochée au
+/// mur du wagon). Si [aged], applique un filtre sépia + vignette "vieilli".
+class MiniRouteMap extends StatelessWidget {
+  const MiniRouteMap({super.key, this.aged = true});
+  final bool aged;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget map = Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          'assets/background/map_route.png',
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) =>
+              const ColoredBox(color: Color(0xFFB8945C)),
+        ),
+        CustomPaint(painter: _MiniRoutePainter()),
+      ],
+    );
+    if (aged) {
+      // Sépia.
+      map = ColorFiltered(
+        colorFilter: const ColorFilter.matrix(<double>[
+          0.393, 0.769, 0.189, 0, 0, //
+          0.349, 0.686, 0.168, 0, 0, //
+          0.272, 0.534, 0.131, 0, 0, //
+          0, 0, 0, 1, 0, //
+        ]),
+        child: map,
+      );
+      // Vignette sombre + léger voile ambré (papier jauni).
+      map = Stack(
+        fit: StackFit.expand,
+        children: [
+          map,
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                radius: 0.95,
+                colors: [Color(0x00000000), Color(0x773A2410)],
+              ),
+            ),
+          ),
+          const ColoredBox(color: Color(0x1FA8721E)),
+        ],
+      );
+    }
+    return map;
+  }
+}
+
+class _MiniRoutePainter extends CustomPainter {
+  static final _ArcPath _path = _ArcPath(_buildSpline(_trackPoints));
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pts = _path.points;
+    if (pts.isEmpty) return;
+    final loop = Path()
+      ..moveTo(pts.first.dx * size.width, pts.first.dy * size.height);
+    for (final pt in pts.skip(1)) {
+      loop.lineTo(pt.dx * size.width, pt.dy * size.height);
+    }
+    loop.close();
+    // Liseré clair sous le tracé (lisibilité sur le décor).
+    canvas.drawPath(
+      loop,
+      Paint()
+        ..color = const Color(0x66F3E2C0)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.shortestSide * 0.03
+        ..strokeJoin = StrokeJoin.round,
+    );
+    // Tracé du rail en boucle.
+    canvas.drawPath(
+      loop,
+      Paint()
+        ..color = const Color(0xDD4A2F18)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = size.shortestSide * 0.016
+        ..strokeJoin = StrokeJoin.round,
+    );
+    // Gares (points rouges).
+    final dot = Paint()..color = const Color(0xFFC8412A);
+    for (final t in kGarePositions) {
+      final o = _path.at(t);
+      canvas.drawCircle(
+        Offset(o.dx * size.width, o.dy * size.height),
+        size.shortestSide * 0.018,
+        dot,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MiniRoutePainter old) => false;
+}
+
 class _TrainZoneHUD extends StatelessWidget {
   const _TrainZoneHUD({required this.path, required this.displayPosition});
   final _ArcPath path;

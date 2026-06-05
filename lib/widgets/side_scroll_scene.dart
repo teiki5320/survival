@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import '../data/anim_metrics.dart';
 import '../models/game_state.dart';
 import 'atmosphere.dart';
+import 'map_screen.dart';
 import 'train_rocking.dart';
 
 /// Side-scroller wagon scene.
@@ -259,7 +260,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'commode':  _PropPos(0.539, 0.571, 0.139),
     'bowl':     _PropPos(0.481, 0.669, 0.080),
     // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
-    'wallmap':  _PropPos(0.205, 0.300, 0.150),
+    // Format paysage (la map est plus large que haute).
+    'wallmap':  _PropPos(0.205, 0.300, 0.135, 0.185),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
@@ -2079,34 +2081,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // asset_bed / asset_filter / asset_hydro sont déjà posés dans cards_data).
   static const bool _showAllProps = true;
 
-  // Carte dessinée (placeholder tant que l'asset wallmap.png n'est pas fourni).
-  Widget _wallMapPlaceholder() {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFE9D2A8),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF5A3E22), width: 3),
-        boxShadow: const [
-          BoxShadow(color: Color(0x66000000), blurRadius: 6, offset: Offset(0, 3)),
-        ],
-      ),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.map, color: Color(0xFF7A5230), size: 22),
-            Text('CARTE',
-                style: TextStyle(
-                    color: Color(0xFF7A5230),
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1)),
-          ],
-        ),
-      ),
-    );
-  }
-
   bool _propUnlocked(String key) {
     if (_showAllProps) return true;
     final f = GameState.instance.cardFlags;
@@ -2177,14 +2151,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
 
-    // Carte murale : tap = ouvre la map (le "menu" du jeu). Affiche l'asset
-    // wallmap.png s'il existe, sinon un cadre/carte dessiné (placeholder) pour
-    // que le prop soit déjà fonctionnel avant que l'image ne soit fournie.
+    // Carte murale : tap = ouvre la map (le "menu" du jeu). On réutilise la
+    // VRAIE map (décor + tracé en boucle + gares) en miniature, avec un effet
+    // sépia/vieilli, encadrée d'un cadre bois.
     if (def.key == 'wallmap') {
-      final mapWidget = Image.asset(
-        'assets/objects/wallmap.png',
-        fit: boxFit,
-        errorBuilder: (_, __, ___) => _wallMapPlaceholder(),
+      final mapWidget = Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: const Color(0xFF5A3E22),
+          borderRadius: BorderRadius.circular(3),
+          border: Border.all(color: const Color(0xFF3A2614), width: 1),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x66000000), blurRadius: 5, offset: Offset(0, 2)),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: const MiniRouteMap(aged: true),
+        ),
       );
       return Positioned(
         left: left,
