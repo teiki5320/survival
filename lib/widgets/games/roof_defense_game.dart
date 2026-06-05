@@ -156,12 +156,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _dieAnim = 0.9;
   static const double _pillFeet = 0.865;
   static const double _pillContentH = 0.73;
-  static const double _bruteStep = 0.18;
   static const double _bruteAtkDur = 0.8;
   static const int _bruteHp = 4;
-  static const double _throwRange = 0.55;
   static const double _throwPeriod = 1.3;
-  static const double _meleePeriod = 1.1; // un coup au train toutes les ~1.1s
   static const int _campaignWaves = 5;
 
   // --- Améliorations d'atelier : défs partagées dans GameState ---
@@ -266,6 +263,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   double _S = 1, _ox = 0, _oy = 0;
   Duration _last = Duration.zero;
+
+  // --- Caméra (style Swamp Attack) : zoom + suit la pierre puis revient ---
+  static const double _zoom = 1.35; // grossissement vs "vue de loin"
+  static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
+  double _camX = 0; // centre du viewport, en unités-x de scène
+  double _camHome = 0; // position de repos (train ~ gauche)
+  double _camTarget = 0;
+  double _camMin = 0, _camMax = 0;
+  double _camHold = 0; // maintien sur l'impact avant de revenir
+  bool _camInit = false;
 
   bool get _explosiveWeapon => GameState.instance.shootWeaponLevel >= 3;
   double get _zoneSpeed => GameState.instance.inColdZone ? 1.18 : 1.0;
@@ -382,23 +389,22 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // Config (nombre, vitesse, intervalle) de la vague courante.
   (int, double, double) _waveConfig() {
     if (_mode == _Mode.campaign) {
-      // Vagues plus LONGUES (plus d'ennemis) + bonus réduits (demande user :
-      // « vagues trop courtes, bonus trop importants »). Calibré par simulation.
+      // Pillards STATIQUES : counts = nombre de pillards postés (ils restent et
+      // ripostent), interval = cadence d'apparition. (speed inutilisé.)
       const waves = [
-        (8, 0.16, 0.78),
-        (13, 0.23, 0.62),
-        (18, 0.33, 0.48),
-        (24, 0.45, 0.38),
-        (30, 0.58, 0.30),
+        (3, 0.0, 1.3),
+        (4, 0.0, 1.2),
+        (6, 0.0, 1.1),
+        (7, 0.0, 1.0),
+        (9, 0.0, 0.9),
       ];
       return waves[_wave.clamp(0, waves.length - 1)];
     }
-    // Survie : montée infinie.
+    // Survie : montée infinie (de plus en plus de pillards postés).
     final i = _wave;
-    final count = 4 + i * 2;
-    final speed = (0.10 + i * 0.025).clamp(0.10, 0.55);
-    final interval = (1.10 - i * 0.05).clamp(0.35, 1.10);
-    return (count, speed.toDouble(), interval.toDouble());
+    final count = 3 + (i * 1.5).round();
+    final interval = (1.20 - i * 0.05).clamp(0.6, 1.20);
+    return (count, 0.0, interval.toDouble());
   }
 
   bool get _isLastWave =>
@@ -483,6 +489,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _updateProjectiles(dt);
       _updateLoot(dt);
       _updateFires(dt);
+      _updateCamera(dt);
       if (_toSpawn == 0 && _enemies.isEmpty && _banner <= 0) {
         _endWave();
       }
@@ -496,7 +503,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   void _updateEnemies(double dt) {
-    final throwP = _storm ? _throwPeriod * 0.7 : _throwPeriod;
     for (final e in _enemies) {
       if (e.dying) {
         e.dieT -= dt;
@@ -504,82 +510,42 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
       e.anim += dt;
       if (e.slowT > 0) e.slowT -= dt;
-      final spd = e.slowT > 0 ? e.speed * 0.4 : e.speed;
 
-      // Corps à corps : arrivé au wagon, le pillard reste et frappe le train.
-      if (e.melee) {
+      // Pillard doré : posté un temps limité, puis il s'enfuit avec le magot
+      // (jackpot perdu) -> il faut l'abattre vite.
+      if (e.golden) {
         e.meleeT -= dt;
         if (e.meleeT <= 0) {
-          _damageTrain(amount: e.type == _PillType.boss ? 2 : 1);
-          e.meleeT = _meleePeriod;
-          _shake = math.max(_shake, 0.22);
-        }
-        continue;
-      }
-
-      switch (e.type) {
-        case _PillType.basic:
-          e.x -= spd * dt;
-        case _PillType.brute:
-        case _PillType.boss:
-          // Avance + coup de hache périodique ; le boss lance aussi.
-          if (e.attacking) {
-            e.attackT += dt;
-            if (e.attackT >= _bruteAtkDur) {
-              e.attacking = false;
-              e.lastAtkX = e.x;
-            }
-          } else {
-            e.x -= spd * dt;
-            if (e.lastAtkX - e.x >= _bruteStep) {
-              e.attacking = true;
-              e.attackT = 0;
-            }
-          }
-          if (e.type == _PillType.boss) {
-            e.bossThrowT -= dt;
-            if (e.bossThrowT <= 0) {
-              e.bossThrowT = 2.2;
-              _enemyShots.add(_EnemyShot(
-                Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.6),
-                const Offset(-1.2, -0.4),
-              ));
-            }
-          }
-        case _PillType.lanceur:
-          if (e.x > _trainEdgeX + _throwRange) {
-            e.x -= spd * dt;
-          } else {
-            e.throwing = true;
-            e.throwT += dt;
-            final phase = e.throwT % throwP;
-            if (phase >= throwP * 0.55 && !e.threwThisCycle) {
-              e.threwThisCycle = true;
-              final n = (_storm && _rng.nextDouble() < 0.4) ? 2 : 1; // volée
-              for (int k = 0; k < n; k++) {
-                _enemyShots.add(_EnemyShot(
-                  Offset(e.x - e.height * 0.20, e.feetY - e.height * 0.55),
-                  Offset(-1.15, -0.35 - k * 0.12),
-                ));
-              }
-            }
-            if (phase < throwP * 0.55) e.threwThisCycle = false;
-          }
-      }
-      // Atteint le wagon -> passe en corps à corps (sauf lanceur, à distance).
-      if (e.type != _PillType.lanceur && e.x <= _trainEdgeX) {
-        if (e.golden) {
-          // Le pillard doré ne frappe pas : il rafle et s'enfuit. Jackpot
-          // perdu si on ne l'a pas abattu à temps -> tension "vite, tue-le".
           e.dying = true;
           e.dieT = 0;
           _floats.add(_FloatText(Offset(e.x, e.feetY - e.height * 0.7),
               'Enfui ! 🔩', const Color(0xFFE2A33A)));
           continue;
         }
-        e.x = _trainEdgeX;
-        e.melee = true;
-        e.meleeT = 0.3;
+      }
+
+      // Pillards STATIQUES : ils restent au loin et RIPOSTENT en lançant des
+      // projectiles sur le train, par intervalles (avec un bref élan animé).
+      final base = e.type == _PillType.brute
+          ? 2.6
+          : (e.type == _PillType.boss ? 1.6 : 1.8);
+      final period = (_storm ? base * 0.75 : base) * (e.slowT > 0 ? 1.8 : 1.0);
+      if (e.throwing) {
+        e.attackT += dt;
+        if (e.attackT >= _bruteAtkDur) e.throwing = false;
+      }
+      e.throwT += dt;
+      if (e.throwT >= period) {
+        e.throwT = 0;
+        e.throwing = true;
+        e.attackT = 0;
+        final n = e.type == _PillType.boss ? 2 : 1;
+        for (int k = 0; k < n; k++) {
+          _enemyShots.add(_EnemyShot(
+            Offset(e.x - e.height * 0.20, e.feetY - e.height * 0.55),
+            Offset(-1.15, -0.35 - k * 0.12),
+          ));
+        }
       }
     }
     _enemies.removeWhere((e) => e.dying && e.dieT <= 0);
@@ -724,6 +690,28 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _fires.removeWhere((p) => p.life <= 0);
   }
 
+  // Caméra : suit la pierre en vol (la plus avancée), marque un temps sur
+  // l'impact, puis revient en douceur sur le train.
+  void _updateCamera(double dt) {
+    _Stone? lead;
+    for (final s in _stones) {
+      if (s.pos.dx < -90) continue;
+      if (lead == null || s.pos.dx > lead.pos.dx) lead = s;
+    }
+    if (lead != null) {
+      _camTarget = lead.pos.dx;
+      _camHold = 0.45;
+    } else if (_camHold > 0) {
+      _camHold -= dt;
+    } else {
+      _camTarget = _camHome;
+    }
+    if (_camMax > _camMin) _camTarget = _camTarget.clamp(_camMin, _camMax);
+    // lissage exponentiel (indépendant du framerate)
+    final k = 1 - math.exp(-7.0 * dt);
+    _camX += (_camTarget - _camX) * k;
+  }
+
   void _damageTrain({int amount = 1}) {
     // Bouclier de wagon : absorbe entièrement un coup (consomme 1 charge).
     if (_shield > 0) {
@@ -855,29 +843,35 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   void _spawnEnemy(double baseSpeed) {
     final type = _pickType();
-    final feetY = _groundY + (_rng.nextDouble() - 0.5) * 0.02;
+    final feetY = _groundY + (_rng.nextDouble() - 0.5) * 0.03;
     final anim = _rng.nextDouble() * 2;
-    const x0 = _imgA + 0.14;
+    // Posté STATIQUE au loin, dans la bande visible au repos (à droite du
+    // train). La caméra suivra la pierre pour les viser de près.
+    final right = _camHome + _camMin; // bord droit visible au repos
+    final lo = math.min(_camHome + 0.35, right - 0.2);
+    final x = (lo + _rng.nextDouble() * math.max(0.12, right - 0.12 - lo))
+        .clamp(0.9, _imgA - 0.1);
     switch (type) {
       case _PillType.brute:
         _enemies.add(_Enemy(
-          type: type, x: x0, feetY: feetY,
-          speed: baseSpeed * 0.45, height: 0.22, anim: anim, hp: _bruteHp,
-        )..lastAtkX = x0);
+          type: type, x: x, feetY: feetY,
+          speed: 0, height: 0.22, anim: anim, hp: _bruteHp,
+        )..throwT = _rng.nextDouble() * 2.0);
       case _PillType.lanceur:
         _enemies.add(_Enemy(
-          type: type, x: x0, feetY: feetY,
-          speed: baseSpeed * 0.9, height: 0.16, anim: anim,
-        ));
+          type: type, x: x, feetY: feetY,
+          speed: 0, height: 0.17, anim: anim,
+        )..throwT = _rng.nextDouble() * 1.5);
       case _PillType.basic:
-        // Pillard doré rare : rapide, fragile, jackpot de ferraille (mais il
-        // s'enfuit s'il atteint le train -> course contre la montre).
+        // Pillard doré rare : jackpot de ferraille, mais il décampe au bout de
+        // quelques secondes -> il faut l'abattre vite.
         final golden = _wave >= 1 && _rng.nextDouble() < 0.08;
         _enemies.add(_Enemy(
-          type: type, x: x0, feetY: feetY,
-          speed: baseSpeed * (golden ? 1.5 : (0.85 + _rng.nextDouble() * 0.3)),
-          height: 0.15, anim: anim, golden: golden,
-        ));
+          type: type, x: x, feetY: feetY,
+          speed: 0, height: 0.16, anim: anim, golden: golden,
+        )
+          ..throwT = _rng.nextDouble() * 1.5
+          ..meleeT = 5.5);
       case _PillType.boss:
         return; // le boss n'apparaît pas par le spawn normal
     }
@@ -899,15 +893,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   void _spawnBoss() {
     final hp = 22 + (_mode == _Mode.endless ? _wave * 2 : 0);
+    final right = _camHome + _camMin;
+    final x = (right - 0.25).clamp(0.9, _imgA - 0.15);
     _enemies.add(_Enemy(
       type: _PillType.boss,
-      x: _imgA + 0.2,
+      x: x,
       feetY: _groundY + 0.01,
-      speed: 0.06,
+      speed: 0,
       height: 0.30,
       anim: 0,
       hp: hp,
-    )..lastAtkX = _imgA + 0.2);
+    )..throwT = 0.5);
     _floats.add(_FloatText(Offset(_imgA * 0.5, 0.30), '⚠ CHEF PILLARD',
         const Color(0xFFE2614A),
         big: true));
@@ -1155,11 +1151,29 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       body: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          final scale = math.min(w / _imgA, h);
+          // Caméra zoomée : 1 unité = hauteur écran × zoom. Le décor (plus
+          // large que l'écran) est panoté horizontalement par la caméra.
+          final scale = h * _zoom;
           _S = scale;
           final dispW = _imgA * scale, dispH = scale;
-          _ox = (w - dispW) / 2;
-          _oy = (h - dispH) / 2;
+          final viewHalf = (w / scale) / 2;
+          _camMin = viewHalf;
+          _camMax = math.max(viewHalf, _imgA - viewHalf);
+          // Repos : train (x≈0.24) calé vers la gauche.
+          _camHome = (viewHalf).clamp(_camMin, _camMax).toDouble();
+          if (!_camInit) {
+            _camX = _camTarget = _camHome;
+            _camInit = true;
+          }
+          _camX = _camX.clamp(_camMin, _camMax);
+          // Décalage horizontal du gameplay (suit la caméra 1:1).
+          _ox = w / 2 - _camX * scale;
+          // Ancre le sol vers le bas (le ciel du décor est rogné par le zoom).
+          _oy = h - dispH;
+          // Décor en parallaxe : recule moins vite que le gameplay quand la
+          // caméra s'éloigne du repos (profondeur). Aligné au repos.
+          final camBg = _camHome + (_camX - _camHome) * _kBg;
+          final oxDecor = w / 2 - camBg * scale;
           Offset u2p(Offset u) => Offset(_ox + u.dx * _S, _oy + u.dy * _S);
           final canAim = _phase == _Phase.playing && !_adjust && _banner <= 0;
           final canTap = _phase == _Phase.playing && !_adjust;
@@ -1211,10 +1225,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                     ),
                   ),
-                  Positioned.fill(
+                  Positioned(
+                    left: oxDecor,
+                    top: _oy,
+                    width: dispW,
+                    height: dispH,
                     child: Image(
                       image: AssetImage(_decorAsset),
-                      fit: BoxFit.contain,
+                      fit: BoxFit.fill,
                     ),
                   ),
 
@@ -1223,15 +1241,20 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   if (_barrel != null) _buildBarrel(_barrel!),
                   for (final e in _enemies) _buildEnemy(e),
 
-                  // Occlusion wagon.
-                  Positioned.fill(
+                  // Occlusion wagon : redessine la bande gauche du décor (le
+                  // train) par-dessus les pierres/pillards passés derrière.
+                  Positioned(
+                    left: oxDecor,
+                    top: _oy,
+                    width: dispW,
+                    height: dispH,
                     child: IgnorePointer(
                       child: ClipRect(
                         clipper: _RectClip(Rect.fromLTWH(
-                            _ox, _oy, _wagonClipFrac * dispW, dispH)),
+                            0, 0, _wagonClipFrac * dispW, dispH)),
                         child: Image(
                           image: AssetImage(_decorAsset),
-                          fit: BoxFit.contain,
+                          fit: BoxFit.fill,
                         ),
                       ),
                     ),
