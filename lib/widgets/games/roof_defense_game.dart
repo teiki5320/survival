@@ -2480,16 +2480,18 @@ class _ShotPainter extends CustomPainter {
         );
         continue;
       }
-      final r = (0.012 + 0.05 * t) * scale;
+      // Impact discret : un petit éclat, pas un gros "boum" (et ça ne grossit
+      // plus avec le zoom).
+      final r = (0.004 + 0.012 * t) * scale;
       final ringColor =
           im.crit ? const Color(0xFFFFD24A) : const Color(0xFFFFE2B0);
       canvas.drawCircle(
         c,
-        r * (im.crit ? 1.5 : 1.0),
+        r * (im.crit ? 1.25 : 1.0),
         Paint()
           ..color = ringColor.withValues(alpha: 0.8 * a)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = im.crit ? 3.5 : 2.5,
+          ..strokeWidth = im.crit ? 2.0 : 1.5,
       );
     }
 
