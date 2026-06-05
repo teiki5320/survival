@@ -14,8 +14,12 @@ import '../../models/game_state.dart';
 /// 1 unité = hauteur affichée `_S`) -> tout reste collé à la gare quel que soit
 /// l'écran (décor en BoxFit.contain).
 class RoofDefenseGame extends StatefulWidget {
-  const RoofDefenseGame({super.key, required this.onExit});
+  const RoofDefenseGame({super.key, required this.onExit, this.onResult});
   final VoidCallback onExit;
+
+  /// Si fourni : combat de GARE. Le jeu démarre direct en campagne (pas de
+  /// menu) et appelle onResult(score sur 100) quand le joueur valide.
+  final void Function(int score100)? onResult;
 
   @override
   State<RoofDefenseGame> createState() => _RoofDefenseGameState();
@@ -134,9 +138,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   late final Ticker _ticker;
   final _rng = math.Random();
 
-  static const double _imgA = 1376 / 768;
-  static const double _wagonClipFrac = 0.22;
-  static const double _trainEdgeX = 0.30;
+  static const double _imgA = 1584 / 672; // décor "vue de loin"
+  static const double _wagonClipFrac = 0.12; // le wagon est petit, à gauche
+  static const double _trainEdgeX = 0.24;
 
   static const double _g = 1.9;
   static const double _power = 5.6;
@@ -243,7 +247,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   bool _storm = false; // vague de tempête : voile sombre + vent fort
 
   // placement
-  double _muzX = 0.30, _muzY = 0.55, _groundY = 0.80;
+  double _muzX = 0.16, _muzY = 0.64, _groundY = 0.76;
   Offset get _muzzle => Offset(_muzX, _muzY);
 
   // visée
@@ -782,12 +786,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       case _PillType.brute:
         _enemies.add(_Enemy(
           type: type, x: x0, feetY: feetY,
-          speed: baseSpeed * 0.45, height: 0.30, anim: anim, hp: _bruteHp,
+          speed: baseSpeed * 0.45, height: 0.22, anim: anim, hp: _bruteHp,
         )..lastAtkX = x0);
       case _PillType.lanceur:
         _enemies.add(_Enemy(
           type: type, x: x0, feetY: feetY,
-          speed: baseSpeed * 0.9, height: 0.22, anim: anim,
+          speed: baseSpeed * 0.9, height: 0.16, anim: anim,
         ));
       case _PillType.basic:
         // Pillard doré rare : rapide, fragile, jackpot de ferraille.
@@ -795,7 +799,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _enemies.add(_Enemy(
           type: type, x: x0, feetY: feetY,
           speed: baseSpeed * (golden ? 1.5 : (0.85 + _rng.nextDouble() * 0.3)),
-          height: 0.21, anim: anim, golden: golden,
+          height: 0.15, anim: anim, golden: golden,
         ));
       case _PillType.boss:
         return; // le boss n'apparaît pas par le spawn normal
@@ -823,7 +827,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       x: _imgA + 0.2,
       feetY: _groundY + 0.01,
       speed: 0.06,
-      height: 0.42,
+      height: 0.30,
       anim: 0,
       hp: hp,
     )..lastAtkX = _imgA + 0.2);
