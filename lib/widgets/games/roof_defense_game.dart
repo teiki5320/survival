@@ -98,6 +98,7 @@ class _Loot {
   Offset vel;
   final int value; // ferraille
   bool landed = false;
+  double life = 0; // temps restant pour la ramasser (3 s après l'atterrissage)
 }
 
 class _FirePatch {
@@ -577,17 +578,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   void _updateLoot(double dt) {
     for (final l in _loot) {
-      if (l.landed) continue;
+      if (l.landed) {
+        l.life -= dt; // décompte des 3 s : si on ne tape pas, c'est perdu
+        continue;
+      }
       l.vel = l.vel + Offset(0, _g * dt);
       l.pos = l.pos + l.vel * dt;
       if (l.pos.dy >= _groundY) {
         l.landed = true;
-        _runScrap += l.value;
-        _floats.add(_FloatText(Offset(l.pos.dx, _groundY - 0.05),
-            '+${l.value}🔩', const Color(0xFFE8B96B)));
+        l.life = 3.0;
+        l.pos = Offset(l.pos.dx, _groundY);
       }
     }
-    _loot.removeWhere((l) => l.landed);
+    _loot.removeWhere((l) => l.landed && l.life <= 0);
   }
 
   void _updateFires(double dt) {
@@ -669,11 +672,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     // Butin.
     final v = e.type == _PillType.brute
         ? 5
-        : (e.type == _PillType.lanceur ? 2 : (_rng.nextDouble() < 0.5 ? 1 : 0));
-    if (v > 0) {
-      _loot.add(_Loot(Offset(e.x, e.feetY - e.height * 0.5),
-          Offset((_rng.nextDouble() - 0.5) * 0.3, -0.4), v));
-    }
+        : (e.type == _PillType.lanceur ? 2 : 1);
+    _loot.add(_Loot(Offset(e.x, e.feetY - e.height * 0.5),
+        Offset((_rng.nextDouble() - 0.5) * 0.3, -0.4), v));
     // Dernier de la vague -> ralenti.
     if (_toSpawn == 0 && !_enemies.any((x) => x != e && !x.dying)) {
       _slowmo = math.max(_slowmo, 0.7);
@@ -691,6 +692,28 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         e.hp = 0;
         _killEnemy(e);
       }
+    }
+  }
+
+  // Ramassage de la ferraille au tap (dans les 3 s après l'atterrissage).
+  void _collectAt(Offset local) {
+    final ux = (local.dx - _ox) / _S, uy = (local.dy - _oy) / _S;
+    _Loot? best;
+    double bd = 0.08; // rayon de collecte généreux (doigt)
+    for (final l in _loot) {
+      if (!l.landed) continue;
+      final d = (l.pos - Offset(ux, uy)).distance;
+      if (d < bd) {
+        bd = d;
+        best = l;
+      }
+    }
+    if (best != null) {
+      _runScrap += best.value;
+      _floats.add(_FloatText(Offset(best.pos.dx, _groundY - 0.05),
+          '+${best.value}🔩', const Color(0xFFE8B96B)));
+      _loot.remove(best);
+      setState(() {});
     }
   }
 
@@ -924,6 +947,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           _oy = (h - dispH) / 2;
           Offset u2p(Offset u) => Offset(_ox + u.dx * _S, _oy + u.dy * _S);
           final canAim = _phase == _Phase.playing && !_adjust && _banner <= 0;
+          final canTap = _phase == _Phase.playing && !_adjust;
           final shakeOffset = _shake > 0
               ? Offset(_rng.nextDouble() - 0.5, _rng.nextDouble() - 0.5) *
                   (_shake / 0.16) *
@@ -932,6 +956,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
+            onTapUp: canTap ? (d) => _collectAt(d.localPosition) : null,
             onPanStart: canAim
                 ? (d) {
                     _dragStart = d.localPosition;
@@ -1192,14 +1217,31 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   Widget _buildLoot(_Loot l) {
-    final s = 0.035 * _S;
+    final landed = l.landed;
+    final pulse = landed ? (1 + 0.12 * math.sin(l.life * 12)) : 1.0;
+    final s = (landed ? 0.052 * _S : 0.035 * _S) * pulse;
+    final op = (landed && l.life < 0.8) ? (l.life / 0.8).clamp(0.0, 1.0) : 1.0;
     return Positioned(
       left: _ox + l.pos.dx * _S - s / 2,
       top: _oy + l.pos.dy * _S - s / 2,
       width: s,
       height: s,
-      child: const IgnorePointer(
-        child: Text('🔩', style: TextStyle(fontSize: 16)),
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: op,
+          child: Container(
+            decoration: landed
+                ? BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0x33FFD24A),
+                    border:
+                        Border.all(color: const Color(0xCCE8B96B), width: 1.5),
+                  )
+                : null,
+            alignment: Alignment.center,
+            child: Text('🔩', style: TextStyle(fontSize: landed ? 15 : 12)),
+          ),
+        ),
       ),
     );
   }
