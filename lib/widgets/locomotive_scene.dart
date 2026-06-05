@@ -388,7 +388,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     final turned = _nightTint(Transform(
       alignment: Alignment.center,
       transform: Matrix4.identity()
-        ..setEntry(3, 2, 0.0012)
+        ..setEntry(3, 2, 0.0008)
         ..rotateY(_mapTurn),
       child: frame,
     ));

@@ -143,6 +143,9 @@ class GameState extends ChangeNotifier {
       locoMapCx = (data['locoMapCx'] as num?)?.toDouble() ?? locoMapCx;
       locoMapCy = (data['locoMapCy'] as num?)?.toDouble() ?? locoMapCy;
       locoMapW = (data['locoMapW'] as num?)?.toDouble() ?? locoMapW;
+      // Migration : les vieilles sauvegardes avaient une carte minuscule.
+      // On la ré-agrandit une fois pour qu'elle soit visible/manipulable.
+      if (locoMapW < 0.30) locoMapW = 0.5;
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
@@ -397,7 +400,7 @@ class GameState extends ChangeNotifier {
   /// Carte du voyage accrochée dans la LOCOMOTIVE : centre (cx,cy en fractions
   /// de la scène) + largeur (fraction de la largeur). Déplaçable + pinçable en
   /// mode ajuster, persistée.
-  double locoMapCx = 0.82, locoMapCy = 0.30, locoMapW = 0.34;
+  double locoMapCx = 0.82, locoMapCy = 0.30, locoMapW = 0.5;
   void setLocoMap(double cx, double cy, double w) {
     locoMapCx = cx.clamp(0.04, 0.96);
     locoMapCy = cy.clamp(0.04, 0.96);
