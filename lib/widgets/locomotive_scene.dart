@@ -97,7 +97,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // Ratio largeur/hauteur du cadre de la carte (paysage).
   static const double _mapAspect = 1.85;
   // Inclinaison 3/4 de la carte (rad) pour la coller au mur de droite.
-  static const double _mapTurn = 0.55;
+  static const double _mapTurn = 0.85;
 
 
   static const List<String> _coldHorizons = [
