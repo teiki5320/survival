@@ -178,7 +178,7 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.72.0+154` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.74.0+156` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
@@ -403,6 +403,21 @@ brancher sur l'histoire :
 **Reste à faire côté intégration** : boutique IAP (4,99 €=500 ferraille,
 confort seulement), brancher plus de gares sur le tier (gare 5 sœur, etc.),
 une **idée de combat distincte par gare**, et rebrancher `_showAllProps=false`.
+
+**✅ LA MAP EST LE MENU (2026-06-05, build 0.74.0)** :
+- **Taper une gare sur la map lance son combat** (`MapScreen.onGareSelected` →
+  `main` met `_shootFromGare=true` + `_shootGareIndex` → `RoofDefenseGame` en
+  mode gare → `applyCombatRewards` au retour → retour map). FAB `open_shoot`
+  **retiré**.
+- **Carte murale wagon 1** : prop `wallmap` dans `side_scroll_scene`
+  (`onOpenMap`), tap → ouvre la map. Asset attendu `assets/objects/wallmap.png`
+  (placeholder dessiné en attendant). FAB `open_map` gardé en secours pour
+  l'instant (à retirer quand la carte murale est validée).
+- **Atelier + Quotidien + Collection étoiles** rapatriés hors du menu combat
+  (devenu inaccessible) dans **`WorkshopScreen`** (`lib/widgets/workshop_screen.
+  dart`), ouvert par un FAB sur la map (pastille verte si coffre/mission dispo).
+  Défs d'atelier + achat centralisés dans `GameState.shootShopDefs` /
+  `buyShootUpgrade` (partagés combat ↔ workshop).
 
 ### Carte du monde
 
