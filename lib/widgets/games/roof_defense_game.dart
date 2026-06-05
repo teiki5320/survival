@@ -334,12 +334,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // Config (nombre, vitesse, intervalle) de la vague courante.
   (int, double, double) _waveConfig() {
     if (_mode == _Mode.campaign) {
+      // Difficulté calibrée par simulation (2000 runs/profil) : un joueur
+      // "correct" perd ~70% (pousse à upgrader à l'atelier = boucle addictive),
+      // un "bon" gagne ~90%, un "expert" gagne toujours. Le décor "vue de loin"
+      // allonge la distance, donc on monte la vitesse plus franchement.
       const waves = [
-        (5, 0.10, 1.05),
-        (8, 0.15, 0.85),
-        (11, 0.22, 0.70),
-        (14, 0.30, 0.56),
-        (18, 0.40, 0.46),
+        (6, 0.16, 0.80),
+        (10, 0.23, 0.64),
+        (14, 0.33, 0.48),
+        (18, 0.45, 0.38),
+        (23, 0.58, 0.30),
       ];
       return waves[_wave.clamp(0, waves.length - 1)];
     }

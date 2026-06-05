@@ -2065,7 +2065,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Props débloqués par l'histoire (choix de cartes -> apparaissent dans le
   // wagon = sentiment de progression). lit (gare 1), filtre (gare 4),
   // hydro (gare 10). Le reste est toujours présent.
+  //
+  // ⚠️ TEMPORAIRE : `_showAllProps` force l'affichage de TOUS les objets pour
+  // pouvoir vérifier que tout fonctionne. Repasser à `false` quand on voudra
+  // re-brancher l'apparition progressive des objets via l'histoire (les flags
+  // asset_bed / asset_filter / asset_hydro sont déjà posés dans cards_data).
+  static const bool _showAllProps = true;
+
   bool _propUnlocked(String key) {
+    if (_showAllProps) return true;
     final f = GameState.instance.cardFlags;
     switch (key) {
       case 'hydro':
@@ -2078,6 +2086,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   bool get _bedUnlocked =>
+      _showAllProps ||
       GameState.instance.cardFlags.contains('asset_bed');
 
   Widget _buildProp({
