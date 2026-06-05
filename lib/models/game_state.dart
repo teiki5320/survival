@@ -397,11 +397,11 @@ class GameState extends ChangeNotifier {
   /// Carte du voyage accrochée dans la LOCOMOTIVE : centre (cx,cy en fractions
   /// de la scène) + largeur (fraction de la largeur). Déplaçable + pinçable en
   /// mode ajuster, persistée.
-  double locoMapCx = 0.82, locoMapCy = 0.30, locoMapW = 0.20;
+  double locoMapCx = 0.82, locoMapCy = 0.30, locoMapW = 0.34;
   void setLocoMap(double cx, double cy, double w) {
     locoMapCx = cx.clamp(0.04, 0.96);
     locoMapCy = cy.clamp(0.04, 0.96);
-    locoMapW = w.clamp(0.06, 0.6);
+    locoMapW = w.clamp(0.08, 0.95);
     notifyListeners();
     save();
   }

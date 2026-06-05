@@ -399,25 +399,35 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       width: boxW,
       height: boxH,
       child: _mapAdjust
-          ? GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onScaleStart: (_) => _mapStartW = gs.locoMapW,
-              onScaleUpdate: (d) {
-                setState(() {
-                  gs.setLocoMap(
-                    gs.locoMapCx + d.focalPointDelta.dx / w,
-                    gs.locoMapCy + d.focalPointDelta.dy / h,
-                    d.scale != 1.0 ? _mapStartW * d.scale : gs.locoMapW,
-                  );
-                });
-              },
-              child: turned,
-            )
+          // En mode ajuster, le geste se fait sur TOUT l'écran (couche dédiée
+          // ci-dessous) : ici la carte n'est plus que visuelle.
+          ? IgnorePointer(child: turned)
           : GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: widget.onOpenMap,
               child: turned,
             ),
+    );
+  }
+
+  // Couche plein écran active en mode ajuster : pincer/déplacer n'importe où
+  // pour bouger + redimensionner la carte (pas besoin de viser la mini-carte).
+  Widget _mapAdjustLayer(double w, double h) {
+    final gs = GameState.instance;
+    return Positioned.fill(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onScaleStart: (_) => _mapStartW = gs.locoMapW,
+        onScaleUpdate: (d) {
+          setState(() {
+            gs.setLocoMap(
+              gs.locoMapCx + d.focalPointDelta.dx / w,
+              gs.locoMapCy + d.focalPointDelta.dy / h,
+              d.scale != 1.0 ? _mapStartW * d.scale : gs.locoMapW,
+            );
+          });
+        },
+      ),
     );
   }
 
@@ -601,6 +611,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                 ),
               ),
             ),
+            // Couche de geste plein écran (ajuster la carte partout).
+            if (_mapAdjust && widget.onOpenMap != null) _mapAdjustLayer(w, h),
             // HUD coordonnées de la carte (mode ajuster).
             if (_mapAdjust)
               Positioned(
