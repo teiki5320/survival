@@ -267,9 +267,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _S = 1, _ox = 0, _oy = 0;
   Duration _last = Duration.zero;
 
-  // --- Caméra (style Swamp Attack) : zoom + suit la pierre puis revient ---
-  static const double _zoom = 2.7; // gros plan train (le pillard est hors champ)
+  // --- Caméra (style Bowmasters) : serré sur le train au repos, RECULE
+  //     (dézoome) quand on tire pour cadrer train + pillard -> le projectile
+  //     reste toujours visible (pas de suivi serré). ---
+  static const double _zoomRest = 2.0; // gros plan train (ton tour, visée)
+  static const double _zoomWide = 1.0; // reculé : on voit tout le terrain
   static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
+  double _zoomCur = 2.0, _zoomTarget = 2.0;
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
   double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
   double _windowHalo = 0; // petit halo dans la fenêtre quand le pillard touche
@@ -286,7 +290,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _camHome = 0; // position de repos (train ~ gauche)
   double _camTarget = 0;
   double _camMin = 0, _camMax = 0;
-  double _camHold = 0; // maintien sur l'impact avant de revenir
   // Suivi vertical : la pierre lobée monte haut -> la caméra remonte pour la
   // garder à l'écran, puis redescend au repos.
   double _camY = 0, _camYTarget = 0, _camYHome = 0, _camYMin = 0, _camYMax = 0;
@@ -416,6 +419,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _enemyAiming = false;
       _enemyThrowing = false;
       _windowHalo = 0;
+      _zoomCur = _zoomTarget = _zoomRest;
       _phase = _Phase.playing;
       _banner = 1.8;
     }
@@ -844,41 +848,47 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (lead == null || s.pos.dx > lead.pos.dx) lead = s;
     }
     final eShot = _enemyShots.isNotEmpty ? _enemyShots.first : null;
-
-    // Point à suivre selon le moment : ma pierre, le projectile ennemi, le
-    // pillard pendant qu'il vise, sinon retour au train.
-    Offset? focus;
-    if (_camLaunchHold > 0) {
-      focus = Offset(_camHome, _camYHome); // on voit le départ de la fenêtre
-    } else if (lead != null) {
-      focus = lead.pos;
-      _camHold = 0.4;
-    } else if (eShot != null) {
-      focus = eShot.pos; // on suit le projectile ennemi qui revient
-      _camHold = 0.4;
-    } else if (_enemyAiming) {
-      _Enemy? e;
-      for (final x in _enemies) {
-        if (!x.dying) {
-          e = x;
-          break;
-        }
+    _Enemy? foe;
+    for (final e in _enemies) {
+      if (!e.dying) {
+        foe = e;
+        break;
       }
-      if (e != null) focus = Offset(e.x, e.feetY - e.height * 0.5);
-    } else if (_camHold > 0) {
-      _camHold -= dt; // garde la cible courante un instant
+    }
+    // Y a-t-il une action en cours (tir / riposte) ? -> on RECULE pour tout voir.
+    final flight = _camLaunchHold <= 0 &&
+        (lead != null || eShot != null || _enemyAiming || _enemyThrowing);
+
+    if (flight) {
+      // Reculé : cadre l'espace entre la fenêtre, le pillard et le projectile.
+      _zoomTarget = _zoomWide;
+      var lx = _muzX, rx = foe?.x ?? (_camHome + 1.0);
+      if (lead != null) {
+        lx = math.min(lx, lead.pos.dx);
+        rx = math.max(rx, lead.pos.dx);
+      }
+      if (eShot != null) {
+        lx = math.min(lx, eShot.pos.dx);
+        rx = math.max(rx, eShot.pos.dx);
+      }
+      _camTarget = (lx + rx) / 2;
+      // Vertical : un peu haut pour englober l'arc du lobé.
+      var ty = 0.5;
+      if (lead != null) ty = math.min(ty, lead.pos.dy - 0.05);
+      if (eShot != null) ty = math.min(ty, eShot.pos.dy - 0.05);
+      _camYTarget = ty;
     } else {
-      focus = Offset(_camHome, _camYHome);
+      // Repos / visée : gros plan sur le train.
+      _zoomTarget = _zoomRest;
+      _camTarget = _camHome;
+      _camYTarget = _camYHome;
     }
 
-    if (focus != null) {
-      _camTarget = focus.dx;
-      _camYTarget = math.min(_camYHome, focus.dy);
-    }
     if (_camMax > _camMin) _camTarget = _camTarget.clamp(_camMin, _camMax);
     if (_camYMax > _camYMin) _camYTarget = _camYTarget.clamp(_camYMin, _camYMax);
-    // Suivi doux et lent.
-    final k = 1 - math.exp(-5.5 * dt);
+    final k = 1 - math.exp(-5.0 * dt);
+    final kz = 1 - math.exp(-4.0 * dt);
+    _zoomCur += (_zoomTarget - _zoomCur) * kz;
     _camX += (_camTarget - _camX) * k;
     _camY += (_camYTarget - _camY) * k;
   }
@@ -1107,10 +1117,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   Offset _launchVel() {
     final pullPx = _dragStart - _dragNow;
     // Aide à la visée INDÉPENDANTE du zoom : on rapporte le glissement à la
-    // hauteur d'écran (= _S / _zoom), pas à l'échelle zoomée. Sinon plus on
+    // hauteur d'écran (= _S / _zoomCur), pas à l'échelle zoomée. Sinon plus on
     // zoome, moins le tir porte loin. La portée reste donc proportionnelle au
     // geste quel que soit le zoom.
-    final ref = _S / _zoom;
+    final ref = _S / _zoomCur;
     final pull = Offset(pullPx.dx / ref, pullPx.dy / ref);
     var v = pull * (_power * _powerMult);
     final maxs = _maxSpeed * _powerMult;
@@ -1346,17 +1356,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       body: LayoutBuilder(
         builder: (context, c) {
           final w = c.maxWidth, h = c.maxHeight;
-          // Caméra zoomée : 1 unité = hauteur écran × zoom. Le décor (plus
-          // large que l'écran) est panoté horizontalement par la caméra.
-          // Zoom + petit "punch" sur le coup fatal (finish cinématique).
-          final scale = h * _zoom * (1 + 0.06 * _camPunch);
+          // Caméra : 1 unité = hauteur écran × zoom courant (eased entre repos
+          // et reculé). + petit "punch" sur le coup fatal.
+          final scale = h * _zoomCur * (1 + 0.06 * _camPunch);
           _S = scale;
           final dispW = _imgA * scale, dispH = scale;
           final viewHalf = (w / scale) / 2;
           _camMin = viewHalf;
           _camMax = math.max(viewHalf, _imgA - viewHalf);
-          // Repos : train (x≈0.24) calé vers la gauche.
-          _camHome = (viewHalf).clamp(_camMin, _camMax).toDouble();
+          // Repos : train calé à gauche (centre = demi-vue au zoom de repos).
+          final restViewHalf = w / (2 * h * _zoomRest);
+          _camHome = restViewHalf.clamp(_camMin, _camMax).toDouble();
           // Bornes verticales : la scène fait 1 unité de haut.
           final viewHalfY = (h / scale) / 2;
           _camYMin = viewHalfY;
@@ -1498,6 +1508,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                     ),
 
+                  // Indicateur PUISSANCE / ANGLE pendant la visée (Bowmasters).
+                  if (_aiming && _phase == _Phase.playing) _powerAngleChip(u2p),
+
                   // Petit halo dans la fenêtre quand le pillard touche.
                   if (_windowHalo > 0) _buildWindowHalo(u2p),
 
@@ -1526,6 +1539,61 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   // ----- entités visuelles -----
+  // Pastille PUISSANCE / ANGLE pendant la visée (au-dessus de la fenêtre).
+  Widget _powerAngleChip(Offset Function(Offset) u2p) {
+    final v = _launchVel();
+    final maxs = _maxSpeed * _powerMult;
+    final powerPct = (v.distance / (maxs <= 0 ? 1 : maxs) * 100).clamp(0, 100).round();
+    final angle = (math.atan2(-v.dy, v.dx.abs() < 1e-4 ? 1e-4 : v.dx) * 180 / math.pi)
+        .clamp(-90, 90)
+        .round();
+    final c = u2p(_muzzle);
+    return Positioned(
+      left: c.dx - 70,
+      top: (c.dy - 0.22 * _S).clamp(8.0, double.infinity),
+      width: 140,
+      child: IgnorePointer(
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.92),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text('$powerPct%',
+                      style: const TextStyle(
+                          color: Color(0xFF5A3E8E),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800)),
+                  const Text('PUISSANCE',
+                      style: TextStyle(color: Color(0xFF8A7AA8), fontSize: 8)),
+                ]),
+                Container(
+                    width: 1,
+                    height: 26,
+                    margin: const EdgeInsets.symmetric(horizontal: 10),
+                    color: const Color(0x335A3E8E)),
+                Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text('$angle°',
+                      style: const TextStyle(
+                          color: Color(0xFF5A3E8E),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800)),
+                  const Text('ANGLE',
+                      style: TextStyle(color: Color(0xFF8A7AA8), fontSize: 8)),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // Petit halo lumineux À L'INTÉRIEUR de la fenêtre quand le pillard touche.
   // Discret : un point chaud qui pulse et s'éteint.
   Widget _buildWindowHalo(Offset Function(Offset) u2p) {
