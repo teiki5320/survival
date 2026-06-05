@@ -92,9 +92,10 @@ class _Stone {
 }
 
 class _EnemyShot {
-  _EnemyShot(this.pos, this.vel);
+  _EnemyShot(this.pos, this.vel, {this.harmless = false});
   Offset pos;
   Offset vel;
+  final bool harmless; // raté : tombe court, ne touche pas la fenêtre
 }
 
 class _Impact {
@@ -148,10 +149,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _wagonClipFrac = 0.12; // le wagon est petit, à gauche
   static const double _trainEdgeX = 0.24;
 
-  // Tir très ralenti (on suit la pierre tranquillement, façon lobé lent).
-  static const double _g = 0.5;
-  static const double _power = 3.4;
-  static const double _maxSpeed = 1.35;
+  // Tir hyper lent (gros lobé, on suit la pierre tout du long).
+  static const double _g = 0.32;
+  static const double _power = 2.7;
+  static const double _maxSpeed = 1.05;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
@@ -271,13 +272,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
   double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
-  double _windowFire = 0; // feu dans la fenêtre quand le pillard touche (sec)
+  double _windowHalo = 0; // petit halo dans la fenêtre quand le pillard touche
 
   // --- Mode DUEL de test (réglage du feeling) : 1 seul lanceur, 3 PV, on tire
   //     chacun son tour, il recule quand touché. À élargir une fois calé. ---
   static const bool _duelTest = true;
   bool _playerTurn = true; // le joueur peut tirer
   bool _awaitingStones = false; // on attend que la pierre du joueur retombe
+  bool _enemyAiming = false; // caméra recentrée sur le pillard, il vise
+  double _enemyAimT = 0; // télégraphe avant son tir
   bool _enemyThrowing = false; // le pillard riposte (son tour)
   double _camX = 0; // centre du viewport, en unités-x de scène
   double _camHome = 0; // position de repos (train ~ gauche)
@@ -410,7 +413,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _applyMeta();
       _playerTurn = true;
       _awaitingStones = false;
+      _enemyAiming = false;
       _enemyThrowing = false;
+      _windowHalo = 0;
       _phase = _Phase.playing;
       _banner = 1.8;
     }
@@ -546,7 +551,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_reloadTimer > 0) _reloadTimer -= dt;
     if (_shake > 0) _shake = (_shake - dt).clamp(0.0, 1.0);
     if (_camPunch > 0) _camPunch = (_camPunch - dt * 3.0).clamp(0.0, 1.0);
-    if (_windowFire > 0) _windowFire -= dt;
+    if (_windowHalo > 0) _windowHalo -= dt;
     setState(() {});
   }
 
@@ -626,11 +631,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       es.pos = es.pos + es.vel * dt;
     }
     _enemyShots.removeWhere((es) {
+      if (es.harmless) {
+        // Raté : tombe au sol (petit éclat), aucun dégât.
+        if (es.pos.dy >= _groundY) {
+          _impacts.add(_Impact(Offset(es.pos.dx, _groundY)));
+          return true;
+        }
+        return es.pos.dx < -0.2 || es.pos.dy > 1.15;
+      }
       if (es.pos.dx <= _trainEdgeX) {
-        // Touché à la fenêtre : feu dans la fenêtre + un cœur en moins.
+        // Touché à la fenêtre : petit halo dans la fenêtre + un cœur en moins.
         _damageTrain();
-        _windowFire = 1.5;
-        _shake = math.max(_shake, 0.26);
+        _windowHalo = 1.2;
+        _shake = math.max(_shake, 0.22);
         return true;
       }
       return es.pos.dy > 1.15 || es.pos.dx < -0.2;
@@ -772,14 +785,25 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         if (alive.isEmpty) {
           _playerTurn = true;
         } else {
-          // Riposte du pillard (un tir).
+          // Recentre sur le pillard, il vise (télégraphe) avant de lancer.
+          _enemyAiming = true;
+          _enemyAimT = 1.1;
+        }
+      }
+    } else if (_enemyAiming) {
+      _enemyAimT -= dt;
+      if (_enemyAimT <= 0) {
+        _enemyAiming = false;
+        final alive = _enemies.where((e) => !e.dying).toList();
+        if (alive.isEmpty) {
+          _playerTurn = true;
+        } else {
           final e = alive.first;
           e.throwing = true;
           e.attackT = 0;
-          _enemyShots.add(_EnemyShot(
-            Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55),
-            const Offset(-1.15, -0.35),
-          ));
+          // Au niveau 1 il rate souvent (≈55%).
+          final miss = _rng.nextDouble() < 0.55;
+          _enemyThrowAt(e, miss: miss);
           _enemyThrowing = true;
         }
       }
@@ -791,6 +815,25 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
   }
 
+  // Lance un projectile du pillard vers la FENÊTRE (touche) ou court (raté),
+  // en vol lent qu'on peut suivre à la caméra.
+  void _enemyThrowAt(_Enemy e, {required bool miss}) {
+    final from = Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55);
+    final ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
+    const t = 2.4; // vol lent
+    final Offset to;
+    if (miss) {
+      // Tombe court, au sol, entre le pillard et la fenêtre.
+      to = Offset((_muzzle.dx + 0.55 + _rng.nextDouble() * 0.5)
+          .clamp(_trainEdgeX + 0.3, from.dx - 0.2), _groundY);
+    } else {
+      to = _muzzle; // la fenêtre
+    }
+    final vx = (to.dx - from.dx) / t;
+    final vy = (to.dy - from.dy) / t - 0.5 * ge * t;
+    _enemyShots.add(_EnemyShot(from, Offset(vx, vy), harmless: miss));
+  }
+
   // Caméra : suit la pierre en vol (la plus avancée), marque un temps sur
   // l'impact, puis revient en douceur sur le train.
   void _updateCamera(double dt) {
@@ -800,28 +843,42 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (s.pos.dx < -90) continue;
       if (lead == null || s.pos.dx > lead.pos.dx) lead = s;
     }
+    final eShot = _enemyShots.isNotEmpty ? _enemyShots.first : null;
+
+    // Point à suivre selon le moment : ma pierre, le projectile ennemi, le
+    // pillard pendant qu'il vise, sinon retour au train.
+    Offset? focus;
     if (_camLaunchHold > 0) {
-      // On laisse voir la pierre quitter la fenêtre avant de suivre.
-      _camTarget = _camHome;
+      focus = Offset(_camHome, _camYHome); // on voit le départ de la fenêtre
     } else if (lead != null) {
-      _camTarget = lead.pos.dx;
-      _camHold = 0.45;
+      focus = lead.pos;
+      _camHold = 0.4;
+    } else if (eShot != null) {
+      focus = eShot.pos; // on suit le projectile ennemi qui revient
+      _camHold = 0.4;
+    } else if (_enemyAiming) {
+      _Enemy? e;
+      for (final x in _enemies) {
+        if (!x.dying) {
+          e = x;
+          break;
+        }
+      }
+      if (e != null) focus = Offset(e.x, e.feetY - e.height * 0.5);
     } else if (_camHold > 0) {
-      _camHold -= dt;
+      _camHold -= dt; // garde la cible courante un instant
     } else {
-      _camTarget = _camHome;
+      focus = Offset(_camHome, _camYHome);
+    }
+
+    if (focus != null) {
+      _camTarget = focus.dx;
+      _camYTarget = math.min(_camYHome, focus.dy);
     }
     if (_camMax > _camMin) _camTarget = _camTarget.clamp(_camMin, _camMax);
-    // Suivi vertical : on remonte vers la pierre quand elle lobe haut (jamais
-    // en dessous du repos), sinon retour au repos.
-    if (_camLaunchHold <= 0 && lead != null) {
-      _camYTarget = math.min(_camYHome, lead.pos.dy);
-    } else {
-      _camYTarget = _camYHome;
-    }
     if (_camYMax > _camYMin) _camYTarget = _camYTarget.clamp(_camYMin, _camYMax);
-    // lissage exponentiel (indépendant du framerate)
-    final k = 1 - math.exp(-7.0 * dt);
+    // Suivi doux et lent.
+    final k = 1 - math.exp(-5.5 * dt);
     _camX += (_camTarget - _camX) * k;
     _camY += (_camYTarget - _camY) * k;
   }
@@ -1441,8 +1498,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                     ),
 
-                  // Feu dans la fenêtre quand le pillard touche le train.
-                  if (_windowFire > 0) _buildWindowFire(u2p),
+                  // Petit halo dans la fenêtre quand le pillard touche.
+                  if (_windowHalo > 0) _buildWindowHalo(u2p),
 
                   // Textes flottants.
                   for (final f in _floats) _buildFloat(f),
@@ -1469,24 +1526,27 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   // ----- entités visuelles -----
-  // Flamme à la fenêtre du train (le pillard a touché). Scintille puis
-  // s'éteint avec _windowFire.
-  Widget _buildWindowFire(Offset Function(Offset) u2p) {
+  // Petit halo lumineux À L'INTÉRIEUR de la fenêtre quand le pillard touche.
+  // Discret : un point chaud qui pulse et s'éteint.
+  Widget _buildWindowHalo(Offset Function(Offset) u2p) {
     final c = u2p(_muzzle);
-    final life = (_windowFire / 1.5).clamp(0.0, 1.0);
-    final flick = 0.85 + 0.3 * _rng.nextDouble();
-    final size = 0.11 * _S * (0.7 + 0.3 * life) * flick;
+    final life = (_windowHalo / 1.2).clamp(0.0, 1.0);
+    final size = 0.05 * _S * (0.8 + 0.2 * life);
     return Positioned(
       left: c.dx - size / 2,
-      top: c.dy - size * 0.8,
+      top: c.dy - size / 2,
       width: size,
       height: size,
       child: IgnorePointer(
-        child: Opacity(
-          opacity: life,
-          child: Text('🔥',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: size * 0.9)),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [
+              Color(0xFFFFB347).withValues(alpha: 0.9 * life),
+              Color(0xFFFF6A2A).withValues(alpha: 0.5 * life),
+              const Color(0x00000000),
+            ]),
+          ),
         ),
       ),
     );
