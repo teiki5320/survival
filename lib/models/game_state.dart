@@ -46,6 +46,12 @@ class GameState extends ChangeNotifier {
         'shootUpgrades': shootUpgrades,
         'gareBestScore':
             gareBestScore.map((k, v) => MapEntry(k.toString(), v)),
+        'dailyDay': _dailyDay,
+        'dailyChestDay': dailyChestDay,
+        'dailyKills': dailyKills,
+        'dailyScrap': dailyScrap,
+        'dailyGaresWon': dailyGaresWon,
+        'dailyClaimed': dailyClaimed.toList(),
         'wagon2Stage': wagon2Stage,
         'wagon2LampAx': wagon2LampAx,
         'wagon2LampAy': wagon2LampAy,
@@ -108,6 +114,14 @@ class GameState extends ChangeNotifier {
       if (data['gareBestScore'] is Map) {
         gareBestScore = (data['gareBestScore'] as Map).map(
             (k, v) => MapEntry(int.parse(k as String), (v as num).toInt()));
+      }
+      _dailyDay = (data['dailyDay'] as num?)?.toInt() ?? 0;
+      dailyChestDay = (data['dailyChestDay'] as num?)?.toInt() ?? -1;
+      dailyKills = (data['dailyKills'] as num?)?.toInt() ?? 0;
+      dailyScrap = (data['dailyScrap'] as num?)?.toInt() ?? 0;
+      dailyGaresWon = (data['dailyGaresWon'] as num?)?.toInt() ?? 0;
+      if (data['dailyClaimed'] is List) {
+        dailyClaimed = (data['dailyClaimed'] as List).cast<String>().toSet();
       }
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
@@ -195,6 +209,105 @@ class GameState extends ChangeNotifier {
   // Meilleur score de combat (/100) par gare (index 0-based) : méta-progression
   // "atteindre 100% sur chaque gare en ~20 parties".
   Map<int, int> gareBestScore = {};
+
+  /// Conversion score /100 -> étoiles (0..3) pour la collection des gares.
+  static int starsForScore(int s) =>
+      s >= 90 ? 3 : (s >= 70 ? 2 : (s >= 50 ? 1 : 0));
+
+  /// Étoiles obtenues sur une gare (depuis le meilleur score enregistré).
+  int gareStars(int gareIndex) => starsForScore(gareBestScore[gareIndex] ?? 0);
+
+  /// Total d'étoiles récoltées sur les 14 gares (sur 14×3 = 42).
+  int get totalGareStars =>
+      gareBestScore.values.fold(0, (a, s) => a + starsForScore(s));
+
+  // --- Rendez-vous quotidiens (rétention "reviens demain") ---
+  // Coffre gratuit 1×/jour + 3 missions journalières qui rapportent de la
+  // ferraille. Tout se réinitialise au changement de jour calendaire.
+  int _dailyDay = 0; // numéro de jour (epoch days) du jour en cours
+  int dailyChestDay = -1; // jour où le coffre a été ouvert (-1 = jamais)
+  int dailyKills = 0; // pillards tués aujourd'hui
+  int dailyScrap = 0; // ferraille récoltée en combat aujourd'hui
+  int dailyGaresWon = 0; // gares défendues sans perdre de cœur aujourd'hui
+  Set<String> dailyClaimed = {}; // missions déjà réclamées aujourd'hui
+
+  static int get _todayNum =>
+      DateTime.now().millisecondsSinceEpoch ~/ 86400000;
+
+  /// Missions du jour : id -> (libellé, cible, récompense ferraille).
+  static const Map<String, (String, int, int)> dailyMissions = {
+    'kills': ('Abattre 60 pillards', 60, 40),
+    'perfect': ('Défendre 1 gare sans perte', 1, 60),
+    'scrap': ('Récolter 100 ferraille', 100, 30),
+  };
+
+  void _ensureDailyDay() {
+    final t = _todayNum;
+    if (_dailyDay != t) {
+      _dailyDay = t;
+      dailyKills = 0;
+      dailyScrap = 0;
+      dailyGaresWon = 0;
+      dailyClaimed = {};
+    }
+  }
+
+  bool get dailyChestAvailable {
+    _ensureDailyDay();
+    return dailyChestDay != _dailyDay;
+  }
+
+  /// Ouvre le coffre quotidien (si dispo) et renvoie la ferraille gagnée.
+  int claimDailyChest() {
+    if (!dailyChestAvailable) return 0;
+    final reward = 25 + (totalGareStars * 2); // récompense qui grandit
+    scrap += reward;
+    dailyChestDay = _dailyDay;
+    notifyListeners();
+    save();
+    return reward;
+  }
+
+  int dailyProgress(String id) {
+    _ensureDailyDay();
+    switch (id) {
+      case 'kills':
+        return dailyKills;
+      case 'perfect':
+        return dailyGaresWon;
+      case 'scrap':
+        return dailyScrap;
+    }
+    return 0;
+  }
+
+  bool dailyDone(String id) =>
+      dailyProgress(id) >= (dailyMissions[id]?.$2 ?? 1 << 30);
+  bool dailyReady(String id) =>
+      dailyDone(id) && !dailyClaimed.contains(id);
+
+  /// Réclame la récompense d'une mission accomplie. Renvoie la ferraille.
+  int claimDailyMission(String id) {
+    if (!dailyReady(id)) return 0;
+    final reward = dailyMissions[id]?.$3 ?? 0;
+    scrap += reward;
+    dailyClaimed.add(id);
+    notifyListeners();
+    save();
+    return reward;
+  }
+
+  /// Bilan d'un combat (appelé à la fin d'une run) : alimente les compteurs
+  /// des missions du jour.
+  void reportCombat(
+      {required int kills, required int scrapCollected, required bool perfect}) {
+    _ensureDailyDay();
+    dailyKills += kills;
+    dailyScrap += scrapCollected;
+    if (perfect) dailyGaresWon += 1;
+    notifyListeners();
+    save();
+  }
 
   /// Récompenses du combat de gare : convertit le score /100 en ressources
   /// (bois/eau/nourriture/moral) injectées dans les jauges Reigns, et pose des

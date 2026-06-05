@@ -25,7 +25,7 @@ class RoofDefenseGame extends StatefulWidget {
   State<RoofDefenseGame> createState() => _RoofDefenseGameState();
 }
 
-enum _Phase { menu, atelier, playing, chest, perk, gameover }
+enum _Phase { menu, atelier, playing, chest, perk, gameover, progress }
 
 enum _Mode { campaign, endless }
 
@@ -167,6 +167,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     'range': ('Meilleure fronde', 'Portée/vitesse +8%', [35, 70, 120]),
     'stones': ('Double charge', 'Démarre avec +1 pierre', [120, 260]),
     'choices': ('Plus de choix', '4 cartes de renfort', [150]),
+    // Méta-progression "transformative" : débloque des MÉCANIQUES, pas des %.
+    'magnet': ('Aimant à ferraille', 'Ramasse le butin tout seul', [120]),
+    'shield': ('Bouclier de wagon', 'Encaisse 1 coup gratuit/vague', [160, 300]),
+    'bomb': ('Bombe de secours', 'Frappe TOUT l\'écran (1/vague)', [200]),
   };
 
   static const Map<String, (String, String, String)> _perkData = {
@@ -225,6 +229,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   int _baseDmg = 1;
   int _perkCount = 3;
   List<String> _perkChoices = const [];
+
+  // Mécaniques débloquées à l'atelier (méta transformative).
+  int _magnet = 0; // butin auto-ramassé
+  int _shieldMax = 0, _shield = 0; // coups gratuits encaissés par vague
+  int _bombMax = 0, _bombLeft = 0; // bombe écran, 1/vague
+
+  // Évolution d'arme : un perk choisi 3× dans la run "évolue" (gros bonus).
+  final Map<String, int> _perkLevels = {};
+  final Set<String> _evolved = {};
+  bool _nearMiss = false; // perdu de justesse -> consolation
 
   // frénésie / combos
   double _frenzy = 0;
@@ -297,6 +311,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _split = 0;
     _fire = 0;
     _freeze = 0;
+    _magnet = up['magnet'] ?? 0;
+    _shieldMax = up['shield'] ?? 0;
+    _bombMax = (up['bomb'] ?? 0) > 0 ? 1 : 0;
+    _shield = 0;
+    _bombLeft = 0;
+    _perkLevels.clear();
+    _evolved.clear();
+    _nearMiss = false;
   }
 
   void _startRun(_Mode mode) => setState(() => _setupRun(mode));
@@ -434,6 +456,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             (GameState.instance.inColdZone || _rng.nextDouble() < 0.35);
         _toSpawn = (_waveConfig().$1 * _zoneCount).round();
         _spawnTimer = 0.4;
+        _shield = _shieldMax; // bouclier rechargé à chaque vague
+        _bombLeft = _bombMax; // bombe dispo une fois par vague
         _spawnBarrel();
         if (_isBossWave) _spawnBoss();
       }
@@ -541,6 +565,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
       // Atteint le wagon -> passe en corps à corps (sauf lanceur, à distance).
       if (e.type != _PillType.lanceur && e.x <= _trainEdgeX) {
+        if (e.golden) {
+          // Le pillard doré ne frappe pas : il rafle et s'enfuit. Jackpot
+          // perdu si on ne l'a pas abattu à temps -> tension "vite, tue-le".
+          e.dying = true;
+          e.dieT = 0;
+          _floats.add(_FloatText(Offset(e.x, e.feetY - e.height * 0.7),
+              'Enfui ! 🔩', const Color(0xFFE2A33A)));
+          continue;
+        }
         e.x = _trainEdgeX;
         e.melee = true;
         e.meleeT = 0.3;
@@ -658,6 +691,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         l.landed = true;
         l.life = 3.0;
         l.pos = Offset(l.pos.dx, _groundY);
+        // Aimant à ferraille : ramassage automatique à l'atterrissage.
+        if (_magnet > 0) {
+          _runScrap += l.value;
+          _floats.add(_FloatText(Offset(l.pos.dx, _groundY - 0.05),
+              '+${l.value}🔩', const Color(0xFFE8B96B)));
+          l.life = 0;
+        }
       }
     }
     _loot.removeWhere((l) => l.landed && l.life <= 0);
@@ -682,6 +722,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   void _damageTrain({int amount = 1}) {
+    // Bouclier de wagon : absorbe entièrement un coup (consomme 1 charge).
+    if (_shield > 0) {
+      _shield -= 1;
+      _floats.add(_FloatText(Offset(_trainEdgeX + 0.04, _groundY - 0.22), '🛡️',
+          const Color(0xFF8FC4EE)));
+      _shake = math.max(_shake, 0.12);
+      return;
+    }
     _trainHp -= amount;
     _hpLost += amount;
     _combo = 0;
@@ -744,7 +792,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (e.type == _PillType.boss) {
       v = 60;
     } else if (e.golden) {
-      v = 25;
+      v = 35; // jackpot doré (s'enfuit si on le rate)
     } else if (e.type == _PillType.brute) {
       v = 5;
     } else if (e.type == _PillType.lanceur) {
@@ -819,8 +867,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           speed: baseSpeed * 0.9, height: 0.16, anim: anim,
         ));
       case _PillType.basic:
-        // Pillard doré rare : rapide, fragile, jackpot de ferraille.
-        final golden = _wave >= 2 && _rng.nextDouble() < 0.06;
+        // Pillard doré rare : rapide, fragile, jackpot de ferraille (mais il
+        // s'enfuit s'il atteint le train -> course contre la montre).
+        final golden = _wave >= 1 && _rng.nextDouble() < 0.08;
         _enemies.add(_Enemy(
           type: type, x: x0, feetY: feetY,
           speed: baseSpeed * (golden ? 1.5 : (0.85 + _rng.nextDouble() * 0.3)),
@@ -989,10 +1038,55 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       case 'speed':
         _powerMult *= 1.12;
     }
+    // Évolution d'arme : 3 fois le même perk dans une run -> gros bonus unique.
+    _perkLevels[perk] = (_perkLevels[perk] ?? 0) + 1;
+    if (_perkLevels[perk] == 3 && _evolved.add(perk)) {
+      _applyEvolution(perk);
+      _floats.add(_FloatText(Offset(_imgA * 0.5, 0.34), '✦ ÉVOLUTION ✦',
+          const Color(0xFFFFD24A),
+          big: true));
+    }
     setState(() {
       _phase = _Phase.playing;
       _banner = 1.8;
     });
+  }
+
+  // Bonus d'évolution (en plus du 3e palier) quand on se spécialise.
+  void _applyEvolution(String perk) {
+    switch (perk) {
+      case 'stone':
+        _stonesPerShot += 2; // vraie volée
+      case 'hearts':
+        _maxHp += 3;
+        _trainHp += 3;
+      case 'pierce':
+        _pierce += 3; // quasi transperçant
+      case 'ricochet':
+        _ricochet += 2;
+      case 'split':
+        _split += 1;
+      case 'fire':
+        _fire += 1;
+      case 'freeze':
+        _freeze += 1;
+      case 'speed':
+        _powerMult *= 1.25;
+    }
+  }
+
+  // Bombe de secours (atelier) : frappe tout l'écran, 1 fois par vague.
+  void _useBomb() {
+    if (_bombLeft <= 0) return;
+    _bombLeft--;
+    _impacts.add(_Impact(Offset(_imgA * 0.5, _groundY - 0.2), blast: true));
+    _shake = math.max(_shake, 0.4);
+    for (final e in List.of(_enemies)) {
+      if (e.dying || e.type == _PillType.boss) continue;
+      e.hp = 0;
+      _killEnemy(e);
+    }
+    setState(() {});
   }
 
   // Quitter une partie en cours : on encaisse la ferraille gagnée puis menu.
@@ -1023,8 +1117,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     // Entraînement (survie) : ferraille divisée par 2 pour ne pas
     // déséquilibrer la campagne.
     _shownScrap = (_runScrap * (_mode == _Mode.endless ? 0.5 : 1.0)).round();
+    // Quasi-victoire : perdu sur la DERNIÈRE vague -> consolation (le quasi-
+    // échec est le plus gros moteur de "encore une fois").
+    _nearMiss =
+        !won && _mode == _Mode.campaign && _wave >= _campaignWaves - 1;
+    if (_nearMiss) _shownScrap += 15;
     gs.scrap += _shownScrap;
     _runScrap = 0;
+    // Alimente les missions quotidiennes.
+    gs.reportCombat(
+      kills: _kills,
+      scrapCollected: _shownScrap,
+      perfect: won && _hpLost == 0,
+    );
     // Hors mode gare : petit bonus direct. En mode gare, les ressources sont
     // attribuées par applyCombatRewards(score100) quand on valide l'écran de fin.
     if (won && !_gareMode) {
@@ -1171,6 +1276,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   if (_adjust) _coordHud(),
 
                   if (_phase == _Phase.menu) _menu(),
+                  if (_phase == _Phase.progress) _progressOverlay(),
                   if (_phase == _Phase.atelier) _atelier(),
                   if (_phase == _Phase.chest) _chestOverlay(),
                   if (_phase == _Phase.perk) _perkOverlay(),
@@ -1422,11 +1528,25 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                         : 'Vague ${_wave + 1}'),
                     const SizedBox(width: 10),
                     _hearts(),
+                    if (_shield > 0) ...[
+                      const SizedBox(width: 6),
+                      _hud('🛡️$_shield'),
+                    ],
                     const Spacer(),
                     _hud('$_score pts'),
                     const SizedBox(width: 8),
                     _hud('🔩$_runScrap'),
                     const SizedBox(width: 8),
+                    if (_bombLeft > 0) ...[
+                      FloatingActionButton.small(
+                        heroTag: 'shoot_bomb',
+                        backgroundColor: const Color(0xFFE2614A),
+                        foregroundColor: Colors.white,
+                        onPressed: _useBomb,
+                        child: const Text('💣', style: TextStyle(fontSize: 18)),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     FloatingActionButton.small(
                       heroTag: 'shoot_adjust',
                       backgroundColor:
@@ -1646,6 +1766,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           const SizedBox(height: 12),
           _menuBtn('Atelier 🔧', const Color(0xFF3A4656),
               () => setState(() => _phase = _Phase.atelier)),
+          const SizedBox(height: 12),
+          _menuBtn(
+              _dailyHasReward ? 'Quotidien & Gares 🎁' : 'Quotidien & Gares',
+              _dailyHasReward
+                  ? const Color(0xFF3E7A4E)
+                  : const Color(0xFF3A4656),
+              () => setState(() => _phase = _Phase.progress)),
           const SizedBox(height: 20),
           TextButton(
               onPressed: widget.onExit,
@@ -1653,6 +1780,172 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   style: TextStyle(color: Colors.white54))),
         ],
       ));
+
+  // Vrai si un coffre quotidien ou une mission est réclamable (pastille menu).
+  bool get _dailyHasReward {
+    final gs = GameState.instance;
+    return gs.dailyChestAvailable ||
+        GameState.dailyMissions.keys.any(gs.dailyReady);
+  }
+
+  // ----- overlay "Quotidien & Gares" : coffre du jour + missions + étoiles -----
+  Widget _progressOverlay() {
+    final gs = GameState.instance;
+    return _scrim(SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('Quotidien',
+              style: TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 26,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 12),
+          // Coffre du jour.
+          GestureDetector(
+            onTap: gs.dailyChestAvailable
+                ? () {
+                    final r = gs.claimDailyChest();
+                    setState(() {});
+                    _floats.add(_FloatText(Offset(_imgA * 0.5, 0.3),
+                        '+$r🔩', const Color(0xFFE8B96B)));
+                  }
+                : null,
+            child: Container(
+              width: 280,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+              decoration: BoxDecoration(
+                color: gs.dailyChestAvailable
+                    ? const Color(0xFF3E7A4E)
+                    : const Color(0xFF2A2018),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE8B96B), width: 1.2),
+              ),
+              child: Text(
+                gs.dailyChestAvailable
+                    ? '🎁 Coffre du jour — toucher !'
+                    : '🎁 Coffre déjà ouvert (reviens demain)',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text('Missions du jour',
+              style: TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          for (final id in GameState.dailyMissions.keys) _missionRow(id),
+          const SizedBox(height: 18),
+          Text('Gares — ⭐ ${gs.totalGareStars} / 42',
+              style: const TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 300,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (int i = 0; i < 14; i++) _gareStarCell(i),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          _menuBtn('Retour', const Color(0xFF3A4656),
+              () => setState(() => _phase = _Phase.menu)),
+        ],
+      ),
+    ));
+  }
+
+  Widget _missionRow(String id) {
+    final gs = GameState.instance;
+    final m = GameState.dailyMissions[id]!;
+    final prog = gs.dailyProgress(id).clamp(0, m.$2);
+    final ready = gs.dailyReady(id);
+    final claimed = gs.dailyClaimed.contains(id);
+    return Container(
+      width: 300,
+      margin: const EdgeInsets.symmetric(vertical: 3),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2018),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(m.$1,
+                    style: const TextStyle(color: Colors.white, fontSize: 13)),
+                Text('$prog / ${m.$2}   •   🔩${m.$3}',
+                    style:
+                        const TextStyle(color: Colors.white54, fontSize: 11)),
+              ],
+            ),
+          ),
+          if (claimed)
+            const Icon(Icons.check_circle, color: Color(0xFF7FB86A), size: 22)
+          else if (ready)
+            GestureDetector(
+              onTap: () {
+                final r = gs.claimDailyMission(id);
+                setState(() {});
+                _floats.add(_FloatText(Offset(_imgA * 0.5, 0.3), '+$r🔩',
+                    const Color(0xFFE8B96B)));
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3E7A4E),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('Réclamer',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _gareStarCell(int i) {
+    final stars = GameState.instance.gareStars(i);
+    return Container(
+      width: 58,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF2A2018),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+            color: stars > 0
+                ? const Color(0xFFE8B96B)
+                : Colors.white12,
+            width: 1),
+      ),
+      child: Column(
+        children: [
+          Text('G${i + 1}',
+              style: const TextStyle(color: Colors.white70, fontSize: 11)),
+          Text(stars > 0 ? '⭐' * stars : '·',
+              style: const TextStyle(fontSize: 10)),
+        ],
+      ),
+    );
+  }
 
   Widget _menuBtn(String label, Color color, VoidCallback onTap) => SizedBox(
         width: 240,
@@ -1868,14 +2161,36 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 ],
               ),
             const SizedBox(height: 8),
-            if (_gareMode)
+            if (_gareMode) ...[
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < 3; i++)
+                    Icon(
+                        i < GameState.starsForScore(_score100)
+                            ? Icons.star
+                            : Icons.star_border,
+                        color: const Color(0xFFFFD24A),
+                        size: 40),
+                ],
+              ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 6),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Text('Score de gare : ${_score100} / 100',
                     style: const TextStyle(
                         color: Color(0xFFE8B96B),
                         fontSize: 20,
                         fontWeight: FontWeight.w800)),
+              ),
+            ],
+            if (_nearMiss)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 4),
+                child: Text('Si près ! 🔩 +15 de consolation',
+                    style: TextStyle(
+                        color: Color(0xFFE2A33A),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700)),
               ),
             Text('Score $_score   •   💥$_kills   •   🔩+$_shownScrap',
                 style: const TextStyle(color: Colors.white70, fontSize: 15)),
