@@ -197,6 +197,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   int _score = 0;
   int _hpLost = 0;
   int _runScrap = 0;
+  int _shownScrap = 0; // ferraille du run (affichage écran de fin)
   bool _won = false;
   int _wonStars = 0;
   bool _weaponUp = false;
@@ -499,8 +500,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       return es.pos.dy > 1.15 || es.pos.dx < -0.2;
     });
 
-    // Collisions caillou -> pillard.
-    for (final s in _stones) {
+    // Collisions caillou -> pillard. On itère une COPIE et on collecte les
+    // éclats à part : interdit de modifier _stones pendant l'itération (sinon
+    // ConcurrentModificationError -> ticker planté -> écran figé).
+    final frags = <_Stone>[];
+    for (final s in List.of(_stones)) {
       _Enemy? hit;
       for (final e in _enemies) {
         if (e.dying) continue;
@@ -527,7 +531,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (_explosiveWeapon) _explode(s.pos);
       if (s.splits > 0) {
         for (int k = 0; k < 2; k++) {
-          _stones.add(_Stone(
+          frags.add(_Stone(
             s.pos,
             Offset((k == 0 ? -0.5 : 0.5), 0.4) + s.vel * 0.3,
             dmg: s.dmg,
@@ -538,13 +542,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         s.splits = 0;
       }
       if (e.hp <= 0) _killEnemy(e, head: head);
-      // Sort du caillou : ricochet > perçage > consommé.
       if (s.ricochet > 0) {
         final next = _nearestOther(e);
         if (next != null) {
           final dir = Offset(next.x, next.feetY - next.height * 0.5) - s.pos;
           final sp = s.vel.distance;
-          s.vel = dir / dir.distance * sp;
+          if (dir.distance > 0) s.vel = dir / dir.distance * sp;
           s.ricochet--;
         } else {
           s.pos = const Offset(-99, -99);
@@ -555,6 +558,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         s.pos = const Offset(-99, -99);
       }
     }
+    _stones.addAll(frags);
     // Baril.
     if (_barrel != null) {
       final b = _barrel!;
@@ -788,6 +792,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (target == null) return;
     final dir =
         Offset(target.x, target.feetY - target.height * 0.5) - _muzzle;
+    if (dir.distance < 1e-4) return;
     final sp = _maxSpeed * _powerMult * 1.25;
     _spawnStones(dir / dir.distance * sp);
   }
@@ -866,6 +871,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     });
   }
 
+  // Quitter une partie en cours : on encaisse la ferraille gagnée puis menu.
+  void _quitToMenu() {
+    final gs = GameState.instance;
+    if (_runScrap > 0) {
+      gs.scrap += _runScrap;
+      _runScrap = 0;
+      gs.save();
+    }
+    setState(() => _phase = _Phase.menu);
+  }
+
   void _gameOver({required bool won}) {
     _won = won;
     final gs = GameState.instance;
@@ -878,8 +894,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     _newRecord = _score > gs.shootBestScore;
     if (_newRecord) gs.shootBestScore = _score;
-    // Ferraille + récompense au jeu principal.
+    // Ferraille (encaissée + remise à 0 pour ne pas double-compter si on
+    // continue en survie) + récompense au jeu principal.
+    _shownScrap = _runScrap;
     gs.scrap += _runScrap;
+    _runScrap = 0;
     if (won) {
       gs.nudgeCardStat('bois', 8);
       gs.nudgeCardStat('moral', 6);
@@ -1246,7 +1265,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     FloatingActionButton.small(
                       heroTag: 'shoot_quit',
                       backgroundColor: Colors.black54,
-                      onPressed: () => setState(() => _phase = _Phase.menu),
+                      onPressed: _quitToMenu,
                       child: const Icon(Icons.close),
                     ),
                   ],
@@ -1626,7 +1645,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 ],
               ),
             const SizedBox(height: 8),
-            Text('Score $_score   •   💥$_kills   •   🔩+$_runScrap',
+            Text('Score $_score   •   💥$_kills   •   🔩+$_shownScrap',
                 style: const TextStyle(color: Colors.white70, fontSize: 15)),
             if (_newRecord)
               const Padding(
