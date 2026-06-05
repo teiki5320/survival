@@ -44,6 +44,8 @@ class GameState extends ChangeNotifier {
         'shootBestScore': shootBestScore,
         'scrap': scrap,
         'shootUpgrades': shootUpgrades,
+        'shootMuzX': shootMuzX, 'shootMuzY': shootMuzY,
+        'shootGroundY': shootGroundY,
         'gareBestScore':
             gareBestScore.map((k, v) => MapEntry(k.toString(), v)),
         'dailyDay': _dailyDay,
@@ -113,6 +115,9 @@ class GameState extends ChangeNotifier {
         shootUpgrades = (data['shootUpgrades'] as Map).map(
             (k, v) => MapEntry(k as String, (v as num).toInt()));
       }
+      shootMuzX = (data['shootMuzX'] as num?)?.toDouble() ?? shootMuzX;
+      shootMuzY = (data['shootMuzY'] as num?)?.toDouble() ?? shootMuzY;
+      shootGroundY = (data['shootGroundY'] as num?)?.toDouble() ?? shootGroundY;
       if (data['gareBestScore'] is Map) {
         gareBestScore = (data['gareBestScore'] as Map).map(
             (k, v) => MapEntry(int.parse(k as String), (v as num).toInt()));
@@ -213,6 +218,16 @@ class GameState extends ChangeNotifier {
   int shootBestScore = 0; // record en mode survie
   int scrap = 0; // ferraille (monnaie du mini-jeu)
   Map<String, int> shootUpgrades = {}; // niveaux des améliorations d'atelier
+  // Position du canon (trappe/fenêtre du train) + ligne de sol, en unités de
+  // scène du combat. Réglables via le mode ajuster du combat, persistées.
+  double shootMuzX = 0.135, shootMuzY = 0.52, shootGroundY = 0.865;
+  void setShootMuzzle(double mx, double my, double groundY) {
+    shootMuzX = mx.clamp(0.0, 2.5);
+    shootMuzY = my.clamp(0.0, 1.0);
+    shootGroundY = groundY.clamp(0.4, 1.0);
+    notifyListeners();
+    save();
+  }
 
   // Définitions de l'atelier (clé -> (libellé, desc, coûts par niveau)).
   // Partagé entre le combat et l'écran Atelier ouvert depuis la map.

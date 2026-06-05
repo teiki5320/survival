@@ -265,8 +265,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   Duration _last = Duration.zero;
 
   // --- Caméra (style Swamp Attack) : zoom + suit la pierre puis revient ---
-  static const double _zoom = 1.35; // grossissement vs "vue de loin"
+  static const double _zoom = 1.7; // grossissement vs "vue de loin"
   static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
+
+  // --- Mode DUEL de test (réglage du feeling) : 1 seul lanceur, 3 PV, on tire
+  //     chacun son tour, il recule quand touché. À élargir une fois calé. ---
+  static const bool _duelTest = true;
+  bool _playerTurn = true; // le joueur peut tirer
+  bool _awaitingStones = false; // on attend que la pierre du joueur retombe
+  bool _enemyThrowing = false; // le pillard riposte (son tour)
   double _camX = 0; // centre du viewport, en unités-x de scène
   double _camHome = 0; // position de repos (train ~ gauche)
   double _camTarget = 0;
@@ -296,6 +303,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void initState() {
     super.initState();
     _ticker = createTicker(_tick)..start();
+    // Position du canon / sol depuis la sauvegarde (réglable en jeu).
+    final gs = GameState.instance;
+    _muzX = gs.shootMuzX;
+    _muzY = gs.shootMuzY;
+    _groundY = gs.shootGroundY;
     // En mode gare : pas de menu, on attaque la campagne tout de suite.
     if (_gareMode) _setupRun(_Mode.campaign);
   }
@@ -369,6 +381,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _storm = false;
       _aiming = false;
       _applyMeta();
+      _playerTurn = true;
+      _awaitingStones = false;
+      _enemyThrowing = false;
       _phase = _Phase.playing;
       _banner = 1.8;
     }
@@ -388,6 +403,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   // Config (nombre, vitesse, intervalle) de la vague courante.
   (int, double, double) _waveConfig() {
+    if (_duelTest) return (1, 0.0, 1.0); // test : un seul pillard
     if (_mode == _Mode.campaign) {
       // Pillards STATIQUES : counts = nombre de pillards postés (ils restent et
       // ripostent), interval = cadence d'apparition. (speed inutilisé.)
@@ -467,8 +483,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _spawnTimer = 0.4;
         _shield = _shieldMax; // bouclier rechargé à chaque vague
         _bombLeft = _bombMax; // bombe dispo une fois par vague
-        _spawnBarrel();
-        if (_isBossWave) _spawnBoss();
+        if (!_duelTest) {
+          _spawnBarrel();
+          if (_isBossWave) _spawnBoss();
+        }
       }
       setState(() {});
       return;
@@ -489,6 +507,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _updateProjectiles(dt);
       _updateLoot(dt);
       _updateFires(dt);
+      _updateDuelTurn(dt);
       _updateCamera(dt);
       if (_toSpawn == 0 && _enemies.isEmpty && _banner <= 0) {
         _endWave();
@@ -524,6 +543,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         }
       }
 
+      // En mode duel, l'ennemi ne riposte QUE pendant son tour (géré ailleurs).
+      if (_duelTest) {
+        if (e.throwing) {
+          e.attackT += dt;
+          if (e.attackT >= _bruteAtkDur) e.throwing = false;
+        }
+        continue;
+      }
       // Pillards STATIQUES : ils restent au loin et RIPOSTENT en lançant des
       // projectiles sur le train, par intervalles (avec un bref élan animé).
       final base = e.type == _PillType.brute
@@ -597,7 +624,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       final headBot = e.feetY - e.height * 0.78;
       final head = s.pos.dy <= headBot;
       e.hp -= s.dmg * (head ? 2 : 1);
-      e.x += 0.015;
+      // Recul : touché mais pas mort -> le pillard tombe en arrière (plus
+      // loin), ce qui oblige à recorriger le tir suivant.
+      if (e.hp > 0) {
+        e.x = (e.x + (_duelTest ? 0.14 : 0.04)).clamp(0.9, _imgA - 0.08);
+        e.throwing = false;
+      } else {
+        e.x += 0.015;
+      }
       if (s.freeze) e.slowT = 2.0;
       if (s.fire) _fires.add(_FirePatch(s.pos.dx, _groundY));
       _impacts.add(_Impact(s.pos, crit: head));
@@ -688,6 +722,37 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
     }
     _fires.removeWhere((p) => p.life <= 0);
+  }
+
+  // Duel tour-par-tour : le joueur tire, on attend que sa pierre retombe, puis
+  // le pillard riposte une fois, puis c'est de nouveau au joueur.
+  void _updateDuelTurn(double dt) {
+    if (!_duelTest) return;
+    bool stoneFlying() => _stones.any((s) => s.pos.dx > -90);
+    if (_awaitingStones) {
+      if (!stoneFlying()) {
+        _awaitingStones = false;
+        final alive = _enemies.where((e) => !e.dying).toList();
+        if (alive.isEmpty) {
+          _playerTurn = true;
+        } else {
+          // Riposte du pillard (un tir).
+          final e = alive.first;
+          e.throwing = true;
+          e.attackT = 0;
+          _enemyShots.add(_EnemyShot(
+            Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55),
+            const Offset(-1.15, -0.35),
+          ));
+          _enemyThrowing = true;
+        }
+      }
+    } else if (_enemyThrowing) {
+      if (_enemyShots.isEmpty) {
+        _enemyThrowing = false;
+        _playerTurn = true;
+      }
+    }
   }
 
   // Caméra : suit la pierre en vol (la plus avancée), marque un temps sur
@@ -861,6 +926,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _enemies.add(_Enemy(
           type: type, x: x, feetY: feetY,
           speed: 0, height: 0.17, anim: anim,
+          hp: _duelTest ? 3 : 1,
         )..throwT = _rng.nextDouble() * 1.5);
       case _PillType.basic:
         // Pillard doré rare : jackpot de ferraille, mais il décampe au bout de
@@ -878,6 +944,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   _PillType _pickType() {
+    if (_duelTest) return _PillType.lanceur; // test : uniquement le lanceur
     final r = _rng.nextDouble();
     final w = _wave;
     if (w >= 1) {
@@ -944,10 +1011,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   void _fireShot() {
     if (_reloadTimer > 0) return;
+    // Duel : un seul tir par tour.
+    if (_duelTest && (!_playerTurn || _awaitingStones || _enemyThrowing)) return;
     final v = _launchVel();
     if (v.distance < 0.12) return;
     _spawnStones(v);
     _reloadTimer = _reload;
+    if (_duelTest) {
+      _playerTurn = false;
+      _awaitingStones = true;
+    }
   }
 
   void _autoFire() {
@@ -1175,7 +1248,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           final camBg = _camHome + (_camX - _camHome) * _kBg;
           final oxDecor = w / 2 - camBg * scale;
           Offset u2p(Offset u) => Offset(_ox + u.dx * _S, _oy + u.dy * _S);
-          final canAim = _phase == _Phase.playing && !_adjust && _banner <= 0;
+          final canAim = _phase == _Phase.playing &&
+              !_adjust &&
+              _banner <= 0 &&
+              (!_duelTest || _playerTurn);
           final canTap = _phase == _Phase.playing && !_adjust;
           final shakeOffset = _shake > 0
               ? Offset(_rng.nextDouble() - 0.5, _rng.nextDouble() - 0.5) *
@@ -1717,8 +1793,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         height: 32,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onPanUpdate: (d) => setState(
-              () => _groundY = (_groundY + d.delta.dy / _S).clamp(0.4, 1.0)),
+          onPanUpdate: (d) => setState(() {
+            _groundY = (_groundY + d.delta.dy / _S).clamp(0.4, 1.0);
+            GameState.instance.setShootMuzzle(_muzX, _muzY, _groundY);
+          }),
           child: Center(
               child: Container(height: 2, color: const Color(0xCC66E0FF))),
         ),
@@ -1733,6 +1811,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           onPanUpdate: (d) => setState(() {
             _muzX = (_muzX + d.delta.dx / _S).clamp(0.0, _imgA);
             _muzY = (_muzY + d.delta.dy / _S).clamp(0.0, 1.0);
+            GameState.instance.setShootMuzzle(_muzX, _muzY, _groundY);
           }),
           child: DecoratedBox(
             decoration: BoxDecoration(
