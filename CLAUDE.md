@@ -17,11 +17,13 @@ paysage défile latéralement derrière, la locomotive est à gauche.
 **Esthétique cible** : Studio Ghibli + lofi anime, hand-painted, palette warm
 honey browns / cream / soft amber dedans, cold blue / pale fog dehors.
 
-**État actuel (2026-06-03)** : prototype riche. Wagon 1 vivant (Shen + sœur +
+**État actuel (2026-06-05)** : prototype riche. Wagon 1 vivant (Shen + sœur +
 chien **autonomes ET mobiles**), **2e wagon (cellier)** avec bain/douche/
 lanternes posables, **moteur de cartes** (CardsScreen) + carte 14 gares,
 **thermomètre/froid** branché sur le moral. Mini-jeu hydro + filtre eau inline.
-Audio sans musique.
+**NOUVEAU : mini-jeu de COMBAT aux gares** (`roof_defense_game.dart`) — Shen
+défend le train, on tire des pierres en arc sur les pillards. Audio sans
+musique.
 
 **✅ DIRECTION VALIDÉE (2026-05-31)** : gameplay **Reigns-like** + histoire
 canon (Shen fuit la 3e GM, cherche sa famille, train → refuge nord). Le
@@ -65,6 +67,83 @@ canon (Shen fuit la 3e GM, cherche sa famille, train → refuge nord). Le
 - Bruits de pas **retirés**. Écran de chargement refait (barre + train + n° de
   build affiché « build X.Y.Z »). Colonne de FAB **scrollable** (paysage).
 
+### Gros points faits cette session (2026-06-04→05) — COMBAT + intégration
+
+**🎯 NOUVEAU MINI-JEU DE COMBAT** : `lib/widgets/games/roof_defense_game.dart`
+(~1900 l.). C'est LE gros morceau. Shen défend le train (vu à gauche, **vue de
+loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
+(viser = maintenir le doigt → arc de cercle apparaît, relâcher → gravité).
+- **Décor** : `assets/background/gare_shoot.png` (1584×672, vue de loin, quai
+  long, train petit à gauche). `BoxFit.contain` + tout le gameplay ancré au
+  décor en **« scene units »** (origine = coin haut-gauche du décor, 1 unit =
+  hauteur affichée `_S`, x = fraction × `_imgA` où `_imgA = 1584/672`).
+- **Géométrie clé** : `_trainEdgeX = 0.24` (bord du train = ligne de mêlée),
+  pierres partent de la trappe arrière `_muzX=0.16 / _muzY=0.64`, sol
+  `_groundY=0.865`. Pillards spawn à `_imgA+0.14` à droite, marchent vers
+  la gauche, **disparaissent derrière le wagon** (clip `_wagonClipFrac`).
+- **Tir** : `_g=1.9`, `_power=9.0`, `_maxSpeed=3.4`, `_reload=0.26`. Système
+  rendu plus **sensible** + projectiles **réduits** (demandes user).
+- **Types de pillards** (`_PillType`) : `basic` (1 hp), `lanceur` (lance des
+  cailloux à distance `_throwRange=0.55` toutes `_throwPeriod=1.3`s, ne touche
+  pas le train de près), `brute` (lent ×0.45, `_bruteHp=4` pierres pour tuer,
+  coups de hache), `boss` (vague finale, -2 cœurs/coup). Sprites :
+  `pillard1_walk/die`, `brute_walk/attack`, `lanceur_walk/throw`. **Les walk
+  sont mirroitées** (sprites tournés vers la droite), **les die sont
+  pré-flippées** (pas de miroir).
+- **Mêlée** : un pillard qui atteint `_trainEdgeX` passe `melee=true` et frappe
+  le train **-1 cœur toutes `_meleePeriod=1.1`s**. Train = **5 cœurs**
+  (`_maxHp`, +1/+2 via upgrades/perks).
+- **Machine à états** (`_Phase`) : `menu / atelier / playing / chest / perk /
+  gameover`. **2 modes** (`_Mode`) : `campaign` (5 vagues, `_campaignWaves`) et
+  `endless` (survie infinie, bouton « Entraînement (survie) », scrap ÷2).
+- **Économie / méta-progression (addictif)** : chaque ennemi mort **lâche de
+  la ferraille au sol** → **cliquer dessus dans les 3 s** pour la ramasser
+  (`_Loot`, `_collectAt`). Ferraille → **atelier** (upgrades persistés dans
+  `GameState.shootUpgrades` : cœurs, reload, etc.). Coffres (`chest`) + **perks
+  à choisir** (`perk`) entre vagues (ricochet, autofire, split, +cœurs…).
+  **Frénésie** : streak de kills → multiplicateur + bandeau « FRÉNÉSIE ! ».
+- **Difficulté calibrée par SIMULATION** (`/tmp/sim.py`, 2000 runs/profil de
+  skill) : vagues campagne =
+  `[(6,0.16,0.80),(10,0.23,0.64),(14,0.33,0.48),(18,0.45,0.38),(23,0.58,0.30)]`
+  (count, vitesse, intervalle). Cible atteinte : joueur **correct perd ~70 %**
+  (→ pousse à upgrader = boucle), **bon gagne ~90 %**, **expert toujours**. Le
+  décor vue de loin allonge la distance → vitesses montées en conséquence.
+- **Lancement** : flag `_inShootGame` dans `main.dart` + FAB `open_shoot`,
+  rendu dans l'`AnimatedSwitcher`.
+
+**⚠️ BUGS COMBAT RÉSOLUS (à ne pas refaire)** :
+- **Écran BLEU / « train tombé en 10 s » sans erreur** : le `Stack` du combat
+  (enfants tous `Positioned`) sous les **contraintes lâches** de
+  l'`AnimatedSwitcher` s'effondrait en 0×0. **FIX : `fit: StackFit.expand`**
+  sur le Stack principal. (Un test headless normal ne le voit PAS — il faut
+  wrapper dans un AnimatedSwitcher pour le reproduire.)
+- **Freeze (ConcurrentModificationError)** : le perk *split* faisait
+  `_stones.add()` pendant `for (final s in _stones)`. **FIX** : itérer
+  `List.of(_stones)`, collecter dans `frags`, `addAll` **après** la boucle.
+  Gardes division-par-zéro dans ricochet/autofire.
+- **Crash OOM iOS** : 1650 PNG / ~198 Mo, cache à 1,5 Go + precache-all.
+  **FIX** : cache image `450 Mo / 800 entrées` (`main.dart`), precache
+  **whitelist** (`loading_screen._essential` : backgrounds/objects +
+  characters `idle_right_/walk_right_/heroine_front/sister_idle_/sister_walk_`),
+  `cacheWidth: 256` sur les sprites combat. + `ErrorWidget.builder` visible
+  (panneau rouge sombre affichant l'exception).
+
+**Autres points session** :
+- **Nouveaux sprites petite sœur** 49 frames : `sister_walk` (profil propre,
+  l'ancien était un turn-around qui partait à l'envers), `sister_idle`,
+  `sister_sleep` **sur le lit** (miroitée vers l'oreiller, taille réduite
+  `bedWidth*0.66`). Ménage des doublons fait. Idle quand elle ne bouge pas.
+- **Nuages** au-dessus du wagon **retirés** (coupés). **Bulles de pensée** de
+  Shen descendues (`heroTopY` 0.46, étaient trop hautes).
+- **Gating progressif des objets** : `side_scroll_scene._propUnlocked` +
+  `_bedUnlocked` peuvent masquer lit/filtre/hydro tant que l'histoire ne les a
+  pas débloqués (flags `asset_bed`/`asset_filter`/`asset_hydro` posés dans
+  `cards_data.dart` : gare 1 = lit, gare 4 = filtre, gare 10 = hydro/serre).
+  **⚠️ ACTUELLEMENT DÉBRANCHÉ** : `_showAllProps = true` force TOUT à
+  s'afficher (demande user : voir tous les objets pour vérifier que ça marche).
+  Remettre `_showAllProps = false` quand on rebranchera l'apparition au fil de
+  l'histoire.
+
 ---
 
 ## Workflow technique
@@ -79,7 +158,7 @@ canon (Shen fuit la 3e GM, cherche sa famille, train → refuge nord). Le
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.49.0+123` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.70.0+152` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
@@ -187,7 +266,11 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
   wagon2LampA/B x/y/H), **thermomètre** (`cabinTemp`, `stoveInstalled`,
   `outfitWarmth` → `coldThreshold`/`feltCold`/`coldness`, `setCabinTemp`).
   `nudgeCardStat('moral', +n)` est **bloqué si `feltCold`** (froid = pas de
-  gain de moral). Anciens hydroSlots/waterJars à nettoyer.
+  gain de moral). **Combat** : `scrap` (ferraille), `shootUpgrades`
+  (Map<String,int> upgrades atelier persistés), `shootWeaponLevel`,
+  `shootBestStars`, `shootBestScore`. **Flags histoire** : `cardFlags`
+  (Set<String> persisté, contient les `asset_bed/filter/hydro`). Anciens
+  hydroSlots/waterJars à nettoyer.
 - `lib/services/audio_service.dart` — Singleton audio. setMusic désactivé
   (musique pas à refaire). startAmbientTrain/Fire + 9 playSfx.
 - `lib/data/world.dart` — 3 Locations narratives initiales (à étoffer).
@@ -252,6 +335,36 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
     stockés)
   - tank ≥ 1 → drink (anim use_back + drink, -1 verre, restoreThirst)
 - Anim de niveau via `_filterDisplayLevel` interpolé entre changements.
+
+### Mini-jeu de combat aux gares (`roof_defense_game.dart`)
+
+Voir le bloc de session 2026-06-04→05 ci-dessus pour les détails complets
+(types de pillards, géométrie scene-units, économie ferraille, bugs résolus).
+Résumé : tower-defense en arc, Shen défend le train, 5 vagues campagne ou
+survie infinie, atelier d'upgrades payé en ferraille, perks/coffres entre
+vagues, frénésie. Décor `gare_shoot.png` vue de loin.
+
+**🎯 VISION D'INTÉGRATION (validée, PAS encore câblée)** — le combat doit se
+brancher sur l'histoire :
+1. Entre chaque gare : **~10 cartes narratives** (Reigns) qui font avancer
+   l'histoire ET **débloquent des objets** dans le wagon (lit → filtre → hydro,
+   sentiment de progression). Flags `asset_*` déjà posés dans `cards_data`.
+2. À **chaque gare = un combat**. Le **score /100** du combat :
+   - donne des **ressources** (bois / eau / nourriture) injectées dans les
+     stats Reigns,
+   - **branche l'histoire** (ex. bon score gare 5 → on sauve la sœur).
+3. **~20 parties** pour atteindre 100 % de score sur une gare (rejouabilité).
+4. **Chaque gare doit avoir SA propre idée** de combat (14 gares = 14 angles).
+5. **Ferraille** = monnaie de jeu (atelier). **Boutique IAP** prévue
+   (4,99 € = 500 ferraille). **ÉTHIQUE : l'argent réel ne doit JAMAIS bloquer
+   l'histoire** — seulement accélérer le confort de combat.
+
+**Câblage technique en cours** (à finir) : `RoofDefenseGame` a déjà un
+`onResult` (callback `score100`) dans son constructeur mais il n'est **pas
+encore utilisé** ni relié. Reste : calculer `score100` en fin de combat,
+overlay « Continuer/Réessayer », `GameState.applyCombatRewards(score100)`,
+méthode moteur pour rafraîchir les cartes de gare selon le tier de score,
+et lancer le combat depuis `cards_screen` à l'arrivée en gare.
 
 ### Carte du monde
 
@@ -405,6 +518,23 @@ l'enfant / la sœur), à nommer plus tard.
 
 ## Ce qui reste à faire
 
+### 🚨 Priorité ABSOLUE — finir le câblage COMBAT ↔ GARE ↔ SCORE
+0a. **Brancher `onResult(score100)`** de `RoofDefenseGame` : calculer le score
+    /100 en fin de combat (cœurs restants + vagues + kills/ferraille), overlay
+    fin « Continuer / Réessayer ».
+0b. **`GameState.applyCombatRewards(score100)`** : convertir le score en
+    ressources (bois/eau/nourriture) injectées dans les stats Reigns.
+0c. **Brancher score → histoire** : tier de score pose des flags (ex. bon score
+    gare 5 → flag qui débloque la carte « sauver la sœur »). Méthode moteur pour
+    rafraîchir/choisir les cartes de gare selon le tier.
+0d. **Lancer le combat depuis l'arrivée en gare** (depuis `cards_screen` /
+    map), une **idée de combat par gare** (14 angles différents).
+0e. **Boutique IAP** (4,99 € = 500 ferraille) — confort de combat seulement,
+    **jamais bloquer l'histoire** (éthique validée).
+0f. **Rebrancher l'apparition progressive des objets** : repasser
+    `side_scroll_scene._showAllProps` à `false` une fois le reste validé (les
+    flags `asset_bed/filter/hydro` sont déjà posés dans `cards_data`).
+
 ### 🚨 Priorité — relier la vie du wagon au gameplay Reigns
 1. **Brancher le thermomètre en AUTO** : `cabinTemp` calculée depuis la **zone
    de la map** (tempéré→nord glacé) + **bois** (feu) + **météo** + **nuit**.
@@ -446,6 +576,15 @@ l'enfant / la sœur), à nommer plus tard.
   sprite figé reste affiché ET le solo réapparait par-dessus.
 - **Toujours `flutter analyze` avant push** (SDK récupérable dans /tmp).
 - **Toujours afficher/bumper le n° de build** dans `loading_screen.dart`.
+- **Combat sous AnimatedSwitcher** : garder `StackFit.expand` sur le Stack
+  principal (sinon écran bleu/0×0 silencieux).
+- **Combat — listes pendant itération** : ne jamais `_stones.add()` pendant
+  `for (final s in _stones)` (ConcurrentModification → freeze). Itérer
+  `List.of(...)` + `addAll` après.
+- **OOM iOS** : ne PAS re-precache tous les PNG ni regonfler le cache image
+  (whitelist `loading_screen._essential` + cache 450 Mo à respecter).
+- **Difficulté combat** : calibrer par simulation (`/tmp/sim.py`) avant de
+  toucher la table des vagues — le user trouve vite « trop facile ».
 
 ---
 
@@ -473,28 +612,39 @@ l'enfant / la sœur), à nommer plus tard.
 
 ## Notes pour la prochaine session
 
-**Dernier sujet abordé (2026-06-03)** : grosse session "vie des wagons" +
-cellier + thermomètre. On a posé le **2e wagon** (bain/douche/lanternes
-posables en mode ajuster), rendu **sœur + chien mobiles**, câblé les **duos**
-(lecture/câlin) + **caresse chien** + **bain/douche**, et installé le
-**thermomètre** (froid bloque le gain de moral, piloté à la main pour l'instant).
-Beaucoup d'itérations sur le **découpe/détourage des sprites IA** (technique
-des traits rouges adoptée).
+**Dernier sujet abordé (2026-06-04→05)** : grosse session **COMBAT**. On a
+intégré et débuggé le mini-jeu de combat aux gares (`roof_defense_game.dart`) :
+tir en arc, types de pillards (basic/lanceur/brute/boss), mêlée qui frappe le
+train, atelier d'upgrades en ferraille, perks/coffres/frénésie, mode campagne
++ survie. On a corrigé 3 gros bugs (**écran bleu = StackFit.expand**, **freeze
+ConcurrentModification**, **OOM = cache/precache whitelist**), refait le décor
+en **vue de loin** (`gare_shoot.png`) avec gameplay en scene-units, ajouté les
+**nouveaux sprites sœur** (walk/idle/sleep sur le lit), et **durci la
+difficulté** par simulation (vagues DUR-B : correct perd ~70 %, bon ~90 %).
+Dernière action : **ré-affiché TOUS les objets du wagon** (`_showAllProps=true`)
+le temps de tout vérifier. Build **0.70.0+152**.
 
 **À reprendre (dans l'ordre suggéré)** :
-1. **Brancher le thermomètre en auto** (zone map + bois + météo + nuit) et
+1. **CÂBLER COMBAT ↔ GARE ↔ SCORE** (priorité 0a→0f de la roadmap) : c'est LE
+   gros chantier suivant. `onResult(score100)` → ressources + branches
+   d'histoire, lancer le combat à l'arrivée en gare, une idée par gare,
+   boutique IAP, puis rebrancher `_showAllProps=false`.
+2. **Écrire le contenu cartes** (`cards_data.dart`) : ~10 fillers entre chaque
+   gare qui débloquent les objets (lit→filtre→hydro) + arcs persos.
+3. **Brancher le thermomètre en auto** (zone map + bois + météo + nuit) et
    débrancher le bouton test.
-2. **Vie des wagons** : interactions émergentes (chien/sœur suivent Shen,
-   dodo groupé la nuit), fix nuit-sœur-qui-bouge-pas.
-3. **Contenu cartes** (`cards_data.dart`) + relier map↔cartes↔temp.
+4. **Vie des wagons** : interactions émergentes, fix nuit-sœur-qui-bouge-pas.
 
 **À ne PAS faire / refaire** :
 - Reproposer des mini-jeux modaux (hydro OK, filtre inline OK, wood retiré).
+  (Le combat est plein écran, c'est voulu/validé.)
 - Re-découper bain/douche/duos/petdog sans les **traits rouges** + fond vert.
 - Oublier `flutter analyze` + le bump du **n° de build** dans loading_screen.
 - Remettre les bruits de pas (retirés exprès).
-- Remettre cook/garden_tend/look_window/sister_read/hugduo (anims retirées,
-  mal générées/détourées).
+- Remettre cook/garden_tend/look_window/sister_read/hugduo (anims retirées).
+- **Combat** : enlever `StackFit.expand`, regonfler le cache image / precache
+  tout (OOM), ou `_stones.add()` en pleine itération (freeze).
+- Tenter d'habiller Shen avec la robe sans sprites régénérés (abandonné).
 
 **Persos à l'écran** : Shen (jeune femme, chemise blanche pieds nus — voulu),
 la **petite sœur** (pyjama, couettes — bien plus petite que Shen), le **husky**.
