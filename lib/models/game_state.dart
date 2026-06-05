@@ -220,7 +220,7 @@ class GameState extends ChangeNotifier {
   Map<String, int> shootUpgrades = {}; // niveaux des améliorations d'atelier
   // Position du canon (trappe/fenêtre du train) + ligne de sol, en unités de
   // scène du combat. Réglables via le mode ajuster du combat, persistées.
-  double shootMuzX = 0.135, shootMuzY = 0.52, shootGroundY = 0.865;
+  double shootMuzX = 0.199, shootMuzY = 0.782, shootGroundY = 0.865;
   void setShootMuzzle(double mx, double my, double groundY) {
     shootMuzX = mx.clamp(0.0, 2.5);
     shootMuzY = my.clamp(0.0, 1.0);

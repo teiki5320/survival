@@ -265,8 +265,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   Duration _last = Duration.zero;
 
   // --- Caméra (style Swamp Attack) : zoom + suit la pierre puis revient ---
-  static const double _zoom = 1.7; // grossissement vs "vue de loin"
+  static const double _zoom = 2.7; // gros plan train (le pillard est hors champ)
   static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
+  double _camLaunchHold = 0; // reste sur le train un instant après le tir
 
   // --- Mode DUEL de test (réglage du feeling) : 1 seul lanceur, 3 PV, on tire
   //     chacun son tour, il recule quand touché. À élargir une fois calé. ---
@@ -758,12 +759,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // Caméra : suit la pierre en vol (la plus avancée), marque un temps sur
   // l'impact, puis revient en douceur sur le train.
   void _updateCamera(double dt) {
+    if (_camLaunchHold > 0) _camLaunchHold -= dt;
     _Stone? lead;
     for (final s in _stones) {
       if (s.pos.dx < -90) continue;
       if (lead == null || s.pos.dx > lead.pos.dx) lead = s;
     }
-    if (lead != null) {
+    if (_camLaunchHold > 0) {
+      // On laisse voir la pierre quitter la fenêtre avant de suivre.
+      _camTarget = _camHome;
+    } else if (lead != null) {
       _camTarget = lead.pos.dx;
       _camHold = 0.45;
     } else if (_camHold > 0) {
@@ -910,12 +915,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     final type = _pickType();
     final feetY = _groundY + (_rng.nextDouble() - 0.5) * 0.03;
     final anim = _rng.nextDouble() * 2;
-    // Posté STATIQUE au loin, dans la bande visible au repos (à droite du
-    // train). La caméra suivra la pierre pour les viser de près.
-    final right = _camHome + _camMin; // bord droit visible au repos
-    final lo = math.min(_camHome + 0.35, right - 0.2);
-    final x = (lo + _rng.nextDouble() * math.max(0.12, right - 0.12 - lo))
-        .clamp(0.9, _imgA - 0.1);
+    // Posté STATIQUE au loin. En mode duel : carrément HORS CHAMP au repos
+    // (on ne le voit qu'en suivant le tir). Sinon dans la bande visible.
+    final double x;
+    if (_duelTest) {
+      x = (1.65 + _rng.nextDouble() * 0.2).clamp(0.9, _imgA - 0.1);
+    } else {
+      final right = _camHome + _camMin; // bord droit visible au repos
+      final lo = math.min(_camHome + 0.35, right - 0.2);
+      x = (lo + _rng.nextDouble() * math.max(0.12, right - 0.12 - lo))
+          .clamp(0.9, _imgA - 0.1);
+    }
     switch (type) {
       case _PillType.brute:
         _enemies.add(_Enemy(
@@ -981,7 +991,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // ---------------------------------------------------------------------------
   Offset _launchVel() {
     final pullPx = _dragStart - _dragNow;
-    final pull = Offset(pullPx.dx / _S, pullPx.dy / _S);
+    // Aide à la visée INDÉPENDANTE du zoom : on rapporte le glissement à la
+    // hauteur d'écran (= _S / _zoom), pas à l'échelle zoomée. Sinon plus on
+    // zoome, moins le tir porte loin. La portée reste donc proportionnelle au
+    // geste quel que soit le zoom.
+    final ref = _S / _zoom;
+    final pull = Offset(pullPx.dx / ref, pullPx.dy / ref);
     var v = pull * (_power * _powerMult);
     final maxs = _maxSpeed * _powerMult;
     final sp = v.distance;
@@ -1017,6 +1032,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (v.distance < 0.12) return;
     _spawnStones(v);
     _reloadTimer = _reload;
+    _camLaunchHold = 0.30; // montre le départ depuis la fenêtre puis suit
     if (_duelTest) {
       _playerTurn = false;
       _awaitingStones = true;
