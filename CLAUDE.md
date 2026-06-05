@@ -178,7 +178,7 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.74.0+156` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.75.0+158` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
@@ -418,6 +418,21 @@ une **idée de combat distincte par gare**, et rebrancher `_showAllProps=false`.
   dart`), ouvert par un FAB sur la map (pastille verte si coffre/mission dispo).
   Défs d'atelier + achat centralisés dans `GameState.shootShopDefs` /
   `buyShootUpgrade` (partagés combat ↔ workshop).
+
+**✅ DÉCORS PAR GARE + CARTE DANS LA LOCO (2026-06-05, build 0.75.0)** :
+- **9 décors de combat** `assets/background/gare_combat_1..9.png` (1584×672,
+  vue de loin, ambiances tempéré→froid). Branchés par gare via la liste
+  `RoofDefenseGame._gareDecor` (14 index → 9 décors) + `gareIndex` passé depuis
+  `main`. **Exclus du precache** (`loading_screen._essential` skippe
+  `/gare_combat_`) → décodés à la volée au lancement (OOM). `gare_shoot.png`
+  n'est plus référencé.
+- **Carte du voyage déplacée du wagon → LOCOMOTIVE** : `MiniRouteMap` encadrée,
+  position+taille persistées (`GameState.locoMapCx/Cy/W` + `setLocoMap`), **mode
+  ajuster** (FAB crayon dans la loco : 1 doigt déplace, **pincer**
+  redimensionne, HUD coords). Tap (hors ajuster) = ouvre la map. La carte
+  murale du wagon est masquée (`onOpenMap` null côté wagon).
+- ⚠️ Les 9 PNG avaient été uploadés par erreur sur la branche
+  `claude/train-wagon-app-1mqKe` (divergente) ; récupérés et committés sur main.
 
 ### Carte du monde
 
