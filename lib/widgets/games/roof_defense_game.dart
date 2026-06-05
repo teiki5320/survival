@@ -148,10 +148,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _wagonClipFrac = 0.12; // le wagon est petit, à gauche
   static const double _trainEdgeX = 0.24;
 
-  // Tir bien ralenti (on suit la pierre tranquillement, façon lobé).
-  static const double _g = 0.7;
-  static const double _power = 4.3;
-  static const double _maxSpeed = 1.7;
+  // Tir très ralenti (on suit la pierre tranquillement, façon lobé lent).
+  static const double _g = 0.5;
+  static const double _power = 3.4;
+  static const double _maxSpeed = 1.35;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
@@ -271,6 +271,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
   double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
+  double _windowFire = 0; // feu dans la fenêtre quand le pillard touche (sec)
 
   // --- Mode DUEL de test (réglage du feeling) : 1 seul lanceur, 3 PV, on tire
   //     chacun son tour, il recule quand touché. À élargir une fois calé. ---
@@ -283,6 +284,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _camTarget = 0;
   double _camMin = 0, _camMax = 0;
   double _camHold = 0; // maintien sur l'impact avant de revenir
+  // Suivi vertical : la pierre lobée monte haut -> la caméra remonte pour la
+  // garder à l'écran, puis redescend au repos.
+  double _camY = 0, _camYTarget = 0, _camYHome = 0, _camYMin = 0, _camYMax = 0;
   bool _camInit = false;
 
   bool get _explosiveWeapon => GameState.instance.shootWeaponLevel >= 3;
@@ -542,6 +546,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (_reloadTimer > 0) _reloadTimer -= dt;
     if (_shake > 0) _shake = (_shake - dt).clamp(0.0, 1.0);
     if (_camPunch > 0) _camPunch = (_camPunch - dt * 3.0).clamp(0.0, 1.0);
+    if (_windowFire > 0) _windowFire -= dt;
     setState(() {});
   }
 
@@ -622,8 +627,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     _enemyShots.removeWhere((es) {
       if (es.pos.dx <= _trainEdgeX) {
+        // Touché à la fenêtre : feu dans la fenêtre + un cœur en moins.
         _damageTrain();
-        _shake = 0.2;
+        _windowFire = 1.5;
+        _shake = math.max(_shake, 0.26);
         return true;
       }
       return es.pos.dy > 1.15 || es.pos.dx < -0.2;
@@ -805,9 +812,18 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _camTarget = _camHome;
     }
     if (_camMax > _camMin) _camTarget = _camTarget.clamp(_camMin, _camMax);
+    // Suivi vertical : on remonte vers la pierre quand elle lobe haut (jamais
+    // en dessous du repos), sinon retour au repos.
+    if (_camLaunchHold <= 0 && lead != null) {
+      _camYTarget = math.min(_camYHome, lead.pos.dy);
+    } else {
+      _camYTarget = _camYHome;
+    }
+    if (_camYMax > _camYMin) _camYTarget = _camYTarget.clamp(_camYMin, _camYMax);
     // lissage exponentiel (indépendant du framerate)
     final k = 1 - math.exp(-7.0 * dt);
     _camX += (_camTarget - _camX) * k;
+    _camY += (_camYTarget - _camY) * k;
   }
 
   void _damageTrain({int amount = 1}) {
@@ -1284,15 +1300,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           _camMax = math.max(viewHalf, _imgA - viewHalf);
           // Repos : train (x≈0.24) calé vers la gauche.
           _camHome = (viewHalf).clamp(_camMin, _camMax).toDouble();
+          // Bornes verticales : la scène fait 1 unité de haut.
+          final viewHalfY = (h / scale) / 2;
+          _camYMin = viewHalfY;
+          _camYMax = math.max(viewHalfY, 1.0 - viewHalfY);
+          _camYHome = (1.0 - viewHalfY).clamp(_camYMin, _camYMax).toDouble();
           if (!_camInit) {
             _camX = _camTarget = _camHome;
+            _camY = _camYTarget = _camYHome;
             _camInit = true;
           }
           _camX = _camX.clamp(_camMin, _camMax);
-          // Décalage horizontal du gameplay (suit la caméra 1:1).
+          _camY = _camY.clamp(_camYMin, _camYMax);
+          // Décalage du gameplay (suit la caméra 1:1, X et Y).
           _ox = w / 2 - _camX * scale;
-          // Ancre le sol vers le bas (le ciel du décor est rogné par le zoom).
-          _oy = h - dispH;
+          _oy = h / 2 - _camY * scale;
           // Décor en parallaxe : recule moins vite que le gameplay quand la
           // caméra s'éloigne du repos (profondeur). Aligné au repos.
           final camBg = _camHome + (_camX - _camHome) * _kBg;
@@ -1419,6 +1441,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                     ),
 
+                  // Feu dans la fenêtre quand le pillard touche le train.
+                  if (_windowFire > 0) _buildWindowFire(u2p),
+
                   // Textes flottants.
                   for (final f in _floats) _buildFloat(f),
 
@@ -1444,6 +1469,29 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   // ----- entités visuelles -----
+  // Flamme à la fenêtre du train (le pillard a touché). Scintille puis
+  // s'éteint avec _windowFire.
+  Widget _buildWindowFire(Offset Function(Offset) u2p) {
+    final c = u2p(_muzzle);
+    final life = (_windowFire / 1.5).clamp(0.0, 1.0);
+    final flick = 0.85 + 0.3 * _rng.nextDouble();
+    final size = 0.11 * _S * (0.7 + 0.3 * life) * flick;
+    return Positioned(
+      left: c.dx - size / 2,
+      top: c.dy - size * 0.8,
+      width: size,
+      height: size,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: life,
+          child: Text('🔥',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: size * 0.9)),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEnemy(_Enemy e) {
     final boxSize = e.height / _pillContentH * _S;
     final left = _ox + e.x * _S - boxSize / 2;
@@ -2502,11 +2550,12 @@ class _ShotPainter extends CustomPainter {
       Offset vel = launchVel!;
       const double step = 0.03;
       final path = Path()..moveTo(_p(pos).dx, _p(pos).dy);
-      for (int i = 0; i < 80; i++) {
+      // Arc court : juste un guide de départ (≈ le début de la trajectoire).
+      for (int i = 0; i < 22; i++) {
         vel = vel + Offset(0, g * step);
         pos = pos + vel * step;
         path.lineTo(_p(pos).dx, _p(pos).dy);
-        if (pos.dy > 1.05 || pos.dx > 3.0) break;
+        if (pos.dy > 1.05) break;
       }
       canvas.drawPath(
         path,
