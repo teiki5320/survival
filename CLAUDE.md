@@ -102,6 +102,26 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
   `GameState.shootUpgrades` : cœurs, reload, etc.). Coffres (`chest`) + **perks
   à choisir** (`perk`) entre vagues (ricochet, autofire, split, +cœurs…).
   **Frénésie** : streak de kills → multiplicateur + bandeau « FRÉNÉSIE ! ».
+- **Boucle addictive renforcée (2026-06-05, build 0.72.0)** :
+  - **Évolution d'arme** : choisir **3× le même perk** dans une run le fait
+    « évoluer » (bonus unique + callout « ✦ ÉVOLUTION ✦ »). `_perkLevels` /
+    `_evolved` / `_applyEvolution`.
+  - **Atelier — mécaniques (pas juste des %)** : `magnet` (aimant : butin
+    auto-ramassé), `shield` (bouclier de wagon : encaisse 1 coup gratuit par
+    vague, rechargé en début de vague), `bomb` (bombe écran, 1/vague, FAB 💣
+    dans le HUD). Clés dans `shootUpgrades`, lues dans `_applyMeta`.
+  - **Near-miss** : perdu sur la **dernière vague** → bandeau « Si près ! » +
+    15 ferraille de consolation (`_nearMiss`).
+  - **Pillard doré** : s'enfuit s'il atteint le train (jackpot **perdu** → tue-le
+    vite), butin 35, spawn dès vague 1 (8 %).
+  - **Étoiles par gare** : score → 0-3 ⭐ (`GameState.starsForScore`,
+    `gareStars`, `totalGareStars` /42), affichées à l'écran de fin du combat
+    de gare + **collection 14 gares** dans l'overlay « Quotidien & Gares ».
+  - **Quotidien (rétention)** : `GameState` coffre du jour (`claimDailyChest`)
+    + 3 missions journalières (`dailyMissions` : kills/perfect/scrap,
+    `reportCombat` alimente, `claimDailyMission`), reset au changement de jour,
+    persistés. Overlay `_Phase.progress` (bouton menu « Quotidien & Gares 🎁 »
+    avec pastille verte si récompense dispo).
 - **Difficulté calibrée par SIMULATION** (`/tmp/sim.py`, 2000 runs/profil de
   skill) : vagues campagne =
   `[(6,0.16,0.80),(10,0.23,0.64),(14,0.33,0.48),(18,0.45,0.38),(23,0.58,0.30)]`
@@ -158,7 +178,7 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.71.0+153` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.72.0+154` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
