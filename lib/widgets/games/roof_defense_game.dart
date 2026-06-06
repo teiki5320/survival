@@ -98,6 +98,7 @@ class _EnemyShot {
   _EnemyShot(this.pos, this.vel);
   Offset pos;
   Offset vel;
+  final List<Offset> trail = []; // traînée d'air
 }
 
 class _Impact {
@@ -650,6 +651,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         (s.bounces >= 3 && s.vel.distance < 0.25));
 
     for (final es in _enemyShots) {
+      es.trail.add(es.pos);
+      if (es.trail.length > 7) es.trail.removeAt(0);
       es.vel = es.vel + Offset(0, _g * 0.5 * dt);
       es.pos = es.pos + es.vel * dt;
     }
@@ -2670,7 +2673,16 @@ class _ShotPainter extends CustomPainter {
 
     final enemyPaint = Paint()..color = const Color(0xFF8A4A3A);
     for (final es in enemyShots) {
-      canvas.drawCircle(_p(es.pos), 0.009 * scale, enemyPaint);
+      final rr = 0.009 * scale;
+      for (int i = 0; i < es.trail.length; i++) {
+        final f = (i + 1) / (es.trail.length + 1);
+        canvas.drawCircle(
+          _p(es.trail[i]),
+          rr * (0.35 + 0.5 * f),
+          Paint()..color = const Color(0xFFB57A5A).withValues(alpha: 0.30 * f),
+        );
+      }
+      canvas.drawCircle(_p(es.pos), rr, enemyPaint);
     }
 
     for (final im in impacts) {
