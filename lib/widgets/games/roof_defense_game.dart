@@ -60,6 +60,7 @@ class _Enemy {
   // Ragdoll de mort : le pillard part en pantin (recule + saute + tourne).
   double dieVX = 0, dieVY = 0, dieRot = 0, dieRotV = 0;
   double slowT = 0; // gel : ralenti restant
+  double staggerT = 0; // touché au corps : tombe en arrière puis se relève
   bool attacking = false;
   double attackT = 0;
   double lastAtkX = 0;
@@ -100,12 +101,13 @@ class _EnemyShot {
 }
 
 class _Impact {
-  _Impact(this.pos,
-      {this.launch = false, this.crit = false, this.blast = false});
+  _Impact(this.pos, {this.launch = false, this.crit = false, this.blast = false})
+      : seed = ((pos.dx * 131.0 + pos.dy * 977.0) * 100).toInt() & 0x7fffffff;
   final Offset pos;
   final bool launch;
   final bool crit;
   final bool blast;
+  final int seed; // pour disperser les débris de façon variée
   double t = 0;
 }
 
@@ -272,6 +274,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   //     (dézoome) quand on tire pour cadrer train + pillard -> le projectile
   //     reste toujours visible (pas de suivi serré). ---
   static const double _zoomRest = 2.0; // gros plan train (ton tour, visée)
+  static const double _zoomAim = 1.6; // dézoom DOUX pendant qu'on tend l'arc
   static const double _zoomWide = 1.0; // reculé : on voit tout le terrain
   static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
   double _zoomCur = 2.0, _zoomTarget = 2.0;
@@ -574,6 +577,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       }
       e.anim += dt;
       if (e.slowT > 0) e.slowT -= dt;
+      if (e.staggerT > 0) e.staggerT -= dt;
 
       // Pillard doré : posté un temps limité, puis il s'enfuit avec le magot
       // (jackpot perdu) -> il faut l'abattre vite.
@@ -701,10 +705,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             const Color(0xFFE2C28A)));
       }
       // Recul : touché mais pas mort -> le pillard tombe en arrière (plus
-      // loin), ce qui oblige à recorriger le tir suivant.
+      // loin), ce qui oblige à recorriger le tir suivant. Touché au HAUT du
+      // corps (tête/torse) = il tombe à la renverse puis se relève sur place.
       if (e.hp > 0) {
         e.x = (e.x + (_duelTest ? 0.14 : 0.04)).clamp(0.9, _imgA - 0.08);
         e.throwing = false;
+        if (!leg) e.staggerT = 0.9; // chute + relève
       } else {
         e.x += 0.015;
       }
@@ -888,7 +894,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       final maxs = _maxSpeed * _powerMult;
       final f =
           (_launchVel().distance / (maxs <= 0 ? 1 : maxs)).clamp(0.0, 1.0);
-      _zoomTarget = _zoomRest + (_zoomWide - _zoomRest) * f;
+      _zoomTarget = _zoomRest + (_zoomAim - _zoomRest) * f;
       final foeX = foe?.x ?? (_camHome + 1.2);
       _camTarget = _camHome + (((_muzX + foeX) / 2) - _camHome) * f;
       _camYTarget = _camYHome;
@@ -1542,7 +1548,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                     ),
 
                   // Indicateur PUISSANCE / ANGLE pendant la visée (Bowmasters).
-                  if (_aiming && _phase == _Phase.playing) _powerAngleChip(u2p),
+                  if (_aiming && _phase == _Phase.playing) _powerAngleChip(),
 
                   // Petit halo dans la fenêtre quand le pillard touche.
                   if (_windowHalo > 0) _buildWindowHalo(u2p),
@@ -1572,19 +1578,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   // ----- entités visuelles -----
-  // Pastille PUISSANCE / ANGLE pendant la visée (au-dessus de la fenêtre).
-  Widget _powerAngleChip(Offset Function(Offset) u2p) {
+  // Pastille PUISSANCE / ANGLE pendant la visée — position FIXE (bas-centre)
+  // pour rester visible quelle que soit la caméra/le dézoom.
+  Widget _powerAngleChip() {
     final v = _launchVel();
     final maxs = _maxSpeed * _powerMult;
     final powerPct = (v.distance / (maxs <= 0 ? 1 : maxs) * 100).clamp(0, 100).round();
     final angle = (math.atan2(-v.dy, v.dx.abs() < 1e-4 ? 1e-4 : v.dx) * 180 / math.pi)
         .clamp(-90, 90)
         .round();
-    final c = u2p(_muzzle);
     return Positioned(
-      left: c.dx - 70,
-      top: (c.dy - 0.22 * _S).clamp(8.0, double.infinity),
-      width: 140,
+      left: 0,
+      right: 0,
+      bottom: 24,
       child: IgnorePointer(
         child: Center(
           child: Container(
@@ -1668,6 +1674,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
     } else {
       asset = _liveAsset(e);
+      // Tombe à la renverse puis se relève (touché au corps).
+      if (e.staggerT > 0) rot = 1.15 * (e.staggerT / 0.9).clamp(0.0, 1.0);
     }
     // cacheWidth : on décode petit (les pillards s'affichent en ~100-180 px) ->
     // mémoire image divisée par ~4, évite l'OOM en combat.
@@ -2698,19 +2706,35 @@ class _ShotPainter extends CustomPainter {
         );
         continue;
       }
-      // Impact discret : un petit éclat, pas un gros "boum" (et ça ne grossit
-      // plus avec le zoom).
-      final r = (0.004 + 0.012 * t) * scale;
-      final ringColor =
-          im.crit ? const Color(0xFFFFD24A) : const Color(0xFFFFE2B0);
-      canvas.drawCircle(
-        c,
-        r * (im.crit ? 1.25 : 1.0),
-        Paint()
-          ..color = ringColor.withValues(alpha: 0.8 * a)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = im.crit ? 2.0 : 1.5,
-      );
+      // Impact "caillou" : un flash bref + une gerbe de petits débris qui
+      // jaillissent et retombent. Plus satisfaisant qu'un anneau.
+      final base = im.crit ? const Color(0xFFFFD24A) : const Color(0xFFD8C8AC);
+      // Flash court.
+      if (t < 0.35) {
+        final ft = 1 - t / 0.35;
+        canvas.drawCircle(
+          c,
+          (0.006 + 0.006 * (1 - ft)) * scale,
+          Paint()..color = Colors.white.withValues(alpha: 0.85 * ft),
+        );
+      }
+      // Débris (gerbe).
+      final n = im.crit ? 9 : 6;
+      for (int i = 0; i < n; i++) {
+        final ang = ((im.seed + i * 53) % 360) * math.pi / 180;
+        final speed = 0.04 + ((im.seed >> i) % 7) * 0.006;
+        final dist = speed * t * scale * 6;
+        final dx = math.cos(ang) * dist;
+        // gravité : retombe (le t² tire vers le bas)
+        final dy = math.sin(ang) * dist * 0.6 + 0.5 * t * t * 0.10 * scale;
+        final pr = (im.crit ? 2.4 : 1.8) * (1 - t);
+        if (pr <= 0) continue;
+        canvas.drawCircle(
+          c + Offset(dx, dy),
+          pr,
+          Paint()..color = base.withValues(alpha: 0.95 * a),
+        );
+      }
     }
 
     if (aiming && launchVel != null) {
