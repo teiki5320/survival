@@ -153,8 +153,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _trainEdgeX = 0.24;
 
   // Tir hyper lent (gros lobé, on suit la pierre tout du long).
+  // _power élevé = visée SENSIBLE (un petit glissement tend déjà fort l'arc).
   static const double _g = 0.32;
-  static const double _power = 2.7;
+  static const double _power = 4.6;
   static const double _maxSpeed = 1.05;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
