@@ -152,11 +152,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _imgA = 1376 / 768; // décor combat en couches (parallaxe)
   static const double _trainEdgeX = 0.24;
 
-  // Tir hyper lent (gros lobé, on suit la pierre tout du long).
+  // Tir ultra lent (gros lobé, on suit la pierre tout du long).
   // _power élevé = visée SENSIBLE (un petit glissement tend déjà fort l'arc).
-  static const double _g = 0.32;
+  static const double _g = 0.22;
   static const double _power = 4.6;
-  static const double _maxSpeed = 1.05;
+  static const double _maxSpeed = 0.85;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
@@ -271,14 +271,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _S = 1, _ox = 0, _oy = 0;
   Duration _last = Duration.zero;
 
-  // --- Caméra (style Bowmasters) : serré sur le train au repos, RECULE
-  //     (dézoome) quand on tire pour cadrer train + pillard -> le projectile
-  //     reste toujours visible (pas de suivi serré). ---
-  static const double _zoomRest = 2.0; // gros plan train (ton tour, visée)
-  static const double _zoomAim = 1.6; // dézoom DOUX pendant qu'on tend l'arc
-  static const double _zoomWide = 1.0; // reculé : on voit tout le terrain
-  static const double _kBg = 0.9; // parallaxe du décor (fond) vs gameplay
-  double _zoomCur = 2.0, _zoomTarget = 2.0;
+  // --- Caméra : zoom FIXE, on SUIT le projectile (le pillard est hors champ
+  //     au lancer, la caméra le révèle en suivant la pierre). Retour au train. ---
+  static const double _zoomRest = 1.8; // gros plan train (un peu moins fort)
+  static const double _kBg = 0.9; // parallaxe du fond lointain
+  double _zoomCur = 1.8, _zoomTarget = 1.8;
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
   double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
   double _windowHalo = 0; // petit halo dans la fenêtre quand le pillard touche
@@ -813,7 +810,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         } else {
           // Recentre sur le pillard, il vise (télégraphe) avant de lancer.
           _enemyAiming = true;
-          _enemyAimT = 1.1;
+          _enemyAimT = 1.9; // lancer du pillard retardé
+
         }
       }
     } else if (_enemyAiming) {
@@ -850,7 +848,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void _enemyThrowAt(_Enemy e) {
     final from = Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55);
     final ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
-    const t = 2.4; // vol lent (suivable à la caméra)
+    const t = 3.3; // vol très lent (suivable à la caméra)
     const spread = 0.14; // niveau 1 : dispersion autour de la fenêtre
     final to = Offset(
       _muzX + _gauss() * spread, // un peu court / un peu long
@@ -865,62 +863,33 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // l'impact, puis revient en douceur sur le train.
   void _updateCamera(double dt) {
     if (_camLaunchHold > 0) _camLaunchHold -= dt;
+    _zoomTarget = _zoomRest; // zoom fixe : plus de dézoom dynamique
+    // Projectile à suivre (ma pierre en priorité, sinon le tir ennemi).
     _Stone? lead;
     for (final s in _stones) {
       if (s.pos.dx < -90) continue;
       if (lead == null || s.pos.dx > lead.pos.dx) lead = s;
     }
     final eShot = _enemyShots.isNotEmpty ? _enemyShots.first : null;
-    _Enemy? foe;
-    for (final e in _enemies) {
-      if (!e.dying) {
-        foe = e;
-        break;
-      }
-    }
-    // Y a-t-il une action en cours (tir / riposte) ? -> on RECULE pour tout voir.
-    final flight = _camLaunchHold <= 0 &&
-        (lead != null || eShot != null || _enemyAiming || _enemyThrowing);
 
-    if (_aiming && _playerTurn && _camLaunchHold <= 0 && !flight) {
-      // On RECULE au fur et à mesure qu'on tend l'arc (tension = dézoom).
-      final maxs = _maxSpeed * _powerMult;
-      final f =
-          (_launchVel().distance / (maxs <= 0 ? 1 : maxs)).clamp(0.0, 1.0);
-      _zoomTarget = _zoomRest + (_zoomAim - _zoomRest) * f;
-      final foeX = foe?.x ?? (_camHome + 1.2);
-      _camTarget = _camHome + (((_muzX + foeX) / 2) - _camHome) * f;
-      _camYTarget = _camYHome;
-    } else if (flight) {
-      // Reculé : cadre l'espace entre la fenêtre, le pillard et le projectile.
-      _zoomTarget = _zoomWide;
-      var lx = _muzX, rx = foe?.x ?? (_camHome + 1.0);
-      if (lead != null) {
-        lx = math.min(lx, lead.pos.dx);
-        rx = math.max(rx, lead.pos.dx);
-      }
-      if (eShot != null) {
-        lx = math.min(lx, eShot.pos.dx);
-        rx = math.max(rx, eShot.pos.dx);
-      }
-      _camTarget = (lx + rx) / 2;
-      // Vertical : un peu haut pour englober l'arc du lobé.
-      var ty = 0.5;
-      if (lead != null) ty = math.min(ty, lead.pos.dy - 0.05);
-      if (eShot != null) ty = math.min(ty, eShot.pos.dy - 0.05);
-      _camYTarget = ty;
+    Offset focus;
+    if (_camLaunchHold > 0) {
+      focus = Offset(_camHome, _camYHome); // on voit le départ de la fenêtre
+    } else if (lead != null) {
+      focus = lead.pos; // on suit ma pierre (révèle le pillard au loin)
+    } else if (eShot != null) {
+      focus = eShot.pos; // on suit le projectile du pillard qui revient
     } else {
-      // Repos / visée : gros plan sur le train.
-      _zoomTarget = _zoomRest;
-      _camTarget = _camHome;
-      _camYTarget = _camYHome;
+      focus = Offset(_camHome, _camYHome); // retour au train
     }
 
+    _camTarget = focus.dx;
+    _camYTarget = math.min(_camYHome, focus.dy);
     if (_camMax > _camMin) _camTarget = _camTarget.clamp(_camMin, _camMax);
     if (_camYMax > _camYMin) _camYTarget = _camYTarget.clamp(_camYMin, _camYMax);
+    // Suivi doux et régulier.
     final k = 1 - math.exp(-5.0 * dt);
-    final kz = 1 - math.exp(-4.0 * dt);
-    _zoomCur += (_zoomTarget - _zoomCur) * kz;
+    _zoomCur += (_zoomTarget - _zoomCur) * (1 - math.exp(-4.0 * dt));
     _camX += (_camTarget - _camX) * k;
     _camY += (_camYTarget - _camY) * k;
   }
