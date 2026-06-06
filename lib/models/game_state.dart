@@ -118,6 +118,12 @@ class GameState extends ChangeNotifier {
       shootMuzX = (data['shootMuzX'] as num?)?.toDouble() ?? shootMuzX;
       shootMuzY = (data['shootMuzY'] as num?)?.toDouble() ?? shootMuzY;
       shootGroundY = (data['shootGroundY'] as num?)?.toDouble() ?? shootGroundY;
+      // Migration : anciennes valeurs (décor "vue de loin") -> nouveau layout.
+      if (shootGroundY > 0.84) {
+        shootMuzX = 0.11;
+        shootMuzY = 0.83;
+        shootGroundY = 0.80;
+      }
       if (data['gareBestScore'] is Map) {
         gareBestScore = (data['gareBestScore'] as Map).map(
             (k, v) => MapEntry(int.parse(k as String), (v as num).toInt()));
@@ -220,7 +226,8 @@ class GameState extends ChangeNotifier {
   Map<String, int> shootUpgrades = {}; // niveaux des améliorations d'atelier
   // Position du canon (trappe/fenêtre du train) + ligne de sol, en unités de
   // scène du combat. Réglables via le mode ajuster du combat, persistées.
-  double shootMuzX = 0.199, shootMuzY = 0.782, shootGroundY = 0.865;
+  // Calé sur le nouveau décor en couches (train en bas-gauche, quai ~0.80).
+  double shootMuzX = 0.11, shootMuzY = 0.83, shootGroundY = 0.80;
   void setShootMuzzle(double mx, double my, double groundY) {
     shootMuzX = mx.clamp(0.0, 2.5);
     shootMuzY = my.clamp(0.0, 1.0);

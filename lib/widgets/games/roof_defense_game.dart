@@ -149,8 +149,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   late final Ticker _ticker;
   final _rng = math.Random();
 
-  static const double _imgA = 1584 / 672; // décor "vue de loin"
-  static const double _wagonClipFrac = 0.12; // le wagon est petit, à gauche
+  static const double _imgA = 1376 / 768; // décor combat en couches (parallaxe)
   static const double _trainEdgeX = 0.24;
 
   // Tir hyper lent (gros lobé, on suit la pierre tout du long).
@@ -309,16 +308,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // Mode "combat de gare" : lancé depuis l'écran cartes, démarre direct en
   // campagne (pas de menu) et renvoie un score /100 via onResult.
   bool get _gareMode => widget.onResult != null;
-
-  // Décor de combat par gare (14 gares -> 9 décors `gare_combat_N.png`,
-  // ordonnés tempéré -> froid). Facile à réordonner ici.
-  static const List<int> _gareDecor = [
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 7, 9, 8, 9, 9,
-  ];
-  String get _decorAsset {
-    final i = widget.gareIndex.clamp(0, _gareDecor.length - 1);
-    return 'assets/background/gare_combat_${_gareDecor[i]}.png';
-  }
 
   @override
   void initState() {
@@ -1425,10 +1414,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           // Décalage du gameplay (suit la caméra 1:1, X et Y).
           _ox = w / 2 - _camX * scale;
           _oy = h / 2 - _camY * scale;
-          // Décor en parallaxe : recule moins vite que le gameplay quand la
-          // caméra s'éloigne du repos (profondeur). Aligné au repos.
-          final camBg = _camHome + (_camX - _camHome) * _kBg;
-          final oxDecor = w / 2 - camBg * scale;
+          // Parallaxe : le FOND LOINTAIN bouge plus lentement que le plan de
+          // jeu (mid/train, eux à 1:1). Aligné au repos.
+          final camFar = _camHome + (_camX - _camHome) * _kBg;
+          final oxFar = w / 2 - camFar * scale;
           Offset u2p(Offset u) => Offset(_ox + u.dx * _S, _oy + u.dy * _S);
           final canAim = _phase == _Phase.playing &&
               !_adjust &&
@@ -1483,13 +1472,27 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                     ),
                   ),
+                  // COUCHE 1 — fond lointain (parallaxe lente), légèrement
+                  // surdimensionné pour ne jamais laisser de bord visible.
                   Positioned(
-                    left: oxDecor,
+                    left: oxFar - dispW * 0.15,
+                    top: _oy - dispH * 0.15,
+                    width: dispW * 1.3,
+                    height: dispH * 1.3,
+                    child: const Image(
+                      image: AssetImage('assets/background/combat_far.png'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  // COUCHE 2 — plan de jeu (gare/sol), ciel transparent -> le
+                  // fond apparaît. À 1:1 avec la caméra.
+                  Positioned(
+                    left: _ox,
                     top: _oy,
                     width: dispW,
                     height: dispH,
-                    child: Image(
-                      image: AssetImage(_decorAsset),
+                    child: const Image(
+                      image: AssetImage('assets/background/combat_mid.png'),
                       fit: BoxFit.fill,
                     ),
                   ),
@@ -1499,21 +1502,16 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   if (_barrel != null) _buildBarrel(_barrel!),
                   for (final e in _enemies) _buildEnemy(e),
 
-                  // Occlusion wagon : redessine la bande gauche du décor (le
-                  // train) par-dessus les pierres/pillards passés derrière.
+                  // COUCHE 3 — le TRAIN au premier plan (occlude la gauche).
                   Positioned(
-                    left: oxDecor,
+                    left: _ox,
                     top: _oy,
                     width: dispW,
                     height: dispH,
-                    child: IgnorePointer(
-                      child: ClipRect(
-                        clipper: _RectClip(Rect.fromLTWH(
-                            0, 0, _wagonClipFrac * dispW, dispH)),
-                        child: Image(
-                          image: AssetImage(_decorAsset),
-                          fit: BoxFit.fill,
-                        ),
+                    child: const IgnorePointer(
+                      child: Image(
+                        image: AssetImage('assets/background/combat_train.png'),
+                        fit: BoxFit.fill,
                       ),
                     ),
                   ),
@@ -1915,6 +1913,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                       const SizedBox(width: 8),
                     ],
+                    // Réglage canon/sol (recalibrage sur le nouveau décor).
+                    FloatingActionButton.small(
+                      heroTag: 'shoot_adjust',
+                      backgroundColor:
+                          _adjust ? const Color(0xFFE8B96B) : Colors.black54,
+                      foregroundColor:
+                          _adjust ? const Color(0xFF2A2018) : Colors.white,
+                      onPressed: () => setState(() => _adjust = !_adjust),
+                      child: Icon(_adjust ? Icons.check : Icons.edit),
+                    ),
+                    const SizedBox(width: 8),
                     FloatingActionButton.small(
                       heroTag: 'shoot_quit',
                       backgroundColor: Colors.black54,
@@ -2607,15 +2616,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           ],
         ),
       ));
-}
-
-class _RectClip extends CustomClipper<Rect> {
-  _RectClip(this.rect);
-  final Rect rect;
-  @override
-  Rect getClip(Size size) => rect;
-  @override
-  bool shouldReclip(covariant _RectClip old) => old.rect != rect;
 }
 
 class _ShotPainter extends CustomPainter {
