@@ -600,17 +600,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           radius: 0.45,
                         ),
                       ),
-                      // Lampe suspendue dans la cabine : halo (cœur brillant +
-                      // cône jusqu'au sol) puis le sprite de lampe par-dessus.
-                      Positioned.fill(
-                        child: LampGlow(
-                          animation: _sky,
-                          x: 0.62,
-                          y: 0.20,
-                          radius: 0.34,
-                          floorY: 0.92,
-                        ),
-                      ),
+                      // Lampe suspendue dans la cabine : sprite D'ABORD, puis le
+                      // halo PAR-DESSUS -> la lueur émane du verre (en avant) au
+                      // lieu de passer derrière le corps de la lampe.
                       Positioned(
                         left: w * 0.62 - h * 0.06,
                         top: h * 0.04,
@@ -621,6 +613,15 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                         )),
+                      ),
+                      Positioned.fill(
+                        child: LampGlow(
+                          animation: _sky,
+                          x: 0.62,
+                          y: 0.20,
+                          radius: 0.34,
+                          floorY: 0.92,
+                        ),
                       ),
                       _buildHeroine(w, h),
                       // Warm halo when she's near the firebox (left)

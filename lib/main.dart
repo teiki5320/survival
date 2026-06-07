@@ -107,7 +107,8 @@ class WagonScreen extends StatefulWidget {
   State<WagonScreen> createState() => _WagonScreenState();
 }
 
-class _WagonScreenState extends State<WagonScreen> {
+class _WagonScreenState extends State<WagonScreen>
+    with SingleTickerProviderStateMixin {
   // Wagon restoration progression: 0 dirty → 1 swept → 2 windowed → 3 clean.
   // Cycles on tap of the "nettoyer" FAB; will be driven by gameplay later.
   int _wagonStage = 0;
@@ -237,6 +238,28 @@ class _WagonScreenState extends State<WagonScreen> {
     _audio.setMusic(_musicMood());
   }
 
+  // Rideau noir pour masquer les changements de scène (passage de porte,
+  // entrée/sortie loco). La taille du perso diffère d'une scène à l'autre
+  // (loco caméra rapprochée), un simple fondu laissait apparaître le "saut".
+  // On fond AU NOIR, on échange la scène pendant que c'est tout noir, puis on
+  // révèle — aucun pop visible. 0 = transparent, 1 = noir plein.
+  late final AnimationController _curtain = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 170),
+    reverseDuration: const Duration(milliseconds: 220),
+  );
+
+  /// Effectue [applySwap] (le setState qui change de scène) à l'abri d'un
+  /// rideau noir : on assombrit, on swap au noir complet, on révèle.
+  void _curtainSwap(VoidCallback applySwap) {
+    if (!mounted) return;
+    _curtain.forward(from: 0).then((_) {
+      if (!mounted) return;
+      setState(applySwap);
+      _curtain.reverse();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -255,6 +278,7 @@ class _WagonScreenState extends State<WagonScreen> {
     _dayNightTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
+    _curtain.dispose();
     _audio.stopAll();
     super.dispose();
   }
@@ -293,34 +317,31 @@ class _WagonScreenState extends State<WagonScreen> {
 
   void _onDoorPushDone() {
     if (!mounted) return;
-    switch (_pendingDoor) {
-      case 'loco':
-        setState(() {
-          _doorPushing = false;
+    final dest = _pendingDoor;
+    _pendingDoor = null;
+    // On échange la scène DERRIÈRE le rideau noir (le perso de la loco est plus
+    // gros : sans ça on voyait un "saut" d'une demi-seconde au passage).
+    _curtainSwap(() {
+      _doorPushing = false;
+      switch (dest) {
+        case 'loco':
           _inLocomotive = true;
-        });
-        _audio.startFire();
-        break;
-      case 'wagon2':
-        setState(() {
-          _doorPushing = false;
+          break;
+        case 'wagon2':
           _inWagon2 = true;
           _heroSpawnX = 0.12; // arrive tout près de la porte (gauche) du cellier
-        });
-        break;
-      case 'wagon1':
-        setState(() {
-          _doorPushing = false;
+          break;
+        case 'wagon1':
           _inWagon2 = false;
           _heroSpawnX = SideScrollScene.heroXMax; // revient côté droit
-        });
-        break;
-    }
-    _pendingDoor = null;
+          break;
+      }
+    });
+    if (dest == 'loco') _audio.startFire();
   }
 
   void _exitLocomotive() {
-    setState(() {
+    _curtainSwap(() {
       _inLocomotive = false;
       _heroSpawnX = SideScrollScene.heroXMin;
     });
@@ -359,7 +380,9 @@ class _WagonScreenState extends State<WagonScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: AnimatedSwitcher(
+      body: Stack(
+        children: [
+          AnimatedSwitcher(
         // Transition courte : un fondu long faisait apparaître le perso de la
         // loco (bien plus grand, caméra rapprochée) en surimpression sur le
         // wagon pendant ~0,5 s ("saut"). Court = quasi-coupure, plus de saut.
@@ -460,6 +483,22 @@ class _WagonScreenState extends State<WagonScreen> {
                     ? _buildWagon(
                         key: const ValueKey('wagon2'), secondWagon: true)
                     : _buildWagon(key: const ValueKey('wagon')),
+          ),
+          // Rideau noir : par-dessus tout, masque le swap de scène (porte).
+          Positioned.fill(
+            child: IgnorePointer(
+              child: AnimatedBuilder(
+                animation: _curtain,
+                builder: (_, __) => _curtain.value <= 0
+                    ? const SizedBox.shrink()
+                    : Opacity(
+                        opacity: _curtain.value.clamp(0.0, 1.0),
+                        child: const ColoredBox(color: Colors.black),
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -264,27 +264,31 @@ class _LampGlowPainter extends CustomPainter {
       );
     }
 
-    // 2) Halo chaud autour de la lampe.
+    // 2) Halo chaud autour de la lampe. Dégradé qui retombe VITE : un voile
+    //    doux qui émane du verre, pas un disque plein qui masque la lampe.
     canvas.drawCircle(
       Offset(cx, cy),
       r,
       Paint()
+        ..blendMode = BlendMode.plus
         ..shader = RadialGradient(
           colors: const [
-            Color(0x88FFD98A),
-            Color(0x33D98A3A),
+            Color(0x66FFE6AE),
+            Color(0x22FFD98A),
             Color(0x00000000),
           ],
-          stops: const [0.0, 0.5, 1.0],
+          stops: const [0.0, 0.34, 1.0],
         ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
     );
 
-    // 3) Cœur brillant : la lampe brille elle-même.
+    // 3) Cœur brillant : la lampe brille elle-même (additif -> le verre
+    //    s'illumine par-dessus le sprite au lieu de le recouvrir).
     final coreR = base * 0.20;
     canvas.drawCircle(
       Offset(cx, cy),
       coreR,
       Paint()
+        ..blendMode = BlendMode.plus
         ..shader = RadialGradient(
           colors: const [
             Color(0xFFFFF6D8),

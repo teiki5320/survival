@@ -1883,27 +1883,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
               },
               onResize: (nh) => gs.bathH = nh,
             ),
-          // Lueur chaude des lanternes : éclairent largement le cellier.
-          // Visible aussi le jour (plus discret) ; bien plus marqué la nuit.
-          // Deux passes empilées par lanterne -> halo plus dense + plus large.
-          for (final lampPos in [
-            (gs.wagon2LampAx, gs.wagon2LampAy + gs.wagon2LampAH * 0.45),
-            (gs.wagon2LampBx, gs.wagon2LampBy + gs.wagon2LampBH * 0.45),
-          ])
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: widget.night ? 1.0 : 0.55,
-                  child: LampGlow(
-                    animation: _sky,
-                    x: lampPos.$1,
-                    y: lampPos.$2,
-                    radius: 0.40,
-                    floorY: 0.88, // sol du cellier
-                  ),
-                ),
-              ),
-            ),
           _w2Drag(
             w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
             heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',
@@ -1924,6 +1903,28 @@ class _SideScrollSceneState extends State<SideScrollScene>
             },
             onResize: (nh) => gs.wagon2LampBH = nh,
           ),
+          // Lueur chaude des lanternes : DESSINÉE APRÈS les lampes -> le halo
+          // émane du verre (en avant) au lieu de passer derrière le corps de la
+          // lampe. Centrée sur le globe (45 % de la hauteur depuis le haut).
+          // Visible aussi le jour (plus discret) ; bien plus marqué la nuit.
+          for (final lampPos in [
+            (gs.wagon2LampAx, gs.wagon2LampAy + gs.wagon2LampAH * 0.45),
+            (gs.wagon2LampBx, gs.wagon2LampBy + gs.wagon2LampBH * 0.45),
+          ])
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Opacity(
+                  opacity: widget.night ? 1.0 : 0.55,
+                  child: LampGlow(
+                    animation: _sky,
+                    x: lampPos.$1,
+                    y: lampPos.$2,
+                    radius: 0.40,
+                    floorY: 0.88, // sol du cellier
+                  ),
+                ),
+              ),
+            ),
           // HUD coordonnées (mode ajuster) : lecture des x/y/h pour rebaker.
           if (widget.wagon2Adjust) _coordHud(gs),
         ],
