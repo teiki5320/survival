@@ -276,9 +276,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // --- Caméra : zoom FIXE, on SUIT le projectile (le pillard est hors champ
   //     au lancer, la caméra le révèle en suivant la pierre). Retour au train. ---
   static const double _zoomRest = 1.35; // gros plan train (départ moins fort)
-  static const double _zoomAim = 0.95; // dézoom LARGE pendant la visée
+  static const double _zoomAim = 0.78; // dézoom TRÈS LARGE pendant la visée
   static const double _kBg = 0.9; // parallaxe du fond lointain
-  double _zoomCur = 1.5, _zoomTarget = 1.5;
+  double _zoomCur = 1.35, _zoomTarget = 1.35;
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
   double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
   double _windowHalo = 0; // petit halo dans la fenêtre quand le pillard touche
@@ -1097,7 +1097,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     // (on ne le voit qu'en suivant le tir). Sinon dans la bande visible.
     final double x;
     if (_duelTest) {
-      x = (1.65 + _rng.nextDouble() * 0.2).clamp(0.9, _imgA - 0.1);
+      // Assez loin pour être hors champ au repos, mais pas collé au bord droit
+      // -> la caméra peut le CENTRER pendant l'intro.
+      x = (1.05 + _rng.nextDouble() * 0.18).clamp(0.9, _imgA - 0.25);
     } else {
       final right = _camHome + _camMin; // bord droit visible au repos
       final lo = math.min(_camHome + 0.35, right - 0.2);
