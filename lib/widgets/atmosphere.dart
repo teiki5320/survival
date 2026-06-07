@@ -2531,21 +2531,23 @@ class HorizonFigures extends StatefulWidget {
 
 class _HorizonFigure {
   _HorizonFigure({
-    required this.asset,
+    required this.prefix,
     required this.x,
     required this.yFrac,
     required this.scale,
     required this.speed,
     required this.opacity,
-    this.pillard = false,
+    required this.frame,
+    required this.fps,
   });
-  final String asset;
+  final String prefix; // ex. 'pillard1_walk' (sprite de combat animé)
   double x;
   final double yFrac;
   final double scale;
   final double speed;
   final double opacity;
-  final bool pillard; // sprite de combat (couleur) -> miroir + assombri
+  double frame; // index de frame courant (accumulé)
+  final double fps;
 }
 
 class _HorizonFiguresState extends State<HorizonFigures>
@@ -2555,30 +2557,15 @@ class _HorizonFiguresState extends State<HorizonFigures>
   final _rng = math.Random();
   Duration _last = Duration.zero;
 
-  static const _assets = [
-    'assets/characters/silhouette_1.png',
-    'assets/characters/silhouette_2.png',
-    'assets/characters/silhouette_3.png',
-    'assets/characters/silhouette_4.png',
-    'assets/characters/silhouette_5.png',
-    'assets/characters/silhouette_6.png',
-    'assets/characters/silhouette_7.png',
-    'assets/characters/silhouette_8.png',
-    'assets/characters/silhouette_9.png',
-    'assets/characters/silhouette_10.png',
-    'assets/characters/silhouette_11.png',
-    'assets/characters/silhouette_12.png',
-    'assets/characters/silhouette_13.png',
-  ];
+  static const int _walkFrames = 49;
 
-  // Pillards (sprites de combat) qui rôdent au loin derrière le train.
-  static const _pillardAssets = [
-    'assets/characters/pillard1_walk_1.png',
-    'assets/characters/pillard1_walk_13.png',
-    'assets/characters/pillard1_walk_27.png',
-    'assets/characters/pillard1_walk_40.png',
-    'assets/characters/brute_walk_1.png',
-    'assets/characters/lanceur_walk_1.png',
+  // On utilise UNIQUEMENT les sprites de combat (déjà animés en marche).
+  // Source tournée vers la DROITE -> ils marchent vers la droite = à contre-sens
+  // de l'avancement du train (la loco part vers la gauche).
+  static const _pillardTypes = [
+    'pillard1_walk',
+    'brute_walk',
+    'lanceur_walk',
   ];
 
   @override
@@ -2595,25 +2582,25 @@ class _HorizonFiguresState extends State<HorizonFigures>
   }
 
   _HorizonFigure _makeFigure({bool initial = false}) {
-    // ~45% de pillards (sprites combat) parmi les figures de fond.
-    final pillard = _rng.nextDouble() < 0.45;
-    final asset = pillard
-        ? _pillardAssets[_rng.nextInt(_pillardAssets.length)]
-        : _assets[_rng.nextInt(_assets.length)];
-    final x = initial ? _rng.nextDouble() * 1.4 - 0.2 : 1.05;
-    final yFrac = 0.55 + _rng.nextDouble() * 0.18;
-    // Les sprites pillard (cadre 512, perso ~70%) -> on agrandit un peu.
-    final scale = (0.22 + _rng.nextDouble() * 0.18) * (pillard ? 1.7 : 1.0);
-    final speed = 0.004 + _rng.nextDouble() * 0.008;
-    final opacity = 0.65 + _rng.nextDouble() * 0.25;
+    final prefix = _pillardTypes[_rng.nextInt(_pillardTypes.length)];
+    // Apparaît à gauche et traverse vers la droite (contre-sens du train).
+    final x = initial ? _rng.nextDouble() * 1.4 - 0.2 : -0.2;
+    // Placés plus HAUT dans le band -> au niveau de la rue, entre les immeubles
+    // (avant ils étaient trop bas, au sol/premier plan).
+    final yFrac = 0.10 + _rng.nextDouble() * 0.35;
+    // PETIT : sprite 512 (perso ~70 %) -> petite échelle.
+    final scale = 0.20 + _rng.nextDouble() * 0.14;
+    final speed = 0.010 + _rng.nextDouble() * 0.012;
+    final opacity = 0.55 + _rng.nextDouble() * 0.25;
     return _HorizonFigure(
-      asset: asset,
+      prefix: prefix,
       x: x,
       yFrac: yFrac,
       scale: scale,
       speed: speed,
       opacity: opacity,
-      pillard: pillard,
+      frame: _rng.nextDouble() * _walkFrames,
+      fps: 14.0 + _rng.nextDouble() * 6.0,
     );
   }
 
@@ -2624,13 +2611,14 @@ class _HorizonFiguresState extends State<HorizonFigures>
     final dt = dtMicros / 1e6;
     bool changed = false;
     for (int i = _figures.length - 1; i >= 0; i--) {
-      _figures[i].x -= _figures[i].speed * dt;
-      if (_figures[i].x < -0.20) {
+      final f = _figures[i];
+      f.x += f.speed * dt; // vers la DROITE (contre-sens du train)
+      f.frame += f.fps * dt;
+      if (f.frame >= _walkFrames) f.frame -= _walkFrames;
+      if (f.x > 1.20) {
         _figures[i] = _makeFigure();
-        changed = true;
-      } else {
-        changed = true;
       }
+      changed = true;
     }
     if (changed && mounted) setState(() {});
   }
@@ -2641,23 +2629,16 @@ class _HorizonFiguresState extends State<HorizonFigures>
     super.dispose();
   }
 
-  // Image d'une figure de fond. Les pillards (sprites combat, tournés vers la
-  // droite) sont MIRROITÉS (ils marchent vers la gauche) et assombris pour
-  // se fondre dans l'arrière-plan.
+  // Image animée d'un pillard de fond. Source déjà tournée vers la droite
+  // (sens de la marche) -> pas de miroir. Assombri pour se fondre au loin.
   Widget _figureImg(_HorizonFigure f) {
-    Widget img = Image.asset(f.asset, fit: BoxFit.contain, cacheWidth: 96);
-    if (f.pillard) {
-      img = ColorFiltered(
-        colorFilter: const ColorFilter.mode(Color(0xFF5A5560), BlendMode.modulate),
-        child: img,
-      );
-      img = Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-        child: img,
-      );
-    }
-    return img;
+    final idx = f.frame.floor().clamp(0, _walkFrames - 1) + 1;
+    return ColorFiltered(
+      colorFilter: const ColorFilter.mode(
+          Color(0xFF6A6470), BlendMode.modulate),
+      child: Image.asset('assets/characters/${f.prefix}_$idx.png',
+          fit: BoxFit.contain, cacheWidth: 72, gaplessPlayback: true),
+    );
   }
 
   @override
@@ -2672,9 +2653,9 @@ class _HorizonFiguresState extends State<HorizonFigures>
               for (final f in _figures)
                 Positioned(
                   left: f.x * w,
-                  top: f.yFrac * h - (f.pillard ? 90 : 40) * f.scale,
-                  width: (f.pillard ? 100 : 60) * f.scale,
-                  height: (f.pillard ? 100 : 80) * f.scale,
+                  top: f.yFrac * h - 90 * f.scale,
+                  width: 100 * f.scale,
+                  height: 100 * f.scale,
                   child: Opacity(
                     opacity: f.opacity,
                     child: _figureImg(f),
