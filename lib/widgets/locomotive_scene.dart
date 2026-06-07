@@ -536,6 +536,15 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           enabled: !widget.night,
                         ),
                       ),
+                      // Pillards/silhouettes qui rôdent au loin, visibles par
+                      // la porte (dessinés AVANT la cabine -> masqués au bord).
+                      Positioned(
+                        left: w * 0.18,
+                        right: w * 0.34,
+                        top: h * 0.42,
+                        height: h * 0.24,
+                        child: const HorizonFigures(density: 2),
+                      ),
                       // Fond chaud derrière le poêle — simule des
                       // braises/parois éclairées. Bloque le paysage
                       // pour que seul le feu soit visible.
@@ -628,10 +637,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                                   .clamp(0.3, 1.0),
                         ),
                       ),
-                      // Animated gauges on the left wall.
-                      Positioned.fill(
-                        child: AnimatedGauges(active: !widget.night),
-                      ),
+                      // (effet aiguilles retiré : rendait mal)
                       // Floating ashes near the firebox floor.
                       const Positioned.fill(child: FloatingAshes()),
                       // Pipe steam from valves (intensity grows with logs).

@@ -2415,6 +2415,7 @@ class _HorizonFigure {
     required this.scale,
     required this.speed,
     required this.opacity,
+    this.pillard = false,
   });
   final String asset;
   double x;
@@ -2422,6 +2423,7 @@ class _HorizonFigure {
   final double scale;
   final double speed;
   final double opacity;
+  final bool pillard; // sprite de combat (couleur) -> miroir + assombri
 }
 
 class _HorizonFiguresState extends State<HorizonFigures>
@@ -2447,6 +2449,16 @@ class _HorizonFiguresState extends State<HorizonFigures>
     'assets/characters/silhouette_13.png',
   ];
 
+  // Pillards (sprites de combat) qui rôdent au loin derrière le train.
+  static const _pillardAssets = [
+    'assets/characters/pillard1_walk_1.png',
+    'assets/characters/pillard1_walk_13.png',
+    'assets/characters/pillard1_walk_27.png',
+    'assets/characters/pillard1_walk_40.png',
+    'assets/characters/brute_walk_1.png',
+    'assets/characters/lanceur_walk_1.png',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -2461,10 +2473,15 @@ class _HorizonFiguresState extends State<HorizonFigures>
   }
 
   _HorizonFigure _makeFigure({bool initial = false}) {
-    final asset = _assets[_rng.nextInt(_assets.length)];
+    // ~45% de pillards (sprites combat) parmi les figures de fond.
+    final pillard = _rng.nextDouble() < 0.45;
+    final asset = pillard
+        ? _pillardAssets[_rng.nextInt(_pillardAssets.length)]
+        : _assets[_rng.nextInt(_assets.length)];
     final x = initial ? _rng.nextDouble() * 1.4 - 0.2 : 1.05;
     final yFrac = 0.55 + _rng.nextDouble() * 0.18;
-    final scale = 0.22 + _rng.nextDouble() * 0.18;
+    // Les sprites pillard (cadre 512, perso ~70%) -> on agrandit un peu.
+    final scale = (0.22 + _rng.nextDouble() * 0.18) * (pillard ? 1.7 : 1.0);
     final speed = 0.004 + _rng.nextDouble() * 0.008;
     final opacity = 0.65 + _rng.nextDouble() * 0.25;
     return _HorizonFigure(
@@ -2474,6 +2491,7 @@ class _HorizonFiguresState extends State<HorizonFigures>
       scale: scale,
       speed: speed,
       opacity: opacity,
+      pillard: pillard,
     );
   }
 
@@ -2501,6 +2519,25 @@ class _HorizonFiguresState extends State<HorizonFigures>
     super.dispose();
   }
 
+  // Image d'une figure de fond. Les pillards (sprites combat, tournés vers la
+  // droite) sont MIRROITÉS (ils marchent vers la gauche) et assombris pour
+  // se fondre dans l'arrière-plan.
+  Widget _figureImg(_HorizonFigure f) {
+    Widget img = Image.asset(f.asset, fit: BoxFit.contain, cacheWidth: 96);
+    if (f.pillard) {
+      img = ColorFiltered(
+        colorFilter: const ColorFilter.mode(Color(0xFF5A5560), BlendMode.modulate),
+        child: img,
+      );
+      img = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+        child: img,
+      );
+    }
+    return img;
+  }
+
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
@@ -2513,12 +2550,12 @@ class _HorizonFiguresState extends State<HorizonFigures>
               for (final f in _figures)
                 Positioned(
                   left: f.x * w,
-                  top: f.yFrac * h - 40 * f.scale,
-                  width: 60 * f.scale,
-                  height: 80 * f.scale,
+                  top: f.yFrac * h - (f.pillard ? 90 : 40) * f.scale,
+                  width: (f.pillard ? 100 : 60) * f.scale,
+                  height: (f.pillard ? 100 : 80) * f.scale,
                   child: Opacity(
                     opacity: f.opacity,
-                    child: Image.asset(f.asset, fit: BoxFit.contain),
+                    child: _figureImg(f),
                   ),
                 ),
             ],

@@ -1866,10 +1866,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
           if (_showering)
             _steam(w, h,
                 cx: gs.showerPanelX,
-                topY: 0.26,
-                boxWFrac: 0.40,
-                boxHFrac: 0.66,
-                intensity: 2.4),
+                topY: 0.30,
+                boxWFrac: 0.34,
+                boxHFrac: 0.58,
+                intensity: 1.3),
           if (!_bathing)
             _w2Drag(
               w: w, h: h, cx: gs.bathX, topY: gs.bathY,
@@ -2832,7 +2832,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
     final bodyLen = widget.bedWidth * 0.50 * w; // longueur du corps (réduite)
     final boxSize = bodyLen / 0.738;            // cadre 512 correspondant
     final left = widget.bedCenterX * w - boxSize / 2;
-    final mattressY = (widget.bedTopY + 0.075) * h; // ligne du matelas
+    final mattressY = (widget.bedTopY + 0.105) * h; // ligne du matelas (un peu + bas)
     final top = mattressY - 0.563 * boxSize;        // centre contenu sur matelas
     Widget img = AnimatedBuilder(
       animation: _ctrl,
