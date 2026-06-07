@@ -153,10 +153,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _trainEdgeX = 0.24;
 
   // Tir ultra lent (gros lobé, on suit la pierre tout du long).
-  // _power élevé = visée SENSIBLE (un petit glissement tend déjà fort l'arc).
-  static const double _g = 0.22;
+  static const double _g = 0.16;
   static const double _power = 4.6;
-  static const double _maxSpeed = 0.85;
+  static const double _maxSpeed = 0.70;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
@@ -267,6 +266,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   bool _aiming = false;
   Offset _dragStart = Offset.zero;
   Offset _dragNow = Offset.zero;
+  // Caméra libre (regarder le terrain avant de viser).
+  bool _looking = false;
+  double _lookX = 0;
 
   double _S = 1, _ox = 0, _oy = 0;
   Duration _last = Duration.zero;
@@ -274,7 +276,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // --- Caméra : zoom FIXE, on SUIT le projectile (le pillard est hors champ
   //     au lancer, la caméra le révèle en suivant la pierre). Retour au train. ---
   static const double _zoomRest = 1.5; // gros plan train (départ moins fort)
-  static const double _zoomAim = 1.2; // léger dézoom pendant qu'on tend l'arc
+  static const double _zoomAim = 0.95; // dézoom LARGE pendant la visée
   static const double _kBg = 0.9; // parallaxe du fond lointain
   double _zoomCur = 1.5, _zoomTarget = 1.5;
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
@@ -849,7 +851,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void _enemyThrowAt(_Enemy e) {
     final from = Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55);
     final ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
-    const t = 3.3; // vol très lent (suivable à la caméra)
+    const t = 4.0; // vol très lent (suivable à la caméra)
     const spread = 0.14; // niveau 1 : dispersion autour de la fenêtre
     final to = Offset(
       _muzX + _gauss() * spread, // un peu court / un peu long
@@ -880,7 +882,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     final flying = lead != null || eShot != null;
 
-    if (_aiming && _playerTurn && _camLaunchHold <= 0 && !flying) {
+    if (_looking && !flying) {
+      // Caméra libre : on regarde où on veut (dézoom large pour voir loin).
+      _zoomTarget = _zoomAim;
+      _camTarget = _lookX;
+      _camYTarget = _camYHome;
+    } else if (_aiming && _playerTurn && _camLaunchHold <= 0 && !flying) {
       // 1) On tend l'arc -> DÉZOOM selon la tension (on reste sur le train).
       final maxs = _maxSpeed * _powerMult;
       final f =
@@ -1425,18 +1432,37 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             onTapUp: canTap ? (d) => _collectAt(d.localPosition) : null,
             onPanStart: canAim
                 ? (d) {
-                    _dragStart = d.localPosition;
-                    _dragNow = d.localPosition;
-                    setState(() => _aiming = true);
+                    // Glisser depuis la GAUCHE (près du train) = viser. Glisser
+                    // depuis la droite = CAMÉRA LIBRE (regarder où est la cible).
+                    if (d.localPosition.dx < w * 0.34) {
+                      _dragStart = d.localPosition;
+                      _dragNow = d.localPosition;
+                      setState(() => _aiming = true);
+                    } else {
+                      _lookX = _camX;
+                      setState(() => _looking = true);
+                    }
                   }
                 : null,
             onPanUpdate: canAim
-                ? (d) => setState(() => _dragNow = d.localPosition)
+                ? (d) {
+                    if (_aiming) {
+                      setState(() => _dragNow = d.localPosition);
+                    } else if (_looking) {
+                      setState(() {
+                        _lookX = (_lookX - d.delta.dx / _S)
+                            .clamp(_camMin, _camMax);
+                      });
+                    }
+                  }
                 : null,
             onPanEnd: canAim
                 ? (_) {
-                    _fireShot();
-                    setState(() => _aiming = false);
+                    if (_aiming) _fireShot();
+                    setState(() {
+                      _aiming = false;
+                      _looking = false;
+                    });
                   }
                 : null,
             child: Transform.translate(

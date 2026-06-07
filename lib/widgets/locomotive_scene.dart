@@ -703,13 +703,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
               child: SafeArea(
                 child: IgnorePointer(
                   child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.7),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Column(
+                  child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -736,7 +730,6 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         }),
                       ],
                     ),
-                  ),
                   ),
                 ),
               ),
