@@ -153,15 +153,15 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _trainEdgeX = 0.24;
 
   // Tir ultra lent (gros lobé, on suit la pierre tout du long).
-  static const double _g = 0.16;
+  static const double _g = 0.12;
   static const double _power = 4.6;
-  static const double _maxSpeed = 0.70;
+  static const double _maxSpeed = 0.58;
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
   static const double _dieDur = 1.2;
-  static const double _pillFeet = 0.865;
-  static const double _pillContentH = 0.73;
+  static const double _pillFeet = 0.855; // mesuré sur pillard1_walk
+  static const double _pillContentH = 0.70;
   static const double _bruteAtkDur = 0.8;
   static const int _bruteHp = 4;
   static const double _throwPeriod = 1.3;
@@ -275,7 +275,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   // --- Caméra : zoom FIXE, on SUIT le projectile (le pillard est hors champ
   //     au lancer, la caméra le révèle en suivant la pierre). Retour au train. ---
-  static const double _zoomRest = 1.5; // gros plan train (départ moins fort)
+  static const double _zoomRest = 1.35; // gros plan train (départ moins fort)
   static const double _zoomAim = 0.95; // dézoom LARGE pendant la visée
   static const double _kBg = 0.9; // parallaxe du fond lointain
   double _zoomCur = 1.5, _zoomTarget = 1.5;
@@ -291,6 +291,14 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   bool _enemyAiming = false; // caméra recentrée sur le pillard, il vise
   double _enemyAimT = 0; // télégraphe avant son tir
   bool _enemyThrowing = false; // le pillard riposte (son tour)
+  // Intro de duel : la caméra glisse vers l'ennemi, son nom apparaît, retour.
+  bool _intro = false;
+  double _introT = 0;
+  String _foeName = '';
+  static const List<String> _foeNames = [
+    'Croc', 'Le Borgne', 'Ferraille', 'La Hyène', 'Cendre',
+    'Le Rat', 'Bave-de-Loup', 'Tord-Cou', 'La Teigne', 'Os-Brisé',
+  ];
   double _camX = 0; // centre du viewport, en unités-x de scène
   double _camHome = 0; // position de repos (train ~ gauche)
   double _camTarget = 0;
@@ -414,6 +422,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _awaitingStones = false;
       _enemyAiming = false;
       _enemyThrowing = false;
+      _intro = false;
       _windowHalo = 0;
       _zoomCur = _zoomTarget = _zoomRest;
       _phase = _Phase.playing;
@@ -515,7 +524,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _spawnTimer = 0.4;
         _shield = _shieldMax; // bouclier rechargé à chaque vague
         _bombLeft = _bombMax; // bombe dispo une fois par vague
-        if (!_duelTest) {
+        if (_duelTest) {
+          // Intro : la caméra va voir l'ennemi, son nom s'affiche, puis revient.
+          _intro = true;
+          _introT = 3.0;
+          _foeName = _foeNames[_rng.nextInt(_foeNames.length)];
+        } else {
           _spawnBarrel();
           if (_isBossWave) _spawnBoss();
         }
@@ -550,6 +564,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
     if (_reloadTimer > 0) _reloadTimer -= dt;
     if (_shake > 0) _shake = (_shake - dt).clamp(0.0, 1.0);
+    if (_intro) {
+      _introT -= dt;
+      if (_introT <= 0) _intro = false;
+    }
     if (_camPunch > 0) _camPunch = (_camPunch - dt * 3.0).clamp(0.0, 1.0);
     if (_windowHalo > 0) _windowHalo -= dt;
     setState(() {});
@@ -851,7 +869,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   void _enemyThrowAt(_Enemy e) {
     final from = Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55);
     final ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
-    const t = 4.0; // vol très lent (suivable à la caméra)
+    const t = 4.8; // vol très lent (suivable à la caméra)
     const spread = 0.14; // niveau 1 : dispersion autour de la fenêtre
     final to = Offset(
       _muzX + _gauss() * spread, // un peu court / un peu long
@@ -882,7 +900,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     final flying = lead != null || eShot != null;
 
-    if (_looking && !flying) {
+    if (_intro && foe != null) {
+      // Intro : la caméra glisse lentement vers l'ennemi (on voit son nom).
+      _zoomTarget = _zoomRest;
+      _camTarget = foe.x;
+      _camYTarget = math.min(_camYHome, foe.feetY - foe.height * 0.5);
+    } else if (_looking && !flying) {
       // Caméra libre : on regarde où on veut (dézoom large pour voir loin).
       _zoomTarget = _zoomAim;
       _camTarget = _lookX;
@@ -916,7 +939,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
     if (_camMax > _camMin) _camTarget = _camTarget.clamp(_camMin, _camMax);
     if (_camYMax > _camYMin) _camYTarget = _camYTarget.clamp(_camYMin, _camYMax);
-    final k = 1 - math.exp(-5.0 * dt);
+    // Pan plus lent pendant l'intro (effet cinématique).
+    final k = 1 - math.exp((_intro ? -2.2 : -5.0) * dt);
     _zoomCur += (_zoomTarget - _zoomCur) * (1 - math.exp(-4.0 * dt));
     _camX += (_camTarget - _camX) * k;
     _camY += (_camYTarget - _camY) * k;
@@ -1419,6 +1443,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           final canAim = _phase == _Phase.playing &&
               !_adjust &&
               _banner <= 0 &&
+              !_intro &&
               (!_duelTest || _playerTurn);
           final canTap = _phase == _Phase.playing && !_adjust;
           final shakeOffset = _shake > 0
@@ -1565,6 +1590,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                     ),
 
+                  // Nom de l'ennemi pendant l'intro de duel.
+                  if (_intro) _buildFoeNameLabel(u2p),
+
                   // Indicateur PUISSANCE / ANGLE pendant la visée (Bowmasters).
                   if (_aiming && _phase == _Phase.playing) _powerAngleChip(),
 
@@ -1596,6 +1624,50 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   // ----- entités visuelles -----
+  // Nom de l'ennemi affiché au-dessus de lui pendant l'intro de duel.
+  Widget _buildFoeNameLabel(Offset Function(Offset) u2p) {
+    _Enemy? foe;
+    for (final e in _enemies) {
+      if (!e.dying) {
+        foe = e;
+        break;
+      }
+    }
+    if (foe == null) return const SizedBox.shrink();
+    final head = u2p(Offset(foe.x, foe.feetY - foe.height * 1.05));
+    // Fondu : apparaît puis reste.
+    final a = (1.0 - (_introT - 1.5).clamp(0.0, 1.5) / 1.5).clamp(0.0, 1.0);
+    return Positioned(
+      left: head.dx - 100,
+      top: (head.dy - 26).clamp(6.0, double.infinity),
+      width: 200,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: a,
+          child: Center(
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE2614A), width: 1.2),
+              ),
+              child: Text(
+                _foeName,
+                style: const TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // Pastille PUISSANCE / ANGLE pendant la visée — position FIXE (bas-centre)
   // pour rester visible quelle que soit la caméra/le dézoom.
   Widget _powerAngleChip() {

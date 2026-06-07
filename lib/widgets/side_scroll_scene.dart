@@ -2321,7 +2321,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
     // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
     // est dessiné plus grand dans le cadre -> son sol est plus bas.
-    final feetY = h * (widget.secondWagon ? 0.80 : 0.74);
+    final feetY = h * (widget.secondWagon ? 0.80 : 0.785);
     final anchorX = _heroX * w;
 
     // Cas spéciaux ancrés sur le lit : la fille n'est pas sur le sol,
@@ -2409,7 +2409,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final depthScale = deepInWagon ? 0.78 : 1.0;
     // Cellier plus grand -> on agrandit un peu Shen pour qu'elle ne paraisse
     // pas minuscule dans le volume.
-    final wagonScale = widget.secondWagon ? 1.12 : 1.0;
+    final wagonScale = widget.secondWagon ? 1.12 : 1.1;
     final heroHeight =
         h * kHeroBaseHeight * m.scale * depthScale * wagonScale;
     final heroWidth = heroHeight * m.aspect;
