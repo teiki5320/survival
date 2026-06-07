@@ -250,13 +250,18 @@ class _WagonScreenState extends State<WagonScreen>
   );
 
   /// Effectue [applySwap] (le setState qui change de scène) à l'abri d'un
-  /// rideau noir : on assombrit, on swap au noir complet, on révèle.
+  /// rideau noir : on assombrit, on swap au noir complet, on maintient un
+  /// court instant (le temps que la nouvelle scène se monte), puis on révèle.
   void _curtainSwap(VoidCallback applySwap) {
     if (!mounted) return;
     _curtain.forward(from: 0).then((_) {
       if (!mounted) return;
       setState(applySwap);
-      _curtain.reverse();
+      // Maintien au noir : laisse la nouvelle scène (perso de taille
+      // différente) se monter AVANT de lever le rideau -> aucun pop visible.
+      Future.delayed(const Duration(milliseconds: 110), () {
+        if (mounted) _curtain.reverse();
+      });
     });
   }
 
