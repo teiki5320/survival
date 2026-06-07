@@ -1586,12 +1586,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         Positioned.fill(
                           child: IgnorePointer(
                             child: Opacity(
-                              opacity: widget.night ? 0.9 : 0.35,
-                              child: FireGlow(
+                              opacity: widget.night ? 1.0 : 0.45,
+                              child: LampGlow(
                                 animation: _sky,
                                 x: 0.415,
-                                y: 0.35,
-                                radius: 0.25,
+                                y: 0.34,
+                                radius: 0.34,
+                                floorY: 0.74, // sol du wagon 1
                               ),
                             ),
                           ),
@@ -1888,34 +1889,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
           for (final lampPos in [
             (gs.wagon2LampAx, gs.wagon2LampAy + gs.wagon2LampAH * 0.45),
             (gs.wagon2LampBx, gs.wagon2LampBy + gs.wagon2LampBH * 0.45),
-          ]) ...[
+          ])
             Positioned.fill(
               child: IgnorePointer(
                 child: Opacity(
-                  opacity: widget.night ? 1.0 : 0.5,
-                  child: FireGlow(
+                  opacity: widget.night ? 1.0 : 0.55,
+                  child: LampGlow(
                     animation: _sky,
                     x: lampPos.$1,
                     y: lampPos.$2,
-                    radius: 0.46,
+                    radius: 0.40,
+                    floorY: 0.88, // sol du cellier
                   ),
                 ),
               ),
             ),
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: widget.night ? 0.85 : 0.4,
-                  child: FireGlow(
-                    animation: _sky,
-                    x: lampPos.$1,
-                    y: lampPos.$2,
-                    radius: 0.26,
-                  ),
-                ),
-              ),
-            ),
-          ],
           _w2Drag(
             w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
             heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',

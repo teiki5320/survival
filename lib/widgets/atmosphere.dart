@@ -183,6 +183,124 @@ class _FireGlowPainter extends CustomPainter {
       old.t != t || old.x != x || old.y != y || old.radius != radius;
 }
 
+/// Halo de LAMPE : un cœur brillant (la lampe brille elle-même), un halo
+/// chaud autour, ET un cône de lumière qui descend jusqu'au sol.
+class LampGlow extends StatelessWidget {
+  const LampGlow({
+    super.key,
+    required this.animation,
+    required this.x,
+    required this.y,
+    this.radius = 0.42,
+    this.floorY = 0.92,
+  });
+  final Animation<double> animation;
+  final double x;
+  final double y;
+  final double radius;
+  final double floorY;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) => CustomPaint(
+          painter: _LampGlowPainter(animation.value,
+              x: x, y: y, radius: radius, floorY: floorY),
+        ),
+      ),
+    );
+  }
+}
+
+class _LampGlowPainter extends CustomPainter {
+  _LampGlowPainter(this.t,
+      {required this.x,
+      required this.y,
+      required this.radius,
+      required this.floorY});
+  final double t;
+  final double x;
+  final double y;
+  final double radius;
+  final double floorY;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width * x;
+    final cy = size.height * y;
+    final base = size.shortestSide * radius;
+    final flicker =
+        math.sin(t * 2 * math.pi * 1.6) * 0.04 + math.sin(t * 2 * math.pi * 9) * 0.02;
+    final r = base * (1.0 + flicker);
+
+    // 1) Cône de lumière qui tombe vers le sol.
+    final fy = size.height * floorY;
+    if (fy > cy) {
+      final spread = base * 0.85;
+      final cone = Path()
+        ..moveTo(cx - spread * 0.18, cy)
+        ..lineTo(cx + spread * 0.18, cy)
+        ..lineTo(cx + spread, fy)
+        ..lineTo(cx - spread, fy)
+        ..close();
+      final conePaint = Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x3AFFCB6E), Color(0x14FFCB6E), Color(0x00000000)],
+          stops: [0.0, 0.55, 1.0],
+        ).createShader(Rect.fromLTRB(cx - spread, cy, cx + spread, fy))
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+      canvas.drawPath(cone, conePaint);
+      // tache de lumière au sol
+      canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(cx, fy), width: spread * 2.0, height: spread * 0.35),
+        Paint()
+          ..color = const Color(0x22FFCB6E)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 14),
+      );
+    }
+
+    // 2) Halo chaud autour de la lampe.
+    canvas.drawCircle(
+      Offset(cx, cy),
+      r,
+      Paint()
+        ..shader = RadialGradient(
+          colors: const [
+            Color(0x88FFD98A),
+            Color(0x33D98A3A),
+            Color(0x00000000),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
+    );
+
+    // 3) Cœur brillant : la lampe brille elle-même.
+    final coreR = base * 0.20;
+    canvas.drawCircle(
+      Offset(cx, cy),
+      coreR,
+      Paint()
+        ..shader = RadialGradient(
+          colors: const [
+            Color(0xFFFFF6D8),
+            Color(0xCCFFE2A0),
+            Color(0x00FFD98A),
+          ],
+          stops: const [0.0, 0.5, 1.0],
+        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: coreR)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_LampGlowPainter old) =>
+      old.t != t || old.x != x || old.y != y;
+}
+
 /// Hanging vines drawn procedurally over the scene — a few rope-like
 /// strands dangling from the top edge, swaying gently. Adds life to the
 /// otherwise static wagon/cab walls without needing baked-in animation
