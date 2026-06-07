@@ -273,9 +273,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   // --- Caméra : zoom FIXE, on SUIT le projectile (le pillard est hors champ
   //     au lancer, la caméra le révèle en suivant la pierre). Retour au train. ---
-  static const double _zoomRest = 1.8; // gros plan train (un peu moins fort)
+  static const double _zoomRest = 1.5; // gros plan train (départ moins fort)
+  static const double _zoomAim = 1.2; // léger dézoom pendant qu'on tend l'arc
   static const double _kBg = 0.9; // parallaxe du fond lointain
-  double _zoomCur = 1.8, _zoomTarget = 1.8;
+  double _zoomCur = 1.5, _zoomTarget = 1.5;
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
   double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
   double _windowHalo = 0; // petit halo dans la fenêtre quand le pillard touche
@@ -863,31 +864,51 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // l'impact, puis revient en douceur sur le train.
   void _updateCamera(double dt) {
     if (_camLaunchHold > 0) _camLaunchHold -= dt;
-    _zoomTarget = _zoomRest; // zoom fixe : plus de dézoom dynamique
-    // Projectile à suivre (ma pierre en priorité, sinon le tir ennemi).
+    // Ma pierre (la plus avancée) / le tir ennemi / le pillard.
     _Stone? lead;
     for (final s in _stones) {
       if (s.pos.dx < -90) continue;
       if (lead == null || s.pos.dx > lead.pos.dx) lead = s;
     }
     final eShot = _enemyShots.isNotEmpty ? _enemyShots.first : null;
+    _Enemy? foe;
+    for (final e in _enemies) {
+      if (!e.dying) {
+        foe = e;
+        break;
+      }
+    }
+    final flying = lead != null || eShot != null;
 
-    Offset focus;
-    if (_camLaunchHold > 0) {
-      focus = Offset(_camHome, _camYHome); // on voit le départ de la fenêtre
-    } else if (lead != null) {
-      focus = lead.pos; // on suit ma pierre (révèle le pillard au loin)
-    } else if (eShot != null) {
-      focus = eShot.pos; // on suit le projectile du pillard qui revient
+    if (_aiming && _playerTurn && _camLaunchHold <= 0 && !flying) {
+      // 1) On tend l'arc -> DÉZOOM selon la tension (on reste sur le train).
+      final maxs = _maxSpeed * _powerMult;
+      final f =
+          (_launchVel().distance / (maxs <= 0 ? 1 : maxs)).clamp(0.0, 1.0);
+      _zoomTarget = _zoomRest + (_zoomAim - _zoomRest) * f;
+      _camTarget = _camHome;
+      _camYTarget = _camYHome;
     } else {
-      focus = Offset(_camHome, _camYHome); // retour au train
+      _zoomTarget = _zoomRest;
+      Offset focus;
+      if (_camLaunchHold > 0) {
+        focus = Offset(_camHome, _camYHome); // on voit le départ
+      } else if (lead != null) {
+        focus = lead.pos; // 2) on suit MA pierre
+      } else if (_enemyThrowing && eShot != null) {
+        focus = eShot.pos; // 4c) on suit la pierre DU pillard
+      } else if (_enemyAiming && foe != null) {
+        // 4a/b) recentré sur le pillard : on le voit tendre la main.
+        focus = Offset(foe.x, foe.feetY - foe.height * 0.5);
+      } else {
+        focus = Offset(_camHome, _camYHome); // retour au train (mon tour)
+      }
+      _camTarget = focus.dx;
+      _camYTarget = math.min(_camYHome, focus.dy);
     }
 
-    _camTarget = focus.dx;
-    _camYTarget = math.min(_camYHome, focus.dy);
     if (_camMax > _camMin) _camTarget = _camTarget.clamp(_camMin, _camMax);
     if (_camYMax > _camYMin) _camYTarget = _camYTarget.clamp(_camYMin, _camYMax);
-    // Suivi doux et régulier.
     final k = 1 - math.exp(-5.0 * dt);
     _zoomCur += (_zoomTarget - _zoomCur) * (1 - math.exp(-4.0 * dt));
     _camX += (_camTarget - _camX) * k;
