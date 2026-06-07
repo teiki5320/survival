@@ -238,30 +238,46 @@ class _WagonScreenState extends State<WagonScreen>
     _audio.setMusic(_musicMood());
   }
 
-  // Rideau noir pour masquer les changements de scène (passage de porte,
-  // entrée/sortie loco). La taille du perso diffère d'une scène à l'autre
-  // (loco caméra rapprochée), un simple fondu laissait apparaître le "saut".
-  // On fond AU NOIR, on échange la scène pendant que c'est tout noir, puis on
-  // révèle — aucun pop visible. 0 = transparent, 1 = noir plein.
+  // Rideau noir pour masquer les changements de scène ET le passage de porte.
+  // Le fondu DÉMARRE dès le clic et s'assombrit pendant que Shen ouvre la porte
+  // (~1 s) : on voit le début de l'anim, puis l'écran est NOIR avant le moindre
+  // "saut" (perso loco plus gros, swap de scène...), et on révèle la nouvelle
+  // pièce. 0 = transparent, 1 = noir plein.
   late final AnimationController _curtain = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 170),
-    reverseDuration: const Duration(milliseconds: 220),
+    reverseDuration: const Duration(milliseconds: 240),
   );
 
-  /// Effectue [applySwap] (le setState qui change de scène) à l'abri d'un
-  /// rideau noir : on assombrit, on swap au noir complet, on maintient un
-  /// court instant (le temps que la nouvelle scène se monte), puis on révèle.
+  /// Démarre l'assombrissement progressif (appelé au CLIC sur une porte). La
+  /// durée matche l'anim d'ouverture (~1 s) pour finir au noir pile quand la
+  /// scène va basculer.
+  void _startDoorFade() {
+    _curtain.animateTo(1.0,
+        duration: const Duration(milliseconds: 820), curve: Curves.easeInCubic);
+  }
+
+  /// Effectue [applySwap] (le setState qui change de scène) à l'abri du rideau :
+  /// on force le noir complet, on swap, on maintient un court instant (le temps
+  /// que la nouvelle scène se monte), puis on révèle.
   void _curtainSwap(VoidCallback applySwap) {
     if (!mounted) return;
-    _curtain.forward(from: 0).then((_) {
-      if (!mounted) return;
-      setState(applySwap);
-      // Maintien au noir : laisse la nouvelle scène (perso de taille
-      // différente) se monter AVANT de lever le rideau -> aucun pop visible.
-      Future.delayed(const Duration(milliseconds: 110), () {
-        if (mounted) _curtain.reverse();
+    // Si le fondu n'a pas été lancé au clic (sortie loco/map), on assombrit ici.
+    if (_curtain.value < 1.0 && !_curtain.isAnimating) {
+      _curtain.forward(from: _curtain.value).whenComplete(() {
+        _doCurtainSwap(applySwap);
       });
+      return;
+    }
+    _doCurtainSwap(applySwap);
+  }
+
+  void _doCurtainSwap(VoidCallback applySwap) {
+    if (!mounted) return;
+    _curtain.value = 1.0; // noir complet garanti avant le swap
+    setState(applySwap);
+    Future.delayed(const Duration(milliseconds: 120), () {
+      if (mounted) _curtain.reverse();
     });
   }
 
@@ -312,6 +328,7 @@ class _WagonScreenState extends State<WagonScreen>
   void _enterLocomotive() {
     if (_doorPushing || _curtain.isAnimating) return;
     _warmLocoAnims(); // décode les sprites loco pendant l'anim de porte
+    _startDoorFade(); // l'écran s'assombrit pendant qu'elle ouvre la porte
     setState(() {
       _doorPushing = true;
       _doorPushRight = false; // porte gauche
@@ -323,6 +340,7 @@ class _WagonScreenState extends State<WagonScreen>
   // Wagon 1, porte droite : anim d'ouverture vers la droite -> wagon 2.
   void _enterWagon2() {
     if (_doorPushing || _curtain.isAnimating) return;
+    _startDoorFade();
     setState(() {
       _doorPushing = true;
       _doorPushRight = true;
@@ -334,6 +352,7 @@ class _WagonScreenState extends State<WagonScreen>
   // Wagon 2, porte gauche : anim d'ouverture vers la gauche -> wagon 1.
   void _returnToWagon1() {
     if (_doorPushing || _curtain.isAnimating) return;
+    _startDoorFade();
     setState(() {
       _doorPushing = true;
       _doorPushRight = false;
@@ -411,6 +430,7 @@ class _WagonScreenState extends State<WagonScreen>
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
+        fit: StackFit.expand,
         children: [
           AnimatedSwitcher(
         // Transition courte : un fondu long faisait apparaître le perso de la

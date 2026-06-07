@@ -202,7 +202,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const SizedBox(height: 8),
             // Numéro de build (pour vérifier qu'on teste la bonne version).
             const Text(
-              'build 0.91.1',
+              'build 0.92.0',
               style: TextStyle(color: Color(0xFF6B5E4E), fontSize: 11),
             ),
           ],
