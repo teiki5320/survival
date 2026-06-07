@@ -360,7 +360,15 @@ class _WagonScreenState extends State<WagonScreen> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 600),
+        // Transition courte : un fondu long faisait apparaître le perso de la
+        // loco (bien plus grand, caméra rapprochée) en surimpression sur le
+        // wagon pendant ~0,5 s ("saut"). Court = quasi-coupure, plus de saut.
+        duration: const Duration(milliseconds: 200),
+        // On NE superpose PAS l'ancienne scène : elle disparaît tout de suite,
+        // la nouvelle apparaît seule (fondu depuis le noir) -> aucun chevauchement
+        // de deux persos de tailles différentes.
+        layoutBuilder: (currentChild, previousChildren) =>
+            currentChild ?? const SizedBox.shrink(),
         child: _inShootGame
             ? RoofDefenseGame(
                 key: const ValueKey('shoot_game'),
