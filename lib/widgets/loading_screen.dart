@@ -35,6 +35,10 @@ class _LoadingScreenState extends State<LoadingScreen> {
         'heroine_front',
         'sister_idle_',
         'sister_walk_',
+        // Anims de la locomotive (sinon ça saccade au 1er chargement).
+        'carry_walk_',
+        'warm_hands_',
+        'open_door_',
       ];
       return keep.any(f.startsWith);
     }
@@ -198,7 +202,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const SizedBox(height: 8),
             // Numéro de build (pour vérifier qu'on teste la bonne version).
             const Text(
-              'build 0.85.0',
+              'build 0.85.1',
               style: TextStyle(color: Color(0xFF6B5E4E), fontSize: 11),
             ),
           ],

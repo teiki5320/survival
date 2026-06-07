@@ -694,24 +694,32 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   ),
                 ),
               ),
-            // HUD réserve + anneaux, centré en haut.
+            // HUD : anneaux centrés en haut (MÊME placement que le wagon), avec
+            // la réserve de bois en dessous (spécifique loco).
             Positioned(
-              top: 24,
+              top: 8,
               left: 0,
               right: 0,
               child: SafeArea(
                 child: IgnorePointer(
                   child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.4),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        const StatRingsBar(
+                          ringSize: 46,
+                          emojiSize: 20,
+                          mainAxisSize: MainAxisSize.min,
+                          alignment: MainAxisAlignment.center,
+                        ),
+                        const SizedBox(height: 4),
                         Builder(builder: (_) {
                           final stock = GameState.instance.itemCount('wood');
                           return Text(
@@ -722,16 +730,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                               color: stock > 0
                                   ? const Color(0xFFFFD9A0)
                                   : const Color(0xFFE0A0A0),
-                              fontSize: 16,
+                              fontSize: 12,
                             ),
                           );
                         }),
-                        const SizedBox(height: 8),
-                        const StatRingsBar(
-                          ringSize: 46,
-                          emojiSize: 20,
-                          mainAxisSize: MainAxisSize.min,
-                        ),
                       ],
                     ),
                   ),

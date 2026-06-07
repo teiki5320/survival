@@ -2826,13 +2826,14 @@ class _SisterCharacterState extends State<_SisterCharacter>
   // du lit est à GAUCHE -> on miroir horizontalement pour poser la tête sur
   // l'oreiller. Cadré sur le matelas à partir de la géométrie du lit.
   Widget _buildSleepOnBed(double w, double h) {
-    // Contenu du sprite (mesuré) : corps horizontal, largeur ~0.766 du cadre,
-    // centre vertical ~0.361 du cadre.
-    final bodyLen = widget.bedWidth * 0.66 * w; // longueur du corps (réduite)
-    final boxSize = bodyLen / 0.766;            // cadre carré 512 correspondant
+    // Contenu du sprite (MESURÉ) : corps horizontal occupant 0.738 du cadre en
+    // largeur, centré verticalement à 0.563 du cadre. La sœur est petite -> on
+    // limite la longueur à ~0.5 de la largeur du lit.
+    final bodyLen = widget.bedWidth * 0.50 * w; // longueur du corps (réduite)
+    final boxSize = bodyLen / 0.738;            // cadre 512 correspondant
     final left = widget.bedCenterX * w - boxSize / 2;
     final mattressY = (widget.bedTopY + 0.075) * h; // ligne du matelas
-    final top = mattressY - 0.361 * boxSize;
+    final top = mattressY - 0.563 * boxSize;        // centre contenu sur matelas
     Widget img = AnimatedBuilder(
       animation: _ctrl,
       builder: (_, __) {
