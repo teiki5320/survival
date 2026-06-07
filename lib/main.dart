@@ -288,8 +288,30 @@ class _WagonScreenState extends State<WagonScreen>
     super.dispose();
   }
 
+  // Anims jouées DANS la loco. On les décode à l'avance (dès le clic sur la
+  // porte : l'anim d'ouverture dure ~1 s, largement le temps de tout décoder)
+  // pour qu'elles ne saccadent pas au 1er affichage dans la cabine.
+  static const Map<String, int> _locoAnims = {
+    'carry_walk': 49,
+    'warm_hands': 49,
+    'open_door': 20,
+    'walk_right': 49,
+    'idle_right': 49,
+  };
+
+  void _warmLocoAnims() {
+    if (!mounted) return;
+    _locoAnims.forEach((p, n) {
+      for (int i = 1; i <= n; i++) {
+        precacheImage(AssetImage('assets/characters/${p}_$i.png'), context)
+            .catchError((_) {});
+      }
+    });
+  }
+
   void _enterLocomotive() {
-    if (_doorPushing) return;
+    if (_doorPushing || _curtain.isAnimating) return;
+    _warmLocoAnims(); // décode les sprites loco pendant l'anim de porte
     setState(() {
       _doorPushing = true;
       _doorPushRight = false; // porte gauche
@@ -300,7 +322,7 @@ class _WagonScreenState extends State<WagonScreen>
 
   // Wagon 1, porte droite : anim d'ouverture vers la droite -> wagon 2.
   void _enterWagon2() {
-    if (_doorPushing) return;
+    if (_doorPushing || _curtain.isAnimating) return;
     setState(() {
       _doorPushing = true;
       _doorPushRight = true;
@@ -311,7 +333,7 @@ class _WagonScreenState extends State<WagonScreen>
 
   // Wagon 2, porte gauche : anim d'ouverture vers la gauche -> wagon 1.
   void _returnToWagon1() {
-    if (_doorPushing) return;
+    if (_doorPushing || _curtain.isAnimating) return;
     setState(() {
       _doorPushing = true;
       _doorPushRight = false;
@@ -324,8 +346,9 @@ class _WagonScreenState extends State<WagonScreen>
     if (!mounted) return;
     final dest = _pendingDoor;
     _pendingDoor = null;
-    // On échange la scène DERRIÈRE le rideau noir (le perso de la loco est plus
-    // gros : sans ça on voyait un "saut" d'une demi-seconde au passage).
+    // L'anim de porte a joué EN ENTIER (20 frames). On échange maintenant la
+    // scène DERRIÈRE le rideau noir : le perso de la loco est rendu plus gros
+    // (caméra rapprochée), sans le rideau on voyait un "saut" au passage.
     _curtainSwap(() {
       _doorPushing = false;
       switch (dest) {
@@ -346,6 +369,7 @@ class _WagonScreenState extends State<WagonScreen>
   }
 
   void _exitLocomotive() {
+    if (_curtain.isAnimating) return;
     _curtainSwap(() {
       _inLocomotive = false;
       _heroSpawnX = SideScrollScene.heroXMin;
@@ -354,6 +378,7 @@ class _WagonScreenState extends State<WagonScreen>
   }
 
   void _exitMap() {
+    if (_mapFromLoco) _warmLocoAnims(); // évite le stutter au retour en loco
     setState(() {
       _onMap = false;
       // Revenir à l'endroit d'où la map a été ouverte (loco ou wagon).
