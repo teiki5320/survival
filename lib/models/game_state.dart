@@ -286,12 +286,14 @@ class GameState extends ChangeNotifier {
         break;
     }
     if (isNight) t -= 3;
-    // Le poêle ne chauffe que s'il reste du bois à brûler.
+    // Le poêle bien alimenté rend la cabine COSY même au nord (fantaisie "près
+    // du feu") : un feu plein vainc le froid de jour, mais nuit/tempête restent
+    // précaires -> il faut entretenir le bois.
     if (stoveInstalled) {
       if (cardBois >= 40) {
-        t += 9;
+        t += 14;
       } else if (cardBois >= 12) {
-        t += 5;
+        t += 7;
       }
     }
     return t.clamp(-15.0, 28.0);
