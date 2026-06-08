@@ -263,18 +263,21 @@ class _MapScreenState extends State<MapScreen>
                       _WorkshopFab(onPressed: widget.onOpenWorkshop!),
                       const SizedBox(height: 8),
                     ],
-                    FloatingActionButton.small(
-                      heroTag: 'map_adjust',
-                      tooltip: 'Placer les gares',
-                      backgroundColor: _stationAdjust
-                          ? const Color(0xFFFF6B00)
-                          : const Color(0xFF6A5A4A),
-                      foregroundColor: Colors.white,
-                      onPressed: () =>
-                          setState(() => _stationAdjust = !_stationAdjust),
-                      child: Icon(
-                          _stationAdjust ? Icons.check : Icons.edit_location_alt),
-                    ),
+                    // Placement des gares = outil de réglage : MODE DEBUG only.
+                    if (GameState.instance.debugMode)
+                      FloatingActionButton.small(
+                        heroTag: 'map_adjust',
+                        tooltip: 'Placer les gares',
+                        backgroundColor: _stationAdjust
+                            ? const Color(0xFFFF6B00)
+                            : const Color(0xFF6A5A4A),
+                        foregroundColor: Colors.white,
+                        onPressed: () =>
+                            setState(() => _stationAdjust = !_stationAdjust),
+                        child: Icon(_stationAdjust
+                            ? Icons.check
+                            : Icons.edit_location_alt),
+                      ),
                   ],
                 ),
               ),

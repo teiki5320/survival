@@ -287,10 +287,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _camPunch = 0; // petit coup de zoom sur le coup fatal (0..1)
   double _windowHalo = 0; // petit halo dans la fenêtre quand le pillard touche
 
-  // --- Mode DUEL de test (réglage du feeling) : 1 seul lanceur, 3 PV, on tire
-  //     chacun son tour, il recule quand touché. Réservé au MODE DEBUG ; en jeu
-  //     normal on lance la vraie campagne (vagues, économie, score de gare). ---
-  bool get _duelTest => GameState.instance.debugMode;
+  // --- Mode DUEL : c'est LE jeu de combat (réglé au feeling). 1 lanceur à la
+  //     fois, on tire chacun son tour, il recule quand touché. Toujours actif
+  //     (le mode debug ne change PAS la mécanique de combat). ---
+  static const bool _duelTest = true;
   bool _playerTurn = true; // le joueur peut tirer
   bool _awaitingStones = false; // on attend que la pierre du joueur retombe
   bool _enemyAiming = false; // caméra recentrée sur le pillard, il vise
@@ -2008,17 +2008,20 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                       ),
                       const SizedBox(width: 8),
                     ],
-                    // Réglage canon/sol (recalibrage sur le nouveau décor).
-                    FloatingActionButton.small(
-                      heroTag: 'shoot_adjust',
-                      backgroundColor:
-                          _adjust ? const Color(0xFFE8B96B) : Colors.black54,
-                      foregroundColor:
-                          _adjust ? const Color(0xFF2A2018) : Colors.white,
-                      onPressed: () => setState(() => _adjust = !_adjust),
-                      child: Icon(_adjust ? Icons.check : Icons.edit),
-                    ),
-                    const SizedBox(width: 8),
+                    // Réglage canon/sol (recalibrage) = outil de réglage :
+                    // MODE DEBUG only.
+                    if (GameState.instance.debugMode) ...[
+                      FloatingActionButton.small(
+                        heroTag: 'shoot_adjust',
+                        backgroundColor:
+                            _adjust ? const Color(0xFFE8B96B) : Colors.black54,
+                        foregroundColor:
+                            _adjust ? const Color(0xFF2A2018) : Colors.white,
+                        onPressed: () => setState(() => _adjust = !_adjust),
+                        child: Icon(_adjust ? Icons.check : Icons.edit),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     FloatingActionButton.small(
                       heroTag: 'shoot_quit',
                       backgroundColor: Colors.black54,

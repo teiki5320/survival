@@ -92,7 +92,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
 
   // Carte murale de la cabine : mode ajuster (déplacer + pincer) + largeur de
   // départ d'un pinch. La carte ouvre la map au tap hors mode ajuster.
-  final bool _mapAdjust = false;
+  bool _mapAdjust = false; // ajustement de la carte = MODE DEBUG only
   double _mapStartW = 0.2;
   // Ratio largeur/hauteur du cadre de la carte (paysage).
   static const double _mapAspect = 1.85;
@@ -772,6 +772,21 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
+                    // Ajuster la carte murale = outil de réglage : DEBUG only.
+                    if (GameState.instance.debugMode) ...[
+                      FloatingActionButton.small(
+                        heroTag: 'loco_map_adjust',
+                        tooltip: 'Ajuster la carte',
+                        backgroundColor: _mapAdjust
+                            ? const Color(0xFFE8B96B)
+                            : Colors.black54,
+                        foregroundColor:
+                            _mapAdjust ? const Color(0xFF2A2018) : Colors.white,
+                        onPressed: () => setState(() => _mapAdjust = !_mapAdjust),
+                        child: Icon(_mapAdjust ? Icons.check : Icons.edit),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                     FloatingActionButton.small(
                       heroTag: 'throw_log',
                       tooltip: 'Mettre une bûche',

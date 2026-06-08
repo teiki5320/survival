@@ -1535,15 +1535,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
                       if (!widget.secondWagon &&
-                          !_petDog)
+                          !_petDog &&
+                          _dogShown)
                         _buildStaticDog(w, h),
                       // Caresse chien (Shen + husky) déclenchée par le bouton.
-                      if (!widget.secondWagon && _petDog) _buildPetDog(w, h),
+                      if (!widget.secondWagon && _petDog && _dogShown)
+                        _buildPetDog(w, h),
                       // Petite soeur autonome (solo). Masquée pendant le duo
                       // câlin (le sprite duo la contient déjà).
-                      if (!widget.secondWagon && !_duoActive) _buildSister(w, h),
+                      if (!widget.secondWagon && !_duoActive && _sisterShown)
+                        _buildSister(w, h),
                       // Duo sœur+Shen (câlin/lecture, déclenché par proximité).
-                      if (!widget.secondWagon && _duoActive) _buildDuo(w, h),
+                      if (!widget.secondWagon && _duoActive && _sisterShown)
+                        _buildDuo(w, h),
                       // 4c. Lamp glow when lamp is on.
                       if (!widget.secondWagon && GameState.instance.lampOn)
                         Positioned.fill(
@@ -2034,21 +2038,22 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool get _showAllProps => GameState.instance.debugMode;
 
   bool _propUnlocked(String key) {
-    if (_showAllProps) return true;
-    final f = GameState.instance.cardFlags;
-    switch (key) {
-      case 'hydro':
-        return f.contains('asset_hydro');
-      case 'filter':
-        return f.contains('asset_filter');
-      default:
-        return true;
-    }
+    if (_showAllProps) return true; // debug : tout visible pour tester le rendu
+    // Jeu normal : le wagon démarre VIDE et abîmé. Chaque objet n'apparaît que
+    // quand l'histoire pose son flag `asset_<key>` (sentiment de progression).
+    return GameState.instance.cardFlags.contains('asset_$key');
   }
 
   bool get _bedUnlocked =>
       _showAllProps ||
       GameState.instance.cardFlags.contains('asset_bed');
+
+  // Compagnons : Shen démarre SEULE. Le chien arrive gare 1 (aLeChien), la
+  // sœur gare 5 (aLaSoeur). En debug, toujours présents pour tester les anims.
+  bool get _dogShown =>
+      _showAllProps || GameState.instance.cardFlags.contains('aLeChien');
+  bool get _sisterShown =>
+      _showAllProps || GameState.instance.cardFlags.contains('aLaSoeur');
 
   Widget _buildProp({
     required _PropDef def,

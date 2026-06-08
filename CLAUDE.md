@@ -167,17 +167,34 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
 
 ---
 
-## 🐞 Mode debug (0.93.0)
+## 🐞 Mode debug (0.93.x) — ⚠️ RÈGLE D'OR
 
-Un **seul interrupteur** (`GameState.debugMode`, persisté) révèle/masque TOUS
-les outils de test. Bouton 🐞 discret en **bas-gauche** de l'écran wagon (vert
-si actif). Debug OFF = **le vrai jeu**. Ce que le debug gate :
-- FAB de test : démarrer/arrêter train, nettoyer (wagonStage), jour/nuit,
-  **température (test)**, danser, **ajuster les props** (cellier).
-- `side_scroll_scene._showAllProps` (afficher tous les objets du wagon).
-- `roof_defense_game._duelTest` (combat en mode **duel 1v1** ; OFF = vraie
-  campagne 5 vagues + économie + score de gare).
-- En jeu normal : température **auto**, objets **progressifs**, combat = campagne.
+**Mode JEU (debug OFF) = LE VRAI JEU** : train **abîmé + VIDE** à l'arrivée
+(aucun objet), **AUCUN outil de réglage/perso visible**, Shen **seule** (pas de
+sœur ni chien tant que l'histoire ne les amène pas). **Mode DEBUG (🐞) = TOUT
+remis** : tous les objets + sœur + chien (pour tester les anims) + tous les
+outils de réglage. Un **seul interrupteur** (`GameState.debugMode`, persisté),
+bouton 🐞 discret **bas-gauche** de l'écran wagon (vert si actif).
+
+Ce que le debug gate (et qui DOIT rester invisible en jeu) :
+- FAB wagon : démarrer/arrêter train, nettoyer (wagonStage), jour/nuit,
+  température (test), danser, ajuster props cellier (`w2_adjust`).
+- `side_scroll_scene._showAllProps` → en jeu, `_propUnlocked(key)` = flag
+  `asset_<key>` (wagon VIDE par défaut). `_dogShown`=`aLeChien`,
+  `_sisterShown`=`aLaSoeur`.
+- Ajustement carte gares (`map_screen.map_adjust`), canon combat
+  (`roof_defense.shoot_adjust`), cups hydro, carte loco (`loco_map_adjust`).
+- En jeu normal : température **auto**, objets/compagnons **progressifs**.
+
+**⚠️ COMBAT = DUEL, PAS la campagne.** `_duelTest` est **`true` en permanence**
+(le duel réglé au feeling EST le jeu). Le debug NE change PAS la mécanique de
+combat. Ne JAMAIS rebrancher `_duelTest` sur `debugMode` (ça avait fait revenir
+l'ancienne campagne = régression).
+
+**🎯 DIRECTION COMBAT (à terme)** : **10 sessions de duel par gare**, en
+escalade. Ex. gare 1 : duel 1 = 1 pillard proche ; duel 2 = 1 pillard plus
+loin ; duel 3 = 2 pillards ; … ; **duel 10 = boss**. Chaque gare a sa propre
+courbe de 10 duels.
 
 ## Workflow technique
 

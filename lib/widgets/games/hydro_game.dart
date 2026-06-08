@@ -157,20 +157,23 @@ class _HydroGameTier1State extends State<HydroGameTier1> {
                           color: Color(0xFF3A2E1F), size: 28),
                       onPressed: widget.onClose,
                     ),
-                    const SizedBox(height: 4),
-                    IconButton(
-                      icon: Icon(
-                        _adjustMode ? Icons.check : Icons.edit_location_alt,
-                        color: _adjustMode
-                            ? const Color(0xFFFF6B00)
-                            : const Color(0xFF3A2E1F),
-                        size: 26,
+                    // Placement des cups = outil de réglage : MODE DEBUG only.
+                    if (GameState.instance.debugMode) ...[
+                      const SizedBox(height: 4),
+                      IconButton(
+                        icon: Icon(
+                          _adjustMode ? Icons.check : Icons.edit_location_alt,
+                          color: _adjustMode
+                              ? const Color(0xFFFF6B00)
+                              : const Color(0xFF3A2E1F),
+                          size: 26,
+                        ),
+                        onPressed: () => setState(() {
+                          _adjustMode = !_adjustMode;
+                          if (!_adjustMode) _selectedSlot = null;
+                        }),
                       ),
-                      onPressed: () => setState(() {
-                        _adjustMode = !_adjustMode;
-                        if (!_adjustMode) _selectedSlot = null;
-                      }),
-                    ),
+                    ],
                   ],
                 ),
               ),
