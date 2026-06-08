@@ -830,6 +830,7 @@ class GameState extends ChangeNotifier {
     hydroTier = 1;
     woodTier = 1;
     _items.clear();
+    _flags.clear(); // anciens flags d'histoire (sécurité)
     _lampOn = true;
     isNight = false;
     startCardRun(); // remet jauges + cardGareIndex=0 + VIDE cardFlags/oneshot/soin
