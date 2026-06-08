@@ -17,8 +17,6 @@ def zonename(g):
     if g==7: return "TRANSITION"
     return "FROID"
 
-# ---- Données gares (fidèles) : (id, situation, Llabel, Lfx, Rlabel, Rfx, tag) ----
-# tag: 'gain' / 'bon' / 'rate' / None
 GARES={
 1:[("G1","Ville en flammes","Regarder","M-6","Fermer la porte","M+3","gain"),
    ("G1b","Chiot sous un banc","Le recueillir","M+15 +CHIEN","Refuser","M-5","gain"),
@@ -51,37 +49,23 @@ NAMES=["Gare natale","Dépôt de fret","Halte 47","Village fantôme","Pont/fleuv
 GAINF={'aLeChien':'CHIEN','aLaSoeur':'SŒUR','aLaRadio':'RADIO','radio1':'R1','radio2':'R2',
 'radio3':'R3','asset_bed':'LIT','asset_filter':'FILTRE','asset_hydro':'HYDRO','indiceSoeur':'indice',
 'capParents':'cap','soeurProtegee':'SOIN'}
-CONDF={'aLeChien':'si CHIEN','aLaSoeur':'si SŒUR','aLaRadio':'si RADIO','radio1':'si R1','radio2':'si R2',
-'leVieuxABord':'?','vieuxParti':'?'}
+CONDF={'aLeChien':'si CHIEN','aLaSoeur':'si SŒUR','aLaRadio':'si RADIO','radio1':'si R1','radio2':'si R2'}
 
-# Construit la liste de cartes par colonne (gare cards + fillers)
-def fx_compact(L): return L
 def col_cards(g):
     cards=[(c[0],c[1],c[2],c[3],c[4],c[5],c[6],None) for c in GARES[g]]
     for fl in F.get(str(g),[]):
         gain = any(x in GAINF for x in fl['left'][2]+fl['right'][2])
         tag='gain' if gain else None
-        cond=None
-        if fl['requires']:
-            cond=" ".join(CONDF.get(r,r) for r in fl['requires'])
-        # situ + gain flags appended
-        gtag=[GAINF[x] for x in fl['left'][2]+fl['right'][2] if x in GAINF]
-        sid=fl['id']
-        situ=fl['text']
-        lL=fl['left'][0]; lfx=fl['left'][1]+("" if not gtag else "")
-        rL=fl['right'][0]; rfx=fl['right'][1]
-        # append gain marker to fx of the side that sets it
-        if fl['left'][2]:
-            g2=[GAINF[x] for x in fl['left'][2] if x in GAINF]
-            if g2: lfx=(lfx+" +"+"+".join(g2)).strip()
-        if fl['right'][2]:
-            g2=[GAINF[x] for x in fl['right'][2] if x in GAINF]
-            if g2: rfx=(rfx+" +"+"+".join(g2)).strip()
-        cards.append((sid,situ,lL,lfx,rL,rfx,tag,cond))
+        cond=" ".join(CONDF.get(r,r) for r in fl['requires']) if fl['requires'] else None
+        lL,lfx=fl['left'][0],fl['left'][1]; rL,rfx=fl['right'][0],fl['right'][1]
+        g2=[GAINF[x] for x in fl['left'][2] if x in GAINF]
+        if g2: lfx=(lfx+" +"+"+".join(g2)).strip()
+        g2=[GAINF[x] for x in fl['right'][2] if x in GAINF]
+        if g2: rfx=(rfx+" +"+"+".join(g2)).strip()
+        cards.append((fl['id'],fl['text'],lL,lfx,rL,rfx,tag,cond))
     return cards
 
-# ---- Layout ----
-COLW=300; GAP=10; PADX=30; TOPY=170
+COLW=300; GAP=10; PADX=30; TOPY=222
 maxn=max(len(col_cards(g)) for g in range(1,15))
 CELLH=96; HEADH=64
 W=PADX*2+14*COLW+13*GAP
@@ -92,33 +76,54 @@ def cut(s,f,maxw):
     if d.textlength(s,font=f)<=maxw: return s
     while s and d.textlength(s+"…",font=f)>maxw: s=s[:-1]
     return s+"…"
-
-ct(W//2,46,"TRAIN COSY — Toutes les cartes du jeu",Fn(40,True),(58,46,31),"mm")
-ct(W//2,90,"1 colonne = 1 gare · cartes dans l'ordre de jeu (FIXE) · chaque carte : ◀ choix gauche  /  choix droite ▶  avec effets (M/S/F/B) et gains",Fn(18),(120,100,75),"mm")
-ct(W//2,118,"★ = débloque un objet/perso   ·   vert = variante COMBAT réussi   ·   rouge = COMBAT raté   ·   «si X» = carte conditionnelle",Fn(16),(120,100,75),"mm")
-
 INK=(58,46,31); INK2=(110,92,70)
+
+ct(W//2,44,"TRAIN COSY — Toutes les cartes du jeu",Fn(40,True),INK,"mm")
+ct(W//2,84,"1 colonne = 1 gare · cartes dans l'ordre de jeu (FIXE) · chaque carte : ◀ choix gauche  /  choix droite ▶",Fn(18),INK2,"mm")
+
+# ===== LÉGENDE (2 rangées encadrées) =====
+lx,lw = PADX, W-2*PADX
+# rangée 1 : les 4 jauges
+ly=108; lh=42
+d.rounded_rectangle([lx,ly,lx+lw,ly+lh],radius=10,fill=(255,255,255,170),outline=(150,125,95),width=2)
+cy=ly+lh//2; x=lx+18
+ct(x,cy,"LÉGENDE — les 4 jauges :",Fn(17,True),INK,"lm"); x+=d.textlength("LÉGENDE — les 4 jauges :",font=Fn(17,True))+26
+for ab,full,col in [("M","Moral / espoir",(214,120,150)),("S","Soif → eau",(95,160,200)),
+                    ("F","Faim → nourriture",(210,150,80)),("B","Bois → carburant loco",(150,110,70))]:
+    d.ellipse([x,cy-13,x+26,cy+13],fill=col,outline=(60,45,30),width=1)
+    ct(x+13,cy,ab,Fn(14,True),(255,255,255),"mm"); x+=33
+    ct(x,cy,"= "+full,Fn(16),INK,"lm"); x+=d.textlength("= "+full,font=Fn(16))+30
+ct(x,cy,"  →  ex.  M+15 = +15 moral,   B-8 = −8 bois",Fn(15),INK2,"lm")
+# rangée 2 : badges
+ly2=ly+lh+8; lh2=42
+d.rounded_rectangle([lx,ly2,lx+lw,ly2+lh2],radius=10,fill=(255,255,255,170),outline=(150,125,95),width=2)
+cy2=ly2+lh2//2; x=lx+18
+def swatch(x,fill,bord,bw,label):
+    d.rounded_rectangle([x,cy2-13,x+28,cy2+13],radius=6,fill=fill,outline=bord,width=bw)
+    ct(x+38,cy2,label,Fn(16),INK,"lm")
+    return x+38+d.textlength(label,font=Fn(16))+32
+x=swatch(x,(255,255,255,0),(200,140,30),3,"★ bord doré = débloque objet/perso (+CHIEN +SŒUR +LIT +FILTRE +HYDRO +RADIO…)")
+x=swatch(x,(225,242,225),(70,150,70),3,"vert = si COMBAT réussi")
+x=swatch(x,(245,225,222),(194,90,74),3,"rouge = si COMBAT raté")
+d.rounded_rectangle([x,cy2-13,x+52,cy2+13],radius=8,fill=(120,150,150,230))
+ct(x+10,cy2,"si X",Fn(13),(255,255,255),"lm"); x+=64
+ct(x,cy2,"= carte conditionnelle (apparaît seulement si le flag X est présent)",Fn(16),INK,"lm")
+
+# ===== Colonnes =====
 for gi in range(14):
-    g=gi+1
-    cx=PADX+gi*(COLW+GAP)
-    zc=zonecol(g)
-    # header
+    g=gi+1; cx=PADX+gi*(COLW+GAP); zc=zonecol(g)
     d.rounded_rectangle([cx,TOPY,cx+COLW,TOPY+HEADH],radius=10,fill=(zc[0]-12,zc[1]-12,zc[2]-12),outline=(120,95,65),width=2)
     d.ellipse([cx+8,TOPY+14,cx+44,TOPY+50],fill=(232,185,107),outline=INK,width=2)
     ct(cx+26,TOPY+32,str(g),Fn(20,True),(40,30,20),"mm")
     ct(cx+54,TOPY+22,cut(NAMES[gi],Fn(15,True),COLW-64),Fn(15,True),INK,"lm")
     ct(cx+54,TOPY+44,zonename(g),Fn(12),INK2,"lm")
-    # cards
-    cards=col_cards(g)
     y=TOPY+HEADH+8
-    for (cid,situ,lL,lfx,rL,rfx,tag,cond) in cards:
-        bg=(255,255,255,150)
-        bord=(150,125,95); pw=1
+    for (cid,situ,lL,lfx,rL,rfx,tag,cond) in col_cards(g):
+        bg=(255,255,255,150); bord=(150,125,95); pw=1
         if tag=='gain': bord=(200,140,30); pw=3
         elif tag=='bon': bord=(70,150,70); pw=3; bg=(225,242,225,160)
         elif tag=='rate': bord=(194,90,74); pw=3; bg=(245,225,222,160)
         d.rounded_rectangle([cx,y,cx+COLW,y+CELLH],radius=9,fill=bg,outline=bord,width=pw)
-        # id + cond badge
         ct(cx+10,y+15,cid,Fn(13,True),INK,"lm")
         if cond:
             bw=d.textlength(cond,font=Fn(11))+12
@@ -131,12 +136,12 @@ for gi in range(14):
         ct(cx+COLW-24,y+74,cut(rfx,Fn(11),COLW-30),Fn(11),(150,90,40),"rm")
         y+=CELLH+8
 
-# ---- Fins (footer) ----
+# ===== Fins =====
 fy=H-150
-ct(PADX,fy-8,"LES 5 FINS (résolution à la gare 14)",Fn(20,True),INK,"lm")
-ends=[("FIN SECRÈTE","sœur+SOIN≥2+moral≥65+R3",(240,216,115)),
-("RÉUNIS (famille)","sœur+SOIN≥2+moral≥65",(168,208,138)),
-("TOUTES LES DEUX","sœur+moral≥30",(154,208,206)),
+ct(PADX,fy-8,"LES 5 FINS (résolution à la gare 14)  —  « SOIN » = nb de gestes de protection de la sœur",Fn(20,True),INK,"lm")
+ends=[("FIN SECRÈTE","sœur + SOIN≥2 + moral≥65 + R3",(240,216,115)),
+("RÉUNIS (famille)","sœur + SOIN≥2 + moral≥65",(168,208,138)),
+("TOUTES LES DEUX","sœur + moral≥30",(154,208,206)),
 ("L'ABANDON","moral 0 / sinon",(201,187,166)),
 ("MORT","soif/faim/bois → 0",(224,149,138))]
 ex=PADX
