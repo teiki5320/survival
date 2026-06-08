@@ -122,39 +122,69 @@ def swatch(x,fill,bord,bw,label):
     d.rounded_rectangle([x,cy2-13,x+28,cy2+13],radius=6,fill=fill,outline=bord,width=bw)
     ct(x+38,cy2,label,Fn(16),INK,"lm")
     return x+38+d.textlength(label,font=Fn(16))+32
-x=swatch(x,(255,255,255,0),(200,140,30),3,"★ bord doré = débloque objet/perso (+CHIEN +SŒUR +LIT +FILTRE +HYDRO +RADIO…)")
+x=swatch(x,(255,246,206),(200,140,30),4,"★ GROS GAIN = débloque OBJET / CHIEN / SŒUR / RADIO  (mis en évidence)")
 x=swatch(x,(225,242,225),(70,150,70),3,"vert = si COMBAT réussi")
 x=swatch(x,(245,225,222),(194,90,74),3,"rouge = si COMBAT raté")
 d.rounded_rectangle([x,cy2-13,x+52,cy2+13],radius=8,fill=(120,150,150,230))
 ct(x+10,cy2,"si X",Fn(13),(255,255,255),"lm"); x+=64
-ct(x,cy2,"= carte conditionnelle (apparaît seulement si le flag X est présent)",Fn(16),INK,"lm")
+ct(x,cy2,"= carte conditionnelle  ·  (indice / cap / SOIN = petits flags, non mis en évidence)",Fn(15),INK,"lm")
+
+# Les GROS gains à mettre en évidence (objets + persos + radio)
+BIGTOK=['CHIEN','SŒUR','LIT','FILTRE','HYDRO','RADIO','R1','R2','R3']
+def big_of(lfx,rfx):
+    blob=" "+lfx+" "+rfx+" "
+    return [t for t in BIGTOK if (" +"+t+" ") in blob or ("+"+t) in blob]
 
 # ===== Colonnes =====
 for gi in range(14):
     g=gi+1; cx=PADX+gi*(COLW+GAP); zc=zonecol(g)
-    d.rounded_rectangle([cx,TOPY,cx+COLW,TOPY+HEADH],radius=10,fill=(zc[0]-12,zc[1]-12,zc[2]-12),outline=(120,95,65),width=2)
-    d.ellipse([cx+8,TOPY+14,cx+44,TOPY+50],fill=(232,185,107),outline=INK,width=2)
-    ct(cx+26,TOPY+32,str(g),Fn(20,True),(40,30,20),"mm")
-    ct(cx+54,TOPY+22,cut(NAMES[gi],Fn(15,True),COLW-64),Fn(15,True),INK,"lm")
-    ct(cx+54,TOPY+44,zonename(g),Fn(12),INK2,"lm")
+    cards=col_cards(g)
+    # gros gains de la gare (pour le bandeau d'en-tête)
+    hgains=[]
+    for c in cards:
+        for t in big_of(c[3],c[5]):
+            if t not in hgains: hgains.append(t)
+    headfill=(zc[0]-12,zc[1]-12,zc[2]-12)
+    d.rounded_rectangle([cx,TOPY,cx+COLW,TOPY+HEADH],radius=10,fill=headfill,outline=(120,95,65),width=2)
+    d.ellipse([cx+8,TOPY+12,cx+42,TOPY+46],fill=(232,185,107),outline=INK,width=2)
+    ct(cx+25,TOPY+29,str(g),Fn(19,True),(40,30,20),"mm")
+    ct(cx+50,TOPY+20,cut(NAMES[gi],Fn(15,True),COLW-60),Fn(15,True),INK,"lm")
+    ct(cx+50,TOPY+40,zonename(g),Fn(12),INK2,"lm")
+    if hgains:  # bandeau doré "DÉBLOQUE ..."
+        bn="★ "+"  ".join(hgains)
+        d.rounded_rectangle([cx+4,TOPY+HEADH-20,cx+COLW-4,TOPY+HEADH-2],radius=7,fill=(244,196,80),outline=(150,100,20),width=1)
+        ct(cx+COLW//2,TOPY+HEADH-11,cut("DÉBLOQUE  "+bn,Fn(12,True),COLW-16),Fn(12,True),(70,45,10),"mm")
     y=TOPY+HEADH+8
-    for (cid,situ,lL,lfx,rL,rfx,tag,cond) in col_cards(g):
+    for (cid,situ,lL,lfx,rL,rfx,tag,cond) in cards:
+        bigs=big_of(lfx,rfx)
         bg=(255,255,255,150); bord=(150,125,95); pw=1
-        if tag=='gain': bord=(200,140,30); pw=3
+        if bigs: bord=(205,140,25); pw=4; bg=(255,246,206,230)   # GROS gain
         elif tag=='bon': bord=(70,150,70); pw=3; bg=(225,242,225,160)
         elif tag=='rate': bord=(194,90,74); pw=3; bg=(245,225,222,160)
         d.rounded_rectangle([cx,y,cx+COLW,y+CELLH],radius=9,fill=bg,outline=bord,width=pw)
         ct(cx+10,y+15,cid,Fn(13,True),INK,"lm")
-        if cond:
+        idw=d.textlength(cid,font=Fn(13,True))
+        # badge GROS GAIN (priorité top-droite)
+        if bigs:
+            gtxt="🎁".replace("🎁","")+"★ "+" ".join(bigs)
+            bw=d.textlength(gtxt,font=Fn(12,True))+14
+            d.rounded_rectangle([cx+COLW-bw-8,y+5,cx+COLW-8,y+25],radius=9,fill=(244,196,80),outline=(150,100,20),width=1)
+            ct(cx+COLW-bw-1,y+15,gtxt,Fn(12,True),(70,45,10),"lm")
+        elif cond:
             bw=d.textlength(cond,font=Fn(11))+12
             d.rounded_rectangle([cx+COLW-bw-8,y+6,cx+COLW-8,y+24],radius=8,fill=(120,150,150,220))
             ct(cx+COLW-bw-2,y+15,cond,Fn(11),(255,255,255),"lm")
+        # si à la fois cond ET gros gain : petite étiquette cond sous l'id
+        if bigs and cond:
+            d.rounded_rectangle([cx+14+idw,y+6,cx+14+idw+d.textlength(cond,font=Fn(10))+10,y+22],radius=6,fill=(120,150,150,200))
+            ct(cx+19+idw,y+14,cond,Fn(10),(255,255,255),"lm")
         ct(cx+10,y+36,cut(situ,Fn(12),COLW-20),Fn(12),INK2,"lm")
         ct(cx+10,y+58,cut("◀ "+lL,Fn(11,True),COLW-20),Fn(11,True),(70,55,35),"lm")
         ct(cx+24,y+74,cut(lfx,Fn(11),COLW-30),Fn(11),(150,90,40),"lm")
         ct(cx+COLW-10,y+58,cut(rL+" ▶",Fn(11,True),COLW-20),Fn(11,True),(70,55,35),"rm")
         ct(cx+COLW-24,y+74,cut(rfx,Fn(11),COLW-30),Fn(11),(150,90,40),"rm")
         y+=CELLH+8
+
 
 # ===== Fins =====
 fy=H-150
