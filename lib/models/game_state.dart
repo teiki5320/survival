@@ -818,6 +818,24 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// NOUVELLE PARTIE : remet TOUT à zéro (flags, jauges, objets débloqués,
+  /// compagnons, état du wagon). Sans ça, « Nouvelle partie » gardait les flags
+  /// (asset_*, aLeChien, aLaSoeur...) de la sauvegarde -> chien/objets restaient
+  /// présents. Le mode debug, lui, est conservé (préférence de dev).
+  void resetForNewGame() {
+    waterTankGlasses = 0;
+    wagonStage = 0;
+    wagon2Stage = 0;
+    filterTier = 1;
+    hydroTier = 1;
+    woodTier = 1;
+    _items.clear();
+    _lampOn = true;
+    isNight = false;
+    startCardRun(); // remet jauges + cardGareIndex=0 + VIDE cardFlags/oneshot/soin
+    _recomputeAutoTemp();
+  }
+
   /// Termine la run (atteinte d'une fin) : on efface la progression mais on
   /// garde les jauges figées pour l'écran de fin.
   void endCardRun() {

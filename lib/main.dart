@@ -84,6 +84,9 @@ class _RootScreenState extends State<RootScreen> {
       _Phase.title => TitleScreen(
           key: const ValueKey('title'),
           onStart: ({required fromScratch}) {
+            // Nouvelle partie = vrai reset (vide les flags : chien/objets/sœur
+            // ne persistent plus de la sauvegarde précédente).
+            if (fromScratch) GameState.instance.resetForNewGame();
             setState(() => _phase = _Phase.loading);
           },
         ),
