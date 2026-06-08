@@ -523,6 +523,11 @@ class _WagonScreenState extends State<WagonScreen>
                   _onMap = false;
                   _inWorkshop = true;
                 }),
+                // Entrée des cartes narratives depuis la map (jeu normal).
+                onOpenCards: () => setState(() {
+                  _onMap = false;
+                  _inCards = true;
+                }),
               )
             : _inLocomotive
                 ? LocomotiveScene(
@@ -765,27 +770,30 @@ class _WagonScreenState extends State<WagonScreen>
                     ),
                     const SizedBox(height: 12),
                   ],
+                  // Accès rapide DEBUG à la map + aux cartes. En JEU NORMAL :
+                  // la map s'ouvre depuis la LOCO, et les cartes depuis la map.
+                  FloatingActionButton.small(
+                    heroTag: 'open_map',
+                    tooltip: 'La carte du voyage (debug)',
+                    onPressed: () => setState(() {
+                      _onMap = true;
+                      _mapFromLoco = false;
+                    }),
+                    child: const Icon(Icons.map),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.small(
+                    heroTag: 'open_cards',
+                    tooltip: 'Le voyage (cartes) (debug)',
+                    backgroundColor: const Color(0xFFE8B96B),
+                    foregroundColor: const Color(0xFF2A2018),
+                    onPressed: () => setState(() => _inCards = true),
+                    child: const Icon(Icons.style),
+                  ),
+                  const SizedBox(height: 12),
                 ],
-                // ===== BOUTONS DE JEU (toujours visibles) =====
-                FloatingActionButton.small(
-                  heroTag: 'open_map',
-                  tooltip: 'La carte du voyage',
-                  onPressed: () => setState(() {
-                    _onMap = true;
-                    _mapFromLoco = false;
-                  }),
-                  child: const Icon(Icons.map),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'open_cards',
-                  tooltip: 'Le voyage (cartes)',
-                  backgroundColor: const Color(0xFFE8B96B),
-                  foregroundColor: const Color(0xFF2A2018),
-                  onPressed: () => setState(() => _inCards = true),
-                  child: const Icon(Icons.style),
-                ),
-                const SizedBox(height: 12),
+                // ===== BOUTON DE JEU (toujours visible) =====
+                // Seul le bouton d'ACTION contextuel reste en jeu normal.
                 // Bouton ACTION contextuel — toujours visible (tout en bas).
                 AnimatedBuilder(
                   animation: GameState.instance,

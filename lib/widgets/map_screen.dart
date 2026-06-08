@@ -177,6 +177,7 @@ class MapScreen extends StatefulWidget {
     required this.onClose,
     this.onGareSelected,
     this.onOpenWorkshop,
+    this.onOpenCards,
   });
   final VoidCallback onClose;
 
@@ -185,6 +186,10 @@ class MapScreen extends StatefulWidget {
 
   /// Ouvre l'atelier & quotidien (méta-progression hors-combat).
   final VoidCallback? onOpenWorkshop;
+
+  /// Ouvre les CARTES narratives (le voyage Reigns). En jeu normal c'est LE
+  /// point d'entrée des cartes (les FAB du wagon sont en debug).
+  final VoidCallback? onOpenCards;
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -259,6 +264,18 @@ class _MapScreenState extends State<MapScreen>
                       child: const Icon(Icons.close),
                     ),
                     const SizedBox(height: 8),
+                    // Entrée principale des cartes narratives (le voyage).
+                    if (widget.onOpenCards != null) ...[
+                      FloatingActionButton.extended(
+                        heroTag: 'map_open_cards',
+                        backgroundColor: const Color(0xFFE8B96B),
+                        foregroundColor: const Color(0xFF2A2018),
+                        onPressed: widget.onOpenCards,
+                        icon: const Icon(Icons.style),
+                        label: const Text('Continuer le voyage'),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     if (widget.onOpenWorkshop != null) ...[
                       _WorkshopFab(onPressed: widget.onOpenWorkshop!),
                       const SizedBox(height: 8),
