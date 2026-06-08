@@ -19,12 +19,12 @@ def zonename(g):
 
 GARES={
 1:[("G1","Ville en flammes","Regarder","M-6","Fermer la porte","M+3","gain"),
-   ("G1b","Chiot sous un banc","Le recueillir","M+15 +CHIEN","Refuser","M-5","gain"),
+   ("G1b","Chiot sous un banc","Le recueillir","M+15 +CHIEN +GAMELLE","Refuser","M-5","gain"),
    ("G1c","Séparation (souvenir)","Jurer de les retrouver","M+10","Se préparer au pire","M-8 F+4",None)],
-2:[("G2","Nourrir la loco","Déchiffrer le manuel","B+18 F-4","À l'instinct","B+6 M-3",None),
+2:[("G2","Nourrir la loco","Déchiffrer le manuel","B+18 F-4 +LAMPE +TABLE","À l'instinct","B+6 M-3 +LAMPE +TABLE",None),
    ("G2win","COMBAT BON : dépôt sécurisé","Plein de bois","B+12","Chercher vivres","F+8 S+5","bon"),
    ("G2lose","COMBAT RATÉ : réserve pillée","Sauver le reste","B-6","Repartir furieuse","M-4 F-3","rate")],
-3:[("G3","Pillards/brouillard","Passer en fantôme","B-6 M-4","Accélérer","B-10 M+3",None),
+3:[("G3","Pillards/brouillard","Passer en fantôme","B-6 M-4 +CARNET","Accélérer","B-10 M+3 +CARNET",None),
    ("G3b","Foulard d'enfant","Risquer pour l'attraper","F-8 M+12 +indice","Ne pas risquer","M-8",None),
    ("G3win","COMBAT BON : wagon intact","Souffler","M+8","Fouiller butin","F+6 B+4","bon"),
    ("G3lose","COMBAT RATÉ : wagon abîmé","Colmater","B-6 M-3","Repartir","F-5","rate")],
@@ -35,19 +35,19 @@ GARES={
    ("G5b","Parents au nord","Lui promettre","M+12 +cap","Rester prudente","M+4 +cap",None),
    ("G5win","COMBAT BON : sœur indemne","La serrer encore","M+10","Filer vite","B+4 M+5","bon"),
    ("G5lose","COMBAT RATÉ : elle a vu","La consoler","M-3 F-4 +SOIN","L'endurcir","M+4","rate")],
-6:[("G6","Camp louche","Troquer et partir","F+12 S+8 M-6","Ne pas s'attarder","M+6 F-5",None),
+6:[("G6","Camp louche","Troquer et partir","F+12 S+8 M-6 +COMMODE","Ne pas s'attarder","M+6 F-5 +COMMODE",None),
    ("G6win","COMBAT BON : respect du camp","Négocier d'égal","F+10 S+6 M+4","Garde payée","F+12 B+4","bon"),
    ("G6lose","COMBAT RATÉ : prix durcis","Payer fort","F-8 M-4","Partir sans rien","M-5","rate")],
 7:[("G7","Souvenir d'enfance","Raconter","M+16 B-5","Garder le cap","M+4",None),
    ("G7win","COMBAT BON : halte sûre","Moment à la sœur","M+12","Fouiller la halte","F+6 B+4","bon"),
    ("G7lose","COMBAT RATÉ : charme rompu","Rassurer","M-3","Repartir aussitôt","B-5","rate")],
-8:[("G8","La sœur grelotte","Donner ton manteau","M+14 S-6 +SOIN","Pousser le feu","B-16 M+6",None),
+8:[("G8","La sœur grelotte","Donner ton manteau","M+14 S-6 +SOIN +POÊLE +TROUSSE","Pousser le feu","B-16 M+6 +POÊLE +TROUSSE",None),
    ("G8win","COMBAT BON : wagon hermétique","Calfeutrer","B+6 M+4","Veiller la sœur","M+8 +SOIN","bon"),
    ("G8lose","COMBAT RATÉ : porte cédée","Tout brûler","B-10 +SOIN","Serrer les dents","S-6 M-4","rate")],
 9:[("G9","Sœur fiévreuse","La veiller","F-10 M+12 +SOIN","Braver la tempête","S-12 M+8 +SOIN",None),
    ("G9win","COMBAT BON : sœur reposée","Soigner sans relâche","M+10 +SOIN","Récup. matériel","F+8 B+6","bon"),
    ("G9lose","COMBAT RATÉ : fièvre remonte","Tout donner","F-10 M+6 +SOIN","Foncer à l'abri","B-8 M-4","rate")],
-10:[("G10","Serre cosy","Vrai repos","F+20 S+16 M+18","Plein, repartir","F+12 S+10 B+12","gain"),
+10:[("G10","Serre cosy","Vrai repos","F+20 S+16 M+18 +BAIN +DOUCHE","Plein, repartir","F+12 S+10 B+12 +BAIN +DOUCHE","gain"),
    ("G10win","COMBAT BON : serre défendue","Récolte massive","F+14 S+10","Profiter","M+12","bon"),
    ("G10lose","COMBAT RATÉ : serre saccagée","Sauver plants","F+6 M-3","Repartir dégoûtée","M-5","rate")],
 11:[("G11","Barrage pillards","Foncer","B-18 M-6","Négocier","F-16 S-10 M+4",None),
@@ -130,7 +130,7 @@ ct(x+10,cy2,"si X",Fn(13),(255,255,255),"lm"); x+=64
 ct(x,cy2,"= carte conditionnelle  ·  (indice / cap / SOIN = petits flags, non mis en évidence)",Fn(15),INK,"lm")
 
 # Les GROS gains à mettre en évidence (objets + persos + radio)
-BIGTOK=['CHIEN','SŒUR','LIT','FILTRE','HYDRO','RADIO','R1','R2','R3']
+BIGTOK=['CHIEN','SŒUR','LIT','FILTRE','HYDRO','RADIO','R1','R2','R3','GAMELLE','LAMPE','TABLE','CARNET','COMMODE','POÊLE','TROUSSE','BAIN','DOUCHE']
 def big_of(lfx,rfx):
     blob=" "+lfx+" "+rfx+" "
     return [t for t in BIGTOK if (" +"+t+" ") in blob or ("+"+t) in blob]

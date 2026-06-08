@@ -1808,27 +1808,31 @@ class _SideScrollSceneState extends State<SideScrollScene>
         children: [
           // Shen sous la douche (derrière pommeau + panneau).
           if (_showering) _buildShowerHeroine(w, h),
-          _w2Drag(
-            w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
-            heightFrac: gs.showerHeadH, aspect: 229 / 672, label: 'pommeau',
-            child: pommeau,
-            onMove: (dx, dy) {
-              gs.showerHeadX = (gs.showerHeadX + dx).clamp(0.02, 0.98);
-              gs.showerHeadY = (gs.showerHeadY + dy).clamp(0.0, 0.85);
-            },
-            onResize: (nh) => gs.showerHeadH = nh,
-          ),
-          _w2Drag(
-            w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
-            heightFrac: gs.showerPanelH, aspect: 720 / 768, label: 'panneau',
-            child: Image.asset('assets/objects/shower_panel.png',
-                fit: BoxFit.contain, gaplessPlayback: true),
-            onMove: (dx, dy) {
-              gs.showerPanelX = (gs.showerPanelX + dx).clamp(0.02, 0.98);
-              gs.showerPanelY = (gs.showerPanelY + dy).clamp(0.0, 0.85);
-            },
-            onResize: (nh) => gs.showerPanelH = nh,
-          ),
+          // Douche (pommeau + panneau) : débloquée par l'histoire (asset_shower)
+          // ou en mode debug (_showAllProps).
+          if (_propUnlocked('shower'))
+            _w2Drag(
+              w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
+              heightFrac: gs.showerHeadH, aspect: 229 / 672, label: 'pommeau',
+              child: pommeau,
+              onMove: (dx, dy) {
+                gs.showerHeadX = (gs.showerHeadX + dx).clamp(0.02, 0.98);
+                gs.showerHeadY = (gs.showerHeadY + dy).clamp(0.0, 0.85);
+              },
+              onResize: (nh) => gs.showerHeadH = nh,
+            ),
+          if (_propUnlocked('shower'))
+            _w2Drag(
+              w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
+              heightFrac: gs.showerPanelH, aspect: 720 / 768, label: 'panneau',
+              child: Image.asset('assets/objects/shower_panel.png',
+                  fit: BoxFit.contain, gaplessPlayback: true),
+              onMove: (dx, dy) {
+                gs.showerPanelX = (gs.showerPanelX + dx).clamp(0.02, 0.98);
+                gs.showerPanelY = (gs.showerPanelY + dy).clamp(0.0, 0.85);
+              },
+              onResize: (nh) => gs.showerPanelH = nh,
+            ),
           // Vapeur de douche : devant le panneau, autour d'elle (ambiance +
           // léger voile). Seulement pendant la douche.
           if (_showering)
@@ -1838,7 +1842,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 boxWFrac: 0.34,
                 boxHFrac: 0.58,
                 intensity: 1.3),
-          if (!_bathing)
+          // Baignoire : débloquée par l'histoire (asset_bath) ou en debug.
+          if (_propUnlocked('bath') && !_bathing)
             _w2Drag(
               w: w, h: h, cx: gs.bathX, topY: gs.bathY,
               heightFrac: gs.bathH, aspect: 1376 / 768, label: 'baignoire',
