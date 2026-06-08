@@ -291,11 +291,11 @@ List<StoryCard> _gare6(Set<String> f) => [
         text:
             "Un camp de survivants. On peut troquer, mais ils regardent ta sœur avec trop d'intérêt — ici, un enfant en bonne santé, ça se monnaie.",
         left: _c("Troquer vite et partir",
-            fx: {Stat.faim: 12, Stat.soif: 8, Stat.moral: -6}, flags: ['asset_commode'],
-            result: "Tu obtiens des vivres mais tu sens leurs regards. Tu repars avant la nuit, elle serrée contre toi — avec une vieille commode troquée pour ranger vos affaires."),
+            fx: {Stat.faim: 12, Stat.soif: 8, Stat.moral: -6}, flags: ['asset_commode', 'asset_wagon2'],
+            result: "Tu obtiens des vivres mais tu sens leurs regards. Tu repars avant la nuit, elle serrée contre toi — avec une vieille commode, et tu rattaches au convoi un 2e wagon (cellier) abandonné sur une voie de garage."),
         right: _c("Ne pas t'attarder une seconde",
-            fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_commode'],
-            result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. Tu emportes juste une commode laissée sur le quai."),
+            fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_commode', 'asset_wagon2'],
+            result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. En partant, tu accroches un 2e wagon (cellier) laissé là, et tu emportes une commode."),
       ),
       ..._combat(f, 'G6', 'Camp-refuge',
           winText:

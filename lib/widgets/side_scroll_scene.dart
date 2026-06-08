@@ -1303,17 +1303,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         height: h * 0.35,
                         child: MidgroundParallax(animation: _mid),
                       ),
-                      // 1a-ter. Horizon figures — silhouettes scrolling
-                      //     across the horizon line. Drawn BEFORE the
-                      //     wagon image so they're masked by it and only
-                      //     visible through the wagon windows.
-                      Positioned(
-                        left: 0,
-                        right: 0,
-                        top: h * 0.55,
-                        height: h * 0.18,
-                        child: const HorizonFigures(density: 5),
-                      ),
+                      // Silhouettes humaines sur l'horizon RETIRÉES (demande
+                      // user : « personnages qui marchent dans le background à
+                      // enlever »). Le monde est mort, le paysage reste vide.
                       // 1a-ter. Daytime birds drifting in the sky above
                       //     the wagon, very small + slow (far away).
                       Positioned(

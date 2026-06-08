@@ -909,8 +909,12 @@ class _WagonScreenState extends State<WagonScreen>
       // Porte gauche : loco (wagon 1) ou retour wagon 1 (depuis wagon 2).
       icon = Icons.meeting_room;
       action = _inWagon2 ? _returnToWagon1 : _enterLocomotive;
-    } else if (_atRightDoor && !_doorPushing && !_inWagon2) {
-      // Porte droite du wagon 1 : ouverture vers le 2e wagon.
+    } else if (_atRightDoor &&
+        !_doorPushing &&
+        !_inWagon2 &&
+        GameState.instance.propUnlocked('wagon2')) {
+      // Porte droite du wagon 1 : ouverture vers le 2e wagon (cellier).
+      // Verrouillée tant que le cellier n'est pas gagné (asset_wagon2).
       icon = Icons.meeting_room;
       action = _enterWagon2;
     } else if (_atBath) {

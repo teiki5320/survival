@@ -536,15 +536,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           enabled: !widget.night,
                         ),
                       ),
-                      // Pillards/silhouettes qui rôdent au loin, visibles par
-                      // la porte (dessinés AVANT la cabine -> masqués au bord).
-                      Positioned(
-                        left: w * 0.18,
-                        right: w * 0.34,
-                        top: h * 0.42,
-                        height: h * 0.24,
-                        child: const HorizonFigures(density: 2),
-                      ),
+                      // Silhouettes au loin RETIRÉES (demande user : pas de
+                      // personnages qui marchent dans le background).
                       // Fond chaud derrière le poêle — simule des
                       // braises/parois éclairées. Bloque le paysage
                       // pour que seul le feu soit visible.
@@ -600,29 +593,37 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           radius: 0.45,
                         ),
                       ),
-                      // Lampe suspendue dans la cabine : sprite D'ABORD, puis le
-                      // halo PAR-DESSUS -> la lueur émane du verre (en avant) au
-                      // lieu de passer derrière le corps de la lampe.
-                      Positioned(
-                        left: w * 0.62 - h * 0.06,
-                        top: h * 0.04,
-                        width: h * 0.12,
-                        height: h * 0.20,
-                        child: _nightTint(Image.asset(
-                          'assets/objects/lamp_1.png',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                        )),
-                      ),
-                      Positioned.fill(
-                        child: LampGlow(
-                          animation: _sky,
-                          x: 0.62,
-                          y: 0.20,
-                          radius: 0.34,
-                          floorY: 0.92,
+                      // Lampe suspendue : sprite + halo. Débloquée par
+                      // l'histoire (asset_lamp, gare 2) — absente au départ.
+                      if (GameState.instance.propUnlocked('lamp')) ...[
+                        Positioned(
+                          left: w * 0.62 - h * 0.06,
+                          top: h * 0.04,
+                          width: h * 0.12,
+                          height: h * 0.20,
+                          child: _nightTint(Image.asset(
+                            'assets/objects/lamp_1.png',
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) =>
+                                const SizedBox.shrink(),
+                          )),
                         ),
-                      ),
+                        // Halo : marqué la nuit, discret le jour.
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: Opacity(
+                              opacity: widget.night ? 1.0 : 0.4,
+                              child: LampGlow(
+                                animation: _sky,
+                                x: 0.62,
+                                y: 0.20,
+                                radius: 0.34,
+                                floorY: 0.92,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                       _buildHeroine(w, h),
                       // Warm halo when she's near the firebox (left)
                       // or the woodpile (right). Brightest right next
