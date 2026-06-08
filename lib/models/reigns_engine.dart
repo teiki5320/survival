@@ -11,7 +11,6 @@
 // d'un choix. Les flags narratifs (aLeChien, aLaSoeur, ...) sont
 // stockés ici, indépendants de la sauvegarde survie.
 
-import 'dart:math';
 
 import '../constants.dart';
 import 'game_state.dart';
@@ -115,15 +114,12 @@ class ReignsEngine {
   ReignsEngine({
     required this.segments,
     required this.resolveEnding,
-    int seed = 0,
-  }) : _rng = Random(seed == 0 ? DateTime.now().millisecondsSinceEpoch : seed);
+  });
 
   final List<Segment> segments;
 
   /// Calcule l'id de fin à partir des stats + flags.
   final String Function(Map<Stat, int> stats, Set<String> flags) resolveEnding;
-
-  final Random _rng;
 
   // GameState est la SOURCE DE VÉRITÉ : jauges (cardSoif…), flags de run
   // (cardFlags), oneshot vues (cardSeenOneshot), segment courant
@@ -189,21 +185,21 @@ class ReignsEngine {
     _gs.cardSegmentProgress = 0.0;
   }
 
-  /// Pioche [seg.drawCount] cartes du paquet, sans répéter les oneshot déjà
-  /// vues, en mélangeant pour la variété entre runs.
+  /// Cartes de remplissage du segment, en ORDRE FIXE (plus de tirage
+  /// aléatoire) : on joue TOUTES les cartes éligibles du paquet, dans l'ordre
+  /// déclaré. Les cartes conditionnelles (`requires`) n'apparaissent que si
+  /// leurs flags sont là (ex. cartes du chien si `aLeChien`).
   List<StoryCard> _drawFillers(Segment seg) {
     final pool = seg.fillerPool
         .where((c) => c.requires == null || c.requires!(flags))
         .where((c) =>
             c.kind != CardKind.fillerOneshot ||
             !_gs.cardSeenOneshot.contains(c.id))
-        .toList()
-      ..shuffle(_rng);
-    final picked = pool.take(seg.drawCount).toList();
-    for (final c in picked) {
+        .toList();
+    for (final c in pool) {
       if (c.kind == CardKind.fillerOneshot) _gs.cardSeenOneshot.add(c.id);
     }
-    return picked;
+    return pool;
   }
 
   /// Applique un choix et renvoie l'état suivant (carte suivante ou fin).
