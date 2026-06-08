@@ -21,7 +21,7 @@ def tw(s, font): return d.textlength(s, font=font)
 
 # ---- Titre ----
 ctext(W//2, 46, "TRAIN COSY — Carte de l'histoire", F(46, True), INK)
-ctext(W//2, 88, "14 gares (combat à chacune) · ~10 cartes d'ambiance entre chaque gare (4 tirées) · arcs de personnages & objets",
+ctext(W//2, 88, "14 gares (combat à chacune) · ~10 cartes d'ambiance FIXES entre chaque gare (toutes jouées) · objets & persos débloqués au fil de l'histoire",
       F(20), INK2)
 
 # ---- Géométrie ----
@@ -75,18 +75,24 @@ for i,x in enumerate(xs):
 
 ctext((xs[2]), 200, "● chaque gare : le combat a une CONSÉQUENCE (carte verte si réussi / rouge si raté)", F(15, True), (200,70,55))
 
-# ---- Objets (au-dessus) ----
-def obj(gi, label, color, y):
+# ---- Objets débloqués, PAR GARE (empilés au-dessus de la station) ----
+OBJ_COL={'LIT':(201,155,106),'GAMELLE':(176,122,74),'LAMPE':(228,180,90),
+ 'TABLE':(168,128,80),'CARNET':(150,120,175),'FILTRE EAU':(111,168,199),
+ 'COMMODE':(150,112,82),'POÊLE':(200,95,70),'TROUSSE':(208,120,120),
+ 'HYDRO':(123,174,107),'BAIN':(95,160,200),'DOUCHE':(92,150,182)}
+gare_objs={0:['LIT','GAMELLE'],1:['LAMPE','TABLE'],2:['CARNET'],3:['FILTRE EAU'],
+ 5:['COMMODE'],7:['POÊLE','TROUSSE'],9:['HYDRO','BAIN','DOUCHE']}
+ctext(150, 244, "OBJETS DÉBLOQUÉS (apparaissent dans le wagon à cette gare)", F(17, True), INK)
+for gi, objs in gare_objs.items():
     x = xs[gi]
-    d.line([(x, track_y-66),(x, y+18)], fill=color, width=3)
-    w = max(96, tw(label, F(16,True))+26)
-    d.rounded_rectangle([x-w/2, y-18, x+w/2, y+18], radius=10, fill=color, outline=INK, width=2)
-    ctext(x, y, label, F(16, True), (255,255,255))
-
-ctext(150, 250, "OBJETS DÉBLOQUÉS", F(18, True), INK)
-obj(0, "LIT", (201,155,106), 300)
-obj(3, "FILTRE EAU", (111,168,199), 300)
-obj(9, "HYDROPONIE", (123,174,107), 300)
+    d.line([(x, 266),(x, track_y-66)], fill=(150,130,100), width=2)
+    yy = 268
+    for lab in objs:
+        col = OBJ_COL.get(lab,(180,150,110))
+        wq = max(84, tw(lab, F(14,True))+18)
+        d.rounded_rectangle([x-wq/2, yy, x+wq/2, yy+30], radius=9, fill=col, outline=INK, width=2)
+        ctext(x, yy+15, lab, F(14, True), (255,255,255))
+        yy += 35
 
 # ---- Couloirs de personnages (en-dessous) ----
 def lane(gi_start, gi_end, label, color, y, frags=None):
@@ -137,9 +143,9 @@ for title, col, cond in ends:
 
 # ---- Légende bas ----
 ly = H-120
-ctext(110, ly, "À DÉPLACER (ta demande) :", F(16, True), (200,70,55), anchor="lm")
-ctext(110, ly+30, "• CHIEN actuellement gare 1  →  tu veux gare 2-3", F(15), INK, anchor="lm")
-ctext(110, ly+58, "• Objets (lampe, poêle, table, carnet, gamelle) : AUCUN déclencheur encore — à placer", F(15), INK, anchor="lm")
+ctext(110, ly, "✓ SANS le mode debug, le jeu suit EXACTEMENT ce plan : wagon vide au départ, tout apparaît à sa gare.", F(16, True), (90,120,70), anchor="lm")
+ctext(110, ly+30, "À valider : CHIEN reste gare 1 (chiot pendant la fuite) — le déplacer en gare 2-3 ?", F(15), INK, anchor="lm")
+ctext(110, ly+58, "Le mode debug (🐞) affiche tout d'un coup pour tester les anims.", F(14), INK2, anchor="lm")
 ctext(W-110, ly+58, "Le Vieux : SUPPRIMÉ ✓", F(16, True), (123,140,90), anchor="rm")
 
 img.save("/home/user/survival/docs/histoire_schema.png")
