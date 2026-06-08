@@ -986,11 +986,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (e.dying) return;
     e.dying = true;
     e.dieT = _dieDur;
-    // Point 2 — RAGDOLL : il part en pantin (recule + saute + tourne). Un
-    // headshot l'envoie plus fort.
-    e.dieVX = (head ? 0.9 : 0.55) + _rng.nextDouble() * 0.2;
-    e.dieVY = head ? -1.3 : -0.95;
-    e.dieRotV = (head ? 7.0 : 4.5) * (_rng.nextBool() ? 1 : -1);
+    if (_hasDieAnim(e.type)) {
+      // Anim de chute jouée SUR PLACE (léger recul vers la droite), pas de
+      // pantin lancé en l'air.
+      e.dieVX = head ? 0.22 : 0.12;
+      e.dieVY = 0;
+      e.dieRotV = 0;
+    } else {
+      // Point 2 — RAGDOLL (brute/boss) : il part en pantin (recule + saute +
+      // tourne). Un headshot l'envoie plus fort.
+      e.dieVX = (head ? 0.9 : 0.55) + _rng.nextDouble() * 0.2;
+      e.dieVY = head ? -1.3 : -0.95;
+      e.dieRotV = (head ? 7.0 : 4.5) * (_rng.nextBool() ? 1 : -1);
+    }
     // Point 8 — finish cinématique : coup de zoom + ralenti sur le kill.
     _camPunch = 1.0;
     _slowmo = math.max(_slowmo, head ? 0.45 : 0.3);
@@ -1765,9 +1773,17 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     double rot = 0;
     bool mirror = true;
     if (e.dying) {
-      // Ragdoll : on garde le sprite vivant et on le fait TOURNER (pantin).
-      asset = _liveAsset(e);
-      rot = e.dieRot;
+      if (_hasDieAnim(e.type)) {
+        // Vraie anim de mort (frames pré-flippées) : pas de miroir, pas de
+        // pantin qui tourne — la chute est dans l'animation.
+        asset = _dieAsset(e);
+        mirror = false;
+      } else {
+        // Brute / boss : pas d'anim de chute -> ragdoll (sprite vivant qui
+        // tourne en pantin).
+        asset = _liveAsset(e);
+        rot = e.dieRot;
+      }
       if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
     } else {
       asset = _liveAsset(e);
@@ -1840,6 +1856,20 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       height: boxSize,
       child: IgnorePointer(child: content),
     );
+  }
+
+  // Types qui ont une VRAIE animation de mort (49 frames, pré-flippées,
+  // tombent vers la droite). Le reste (brute/boss) part en ragdoll.
+  bool _hasDieAnim(_PillType t) =>
+      t == _PillType.basic || t == _PillType.lanceur;
+
+  /// Frame de l'anim de mort selon l'avancement (e.dieT décroît de _dieDur→0).
+  String _dieAsset(_Enemy e) {
+    final p = (1 - e.dieT / _dieDur).clamp(0.0, 1.0);
+    final f = (p * 49).floor().clamp(0, 48) + 1;
+    final prefix =
+        e.type == _PillType.lanceur ? 'lanceur_die' : 'pillard1_die';
+    return 'assets/characters/${prefix}_$f.png';
   }
 
   String _liveAsset(_Enemy e) {
