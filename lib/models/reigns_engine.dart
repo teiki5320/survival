@@ -8,7 +8,7 @@
 //
 // Les 4 stats (soif/faim/bois/moral) vivent dans GameState ; ce moteur ne
 // fait que produire la prochaine carte à montrer et appliquer les effets
-// d'un choix. Les flags narratifs (aLeChien, leVieuxABord, ...) sont
+// d'un choix. Les flags narratifs (aLeChien, aLaSoeur, ...) sont
 // stockés ici, indépendants de la sauvegarde survie.
 
 import 'dart:math';

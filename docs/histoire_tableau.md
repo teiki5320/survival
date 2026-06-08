@@ -4,6 +4,8 @@
 > `lib/models/reigns_engine.dart`. Le scénario = 14 segments. Chaque segment =
 > les beats de GARE (jamais aléatoires) + un paquet de FILLERS piochés
 > (`drawCount = 4`, 0 pour les gares 13 et 14).
+>
+> ⚠️ **Le Vieux a été SUPPRIMÉ** (perso non validé). Ignorer les lignes F2_vieux_feu / F3_vieux_fille / F4_vieux_carte / F6_vieux_reste / G2b si encore présentes.
 
 ## Légende
 
@@ -317,8 +319,6 @@
 | Élément | Où c'est débloqué actuellement | Flag |
 |---|---|---|
 | 🐕 Chien | Gare 1, carte G1b (choix gauche "Le recueillir") | `aLeChien` |
-| 👴 Le Vieux (à bord) | Gare 2, carte G2b (choix gauche "L'accueillir") | `leVieuxABord` |
-| 👴 Départ du Vieux | Segment 6→7, filler F6_vieux_reste (oneshot, requires `leVieuxABord`) | `vieuxParti` |
 | 👧 Petite sœur | Gare 5, carte G5 (les deux choix) | `aLaSoeur` |
 | 👧 Indice sœur (foulard/message) | Gare 3 G3b (gauche) et Gare 4 G4 (gauche) | `indiceSoeur` |
 | Cap parents fixé | Gare 5, carte G5b (les deux choix) | `capParents` |
