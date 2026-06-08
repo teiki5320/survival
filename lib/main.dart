@@ -793,36 +793,50 @@ class _WagonScreenState extends State<WagonScreen>
             ),
           ),
         ),
-        // Interrupteur du MODE DEBUG (discret, bas-gauche) : un seul bouton
-        // révèle/masque tous les outils de test. Vert quand actif.
+        // Interrupteur du MODE DEBUG (bas-gauche) : un seul bouton révèle/masque
+        // tous les outils de test. Vert + « DEBUG ON » quand actif, ambré
+        // « debug » quand inactif. Toujours bien visible.
         Positioned(
-          left: 8,
-          bottom: 8,
+          left: 10,
+          bottom: 10,
           child: SafeArea(
             child: AnimatedBuilder(
               animation: GameState.instance,
               builder: (_, __) {
                 final on = GameState.instance.debugMode;
-                return Opacity(
-                  opacity: on ? 1.0 : 0.35,
-                  child: GestureDetector(
-                    onTap: () {
-                      GameState.instance.toggleDebug();
-                      setState(() {});
-                    },
-                    child: Container(
-                      width: 34,
-                      height: 34,
-                      decoration: BoxDecoration(
-                        color: on
-                            ? const Color(0xFF3A6B3A)
-                            : Colors.black.withValues(alpha: 0.5),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3)),
-                      ),
-                      child: const Icon(Icons.bug_report,
-                          size: 18, color: Colors.white),
+                return GestureDetector(
+                  onTap: () {
+                    GameState.instance.toggleDebug();
+                    setState(() {});
+                  },
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: on
+                          ? const Color(0xFF3A8A3A)
+                          : Colors.black.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: on
+                              ? Colors.white
+                              : Colors.white.withValues(alpha: 0.5),
+                          width: 1.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.bug_report,
+                            size: 20, color: Colors.white),
+                        const SizedBox(width: 6),
+                        Text(
+                          on ? 'DEBUG ON' : 'debug',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   ),
                 );
