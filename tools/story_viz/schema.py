@@ -36,7 +36,7 @@ names = ["Gare natale","Dépôt de fret","Halte 47","Village fantôme","Pont sur
 beats = ["ville en flammes","nourrir la loco","pillards/brouillard","mur des disparus","RETROUVAILLES sœur",
          "camp louche","souvenir d'enfance","la sœur grelotte","sœur fiévreuse","répit cosy",
          "barrage pillards","refuge en vue","sacrifice loco","CLIMAX / fins"]
-combat_reactive = {2,4,10}  # index 0-based des gares 3,5,11 (beats qui réagissent au combat)
+combat_reactive = set(range(1,14))  # TOUTES les gares (sauf gare 1 tuto) ont une conséquence combat
 
 # ---- Bandes de zones ----
 def band(x0, x1, color, label):
@@ -73,7 +73,7 @@ for i,x in enumerate(xs):
     ctext(x, ny, names[i], F(16, True), INK)
     ctext(x, by, beats[i], F(13), INK2)
 
-ctext((xs[2]), 200, "● = combat qui change la suite (gares 3 · 5 · 11)", F(15, True), (200,70,55))
+ctext((xs[2]), 200, "● chaque gare : le combat a une CONSÉQUENCE (carte verte si réussi / rouge si raté)", F(15, True), (200,70,55))
 
 # ---- Objets (au-dessus) ----
 def obj(gi, label, color, y):
