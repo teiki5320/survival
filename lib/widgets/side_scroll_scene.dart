@@ -1548,8 +1548,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // Duo sœur+Shen (câlin/lecture, déclenché par proximité).
                       if (!widget.secondWagon && _duoActive && _sisterShown)
                         _buildDuo(w, h),
-                      // 4c. Lamp glow when lamp is on.
-                      if (!widget.secondWagon && GameState.instance.lampOn)
+                      // 4c. Halo de la lampe — UNIQUEMENT si la lampe est
+                      //     débloquée (présente) ET allumée. Sinon pas de halo
+                      //     fantôme.
+                      if (!widget.secondWagon &&
+                          _propUnlocked('lamp') &&
+                          GameState.instance.lampOn)
                         Positioned.fill(
                           child: IgnorePointer(
                             child: Opacity(
@@ -1809,7 +1813,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           // Shen sous la douche (derrière pommeau + panneau).
           if (_showering) _buildShowerHeroine(w, h),
           // Douche (pommeau + panneau) : débloquée par l'histoire (asset_shower)
-          // ou en mode debug (_showAllProps).
+          // ou en mode debug (GameState.debugMode).
           if (_propUnlocked('shower'))
             _w2Drag(
               w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
@@ -1855,48 +1859,50 @@ class _SideScrollSceneState extends State<SideScrollScene>
               },
               onResize: (nh) => gs.bathH = nh,
             ),
-          _w2Drag(
-            w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
-            heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',
-            child: lamp(),
-            onMove: (dx, dy) {
-              gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
-              gs.wagon2LampAy = (gs.wagon2LampAy + dy).clamp(0.04, 0.80);
-            },
-            onResize: (nh) => gs.wagon2LampAH = nh,
-          ),
-          _w2Drag(
-            w: w, h: h, cx: gs.wagon2LampBx, topY: gs.wagon2LampBy,
-            heightFrac: gs.wagon2LampBH, aspect: 1.0, label: 'lampe B',
-            child: lamp(),
-            onMove: (dx, dy) {
-              gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
-              gs.wagon2LampBy = (gs.wagon2LampBy + dy).clamp(0.04, 0.80);
-            },
-            onResize: (nh) => gs.wagon2LampBH = nh,
-          ),
-          // Lueur chaude des lanternes : DESSINÉE APRÈS les lampes -> le halo
-          // émane du verre (en avant) au lieu de passer derrière le corps de la
-          // lampe. Centrée sur le globe (45 % de la hauteur depuis le haut).
-          // Visible aussi le jour (plus discret) ; bien plus marqué la nuit.
-          for (final lampPos in [
-            (gs.wagon2LampAx, gs.wagon2LampAy + gs.wagon2LampAH * 0.45),
-            (gs.wagon2LampBx, gs.wagon2LampBy + gs.wagon2LampBH * 0.45),
-          ])
-            Positioned.fill(
-              child: IgnorePointer(
-                child: Opacity(
-                  opacity: widget.night ? 1.0 : 0.55,
-                  child: LampGlow(
-                    animation: _sky,
-                    x: lampPos.$1,
-                    y: lampPos.$2,
-                    radius: 0.40,
-                    floorY: 0.88, // sol du cellier
+          // Lanternes du cellier : débloquées par l'histoire (asset_lantern,
+          // gare 10) ou en debug. Masquées au départ.
+          if (_propUnlocked('lantern'))
+            _w2Drag(
+              w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
+              heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',
+              child: lamp(),
+              onMove: (dx, dy) {
+                gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
+                gs.wagon2LampAy = (gs.wagon2LampAy + dy).clamp(0.04, 0.80);
+              },
+              onResize: (nh) => gs.wagon2LampAH = nh,
+            ),
+          if (_propUnlocked('lantern'))
+            _w2Drag(
+              w: w, h: h, cx: gs.wagon2LampBx, topY: gs.wagon2LampBy,
+              heightFrac: gs.wagon2LampBH, aspect: 1.0, label: 'lampe B',
+              child: lamp(),
+              onMove: (dx, dy) {
+                gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
+                gs.wagon2LampBy = (gs.wagon2LampBy + dy).clamp(0.04, 0.80);
+              },
+              onResize: (nh) => gs.wagon2LampBH = nh,
+            ),
+          // Lueur chaude des lanternes — seulement si elles sont là.
+          if (_propUnlocked('lantern'))
+            for (final lampPos in [
+              (gs.wagon2LampAx, gs.wagon2LampAy + gs.wagon2LampAH * 0.45),
+              (gs.wagon2LampBx, gs.wagon2LampBy + gs.wagon2LampBH * 0.45),
+            ])
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: Opacity(
+                    opacity: widget.night ? 1.0 : 0.55,
+                    child: LampGlow(
+                      animation: _sky,
+                      x: lampPos.$1,
+                      y: lampPos.$2,
+                      radius: 0.40,
+                      floorY: 0.88, // sol du cellier
+                    ),
                   ),
                 ),
               ),
-            ),
           // HUD coordonnées (mode ajuster) : lecture des x/y/h pour rebaker.
           if (widget.wagon2Adjust) _coordHud(gs),
         ],
@@ -2036,29 +2042,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // wagon = sentiment de progression). lit (gare 1), filtre (gare 4),
   // hydro (gare 10). Le reste est toujours présent.
   //
-  // `_showAllProps` force l'affichage de TOUS les objets (pour vérifier le
-  // rendu) : désormais réservé au MODE DEBUG. En jeu normal, les objets
-  // apparaissent au fil de l'histoire (flags asset_bed/filter/hydro posés dans
-  // cards_data) -> sentiment de progression.
-  bool get _showAllProps => GameState.instance.debugMode;
-
-  bool _propUnlocked(String key) {
-    if (_showAllProps) return true; // debug : tout visible pour tester le rendu
-    // Jeu normal : le wagon démarre VIDE et abîmé. Chaque objet n'apparaît que
-    // quand l'histoire pose son flag `asset_<key>` (sentiment de progression).
-    return GameState.instance.cardFlags.contains('asset_$key');
-  }
-
-  bool get _bedUnlocked =>
-      _showAllProps ||
-      GameState.instance.cardFlags.contains('asset_bed');
-
-  // Compagnons : Shen démarre SEULE. Le chien arrive gare 1 (aLeChien), la
-  // sœur gare 5 (aLaSoeur). En debug, toujours présents pour tester les anims.
-  bool get _dogShown =>
-      _showAllProps || GameState.instance.cardFlags.contains('aLeChien');
-  bool get _sisterShown =>
-      _showAllProps || GameState.instance.cardFlags.contains('aLaSoeur');
+  // Déblocage = SOURCE UNIQUE dans GameState (lue aussi par main.dart pour
+  // l'interactivité). Visibilité et clic sont ainsi toujours cohérents.
+  bool _propUnlocked(String key) => GameState.instance.propUnlocked(key);
+  bool get _bedUnlocked => GameState.instance.propUnlocked('bed');
+  bool get _dogShown => GameState.instance.dogShown;
+  bool get _sisterShown => GameState.instance.sisterShown;
 
   Widget _buildProp({
     required _PropDef def,

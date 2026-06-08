@@ -194,6 +194,18 @@ class GameState extends ChangeNotifier {
 
   void toggleDebug() => setDebugMode(!debugMode);
 
+  // ===========================================================
+  // SOURCE UNIQUE de déblocage des objets/compagnons.
+  // Lue À LA FOIS pour la VISIBILITÉ (side_scroll_scene) ET pour
+  // l'INTERACTIVITÉ (boutons d'action dans main.dart). Un élément non
+  // débloqué est donc invisible ET non cliquable.
+  // En mode debug, tout est débloqué (pour tester les anims/rendu).
+  // ===========================================================
+  bool propUnlocked(String key) =>
+      debugMode || cardFlags.contains('asset_$key');
+  bool get dogShown => debugMode || cardFlags.contains('aLeChien');
+  bool get sisterShown => debugMode || cardFlags.contains('aLaSoeur');
+
   // --- Energy (RETIRÉ) ---
   // L'énergie était décorative (jamais dépensée). Shims neutres conservés
   // pour ne rien casser ; ne fait plus rien.

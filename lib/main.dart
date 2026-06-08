@@ -191,25 +191,34 @@ class _WagonScreenState extends State<WagonScreen>
   }
   bool get _atLeftDoor => _heroX <= SideScrollScene.heroXMin + 0.01;
   bool get _atRightDoor => _heroX >= SideScrollScene.heroXMax - 0.01;
+  // Un objet n'est INTERACTIF que s'il est débloqué (= visible). Même source
+  // de vérité que la visibilité : GameState.propUnlocked / dogShown /
+  // sisterShown. Pas d'objet invisible mais cliquable.
+  bool _unlocked(String key) => GameState.instance.propUnlocked(key);
   bool get _atBed =>
-      (_heroX - SideScrollScene.bedCenterX).abs() < 0.05;
+      _unlocked('bed') && (_heroX - SideScrollScene.bedCenterX).abs() < 0.05;
   // Zones interactives autour des props.
   bool _near(double centerX, [double tol = 0.05]) =>
       (_heroX - centerX).abs() < tol;
-  bool get _atNotebook => _near(SideScrollScene.notebookCenterX);
-  bool get _atFilter => _near(SideScrollScene.filterCenterX);
-  bool get _atLamp => _near(SideScrollScene.lampCenterX);
-  bool get _atStove => _near(SideScrollScene.stoveCenterX);
-  bool get _atHydro => _near(SideScrollScene.hydroCenterX);
-  bool get _atDog => _near(_dogLiveX, 0.10);
+  bool get _atNotebook =>
+      _unlocked('notebook') && _near(SideScrollScene.notebookCenterX);
+  bool get _atFilter =>
+      _unlocked('filter') && _near(SideScrollScene.filterCenterX);
+  bool get _atLamp => _unlocked('lamp') && _near(SideScrollScene.lampCenterX);
+  bool get _atStove => _unlocked('stove') && _near(SideScrollScene.stoveCenterX);
+  bool get _atHydro => _unlocked('hydro') && _near(SideScrollScene.hydroCenterX);
+  bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
-      _inWagon2 && _near(GameState.instance.bathX, 0.12);
+      _inWagon2 && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
   // Proximité de la douche (panneau) dans le cellier.
   bool get _atShower =>
-      _inWagon2 && _near(GameState.instance.showerPanelX, 0.12);
+      _inWagon2 &&
+      _unlocked('shower') &&
+      _near(GameState.instance.showerPanelX, 0.12);
   // Proximité de la petite sœur (wagon 1, position vivante).
-  bool get _atSister => !_inWagon2 && _near(_sisterLiveX, 0.08);
+  bool get _atSister =>
+      !_inWagon2 && GameState.instance.sisterShown && _near(_sisterLiveX, 0.08);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
