@@ -407,7 +407,7 @@ class _CardsScreenState extends State<CardsScreen>
   Widget _creditsChip() {
     final gs = GameState.instance;
     final n = gs.cardCredits;
-    final max = GameState.cardCreditsMax;
+    const max = GameState.cardCreditsMax;
     final next = gs.msToNextCredit;
     final empty = n <= 0;
     return Container(
@@ -890,9 +890,9 @@ class _CardsScreenState extends State<CardsScreen>
                   _deltaChips(_resultDeltas),
                 ],
                 const SizedBox(height: 18),
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
+                  children: [
                     Icon(Icons.touch_app, color: Colors.white38, size: 16),
                     SizedBox(width: 6),
                     Text('Toucher pour continuer',

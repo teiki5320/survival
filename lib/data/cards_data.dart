@@ -989,8 +989,8 @@ final List<Segment> trainCosyScenario = [
   Segment(gareCards: _gare10, fillerPool: _fill10, drawCount: 4),
   Segment(gareCards: _gare11, fillerPool: _fill11, drawCount: 4),
   Segment(gareCards: _gare12, fillerPool: _fill12, drawCount: 4),
-  Segment(gareCards: _gare13, fillerPool: const [], drawCount: 0),
-  Segment(gareCards: _gare14, fillerPool: const [], drawCount: 0),
+  const Segment(gareCards: _gare13, fillerPool: [], drawCount: 0),
+  const Segment(gareCards: _gare14, fillerPool: [], drawCount: 0),
 ];
 
 /// Résout la fin à partir des stats finales + flags.

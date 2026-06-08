@@ -26,16 +26,6 @@ class _Pot {
 // 4 stades distincts (skip sprout qui ressemblait trop à small).
 const _stages = ['small', 'medium', 'large', 'huge'];
 
-// Multiplicateurs de taille par stade (par rapport à la taille du slot).
-// Permet à small d'apparaître petit, huge en grand, ripe en moyen.
-const Map<String, double> _stageScale = {
-  'small': 0.55,
-  'medium': 0.78,
-  'large': 1.00,
-  'huge': 1.00,
-  'ripe': 0.75,
-};
-
 /// Position normalisée + taille (fraction de h) de chaque cup. Modifiable
 /// in-app via le mode ajuster, puis bakable dans le code.
 class _Slot {

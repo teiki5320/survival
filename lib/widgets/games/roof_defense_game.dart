@@ -248,8 +248,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _streakT = 0;
 
   // coffre
-  int _chestScrap = 0;
-  String _chestExtra = ''; // '', 'heart', 'perk'
+  final int _chestScrap = 0;
+  final String _chestExtra = ''; // '', 'heart', 'perk'
   bool _chestOpened = false;
 
   // juice
@@ -270,6 +270,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   bool _looking = false;
   double _lookX = 0;
 
+  // ignore: non_constant_identifier_names  (_S = "scene unit" du décor combat)
   double _S = 1, _ox = 0, _oy = 0;
   Duration _last = Duration.zero;
 
@@ -287,8 +288,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   double _windowHalo = 0; // petit halo dans la fenêtre quand le pillard touche
 
   // --- Mode DUEL de test (réglage du feeling) : 1 seul lanceur, 3 PV, on tire
-  //     chacun son tour, il recule quand touché. À élargir une fois calé. ---
-  static const bool _duelTest = true;
+  //     chacun son tour, il recule quand touché. Réservé au MODE DEBUG ; en jeu
+  //     normal on lance la vraie campagne (vagues, économie, score de gare). ---
+  bool get _duelTest => GameState.instance.debugMode;
   bool _playerTurn = true; // le joueur peut tirer
   bool _awaitingStones = false; // on attend que la pierre du joueur retombe
   bool _enemyAiming = false; // caméra recentrée sur le pillard, il vise
@@ -871,7 +873,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // [spread] grossit l'erreur (niveau 1 = gros, baissera avec le niveau).
   void _enemyThrowAt(_Enemy e) {
     final from = Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55);
-    final ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
+    const ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
     const t = 4.8; // vol très lent (suivable à la caméra)
     const spread = 0.14; // niveau 1 : dispersion autour de la fenêtre
     final to = Offset(
@@ -1002,7 +1004,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _hitStop = head ? 0.09 : 0.05;
     // Point 1 — headshot qui claque.
     if (head) {
-      _floats.add(_FloatText(Offset(_imgA * 0.5, 0.30), 'EN PLEINE TÊTE !',
+      _floats.add(_FloatText(const Offset(_imgA * 0.5, 0.30), 'EN PLEINE TÊTE !',
           const Color(0xFFFFD24A),
           big: true));
     }
@@ -1013,7 +1015,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     const calls = {3: 'Double !', 5: 'Triple !', 8: 'Carnage !', 12: 'Massacre !'};
     if (calls.containsKey(_streak)) {
       _floats.add(_FloatText(
-          Offset(_imgA * 0.5, 0.32), calls[_streak]!, const Color(0xFFFF8A3A),
+          const Offset(_imgA * 0.5, 0.32), calls[_streak]!, const Color(0xFFFF8A3A),
           big: true));
     }
     // Frénésie.
@@ -1024,7 +1026,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _frenzyT = 3.5;
         _frenzy = 0;
         _slowmo = 0.5;
-        _floats.add(_FloatText(Offset(_imgA * 0.5, 0.28), 'FRÉNÉSIE !',
+        _floats.add(_FloatText(const Offset(_imgA * 0.5, 0.28), 'FRÉNÉSIE !',
             const Color(0xFFFFD24A),
             big: true));
       }
@@ -1087,7 +1089,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   void _spawnBarrel() {
-    final span = _imgA - _trainEdgeX - 0.9;
+    const span = _imgA - _trainEdgeX - 0.9;
     final x = _trainEdgeX + 0.5 + _rng.nextDouble() * (span > 0 ? span : 0.3);
     _barrel = _Barrel(x.clamp(0.5, _imgA - 0.2), _groundY);
   }
@@ -1164,7 +1166,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       anim: 0,
       hp: hp,
     )..throwT = 0.5);
-    _floats.add(_FloatText(Offset(_imgA * 0.5, 0.30), '⚠ CHEF PILLARD',
+    _floats.add(_FloatText(const Offset(_imgA * 0.5, 0.30), '⚠ CHEF PILLARD',
         const Color(0xFFE2614A),
         big: true));
   }
@@ -1304,7 +1306,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _perkLevels[perk] = (_perkLevels[perk] ?? 0) + 1;
     if (_perkLevels[perk] == 3 && _evolved.add(perk)) {
       _applyEvolution(perk);
-      _floats.add(_FloatText(Offset(_imgA * 0.5, 0.34), '✦ ÉVOLUTION ✦',
+      _floats.add(_FloatText(const Offset(_imgA * 0.5, 0.34), '✦ ÉVOLUTION ✦',
           const Color(0xFFFFD24A),
           big: true));
     }
@@ -1744,8 +1746,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(colors: [
-              Color(0xFFFFB347).withValues(alpha: 0.9 * life),
-              Color(0xFFFF6A2A).withValues(alpha: 0.5 * life),
+              const Color(0xFFFFB347).withValues(alpha: 0.9 * life),
+              const Color(0xFFFF6A2A).withValues(alpha: 0.5 * life),
               const Color(0x00000000),
             ]),
           ),
@@ -1791,7 +1793,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (mirror) {
       img = Transform(
         alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+        transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
         child: img,
       );
     }
@@ -2270,7 +2272,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                 ? () {
                     final r = gs.claimDailyChest();
                     setState(() {});
-                    _floats.add(_FloatText(Offset(_imgA * 0.5, 0.3),
+                    _floats.add(_FloatText(const Offset(_imgA * 0.5, 0.3),
                         '+$r🔩', const Color(0xFFE8B96B)));
                   }
                 : null,
@@ -2363,7 +2365,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               onTap: () {
                 final r = gs.claimDailyMission(id);
                 setState(() {});
-                _floats.add(_FloatText(Offset(_imgA * 0.5, 0.3), '+$r🔩',
+                _floats.add(_FloatText(const Offset(_imgA * 0.5, 0.3), '+$r🔩',
                     const Color(0xFFE8B96B)));
               },
               child: Container(
@@ -2635,7 +2637,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Text('Score de gare : ${_score100} / 100',
+                child: Text('Score de gare : $_score100 / 100',
                     style: const TextStyle(
                         color: Color(0xFFE8B96B),
                         fontSize: 20,

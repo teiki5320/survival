@@ -92,7 +92,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
 
   // Carte murale de la cabine : mode ajuster (déplacer + pincer) + largeur de
   // départ d'un pinch. La carte ouvre la map au tap hors mode ajuster.
-  bool _mapAdjust = false;
+  final bool _mapAdjust = false;
   double _mapStartW = 0.2;
   // Ratio largeur/hauteur du cadre de la carte (paysage).
   static const double _mapAspect = 1.85;
@@ -346,7 +346,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       child: IgnorePointer(
         child: Transform(
           alignment: Alignment.center,
-          transform: Matrix4.identity()..scale(shouldMirror ? -1.0 : 1.0, 1.0),
+          transform: Matrix4.identity()..scaleByDouble(shouldMirror ? -1.0 : 1.0, 1.0, 1.0, 1.0),
           child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
         ),
       ),
@@ -553,12 +553,12 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         top: h * 0.52,
                         width: w * 0.18,
                         height: h * 0.28,
-                        child: DecoratedBox(
+                        child: const DecoratedBox(
                           decoration: BoxDecoration(
                             gradient: RadialGradient(
-                              center: const Alignment(0.0, 0.3),
+                              center: Alignment(0.0, 0.3),
                               radius: 0.9,
-                              colors: const [
+                              colors: [
                                 Color(0xFF4A2008),
                                 Color(0xFF1A0A02),
                               ],

@@ -68,15 +68,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
         child: Stack(
           children: [
             // Texture warm sur fond — léger gradient honey.
-            Positioned.fill(
+            const Positioned.fill(
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: RadialGradient(
                     center: Alignment.center,
                     radius: 1.1,
                     colors: [
-                      const Color(0xFF3A2A1C),
-                      const Color(0xFF1A1410),
+                      Color(0xFF3A2A1C),
+                      Color(0xFF1A1410),
                     ],
                   ),
                 ),

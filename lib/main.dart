@@ -116,7 +116,6 @@ class _WagonScreenState extends State<WagonScreen>
   bool _night = false;
   bool _dancing = false;
   int _lieDownToken = 0;
-  int _cookToken = 0;
 
   bool _inLocomotive = false;
   bool _inWagon2 = false;
@@ -136,7 +135,7 @@ class _WagonScreenState extends State<WagonScreen>
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   // Chien un peu plus grand pour mieux matcher le husky des sprites de
   // caresse (avant il faisait chiot riquiqui à côté).
-  double _dogHeight = 0.17;
+  final double _dogHeight = 0.17;
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -287,9 +286,11 @@ class _WagonScreenState extends State<WagonScreen>
     _audio.startAmbientTrain();
     _refreshMusic();
     GameState.instance.addListener(_refreshMusic);
+    GameState.instance.setNight(_night);
     _dayNightTimer = Timer.periodic(_dayNightPeriod, (_) {
       if (!mounted) return;
       setState(() => _night = !_night);
+      GameState.instance.setNight(_night);
       _refreshMusic();
     });
   }
@@ -422,8 +423,13 @@ class _WagonScreenState extends State<WagonScreen>
 
   void _toggleNight() {
     setState(() => _night = !_night);
+    GameState.instance.setNight(_night);
     _refreshMusic();
   }
+
+  /// Mode debug actif ? (révèle les outils de test : nettoyage, jour/nuit,
+  /// température, danse, ajustement des props, et le duel du combat).
+  bool get _debug => GameState.instance.debugMode;
 
   @override
   Widget build(BuildContext context) {
@@ -575,7 +581,6 @@ class _WagonScreenState extends State<WagonScreen>
             night: _night,
             dancing: _dancing,
             lieDownToken: _lieDownToken,
-            cookToken: _cookToken,
             logsThrown: _logsThrown,
             doorPushToken: _doorPushToken,
             doorPushRight: _doorPushRight,
@@ -670,62 +675,86 @@ class _WagonScreenState extends State<WagonScreen>
               // bas est toujours visible. L'ACTION contextuelle est en dernier
               // (= tout en bas = jamais coupée).
               children: [
-                FloatingActionButton.small(
-                  heroTag: 'toggle_run',
-                  tooltip: _running ? 'Arrêter le train' : 'Démarrer le train',
-                  onPressed: _toggleRun,
-                  child: Icon(_running ? Icons.pause : Icons.play_arrow),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'cycle_wagon_stage',
-                  tooltip: _inWagon2
-                      ? 'Cellier: ${_wagon2Labels[GameState.instance.wagon2Stage.clamp(0, 1)]}'
-                      : 'Wagon: ${_stageLabels[_wagonStage.clamp(0, _stageLabels.length - 1)]}',
-                  onPressed: () {
-                    setState(() {
-                      if (_inWagon2) {
-                        final gs = GameState.instance;
-                        gs.wagon2Stage = (gs.wagon2Stage + 1) % 2;
-                        gs.save();
-                      } else {
-                        _wagonStage = (_wagonStage + 1) % 2;
-                      }
-                    });
-                    _audio.playSfx('clean');
-                  },
-                  child: const Icon(Icons.cleaning_services),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'toggle_night',
-                  tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
-                  onPressed: _toggleNight,
-                  child: Icon(_night ? Icons.wb_sunny : Icons.nightlight_round),
-                ),
-                const SizedBox(height: 12),
-                // Test : cycle la température (chaud -> frais -> gel).
-                FloatingActionButton.small(
-                  heroTag: 'temp_test',
-                  tooltip: 'Température (test)',
-                  onPressed: () {
-                    final gs = GameState.instance;
-                    final next = gs.cabinTemp > 14
-                        ? 6.0
-                        : (gs.cabinTemp > 0 ? -6.0 : 20.0);
-                    gs.setCabinTemp(next);
-                    setState(() {});
-                  },
-                  child: const Icon(Icons.thermostat),
-                ),
-                const SizedBox(height: 12),
-                FloatingActionButton.small(
-                  heroTag: 'toggle_dance',
-                  tooltip: _dancing ? 'Arrêter de danser' : 'Danser',
-                  onPressed: () => setState(() => _dancing = !_dancing),
-                  child: Icon(_dancing ? Icons.stop : Icons.celebration),
-                ),
-                const SizedBox(height: 12),
+                // ===== OUTILS DE DEBUG (cachés du vrai jeu) =====
+                // Visibles seulement quand le mode debug est activé (bouton 🐞
+                // en bas à gauche). En jeu normal : nettoyage/jour-nuit/temp
+                // sont pilotés par l'histoire et l'environnement, pas à la main.
+                if (_debug) ...[
+                  FloatingActionButton.small(
+                    heroTag: 'toggle_run',
+                    tooltip: _running ? 'Arrêter le train' : 'Démarrer le train',
+                    onPressed: _toggleRun,
+                    child: Icon(_running ? Icons.pause : Icons.play_arrow),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.small(
+                    heroTag: 'cycle_wagon_stage',
+                    tooltip: _inWagon2
+                        ? 'Cellier: ${_wagon2Labels[GameState.instance.wagon2Stage.clamp(0, 1)]}'
+                        : 'Wagon: ${_stageLabels[_wagonStage.clamp(0, _stageLabels.length - 1)]}',
+                    onPressed: () {
+                      setState(() {
+                        if (_inWagon2) {
+                          final gs = GameState.instance;
+                          gs.wagon2Stage = (gs.wagon2Stage + 1) % 2;
+                          gs.save();
+                        } else {
+                          _wagonStage = (_wagonStage + 1) % 2;
+                        }
+                      });
+                      _audio.playSfx('clean');
+                    },
+                    child: const Icon(Icons.cleaning_services),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.small(
+                    heroTag: 'toggle_night',
+                    tooltip: _night ? 'Passer en jour' : 'Passer en nuit',
+                    onPressed: _toggleNight,
+                    child:
+                        Icon(_night ? Icons.wb_sunny : Icons.nightlight_round),
+                  ),
+                  const SizedBox(height: 12),
+                  // Test : cycle la température (chaud -> frais -> gel).
+                  FloatingActionButton.small(
+                    heroTag: 'temp_test',
+                    tooltip: 'Température (test)',
+                    onPressed: () {
+                      final gs = GameState.instance;
+                      final next = gs.cabinTemp > 14
+                          ? 6.0
+                          : (gs.cabinTemp > 0 ? -6.0 : 20.0);
+                      gs.setCabinTemp(next);
+                      setState(() {});
+                    },
+                    child: const Icon(Icons.thermostat),
+                  ),
+                  const SizedBox(height: 12),
+                  FloatingActionButton.small(
+                    heroTag: 'toggle_dance',
+                    tooltip: _dancing ? 'Arrêter de danser' : 'Danser',
+                    onPressed: () => setState(() => _dancing = !_dancing),
+                    child: Icon(_dancing ? Icons.stop : Icons.celebration),
+                  ),
+                  const SizedBox(height: 12),
+                  // Cellier seulement : mode ajuster (placer/redimensionner).
+                  if (secondWagon) ...[
+                    FloatingActionButton.small(
+                      heroTag: 'w2_adjust',
+                      tooltip: _w2Adjust
+                          ? 'Terminer le placement'
+                          : 'Ajuster les objets',
+                      backgroundColor:
+                          _w2Adjust ? const Color(0xFFE8B96B) : null,
+                      foregroundColor:
+                          _w2Adjust ? const Color(0xFF2A2018) : null,
+                      onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
+                      child: Icon(_w2Adjust ? Icons.check : Icons.edit),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
+                // ===== BOUTONS DE JEU (toujours visibles) =====
                 FloatingActionButton.small(
                   heroTag: 'open_map',
                   tooltip: 'La carte du voyage',
@@ -745,25 +774,6 @@ class _WagonScreenState extends State<WagonScreen>
                   child: const Icon(Icons.style),
                 ),
                 const SizedBox(height: 12),
-                // (Le combat se lance désormais en tapant une gare sur la map,
-                // elle-même ouverte par la carte murale du wagon 1.)
-                // Cellier seulement : mode ajuster (placer/redimensionner +
-                // coordonnées). Pincer un prop = changer sa taille.
-                if (secondWagon) ...[
-                  FloatingActionButton.small(
-                    heroTag: 'w2_adjust',
-                    tooltip: _w2Adjust
-                        ? 'Terminer le placement'
-                        : 'Ajuster les objets',
-                    backgroundColor:
-                        _w2Adjust ? const Color(0xFFE8B96B) : null,
-                    foregroundColor:
-                        _w2Adjust ? const Color(0xFF2A2018) : null,
-                    onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
-                    child: Icon(_w2Adjust ? Icons.check : Icons.edit),
-                  ),
-                  const SizedBox(height: 12),
-                ],
                 // Bouton ACTION contextuel — toujours visible (tout en bas).
                 AnimatedBuilder(
                   animation: GameState.instance,
@@ -771,6 +781,43 @@ class _WagonScreenState extends State<WagonScreen>
                 ),
               ],
             ),
+            ),
+          ),
+        ),
+        // Interrupteur du MODE DEBUG (discret, bas-gauche) : un seul bouton
+        // révèle/masque tous les outils de test. Vert quand actif.
+        Positioned(
+          left: 8,
+          bottom: 8,
+          child: SafeArea(
+            child: AnimatedBuilder(
+              animation: GameState.instance,
+              builder: (_, __) {
+                final on = GameState.instance.debugMode;
+                return Opacity(
+                  opacity: on ? 1.0 : 0.35,
+                  child: GestureDetector(
+                    onTap: () {
+                      GameState.instance.toggleDebug();
+                      setState(() {});
+                    },
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: on
+                            ? const Color(0xFF3A6B3A)
+                            : Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3)),
+                      ),
+                      child: const Icon(Icons.bug_report,
+                          size: 18, color: Colors.white),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ),

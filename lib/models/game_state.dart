@@ -32,6 +32,7 @@ class GameState extends ChangeNotifier {
       final path = _getSavePathSync();
       final data = jsonEncode({
         'lampOn': _lampOn,
+        'debugMode': debugMode,
         'items': _items,
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
@@ -74,7 +75,9 @@ class GameState extends ChangeNotifier {
         'cardsRun': _cardsRunToJson(),
       });
       await File(path).writeAsString(data);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('GameState.save() a échoué: $e');
+    }
   }
 
   Future<void> load() async {
@@ -84,6 +87,7 @@ class GameState extends ChangeNotifier {
       if (!file.existsSync()) return;
       final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _lampOn = data['lampOn'] as bool? ?? true;
+      debugMode = data['debugMode'] as bool? ?? false;
       _items.clear();
       if (data['items'] is Map) {
         (data['items'] as Map).forEach((k, v) {
@@ -166,15 +170,40 @@ class GameState extends ChangeNotifier {
       woodTier = (data['woodTier'] as num?)?.toInt() ?? 1;
       _loadCardsRun(data['cardsRun']);
       notifyListeners();
-    } catch (_) {}
+    } catch (e, st) {
+      // Sauvegarde illisible (JSON corrompu, droits, disque plein...) : on
+      // démarre sur une partie vierge plutôt que de crasher, mais on LOG (en
+      // debug) pour ne pas perdre l'info silencieusement.
+      debugPrint('GameState.load() a échoué, partie vierge utilisée: $e\n$st');
+    }
   }
+
+  // --- Mode debug (outils de test cachés du vrai jeu) ---
+  // Un seul interrupteur révèle tous les outils de dev (thermomètre test,
+  // FAB d'ajustement des props, affichage de TOUS les objets du wagon, et le
+  // mode "duel" du combat). Debug OFF = le vrai jeu (objets progressifs,
+  // température auto, campagne de combat complète). Persisté.
+  bool debugMode = false;
+  void setDebugMode(bool v) {
+    if (debugMode == v) return;
+    debugMode = v;
+    if (!v) _recomputeAutoTemp(); // repasse en température auto en sortant
+    notifyListeners();
+    save();
+  }
+
+  void toggleDebug() => setDebugMode(!debugMode);
 
   // --- Energy (RETIRÉ) ---
   // L'énergie était décorative (jamais dépensée). Shims neutres conservés
   // pour ne rien casser ; ne fait plus rien.
+  @Deprecated('Système d\'énergie retiré ; shim conservé pour compat sauvegarde')
   int get energy => 5;
+  @Deprecated('Le train ne se quitte plus ; toujours true')
   bool get canLeaveTrain => true;
+  @Deprecated('No-op ; énergie retirée')
   void spendEnergy([int amount = 1]) {}
+  @Deprecated('No-op ; énergie retirée')
   void grantEnergy(int amount) {}
 
   // --- Jauges de survie : FUSIONNÉES avec les 4 stats du mode cartes ---
@@ -210,14 +239,80 @@ class GameState extends ChangeNotifier {
   int wagonStage = 0;
 
   // --- Température cabine (thermomètre) ---
-  // [cabinTemp] = température ressentie dans le wagon (°C). Pilotée à la main
-  // pour l'instant (contrôle de test) ; sera calculée auto plus tard (zone
-  // map + bois + météo + nuit).
+  // [cabinTemp] = température ressentie dans le wagon (°C). Calculée AUTO en
+  // jeu normal (zone de la map + météo + nuit + feu/bois). En mode debug, le
+  // bouton de test la pilote à la main.
   double cabinTemp = 18.0;
-  // Protection contre le froid : meilleur wagon + poêle installé + habits
-  // chauds -> Shen supporte des températures plus basses (seuil plus bas).
+  bool isNight = false; // reporté depuis l'écran wagon (jour/nuit)
+  // Protection contre le froid : meilleur wagon + habits chauds -> Shen
+  // supporte des températures plus basses (seuil plus bas). Le poêle, lui,
+  // RÉCHAUFFE la cabine (entre dans cabinTemp via le feu, pas ici).
   bool stoveInstalled = true; // le poêle "à remettre dans le wagon"
   int outfitWarmth = 0; // bonus tenue (0 = tenue de base)
+
+  /// Température cible calculée depuis l'environnement : zone traversée +
+  /// météo + nuit + chaleur du feu (poêle alimenté en bois). C'est la mécanique
+  /// cosy : garder du bois = garder la cabine chaude.
+  double computeAutoCabinTemp() {
+    double t;
+    switch (trainZone) {
+      case TrainZone.warm:
+        t = 17;
+        break;
+      case TrainZone.transitionToWarm:
+        t = 12;
+        break;
+      case TrainZone.transitionToCold:
+        t = 5;
+        break;
+      case TrainZone.cold:
+        t = -4;
+        break;
+    }
+    switch (weather) {
+      case Weather.snowy:
+        t -= 4;
+        break;
+      case Weather.foggy:
+        t -= 2;
+        break;
+      case Weather.rainy:
+        t -= 2;
+        break;
+      case Weather.cloudy:
+        t -= 1;
+        break;
+      case Weather.clear:
+        break;
+    }
+    if (isNight) t -= 3;
+    // Le poêle ne chauffe que s'il reste du bois à brûler.
+    if (stoveInstalled) {
+      if (cardBois >= 40) {
+        t += 9;
+      } else if (cardBois >= 12) {
+        t += 5;
+      }
+    }
+    return t.clamp(-15.0, 28.0);
+  }
+
+  /// Recale [cabinTemp] sur l'environnement (sauf en mode debug = manuel).
+  void _recomputeAutoTemp() {
+    if (debugMode) return; // en debug, le bouton test pilote la température
+    final t = computeAutoCabinTemp();
+    if ((t - cabinTemp).abs() > 0.05) {
+      cabinTemp = t;
+      notifyListeners();
+    }
+  }
+
+  /// Reporte l'état jour/nuit (depuis l'écran wagon) et recale la température.
+  void setNight(bool n) {
+    if (isNight == n) return;
+    isNight = n;
+    _recomputeAutoTemp();
+  }
   // Mini-jeu de défense de gare : niveau d'arme débloqué (0=fronde, 1=arc,
   // 2=arbalète, 3=cocktail) + meilleur score d'étoiles obtenu.
   int shootWeaponLevel = 0;
@@ -393,8 +488,7 @@ class GameState extends ChangeNotifier {
     notifyListeners();
     save();
   }
-  double get coldThreshold =>
-      12.0 - wagonStage * 2 - (stoveInstalled ? 4 : 0) - outfitWarmth;
+  double get coldThreshold => 12.0 - wagonStage * 2 - outfitWarmth;
   // Vrai si Shen (et la sœur) ont froid -> frissons + blocage gain moral.
   bool get feltCold => cabinTemp < coldThreshold;
   // 0 (juste à la limite) .. ~20 (gel) : pilote la fréquence des frissons.
@@ -497,6 +591,7 @@ class GameState extends ChangeNotifier {
       ..removeWhere((w) => w == _weather);
     if (pool.isEmpty) return;
     _weather = pool[DateTime.now().millisecondsSinceEpoch % pool.length];
+    _recomputeAutoTemp(); // météo/zone changent -> température recalculée
     notifyListeners();
   }
 
@@ -627,7 +722,18 @@ class GameState extends ChangeNotifier {
 
   /// Recalcule les crédits gagnés avec le temps écoulé (régen même hors-ligne).
   /// À appeler à l'ouverture de l'écran cartes et périodiquement.
+  bool _refreshingCredits = false;
   void refreshCredits() {
+    if (_refreshingCredits) return; // anti-réentrance (timer + ouverture écran)
+    _refreshingCredits = true;
+    try {
+      _refreshCreditsInner();
+    } finally {
+      _refreshingCredits = false;
+    }
+  }
+
+  void _refreshCreditsInner() {
     if (cardCredits >= cardCreditsMax) {
       cardCreditNextMs = 0;
       return;
@@ -711,6 +817,7 @@ class GameState extends ChangeNotifier {
     cardFaim = (cardFaim + (deltas['faim'] ?? 0)).clamp(0, statMax);
     cardBois = (cardBois + (deltas['bois'] ?? 0)).clamp(0, statMax);
     cardMoral = (cardMoral + (deltas['moral'] ?? 0)).clamp(0, statMax);
+    _recomputeAutoTemp(); // le bois alimente le feu -> impacte la température
     notifyListeners();
     save();
   }

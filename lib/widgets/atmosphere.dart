@@ -167,13 +167,13 @@ class _FireGlowPainter extends CustomPainter {
     final flickerFast = math.sin(t * 2 * math.pi * 7.0) * 0.025;
     final r = base * (1.0 + flickerSlow + flickerFast);
     final paint = Paint()
-      ..shader = RadialGradient(
-        colors: const [
+      ..shader = const RadialGradient(
+        colors: [
           Color(0x66FFB347),
           Color(0x33C36428),
           Color(0x00000000),
         ],
-        stops: const [0.0, 0.45, 1.0],
+        stops: [0.0, 0.45, 1.0],
       ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r));
     canvas.drawCircle(Offset(cx, cy), r, paint);
   }
@@ -271,13 +271,13 @@ class _LampGlowPainter extends CustomPainter {
       r,
       Paint()
         ..blendMode = BlendMode.plus
-        ..shader = RadialGradient(
-          colors: const [
+        ..shader = const RadialGradient(
+          colors: [
             Color(0x66FFE6AE),
             Color(0x22FFD98A),
             Color(0x00000000),
           ],
-          stops: const [0.0, 0.34, 1.0],
+          stops: [0.0, 0.34, 1.0],
         ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
     );
 
@@ -289,13 +289,13 @@ class _LampGlowPainter extends CustomPainter {
       coreR,
       Paint()
         ..blendMode = BlendMode.plus
-        ..shader = RadialGradient(
-          colors: const [
+        ..shader = const RadialGradient(
+          colors: [
             Color(0xFFFFF6D8),
             Color(0xCCFFE2A0),
             Color(0x00FFD98A),
           ],
-          stops: const [0.0, 0.5, 1.0],
+          stops: [0.0, 0.5, 1.0],
         ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: coreR)),
     );
   }
@@ -360,7 +360,7 @@ class _VinePainter extends CustomPainter {
       final ampX = _amp[i % 16];
       final len = size.height * _length[i % 16];
       final baseX = size.width * xn;
-      final topY = 0.0;
+      const topY = 0.0;
       final path = Path()..moveTo(baseX, topY);
       const segs = 14;
       for (int s = 1; s <= segs; s++) {
@@ -564,7 +564,7 @@ class _ZombiePainter extends CustomPainter {
     final y = walkY * size.height;
     final h = 36.0 * scale;
     final paint = Paint()
-      ..color = Color.fromRGBO(20, 25, 30, 0.55)
+      ..color = const Color.fromRGBO(20, 25, 30, 0.55)
       ..strokeWidth = 1.8
       ..strokeCap = StrokeCap.round;
 
@@ -803,12 +803,12 @@ class ThoughtBubble extends StatelessWidget {
                 Positioned(
                   left: x - 3,
                   top: y - 18,
-                  child: _Dot(diameter: 5),
+                  child: const _Dot(diameter: 5),
                 ),
                 Positioned(
                   left: x + 6,
                   top: y - 30,
-                  child: _Dot(diameter: 7),
+                  child: const _Dot(diameter: 7),
                 ),
                 // Bubble.
                 Positioned(
@@ -1033,7 +1033,7 @@ class _DaytimeBirdsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DaytimeBirdsPainter old) => true;
+  bool shouldRepaint(_DaytimeBirdsPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -1065,9 +1065,9 @@ class _DistantAnimalPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final speed = 0.025;
+    const speed = 0.025;
     final x = 1.1 - ((t * speed) % 1.4);
-    final y = 0.55;
+    const y = 0.55;
     final px = x * size.width;
     final py = y * size.height;
     const opacity = 0.50;
@@ -1094,7 +1094,7 @@ class _DistantAnimalPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DistantAnimalPainter old) => true;
+  bool shouldRepaint(_DistantAnimalPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -1145,7 +1145,7 @@ class _GrassPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_GrassPainter old) => true;
+  bool shouldRepaint(_GrassPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -1208,7 +1208,7 @@ class _RailSparksPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_RailSparksPainter old) => true;
+  bool shouldRepaint(_RailSparksPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -1273,7 +1273,7 @@ class _ScurryingAnimalPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ScurryingAnimalPainter old) => true;
+  bool shouldRepaint(_ScurryingAnimalPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -1325,7 +1325,7 @@ class _DoorSteamPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DoorSteamPainter old) => true;
+  bool shouldRepaint(_DoorSteamPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -1390,7 +1390,7 @@ class _FlyingEmbersPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_FlyingEmbersPainter old) => true;
+  bool shouldRepaint(_FlyingEmbersPainter old) => old.t != t || old.intensity != intensity;
 }
 
 // ---------------------------------------------------------------------------
@@ -1506,7 +1506,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
   void _drawLoneWanderer(Canvas canvas, Size size, double seed, double lt) {
     final x = (1.1 - lt * 1.3) * size.width;
     final y = (0.55 + (seed * 0.07 % 0.10)) * size.height;
-    final h = 22.0;
+    const h = 22.0;
     final bob = math.sin(t * 1.5) * 0.8;
     final legPhase = math.sin(t * 1.5) * 2;
     _drawHumanStick(canvas, x, y + bob, h, 0.45,
@@ -1520,7 +1520,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
   void _drawRefugeeGroup(Canvas canvas, Size size, double seed, double lt) {
     final groupX = (1.2 - lt * 1.4) * size.width;
     final y = (0.58 + (seed * 0.11 % 0.08)) * size.height;
-    final h = 20.0;
+    const h = 20.0;
     for (int i = 0; i < 4; i++) {
       final x = groupX - i * 16.0;
       final legPhase = math.sin(t * 2 + i) * 2;
@@ -1538,7 +1538,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
   void _drawLimper(Canvas canvas, Size size, double seed, double lt) {
     final x = (1.1 - lt * 1.3) * size.width;
     final y = (0.56 + (seed * 0.09 % 0.10)) * size.height;
-    final h = 21.0;
+    const h = 21.0;
     final limp = math.sin(t * 1.8) * 4;
     final bob = (math.sin(t * 1.8) + 1) * 1.2;
     _drawHumanStick(canvas, x, y - bob, h, 0.45,
@@ -1578,7 +1578,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
   void _drawCartPusher(Canvas canvas, Size size, double seed, double lt) {
     final x = (1.1 - lt * 1.0) * size.width;
     final y = (0.58 + (seed * 0.09 % 0.08)) * size.height;
-    final h = 22.0;
+    const h = 22.0;
     final legPhase = math.sin(t * 1.6) * 2;
     _drawHumanStick(canvas, x, y, h, 0.45, legPhase: legPhase, lean: 0.12);
     final p = _ink(0.45);
@@ -1599,7 +1599,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
     final y = (0.65 + (seed * 0.07 % 0.07)) * size.height;
     // Bent-over silhouette.
     final p = _ink(0.45 * fade);
-    final crouchHeight = 12.0;
+    const crouchHeight = 12.0;
     canvas.drawCircle(Offset(x, y - crouchHeight * 0.7), 3, p);
     p.strokeWidth = 2.2;
     canvas.drawLine(Offset(x, y - crouchHeight * 0.5), Offset(x + 6, y - 4), p);
@@ -1640,7 +1640,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
     // 5 silhouettes around it.
     for (int i = 0; i < 5; i++) {
       final ang = i * (math.pi * 2 / 5) + 0.3;
-      final r = 11.0;
+      const r = 11.0;
       final px = cx + math.cos(ang) * r;
       final py = cy + math.sin(ang) * r * 0.5;
       _drawHumanStick(canvas, px, py, 11, 0.50 * fade);
@@ -1652,7 +1652,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
     final fade = math.sin(lt * math.pi * 1.5).clamp(0.0, 1.0);
     final x = (0.2 + (seed * 0.11 % 0.6)) * size.width;
     final y = (0.65 + (seed * 0.09 % 0.05)) * size.height;
-    final h = 20.0;
+    const h = 20.0;
     final wave = math.sin(t * 6) * 5;
     final p = _ink(0.50 * fade);
     canvas.drawCircle(Offset(x, y - h), h * 0.18, p);
@@ -1679,7 +1679,7 @@ class _HumanSilhouettesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_HumanSilhouettesPainter old) => true;
+  bool shouldRepaint(_HumanSilhouettesPainter old) => old.t != t || old.night != night;
 }
 
 // ---------------------------------------------------------------------------
@@ -1878,7 +1878,7 @@ class _ForegroundLifePainter extends CustomPainter {
   // 8 + 9 baked into static layer: bones half-buried + wildflowers.
   void _drawStaticDecay(Canvas canvas, Size size) {
     // Bones (skull silhouette, 1 fixed-ish spot).
-    final boneSeed = 71.0;
+    const boneSeed = 71.0;
     final bx = (0.18 + (boneSeed * 0.07 % 0.5)) * size.width;
     final by = (0.82 + (boneSeed * 0.05 % 0.05)) * size.height;
     final bp = Paint()
@@ -1920,7 +1920,7 @@ class _ForegroundLifePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_ForegroundLifePainter old) => true;
+  bool shouldRepaint(_ForegroundLifePainter old) => old.t != t || old.running != running;
 }
 
 // ---------------------------------------------------------------------------
@@ -1978,7 +1978,7 @@ class _CurtainsPainter extends CustomPainter {
       final topY = size.height * 0.40;
       final bottomY = size.height * 0.58;
       final sway = math.sin(t * 1.2 + i * 0.7) * 3 * intensity;
-      final width = 14.0;
+      const width = 14.0;
       final path = Path()
         ..moveTo(cx - width / 2, topY)
         ..quadraticBezierTo(
@@ -2002,7 +2002,7 @@ class _CurtainsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CurtainsPainter old) => true;
+  bool shouldRepaint(_CurtainsPainter old) => old.t != t || old.intensity != intensity;
 }
 
 // ---------------------------------------------------------------------------
@@ -2067,7 +2067,7 @@ class _WindowFrostPainter extends CustomPainter {
                     rect.center.dy),
             [
               Color.fromRGBO(230, 240, 250, 0.55 * intensity),
-              Color.fromRGBO(230, 240, 250, 0.0),
+              const Color.fromRGBO(230, 240, 250, 0.0),
             ],
           );
         canvas.drawRect(rect, p);
@@ -2181,7 +2181,7 @@ class _CobwebsPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CobwebsPainter old) => true;
+  bool shouldRepaint(_CobwebsPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -2256,7 +2256,7 @@ class _GaugesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_GaugesPainter old) => true;
+  bool shouldRepaint(_GaugesPainter old) => old.t != t || old.active != active;
 }
 
 // ---------------------------------------------------------------------------
@@ -2323,7 +2323,7 @@ class _AshesPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_AshesPainter old) => true;
+  bool shouldRepaint(_AshesPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------
@@ -2399,7 +2399,7 @@ class _PipeSteamPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_PipeSteamPainter old) => true;
+  bool shouldRepaint(_PipeSteamPainter old) => old.t != t || old.intensity != intensity;
 }
 
 // ---------------------------------------------------------------------------
@@ -2512,7 +2512,7 @@ class _MidgroundPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_MidgroundPainter old) => true;
+  bool shouldRepaint(_MidgroundPainter old) => old.t != t;
 }
 
 // ---------------------------------------------------------------------------

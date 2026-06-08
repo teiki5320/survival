@@ -109,8 +109,8 @@ class _TitleScreenState extends State<TitleScreen>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Titre.
-                    Column(
-                      children: const [
+                    const Column(
+                      children: [
                         SizedBox(height: 24),
                         Text(
                           'Train Cosy',

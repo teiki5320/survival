@@ -30,7 +30,6 @@ class SideScrollScene extends StatefulWidget {
     this.night = false,
     this.dancing = false,
     this.lieDownToken = 0,
-    this.cookToken = 0,
     this.onUserInteract,
     this.onHeroXChanged,
     this.logsThrown = 0,
@@ -115,7 +114,6 @@ class SideScrollScene extends StatefulWidget {
   /// pressed. The scene observes the change and plays the pickup
   /// frames in reverse so she bends over, then snaps into sleep.
   final int lieDownToken;
-  final int cookToken;
 
   /// Incremented by the parent when the door-action button is pressed
   /// to enter the locomotive. The scene plays the door_push animation
@@ -221,32 +219,32 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Bed object placement (normalised to scene size, mutable so the
   // adjustment mode can drag + resize it live). Defaults dialled in
   // via the adjust mode and baked back here.
-  double _bedLeft = 0.194;
-  double _bedTop = 0.448;
-  double _bedWidth = 0.280;
+  final double _bedLeft = 0.194;
+  final double _bedTop = 0.448;
+  final double _bedWidth = 0.280;
 
   // When the heroine arrived at the bed via a double-tap on it, render
   // the sleep sprite ON the mattress (instead of on the floor). Offsets
   // are normalised to the scene size, position is relative to the
   // bed's centre/top so it stays glued to the bed as it moves.
   bool _sleepOnBed = false;
-  double _sleepBedOffsetX = 0.0;   // centré sur le centre du lit
-  double _sleepBedOffsetY = 0.115; // calé sur le matelas
-  double _sleepBedScale = 0.36;    // longueur corps en fraction de h
+  final double _sleepBedOffsetX = 0.0;   // centré sur le centre du lit
+  final double _sleepBedOffsetY = 0.115; // calé sur le matelas
+  final double _sleepBedScale = 0.36;    // longueur corps en fraction de h
 
   // Props installés dans le wagon — chaque entry contient sa position
   // (left/top centrés, normalisés) + sa hauteur en fraction de h.
   static final List<_PropDef> _propDefs = [
-    _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
-    _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
-    _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
-    _PropDef('filter',   'Filtre',    animated: false),
-    _PropDef('table',    'Table',     animated: false),
-    _PropDef('notebook', 'Carnet',    animated: false),
-    _PropDef('firstaid', 'Secours',   animated: false),
-    _PropDef('commode',  'Commode',   animated: false),
-    _PropDef('bowl',     'Gamelle',   animated: false),
-    _PropDef('wallmap',  'Carte',     animated: false),
+    const _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
+    const _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
+    const _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
+    const _PropDef('filter',   'Filtre',    animated: false),
+    const _PropDef('table',    'Table',     animated: false),
+    const _PropDef('notebook', 'Carnet',    animated: false),
+    const _PropDef('firstaid', 'Secours',   animated: false),
+    const _PropDef('commode',  'Commode',   animated: false),
+    const _PropDef('bowl',     'Gamelle',   animated: false),
+    const _PropDef('wallmap',  'Carte',     animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -280,8 +278,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // of the scene height. `_horizonTop` is the distance from the very
   // top of the frame, `_horizonBottom` is the distance from the very
   // bottom. Defaults dialled in via the horizon adjust mode.
-  double _horizonTop = 0.0;
-  double _horizonBottom = 0.179;
+  final double _horizonTop = 0.0;
+  final double _horizonBottom = 0.179;
 
   static const List<String> _horizonWarm = [
     'assets/background/horizon_a.png',
@@ -349,7 +347,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // When set, the next walk-arrival auto-triggers a lie-down (used by
   // the double-tap-on-bed handler so she walks over before lying down).
   bool _walkingToBed = false;
-  bool _walkingToStove = false;
   // Lie-down transition: plays pickup frames in reverse (upright → bent
   // over), then snaps into the sleep loop on the floor.
   bool _heroLyingDown = false;
@@ -635,35 +632,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _filterFillCtrl = ctrl;
   }
 
-  bool _precached = false;
+  // STATIC : le précache lourd ne doit tourner qu'UNE fois par lancement, pas
+  // à chaque remontage de la scène (revenir de la loco recrée le State, ce qui
+  // re-déclenchait le décodage de centaines de PNG -> pic mémoire / OOM).
+  static bool _precached = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_precached) return;
     _precached = true;
-    // Decode and cache every animation frame plus the background variants
-    // before the user can interact. Without this, the first cycle of any
-    // animation stutters while Flutter lazily decodes the PNGs.
-    const animations = [
-      'walk_right',
-      'idle_right',
-      'sleep_right',
-      'dance',
-      'pickup',
-      'yawn',
-      'stretch',
-      'read',
-      'wake_up',
-      'warm_hands',
-      'carry_walk',
-      'drink',
-    ];
-    for (final anim in animations) {
-      for (int i = 1; i <= _heroFrameCount; i++) {
-        precacheImage(AssetImage('assets/characters/${anim}_$i.png'), context);
-      }
-    }
+    // NB : les frames du PERSONNAGE (idle/walk + sister) sont déjà préchargées
+    // par l'écran de chargement (loading_screen._essential). On ne les
+    // re-précache PAS ici (588 frames pleine résolution = gros pic mémoire à
+    // chaque remontage). Les anims rares (dance/pickup/yawn/read...) se
+    // décodent à la volée à leur 1re utilisation.
     // Précache des props animés (49 frames chacun) + statiques.
     // ResizeImage(width: 256) pour matcher le rendering et garantir
     // qu'on cache la version décodée à 256px (4× moins de mémoire).
@@ -707,8 +690,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     };
     dogAnims.forEach((prefix, count) {
       for (int i = 1; i <= count; i++) {
+        // Le chien est petit à l'écran : on décode à 256px (4× moins de RAM).
         precacheImage(
-          AssetImage('assets/objects/${prefix}_$i.png'),
+          ResizeImage(AssetImage('assets/objects/${prefix}_$i.png'), width: 256),
           context,
         );
       }
@@ -790,16 +774,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _heroSleeping = false;
         _heroLyingDown = false;
         _walkingToBed = true;
-        _heroTarget = target;
-      });
-    }
-    if (oldWidget.cookToken != widget.cookToken) {
-      final target = SideScrollScene.stoveCenterX.clamp(_heroXMin, _heroXMax);
-      setState(() {
-        _heroDancing = false;
-        _heroSleeping = false;
-        _heroLyingDown = false;
-        _walkingToStove = true;
         _heroTarget = target;
       });
     }
@@ -909,6 +883,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _horizonRotateTimer?.cancel();
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
+    _filterFillCtrl?.dispose();
     _sky.dispose();
     _horizon.dispose();
     _mid.dispose();
@@ -1202,7 +1177,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final step = _heroSpeed * dt;
     if (delta.abs() <= step) {
       final arriveTriggersLieDown = _walkingToBed;
-      final arriveTriggerssCook = _walkingToStove;
       _animSet(() {
         _heroX = target;
         _heroTarget = null;
@@ -1214,16 +1188,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _heroSleeping = true;
           _sleepFrame = 0;
           _sleepAccumMs = 0;
-        }
-        if (arriveTriggerssCook) {
-          _walkingToStove = false;
-          _activeSpecial = 'use_back';
-          _activeSpecialFrames = 49;
-          _activeSpecialLoops = false;
-          _specialFrame = 0;
-          _specialAccumMs = 0;
-          // Cuisiner/manger remonte la jauge Faim.
-          GameState.instance.nudgeCardStat('faim', 10);
         }
       });
       widget.onHeroXChanged?.call(_heroX);
@@ -1256,7 +1220,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _heroDancing = false;
       _heroLyingDown = false;
       _walkingToBed = false;
-      _walkingToStove = false;
       _idleBreak = null;
       _idleBreakFrame = 0;
       _idleBreakAccumMs = 0;
@@ -2064,11 +2027,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // wagon = sentiment de progression). lit (gare 1), filtre (gare 4),
   // hydro (gare 10). Le reste est toujours présent.
   //
-  // ⚠️ TEMPORAIRE : `_showAllProps` force l'affichage de TOUS les objets pour
-  // pouvoir vérifier que tout fonctionne. Repasser à `false` quand on voudra
-  // re-brancher l'apparition progressive des objets via l'histoire (les flags
-  // asset_bed / asset_filter / asset_hydro sont déjà posés dans cards_data).
-  static const bool _showAllProps = true;
+  // `_showAllProps` force l'affichage de TOUS les objets (pour vérifier le
+  // rendu) : désormais réservé au MODE DEBUG. En jeu normal, les objets
+  // apparaissent au fil de l'histoire (flags asset_bed/filter/hydro posés dans
+  // cards_data) -> sentiment de progression.
+  bool get _showAllProps => GameState.instance.debugMode;
 
   bool _propUnlocked(String key) {
     if (_showAllProps) return true;
@@ -2112,7 +2075,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       sprite = _AnimatedSprite(
         prefix: def.key,
         frameCount: def.frameCount,
-        durationMs: def.frameDurationMs * def.frameCount,
+        durationMs: _PropDef.frameDurationMs * def.frameCount,
         fit: boxFit,
       );
     } else {
@@ -2346,7 +2309,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           child: _nightTint(
             Transform(
               alignment: Alignment.center,
-              transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+              transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
               child: Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
             ),
           ),
@@ -2437,7 +2400,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (shouldMirror) {
       sprite = Transform(
         alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+        transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
         child: sprite,
       );
     }
@@ -2501,14 +2464,13 @@ class _PropDef {
     this.label, {
     required this.animated,
     this.frameCount = 1,
-    this.frameDurationMs = 70,
   });
 
   final String key;
   final String label;
   final bool animated;
   final int frameCount;
-  final int frameDurationMs;
+  static const int frameDurationMs = 70; // durée d'une frame de prop animé
 }
 
 /// Position normalisée d'un prop dans la scène (centres x,y + hauteur
@@ -2533,17 +2495,16 @@ class _AnimatedSprite extends StatefulWidget {
     required this.frameCount,
     required this.durationMs,
     this.fit = BoxFit.contain,
-    this.dir = 'assets/objects',
-    this.resizeWidth = 256,
   });
 
   final String prefix;
   final int frameCount;
   final int durationMs;
   final BoxFit fit;
-  final String dir;
-  // null = décode en pleine résolution (sprites perso). Sinon ResizeImage.
-  final int? resizeWidth;
+  // Les props sont petits à l'écran : on décode toujours à 256px (allège le
+  // cache, matche le précache).
+  static const int _resizeWidth = 256;
+  static const String _dir = 'assets/objects';
 
   @override
   State<_AnimatedSprite> createState() => _AnimatedSpriteState();
@@ -2576,18 +2537,11 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
         final frame = (_ctrl.value * widget.frameCount)
             .floor()
             .clamp(0, widget.frameCount - 1);
-        final asset = '${widget.dir}/${widget.prefix}_${frame + 1}.png';
-        // ResizeImage (props) : décode plus petit pour alléger le cache.
-        // resizeWidth null (perso) : pleine résolution. if/else typé car le
-        // type commun de AssetImage/ResizeImage est Object (génériques ≠).
-        final ImageProvider provider;
-        if (widget.resizeWidth == null) {
-          provider = AssetImage(asset);
-        } else {
-          provider = ResizeImage(AssetImage(asset), width: widget.resizeWidth!);
-        }
+        final asset =
+            '${_AnimatedSprite._dir}/${widget.prefix}_${frame + 1}.png';
         return Image(
-          image: provider,
+          image: ResizeImage(AssetImage(asset),
+              width: _AnimatedSprite._resizeWidth),
           fit: widget.fit,
           gaplessPlayback: true,
         );
@@ -2793,7 +2747,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
           if (_anim == 'walk' && !_faceRight) {
             sprite = Transform(
               alignment: Alignment.center,
-              transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+              transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
               child: sprite,
             );
           }
@@ -2833,7 +2787,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
     );
     img = Transform(
       alignment: Alignment.center,
-      transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0), // tête -> oreiller
+      transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0), // tête -> oreiller
       child: img,
     );
     return Stack(children: [
@@ -2994,7 +2948,7 @@ class _DogCharacterState extends State<_DogCharacter>
           if (_anim == 'walk' && !_faceRight) {
             sprite = Transform(
               alignment: Alignment.center,
-              transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
+              transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
               child: sprite,
             );
           }
@@ -3269,286 +3223,6 @@ class _SpeedLinesPainter extends CustomPainter {
       old.t != t || old.intensity != intensity;
 }
 
-/// Chien autonome. Tourne entre 3 états (idle, walk, sleep) en piochant
-/// aléatoirement chaque transition. Pendant `walk`, sa position X glisse
-/// dans [xMin, xMax] ; le sprite est miroré selon la direction.
-class _DogActor extends StatefulWidget {
-  const _DogActor({
-    required this.w,
-    required this.h,
-    required this.height,
-    required this.topFrac,
-    required this.xMin,
-    required this.xMax,
-    required this.tint,
-    this.bowlX,
-    this.isBowlFull,
-    this.onAteFromBowl,
-  });
-  final double w;
-  final double h;
-  final double height; // fraction de h
-  final double topFrac;
-  final double xMin;
-  final double xMax;
-  final Widget Function(Widget) tint;
-  /// Position X normalisée de la gamelle (centre). Si null, pas de gamelle.
-  final double? bowlX;
-  /// Lambda qui renvoie l'état actuel de la gamelle (true = pleine).
-  final bool Function()? isBowlFull;
-  /// Callback appelé quand Plume vient de finir un cycle d'eat près
-  /// d'une gamelle pleine → la passe à vide.
-  final VoidCallback? onAteFromBowl;
-  @override
-  State<_DogActor> createState() => _DogActorState();
-}
-
-enum _DogState {
-  idle,        // assis tranquille (image statique : dog_idle.png)
-  walk,        // se déplace, X glisse, direction selon target
-  layDown,     // transition idle → sleep (joue 1x, non-loop)
-  sleep,       // dort en boule (loop)
-  stretchYawn, // transition sleep → idle (joue 1x, non-loop)
-  wagTail,     // assis, queue qui s'agite (loop court)
-  bark,        // aboie (loop court)
-  headTilt,    // incline la tête, curieux (loop court)
-  eat,         // mange dans la gamelle (loop court, conditionnel)
-}
-
-class _DogActorState extends State<_DogActor>
-    with SingleTickerProviderStateMixin {
-  // Frame count + cadence par état. idle = 1 (image statique).
-  static const Map<_DogState, _AnimDef> _anims = {
-    _DogState.idle:        _AnimDef(prefix: 'dog_idle',         frames: 1,  frameMs: 0,   loops: true),
-    _DogState.walk:        _AnimDef(prefix: 'dog_walk',         frames: 49, frameMs: 50,  loops: true),
-    _DogState.layDown:     _AnimDef(prefix: 'dog_lay_down',     frames: 25, frameMs: 70,  loops: false),
-    _DogState.sleep:       _AnimDef(prefix: 'dog_sleep',        frames: 25, frameMs: 110, loops: true),
-    _DogState.stretchYawn: _AnimDef(prefix: 'dog_stretch_yawn', frames: 25, frameMs: 70,  loops: false),
-    _DogState.wagTail:     _AnimDef(prefix: 'dog_wag_tail',     frames: 25, frameMs: 60,  loops: true),
-    _DogState.bark:        _AnimDef(prefix: 'dog_bark',         frames: 25, frameMs: 60,  loops: true),
-    _DogState.headTilt:    _AnimDef(prefix: 'dog_head_tilt',    frames: 25, frameMs: 70,  loops: true),
-    _DogState.eat:         _AnimDef(prefix: 'dog_eat',          frames: 25, frameMs: 70,  loops: true),
-  };
-
-  static const double _walkSpeed = 0.06; // unités normalisées / sec
-
-  final math.Random _rng = math.Random();
-  late final Ticker _ticker;
-  Duration? _lastTick;
-
-  _DogState _state = _DogState.idle;
-  int _frame = 0;
-  int _accumMs = 0;
-  double _x = 0.45;
-  double _dir = 1.0; // +1 = droite, -1 = gauche (sprite source face droite)
-  double _walkTargetX = 0.45;
-  int _stateRemainMs = 0;
-  // Quand true, la marche en cours vise la gamelle ; à la fin du walk
-  // on enchaîne sur `eat` au lieu de retomber en idle.
-  bool _walkingToBowl = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _enterState(_DogState.idle, initial: true);
-    _ticker = createTicker(_onTick)..start();
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    super.dispose();
-  }
-
-  /// Configure les paramètres d'un nouvel état (durée, direction, etc.).
-  /// [walkTarget] permet de forcer la cible quand on l'envoie manger à
-  /// la gamelle (sinon la cible est random).
-  void _enterState(_DogState next,
-      {bool initial = false, double? walkTarget}) {
-    _state = next;
-    _frame = 0;
-    _accumMs = 0;
-    switch (next) {
-      case _DogState.idle:
-        _stateRemainMs = 2500 + _rng.nextInt(3500); // 2.5-6s
-        break;
-      case _DogState.walk:
-        if (walkTarget != null) {
-          _walkTargetX = walkTarget.clamp(widget.xMin, widget.xMax);
-        } else {
-          double target;
-          do {
-            target = widget.xMin +
-                _rng.nextDouble() * (widget.xMax - widget.xMin);
-          } while ((target - _x).abs() < 0.10);
-          _walkTargetX = target;
-        }
-        _dir = _walkTargetX > _x ? 1.0 : -1.0;
-        _stateRemainMs = 8000;
-        break;
-      case _DogState.layDown:
-      case _DogState.stretchYawn:
-        // Anim non-loop : durée = framesCount × frameMs (joue 1×).
-        final a = _anims[next]!;
-        _stateRemainMs = a.frames * a.frameMs;
-        break;
-      case _DogState.sleep:
-        _stateRemainMs = 8000 + _rng.nextInt(10000); // 8-18s
-        break;
-      case _DogState.wagTail:
-      case _DogState.bark:
-      case _DogState.headTilt:
-        _stateRemainMs = 1500 + _rng.nextInt(2000); // 1.5-3.5s
-        break;
-      case _DogState.eat:
-        _stateRemainMs = 3000 + _rng.nextInt(3000); // 3-6s
-        break;
-    }
-    if (initial) return;
-  }
-
-  /// Pick la prochaine action depuis l'état actuel. Les transitions
-  /// suivent une logique naturelle : sleep s'enchaîne avec stretchYawn,
-  /// layDown enchaîne sur sleep, et depuis idle on peut partir sur
-  /// n'importe quelle action courte.
-  void _pickNextState() {
-    _DogState next;
-    double? walkTarget;
-    switch (_state) {
-      case _DogState.layDown:
-        next = _DogState.sleep;
-        break;
-      case _DogState.sleep:
-        next = _DogState.stretchYawn;
-        break;
-      case _DogState.stretchYawn:
-        next = _DogState.idle;
-        break;
-      case _DogState.walk:
-        // Si on allait vers la gamelle → manger sur place.
-        if (_walkingToBowl) {
-          _walkingToBowl = false;
-          next = _DogState.eat;
-        } else {
-          next = _rng.nextDouble() < 0.7
-              ? _DogState.idle
-              : _DogState.headTilt;
-        }
-        break;
-      case _DogState.eat:
-        // Fini de manger → vide la gamelle puis idle.
-        widget.onAteFromBowl?.call();
-        next = _DogState.idle;
-        break;
-      case _DogState.bark:
-      case _DogState.wagTail:
-      case _DogState.headTilt:
-        next = _DogState.idle;
-        break;
-      case _DogState.idle:
-        // Si la gamelle est pleine, ~30% de chance de partir manger.
-        final bowlX = widget.bowlX;
-        final bowlFull = widget.isBowlFull?.call() ?? false;
-        if (bowlX != null && bowlFull && _rng.nextDouble() < 0.30) {
-          _walkingToBowl = true;
-          walkTarget = bowlX;
-          next = _DogState.walk;
-          break;
-        }
-        // Sinon : pondération standard entre actions possibles.
-        final r = _rng.nextDouble();
-        if (r < 0.30) {
-          next = _DogState.walk;
-        } else if (r < 0.45) {
-          next = _DogState.wagTail;
-        } else if (r < 0.58) {
-          next = _DogState.headTilt;
-        } else if (r < 0.65) {
-          next = _DogState.bark;
-        } else if (r < 0.80) {
-          next = _DogState.layDown;
-        } else {
-          next = _DogState.idle;
-        }
-        break;
-    }
-    _enterState(next, walkTarget: walkTarget);
-  }
-
-  void _onTick(Duration elapsed) {
-    final last = _lastTick ?? elapsed;
-    final dtMs = (elapsed - last).inMilliseconds;
-    _lastTick = elapsed;
-    if (dtMs <= 0) return;
-
-    final a = _anims[_state]!;
-    _accumMs += dtMs;
-    if (a.frameMs > 0) {
-      while (_accumMs >= a.frameMs) {
-        _accumMs -= a.frameMs;
-        if (a.loops) {
-          _frame = (_frame + 1) % a.frames;
-        } else if (_frame < a.frames - 1) {
-          _frame++;
-        }
-      }
-    }
-
-    _stateRemainMs -= dtMs;
-
-    if (_state == _DogState.walk) {
-      final step = _walkSpeed * (dtMs / 1000.0) * _dir;
-      _x = (_x + step).clamp(widget.xMin, widget.xMax);
-      if ((_x - _walkTargetX).abs() < 0.005 || _stateRemainMs <= 0) {
-        _pickNextState();
-      }
-    } else if (_stateRemainMs <= 0) {
-      _pickNextState();
-    }
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final propH = widget.h * widget.height;
-    final propW = propH;
-    final left = widget.w * _x - propW / 2;
-    final top = widget.h * widget.topFrac;
-    final a = _anims[_state]!;
-    final asset = a.frames == 1
-        ? 'assets/objects/${a.prefix}.png'
-        : 'assets/objects/${a.prefix}_${_frame + 1}.png';
-    Widget sprite = Image.asset(asset, fit: BoxFit.contain);
-    if (_dir < 0) {
-      sprite = Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scale(-1.0, 1.0, 1.0),
-        child: sprite,
-      );
-    }
-    return Positioned(
-      left: left,
-      top: top,
-      width: propW,
-      height: propH,
-      child: IgnorePointer(child: widget.tint(sprite)),
-    );
-  }
-}
-
-class _AnimDef {
-  const _AnimDef({
-    required this.prefix,
-    required this.frames,
-    required this.frameMs,
-    required this.loops,
-  });
-  final String prefix;
-  final int frames;
-  final int frameMs;
-  final bool loops;
-}
-
 /// Affiche le bon frame du tank selon le niveau (0..waterTankFrames-1).
 /// Niveau peut être fractionnaire (interpolation visuelle pendant l'anim
 /// de remplissage / descente).
@@ -3559,7 +3233,7 @@ class _WaterTankSprite extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final maxFrame = GameState.waterTankFrames - 1;
+    const maxFrame = GameState.waterTankFrames - 1;
     final idx = level.round().clamp(0, maxFrame);
     return Image.asset(
       'assets/objects/tank_$idx.png',

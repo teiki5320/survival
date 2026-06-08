@@ -56,10 +56,12 @@ canon (Shen fuit la 3e GM, cherche sa famille, train → refuge nord). Le
   figé restait + le solo réapparaissait par-dessus — bug corrigé).
 - **Chien** : caresse = sprite `petdog_1..9` (Shen + husky, approche→câlin),
   remplace solo Shen + chien statique. (Ancien `pet_dog` chiot retiré.)
-- **Froid/Thermomètre** : `cabinTemp` + `feltCold` (seuil selon wagonStage +
-  poêle + habits). Froid **bloque le GAIN de moral**. Frissons (`cold` /
-  `sister_cold`) selon `feltCold`. HUD thermomètre + **bouton test** (cycle
-  chaud/frais/gel). Température encore **manuelle** (pas branchée map/bois).
+- **Froid/Thermomètre** : `cabinTemp` + `feltCold` (seuil `coldThreshold` =
+  wagonStage + habits ; le **poêle réchauffe désormais `cabinTemp`**, plus le
+  seuil). Froid **bloque le GAIN de moral**. Frissons (`cold`/`sister_cold`).
+  **✅ AUTO (0.93.0)** : `computeAutoCabinTemp()` = zone map + météo + nuit +
+  feu (poêle alimenté en bois). Recalculé sur changement de gare/météo/nuit/
+  bois. Le **bouton test manuel** ne s'affiche plus qu'en **mode debug**.
 - **Découpe sprites** : technique **traits rouges** — l'utilisateur trace des
   lignes rouges (#FF0000) entre les frames sur la sheet (fond vert), je coupe
   pile dessus + normalise (bottom-center). Outils : `tools/key_out_green.py`,
@@ -159,12 +161,23 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
   `_bedUnlocked` peuvent masquer lit/filtre/hydro tant que l'histoire ne les a
   pas débloqués (flags `asset_bed`/`asset_filter`/`asset_hydro` posés dans
   `cards_data.dart` : gare 1 = lit, gare 4 = filtre, gare 10 = hydro/serre).
-  **⚠️ ACTUELLEMENT DÉBRANCHÉ** : `_showAllProps = true` force TOUT à
-  s'afficher (demande user : voir tous les objets pour vérifier que ça marche).
-  Remettre `_showAllProps = false` quand on rebranchera l'apparition au fil de
-  l'histoire.
+  **✅ REBRANCHÉ (0.93.0)** : `_showAllProps` = `GameState.debugMode` (getter).
+  En jeu normal les objets apparaissent au fil de l'histoire ; en mode debug
+  tout s'affiche pour vérifier le rendu.
 
 ---
+
+## 🐞 Mode debug (0.93.0)
+
+Un **seul interrupteur** (`GameState.debugMode`, persisté) révèle/masque TOUS
+les outils de test. Bouton 🐞 discret en **bas-gauche** de l'écran wagon (vert
+si actif). Debug OFF = **le vrai jeu**. Ce que le debug gate :
+- FAB de test : démarrer/arrêter train, nettoyer (wagonStage), jour/nuit,
+  **température (test)**, danser, **ajuster les props** (cellier).
+- `side_scroll_scene._showAllProps` (afficher tous les objets du wagon).
+- `roof_defense_game._duelTest` (combat en mode **duel 1v1** ; OFF = vraie
+  campagne 5 vagues + économie + score de gare).
+- En jeu normal : température **auto**, objets **progressifs**, combat = campagne.
 
 ## Workflow technique
 
@@ -178,7 +191,7 @@ loin**), les pillards arrivent par la droite, on **tire des pierres en arc**
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.76.0+166` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.93.0+197` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
@@ -501,7 +514,9 @@ map_route, **hydro_tank**, **title_bg**.
 
 **Audio** : tous présents dans `assets/audio/` :
 - `ambient_train.mp3` (loop, actif)
-- `music_day/night/cold.mp3` (musique **désactivée**, à refaire)
+- **Musique RÉACTIVÉE** (`_musicEnabled=true`) : 3 morceaux mappés day/night/
+  cold → `paper-lantern-ruins.mp3` / `moonlit-static.mp3` / `zone-froide.mp3`
+  (volume 0.3, loop). L'ancien « à refaire » est PÉRIMÉ.
 - `fire_crackle.mp3` (loop, actif en loco)
 - 9 SFX : door_open/close (désactivés), footstep, pickup, log_throw,
   drink, lamp_toggle, dog_bark, dog_pant
