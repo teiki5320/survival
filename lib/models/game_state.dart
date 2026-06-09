@@ -64,6 +64,8 @@ class GameState extends ChangeNotifier {
         'wagon2LampBy': wagon2LampBy,
         'wagon2LampAH': wagon2LampAH, 'wagon2LampBH': wagon2LampBH,
         'stoveX': stoveX, 'stoveY': stoveY, 'stoveH': stoveH,
+        'wagon1Props':
+            wagon1Props.map((k, v) => MapEntry(k, v.toList())),
         'bathX': bathX, 'bathY': bathY, 'bathH': bathH,
         'showerPanelX': showerPanelX, 'showerPanelY': showerPanelY,
         'showerPanelH': showerPanelH,
@@ -161,6 +163,15 @@ class GameState extends ChangeNotifier {
       stoveX = (data['stoveX'] as num?)?.toDouble() ?? stoveX;
       stoveY = (data['stoveY'] as num?)?.toDouble() ?? stoveY;
       stoveH = (data['stoveH'] as num?)?.toDouble() ?? stoveH;
+      final w1p = data['wagon1Props'];
+      if (w1p is Map) {
+        w1p.forEach((k, v) {
+          if (v is List && v.length == 3 && wagon1Props.containsKey(k)) {
+            wagon1Props[k as String] =
+                v.map((e) => (e as num).toDouble()).toList();
+          }
+        });
+      }
       bathX = (data['bathX'] as num?)?.toDouble() ?? bathX;
       bathY = (data['bathY'] as num?)?.toDouble() ?? bathY;
       bathH = (data['bathH'] as num?)?.toDouble() ?? bathH;
@@ -557,6 +568,28 @@ class GameState extends ChangeNotifier {
   /// Poêle du wagon 1 : position + taille déplaçables (mode ajuster debug).
   /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
   double stoveX = 0.479, stoveY = 0.445, stoveH = 0.263;
+
+  /// Props ajustables du wagon 1 (lampe, bac de culture, filtre, poêle à bois) :
+  /// [x (centre, frac w), y (haut, frac h), h (hauteur, frac h)]. Déplaçables +
+  /// redimensionnables en mode ajuster debug, persistés.
+  final Map<String, List<double>> wagon1Props = {
+    'lamp': [0.415, 0.300, 0.150],
+    'bac': [0.800, 0.470, 0.230],
+    'filtre': [0.727, 0.500, 0.230],
+    'poele': [0.480, 0.470, 0.250],
+  };
+  double w1x(String k) => wagon1Props[k]![0];
+  double w1y(String k) => wagon1Props[k]![1];
+  double w1h(String k) => wagon1Props[k]![2];
+  void w1Move(String k, double dx, double dy) {
+    final p = wagon1Props[k]!;
+    p[0] = (p[0] + dx).clamp(0.02, 0.98);
+    p[1] = (p[1] + dy).clamp(0.0, 0.92);
+  }
+
+  void w1Resize(String k, double h) {
+    wagon1Props[k]![2] = h;
+  }
 
   /// Props positionnables du cellier (x=fraction w du centre, y=fraction h du
   /// haut, h=fraction h de la hauteur). Déplaçables + redimensionnables,

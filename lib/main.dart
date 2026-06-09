@@ -168,6 +168,8 @@ class _WagonScreenState extends State<WagonScreen>
   int _showerToken = 0;
   // Mode ajuster (cellier) : déplacer/redimensionner les props + voir coords.
   bool _w2Adjust = false;
+  // Mode ajuster wagon 1 (debug) : lampe/bac/filtre/poêle déplaçables+taille.
+  bool _w1Adjust = false;
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
   // Interaction sœur (test manuel) : alterne lecture / câlin à chaque tap.
@@ -223,11 +225,15 @@ class _WagonScreenState extends State<WagonScreen>
       (_heroX - centerX).abs() < tol;
   bool get _atNotebook =>
       _unlocked('notebook') && _near(SideScrollScene.notebookCenterX);
+  // Lampe / bac de culture / filtre sont des props AJUSTABLES : leur position
+  // vit dans GameState.wagon1Props (et plus dans des constantes figées).
   bool get _atFilter =>
-      _unlocked('filter') && _near(SideScrollScene.filterCenterX);
-  bool get _atLamp => _unlocked('lamp') && _near(SideScrollScene.lampCenterX);
+      _unlocked('filter') && _near(GameState.instance.w1x('filtre'));
+  bool get _atLamp =>
+      _unlocked('lamp') && _near(GameState.instance.w1x('lamp'));
   bool get _atStove => _unlocked('stove') && _near(SideScrollScene.stoveCenterX);
-  bool get _atHydro => _unlocked('hydro') && _near(SideScrollScene.hydroCenterX);
+  bool get _atHydro =>
+      _unlocked('hydro') && _near(GameState.instance.w1x('bac'));
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
@@ -618,6 +624,7 @@ class _WagonScreenState extends State<WagonScreen>
           child: SideScrollScene(
             secondWagon: secondWagon,
             wagon2Adjust: secondWagon && _w2Adjust,
+            wagon1Adjust: !secondWagon && _w1Adjust,
             bathToken: _bathToken,
             showerToken: _showerToken,
             petDogToken: _petDogToken,
@@ -812,6 +819,22 @@ class _WagonScreenState extends State<WagonScreen>
                           _w2Adjust ? const Color(0xFF2A2018) : null,
                       onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
                       child: Icon(_w2Adjust ? Icons.check : Icons.edit),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // Wagon 1 seulement : ajuster lampe/bac/filtre/poêle.
+                  if (!secondWagon) ...[
+                    FloatingActionButton.small(
+                      heroTag: 'w1_adjust',
+                      tooltip: _w1Adjust
+                          ? 'Terminer le placement'
+                          : 'Ajuster lampe/bac/filtre/poêle',
+                      backgroundColor:
+                          _w1Adjust ? const Color(0xFFE8B96B) : null,
+                      foregroundColor:
+                          _w1Adjust ? const Color(0xFF2A2018) : null,
+                      onPressed: () => setState(() => _w1Adjust = !_w1Adjust),
+                      child: Icon(_w1Adjust ? Icons.check : Icons.edit),
                     ),
                     const SizedBox(height: 12),
                   ],

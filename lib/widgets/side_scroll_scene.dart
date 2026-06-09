@@ -53,6 +53,7 @@ class SideScrollScene extends StatefulWidget {
     this.duoToken = 0,
     this.duoAnim = 'readduo',
     this.wagon2Adjust = false,
+    this.wagon1Adjust = false,
     this.onSisterX,
     this.onDogX,
   });
@@ -96,6 +97,10 @@ class SideScrollScene extends StatefulWidget {
   /// Mode "ajuster" du cellier : props déplaçables (drag) + redimensionnables
   /// (pincer) + HUD des coordonnées. Off = props figés (jeu normal).
   final bool wagon2Adjust;
+
+  /// Mode "ajuster" du wagon 1 (debug) : lampe, bac de culture, filtre et poêle
+  /// à bois deviennent déplaçables + redimensionnables. Off = figés.
+  final bool wagon1Adjust;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -234,11 +239,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Props installés dans le wagon — chaque entry contient sa position
   // (left/top centrés, normalisés) + sa hauteur en fraction de h.
+  // NB : lampe, bac de culture (ex-hydro), filtre et poêle à bois sont des
+  // props AJUSTABLES (position/taille réglables en debug) rendus à part via
+  // _buildWagon1Adjustable — pas dans cette liste générique (figée).
   static final List<_PropDef> _propDefs = [
-    const _PropDef('hydro',    'Hydro',     animated: true,  frameCount: 49),
-    const _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
-    const _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
-    const _PropDef('filter',   'Filtre',    animated: false),
+    const _PropDef('stove',    'Gaziniere', animated: true,  frameCount: 49),
     const _PropDef('notebook', 'Carnet',    animated: false),
     const _PropDef('firstaid', 'Secours',   animated: false),
     const _PropDef('bowl',     'Gamelle',   animated: false),
@@ -1510,6 +1515,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         for (final def in _propDefs)
                           if (_propUnlocked(def.key))
                             _buildProp(def: def, w: w, h: h),
+                      // Props AJUSTABLES du wagon 1 (lampe, bac, filtre, poêle).
+                      if (!widget.secondWagon) _buildWagon1Adjustable(w, h),
                       // Cellier : props déplaçables (lanternes, baignoire,
                       // panneau douche, pommeau) + anim bain quand elle baigne.
                       if (widget.secondWagon) _buildWagon2Props(w, h),
@@ -1551,8 +1558,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               opacity: widget.night ? 1.0 : 0.45,
                               child: LampGlow(
                                 animation: _sky,
-                                x: 0.415,
-                                y: 0.34,
+                                x: GameState.instance.w1x('lamp'),
+                                y: GameState.instance.w1y('lamp') +
+                                    GameState.instance.w1h('lamp') * 0.4,
                                 radius: 0.18,
                                 floorY: 0.74, // sol du wagon 1
                               ),
@@ -1792,6 +1800,87 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   // Tous les props du cellier : Shen-douche + pommeau (eau on/off) + panneau
+  // Props AJUSTABLES du wagon 1 : lampe (animée, on/off), bac de culture
+  // (ex-tour hydro), filtre à eau (électrique animé), poêle à bois (allumé).
+  // Position + taille réglables en mode ajuster debug (GameState.wagon1Props).
+  Widget _buildWagon1Adjustable(double w, double h) {
+    final gs = GameState.instance;
+    Widget anim(String prefix, int n) => _AnimatedSprite(
+        prefix: prefix, frameCount: n, durationMs: n * 90, fit: BoxFit.contain);
+    Widget still(String asset) =>
+        Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+
+    Widget prop(String key, String unlock, double aspect, Widget child) =>
+        _propUnlocked(unlock)
+            ? _w2Drag(
+                w: w, h: h,
+                cx: gs.w1x(key), topY: gs.w1y(key), heightFrac: gs.w1h(key),
+                aspect: aspect, label: key, adjust: widget.wagon1Adjust,
+                child: child,
+                onMove: (dx, dy) => gs.w1Move(key, dx, dy),
+                onResize: (nh) => gs.w1Resize(key, nh),
+              )
+            : const SizedBox.shrink();
+
+    // Lampe : flamme animée, atténuée quand éteinte (lampOn).
+    final lampChild = AnimatedBuilder(
+      animation: gs,
+      builder: (_, child) =>
+          Opacity(opacity: gs.lampOn ? 1.0 : 0.18, child: child),
+      child: anim('lamp', 49),
+    );
+
+    return Positioned.fill(
+      child: Stack(
+        children: [
+          prop('lamp', 'lamp', 268 / 507, lampChild),
+          prop('bac', 'hydro', 204 / 212, still('assets/objects/bac_18.png')),
+          prop('filtre', 'filter', 222 / 245, anim('filtre', 25)),
+          prop('poele', 'stove', 150 / 218,
+              still('assets/objects/poele_20.png')),
+          if (widget.wagon1Adjust) _wagon1CoordHud(gs),
+        ],
+      ),
+    );
+  }
+
+  Widget _wagon1CoordHud(GameState gs) {
+    String l(String n) =>
+        '${n.padRight(7)} x${gs.w1x(n).toStringAsFixed(3)}  y${gs.w1y(n).toStringAsFixed(3)}  h${gs.w1h(n).toStringAsFixed(3)}';
+    final lines = ['lamp', 'bac', 'filtre', 'poele'].map(l).toList();
+    return Positioned(
+      left: 8,
+      bottom: 8,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('AJUSTER WAGON 1 — pincer = taille',
+                  style: TextStyle(
+                      color: Color(0xFFE8B96B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold)),
+              for (final s in lines)
+                Text(s,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        height: 1.3)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // + baignoire + 2 lanternes. Déplaçables/redimensionnables en mode ajuster.
   // La baignoire est masquée pendant le bain (l'anim contient sa cuve).
   Widget _buildWagon2Props(double w, double h) {
