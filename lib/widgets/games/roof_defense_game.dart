@@ -905,11 +905,28 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     final flying = lead != null || eShot != null;
 
-    if (_intro && foe != null) {
-      // Intro : la caméra glisse lentement vers l'ennemi (on voit son nom).
+    if (_intro) {
+      // Intro cinématique en 3 temps (durée _introT = 3 s) :
+      //  1) gros plan tenu sur le WAGON,
+      //  2) la caméra glisse PRÉSENTER l'adversaire (son nom s'affiche),
+      //  3) retour au wagon avant de rendre la main au joueur.
+      // On reste au zoom "wagon" (_zoomRest) pendant toute l'intro ; le dézoom
+      // n'arrive qu'à la visée (quand on tend l'arc).
+      final elapsed = 3.0 - _introT;
       _zoomTarget = _zoomRest;
-      _camTarget = foe.x;
-      _camYTarget = math.min(_camYHome, foe.feetY - foe.height * 0.5);
+      if (elapsed < 0.8 || foe == null) {
+        // 1) on tient sur le wagon (et tant que l'ennemi n'est pas spawn).
+        _camTarget = _camHome;
+        _camYTarget = _camYHome;
+      } else if (elapsed < 2.3) {
+        // 2) on présente l'ennemi.
+        _camTarget = foe.x;
+        _camYTarget = math.min(_camYHome, foe.feetY - foe.height * 0.5);
+      } else {
+        // 3) retour au wagon.
+        _camTarget = _camHome;
+        _camYTarget = _camYHome;
+      }
     } else if (_looking && !flying) {
       // Caméra libre : on regarde où on veut (dézoom large pour voir loin).
       _zoomTarget = _zoomAim;
