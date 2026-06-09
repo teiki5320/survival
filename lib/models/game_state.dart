@@ -33,6 +33,8 @@ class GameState extends ChangeNotifier {
       final data = jsonEncode({
         'lampOn': _lampOn,
         'debugMode': debugMode,
+        'seenTips': seenTips.toList(),
+        'introCinematicSeen': introCinematicSeen,
         'items': _items,
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
@@ -88,6 +90,11 @@ class GameState extends ChangeNotifier {
       final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _lampOn = data['lampOn'] as bool? ?? true;
       debugMode = data['debugMode'] as bool? ?? false;
+      seenTips.clear();
+      if (data['seenTips'] is List) {
+        seenTips.addAll((data['seenTips'] as List).cast<String>());
+      }
+      introCinematicSeen = data['introCinematicSeen'] as bool? ?? false;
       _items.clear();
       if (data['items'] is Map) {
         (data['items'] as Map).forEach((k, v) {
@@ -193,6 +200,23 @@ class GameState extends ChangeNotifier {
   }
 
   void toggleDebug() => setDebugMode(!debugMode);
+
+  // --- Tutoriel & cinématique d'ouverture ---
+  // `seenTips` : ids des bulles d'aide déjà vues (1re utilisation). Persisté.
+  // `introCinematicSeen` : la cinématique d'ouverture a déjà été jouée.
+  final Set<String> seenTips = {};
+  bool introCinematicSeen = false;
+  bool tipSeen(String id) => seenTips.contains(id);
+  void markTipSeen(String id) {
+    if (seenTips.add(id)) save();
+  }
+
+  void markIntroCinematicSeen() {
+    if (!introCinematicSeen) {
+      introCinematicSeen = true;
+      save();
+    }
+  }
 
   // ===========================================================
   // SOURCE UNIQUE de déblocage des objets/compagnons.
@@ -831,6 +855,8 @@ class GameState extends ChangeNotifier {
     woodTier = 1;
     _items.clear();
     _flags.clear(); // anciens flags d'histoire (sécurité)
+    seenTips.clear(); // le tuto rejoue
+    introCinematicSeen = false; // la cinématique d'ouverture rejoue
     _lampOn = true;
     isNight = false;
     startCardRun(); // remet jauges + cardGareIndex=0 + VIDE cardFlags/oneshot/soin

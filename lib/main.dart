@@ -14,6 +14,8 @@ import 'widgets/games/hydro_game.dart';
 import 'widgets/games/roof_defense_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/loading_screen.dart';
+import 'widgets/opening_cinematic.dart';
+import 'widgets/tutorial_overlay.dart';
 import 'widgets/wardrobe_screen.dart';
 import 'widgets/workshop_screen.dart';
 
@@ -71,10 +73,19 @@ class RootScreen extends StatefulWidget {
   State<RootScreen> createState() => _RootScreenState();
 }
 
-enum _Phase { title, loading, game }
+enum _Phase { title, loading, opening, game }
 
 class _RootScreenState extends State<RootScreen> {
   _Phase _phase = _Phase.title;
+
+  // Après le chargement : cinématique d'ouverture si pas encore vue, sinon jeu.
+  void _afterLoading() {
+    if (!GameState.instance.introCinematicSeen) {
+      setState(() => _phase = _Phase.opening);
+    } else {
+      setState(() => _phase = _Phase.game);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +103,14 @@ class _RootScreenState extends State<RootScreen> {
         ),
       _Phase.loading => LoadingScreen(
           key: const ValueKey('loading'),
-          onReady: () => setState(() => _phase = _Phase.game),
+          onReady: _afterLoading,
+        ),
+      _Phase.opening => OpeningCinematic(
+          key: const ValueKey('opening'),
+          onDone: () {
+            GameState.instance.markIntroCinematicSeen();
+            setState(() => _phase = _Phase.game);
+          },
         ),
       _Phase.game => const WagonScreen(key: ValueKey('wagon_root')),
     };
@@ -571,6 +589,24 @@ class _WagonScreenState extends State<WagonScreen>
               ),
             ),
           ),
+          // Bulles de TUTO d'intro : seulement sur la vue wagon 1, une fois.
+          if (!_onMap &&
+              !_inCards &&
+              !_inHydroGame &&
+              !_inWardrobe &&
+              !_inWorkshop &&
+              !_inShootGame &&
+              !_inLocomotive &&
+              !_inWagon2 &&
+              !_doorPushing &&
+              GameState.instance.introCinematicSeen &&
+              !GameState.instance.tipSeen('intro_done'))
+            IntroTutorial(
+              onDone: () {
+                GameState.instance.markTipSeen('intro_done');
+                setState(() {});
+              },
+            ),
         ],
       ),
     );
@@ -794,10 +830,25 @@ class _WagonScreenState extends State<WagonScreen>
                 ],
                 // ===== BOUTON DE JEU (toujours visible) =====
                 // Seul le bouton d'ACTION contextuel reste en jeu normal.
-                // Bouton ACTION contextuel — toujours visible (tout en bas).
+                // Bouton ACTION contextuel + bulle de hint « 1re utilisation ».
                 AnimatedBuilder(
                   animation: GameState.instance,
-                  builder: (_, __) => _actionFab(),
+                  builder: (_, __) {
+                    final h = _computeHint();
+                    final showHint =
+                        h != null && !GameState.instance.tipSeen(h.id);
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        if (showHint) ...[
+                          HintBubble(text: h.text),
+                          const SizedBox(height: 10),
+                        ],
+                        _actionFab(),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -926,6 +977,50 @@ class _WagonScreenState extends State<WagonScreen>
     );
   }
 
+  /// Hint contextuel « 1re utilisation » selon la position de Shen. Suit le
+  /// MÊME ordre de priorité que [_actionFab] (sinon le hint ne matche pas
+  /// l'action proposée). null = pas de hint pour ce contexte.
+  ({String id, String text})? _computeHint() {
+    if (_doorPushing) return null;
+    if (_atLeftDoor) {
+      return (
+        id: 'go_loco',
+        text: _inWagon2
+            ? 'Retour au wagon principal.'
+            : 'Porte vers la locomotive : c\'est là qu\'on ouvre la carte du voyage.'
+      );
+    }
+    if (_atRightDoor &&
+        !_inWagon2 &&
+        GameState.instance.propUnlocked('wagon2')) {
+      return (id: 'go_cellier', text: 'Le cellier (2e wagon) : bain, douche…');
+    }
+    if (_atBath) return (id: 'bath', text: 'Un bon bain pour te détendre.');
+    if (_atShower) return (id: 'shower', text: 'Une douche pour te laver.');
+    if (_atSister) {
+      return (id: 'sister', text: 'Ta sœur : un câlin remonte le moral.');
+    }
+    if (!_inWagon2 && _atBed) {
+      return (id: 'bed', text: 'Dors ici pour récupérer des forces.');
+    }
+    if (!_inWagon2 && _atNotebook) {
+      return (id: 'notebook', text: 'Lis un moment : ça apaise.');
+    }
+    if (!_inWagon2 && _atFilter) {
+      return (id: 'filter', text: 'Remplis le filtre, puis bois (jauge Soif).');
+    }
+    if (!_inWagon2 && _atDog) {
+      return (id: 'dog', text: 'Caresse le chien : ça réchauffe le cœur.');
+    }
+    if (!_inWagon2 && _atHydro) {
+      return (id: 'hydro', text: 'La serre : fais pousser de quoi manger.');
+    }
+    if (!_inWagon2 && _atLamp) {
+      return (id: 'lamp', text: 'Allume ou éteins la lampe.');
+    }
+    return null;
+  }
+
   Widget _actionFab() {
     IconData icon = Icons.help_outline;
     VoidCallback? action;
@@ -1014,7 +1109,16 @@ class _WagonScreenState extends State<WagonScreen>
       icon = Icons.meeting_room;
     }
 
-    final bool active = action != null;
+    // Hint « 1re utilisation » : marqué vu dès qu'on utilise l'objet.
+    final hint = _computeHint();
+    final baseAction = action;
+    final onTapAction = baseAction == null
+        ? null
+        : () {
+            if (hint != null) GameState.instance.markTipSeen(hint.id);
+            baseAction();
+          };
+    final bool active = onTapAction != null;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOut,
@@ -1064,7 +1168,7 @@ class _WagonScreenState extends State<WagonScreen>
         shape: const CircleBorder(),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: action,
+          onTap: onTapAction,
           splashColor: Colors.white.withValues(alpha: 0.25),
           highlightColor: Colors.white.withValues(alpha: 0.10),
           child: Stack(
