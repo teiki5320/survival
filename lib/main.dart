@@ -180,7 +180,7 @@ class _WagonScreenState extends State<WagonScreen>
   double _dogLiveX = 0.525;
   // Destination visée par l'animation de porte en cours : 'loco', 'wagon2'
   // (depuis le wagon 1, porte droite) ou 'wagon1' (depuis le wagon 2, porte
-  // gauche). Consommée dans _onDoorPushDone.
+  // gauche). Consommée dans _applyPendingDoor (à la fin du fondu).
   String? _pendingDoor;
   // Mirror of the heroine's X position. `_heroX` change quand le perso
   // bouge (60Hz) — pour éviter un setState à chaque tick qui rebuild
@@ -281,16 +281,6 @@ class _WagonScreenState extends State<WagonScreen>
     reverseDuration: const Duration(milliseconds: 240),
   );
 
-  /// Démarre l'assombrissement dès le CLIC sur une porte. RAPIDE au début
-  /// (easeOut) pour couvrir tout de suite le changement de sprite (open_door) :
-  /// ~80 % de noir en ~180 ms, noir plein en ~420 ms — donc plus aucun "saut"
-  /// visible. La scène basculera ensuite à la fin de l'anim de porte.
-  void _startDoorFade() {
-    _curtain.animateTo(1.0,
-        duration: const Duration(milliseconds: 420),
-        curve: Curves.easeOutCubic);
-  }
-
   /// Effectue [applySwap] (le setState qui change de scène) à l'abri du rideau :
   /// on s'assure d'être au NOIR PLEIN (en terminant le fondu en cours s'il
   /// n'est pas fini), on swap, on maintient un court instant (le temps que la
@@ -370,65 +360,54 @@ class _WagonScreenState extends State<WagonScreen>
     });
   }
 
-  void _enterLocomotive() {
-    if (_doorPushing || _curtain.isAnimating) return;
-    _warmLocoAnims(); // décode les sprites loco pendant l'anim de porte
-    _startDoorFade(); // l'écran s'assombrit pendant qu'elle ouvre la porte
-    setState(() {
-      _doorPushing = true;
-      _doorPushRight = false; // porte gauche
-      _pendingDoor = 'loco';
-      _doorPushToken++;
-    });
-  }
+  void _enterLocomotive() => _beginDoor('loco', right: false, warmLoco: true);
 
   // Wagon 1, porte droite : anim d'ouverture vers la droite -> wagon 2.
-  void _enterWagon2() {
-    if (_doorPushing || _curtain.isAnimating) return;
-    _startDoorFade();
-    setState(() {
-      _doorPushing = true;
-      _doorPushRight = true;
-      _pendingDoor = 'wagon2';
-      _doorPushToken++;
-    });
-  }
+  void _enterWagon2() => _beginDoor('wagon2', right: true);
 
   // Wagon 2, porte gauche : anim d'ouverture vers la gauche -> wagon 1.
-  void _returnToWagon1() {
+  void _returnToWagon1() => _beginDoor('wagon1', right: false);
+
+  /// Transition de PORTE — DÉTERMINISTE. On lance l'anim d'ouverture (purement
+  /// cosmétique, visible le temps que le noir tombe) ET le fondu au noir piloté
+  /// par le rideau, puis on swappe la scène À LA FIN DU FONDU (donc derrière le
+  /// noir plein). On NE dépend plus de la fin de l'anim de porte : celle-ci est
+  /// pilotée par un ticker qui accumule le temps réel et pouvait "sauter" sur un
+  /// hoquet de précache -> swap visible à travers un rideau pas encore opaque
+  /// = clignotement intermittent. Le fondu (AnimationController vsync) attend,
+  /// lui, le vrai noir plein avant de déclencher le swap.
+  void _beginDoor(String dest, {required bool right, bool warmLoco = false}) {
     if (_doorPushing || _curtain.isAnimating) return;
-    _startDoorFade();
+    if (warmLoco) _warmLocoAnims(); // décode les sprites loco sous le fondu
     setState(() {
       _doorPushing = true;
-      _doorPushRight = false;
-      _pendingDoor = 'wagon1';
+      _doorPushRight = right;
+      _pendingDoor = dest;
       _doorPushToken++;
+    });
+    _curtain
+        .animateTo(1.0,
+            duration: const Duration(milliseconds: 360),
+            curve: Curves.easeOutCubic)
+        .whenComplete(() {
+      if (mounted) _doCurtainSwap(_applyPendingDoor);
     });
   }
 
-  void _onDoorPushDone() {
-    if (!mounted) return;
+  void _applyPendingDoor() {
     final dest = _pendingDoor;
     _pendingDoor = null;
-    // L'anim de porte a joué EN ENTIER (20 frames). On échange maintenant la
-    // scène DERRIÈRE le rideau noir : le perso de la loco est rendu plus gros
-    // (caméra rapprochée), sans le rideau on voyait un "saut" au passage.
-    _curtainSwap(() {
-      _doorPushing = false;
-      switch (dest) {
-        case 'loco':
-          _inLocomotive = true;
-          break;
-        case 'wagon2':
-          _inWagon2 = true;
-          _heroSpawnX = 0.12; // arrive tout près de la porte (gauche) du cellier
-          break;
-        case 'wagon1':
-          _inWagon2 = false;
-          _heroSpawnX = SideScrollScene.heroXMax; // revient côté droit
-          break;
-      }
-    });
+    _doorPushing = false;
+    switch (dest) {
+      case 'loco':
+        _inLocomotive = true;
+      case 'wagon2':
+        _inWagon2 = true;
+        _heroSpawnX = 0.12; // arrive tout près de la porte (gauche) du cellier
+      case 'wagon1':
+        _inWagon2 = false;
+        _heroSpawnX = SideScrollScene.heroXMax; // revient côté droit
+    }
     if (dest == 'loco') _audio.startFire();
   }
 
@@ -663,7 +642,10 @@ class _WagonScreenState extends State<WagonScreen>
             logsThrown: _logsThrown,
             doorPushToken: _doorPushToken,
             doorPushRight: _doorPushRight,
-            onDoorPushDone: _onDoorPushDone,
+            // Le swap de scène est désormais piloté par la FIN DU FONDU
+            // (déterministe), pas par la fin de l'anim de porte -> callback
+            // débranché (l'anim reste jouée, purement cosmétique).
+            onDoorPushDone: null,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
             // La carte est désormais dans la LOCOMOTIVE (plus dans le wagon).
             onOpenMap: null,
