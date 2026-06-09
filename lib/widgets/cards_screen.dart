@@ -181,8 +181,10 @@ class _CardsScreenState extends State<CardsScreen>
     if (card == null || _showingResult) return;
     if (_flyCtrl.isAnimating) return;
     // Tirer une carte coûte 1 crédit. À sec : on annule le swipe et on
-    // signale qu'il faut attendre la recharge.
-    if (!GameState.instance.spendCardCredit()) {
+    // signale qu'il faut attendre la recharge. En mode debug : gratuit (on
+    // joue les cartes comme on veut).
+    if (!GameState.instance.debugMode &&
+        !GameState.instance.spendCardCredit()) {
       setState(() {
         _drag = 0;
         _noCreditFlash = true;
@@ -260,6 +262,7 @@ class _CardsScreenState extends State<CardsScreen>
                         _topBar(),
                         _statsRow(),
                         _gareProgress(),
+                        _debugBar(),
                         Expanded(child: _cardArea()),
                         _bottomZone(),
                         const SizedBox(height: 10),
@@ -375,6 +378,59 @@ class _CardsScreenState extends State<CardsScreen>
     final m = s ~/ 60;
     final r = s % 60;
     return '$m:${r.toString().padLeft(2, '0')}';
+  }
+
+  // --- barre DEBUG (mode debug uniquement) : navigation libre dans les
+  // cartes pour tester le contenu. Passer une carte = avance sans effet ;
+  // ◀/▶ Gare = saute au segment d'une autre gare (combat zappé).
+  Widget _debugBar() {
+    if (!GameState.instance.debugMode) return const SizedBox.shrink();
+    Widget btn(String label, VoidCallback onTap) => GestureDetector(
+          onTap: onTap,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E7A3A).withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF49D17B), width: 1),
+            ),
+            child: Text(label,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          btn('◀ Gare', () => _debugJump(_engine.gareIndex - 1)),
+          btn('Passer ▸', _debugSkip),
+          btn('Gare ▶', () => _debugJump(_engine.gareIndex + 1)),
+        ],
+      ),
+    );
+  }
+
+  void _debugSkip() {
+    final next = _engine.debugSkipCard();
+    setState(() => _state = next);
+    _maybeAnnounceGare();
+  }
+
+  void _debugJump(int idx) {
+    final next = _engine.debugGoToGare(idx);
+    _announcedGare = -1; // force la ré-annonce de la nouvelle gare
+    setState(() {
+      _state = next;
+      _combatGare = null; // pas de combat forcé en navigation debug
+      _resultText = null;
+      _pending = null;
+    });
+    _maybeAnnounceGare();
   }
 
   // --- barre du haut ---

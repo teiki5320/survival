@@ -306,6 +306,37 @@ class ReignsEngine {
     if (_segmentTotal < 1) _segmentTotal = 1;
   }
 
+  // --- Outils DEBUG (navigation libre dans les cartes, mode debug uniquement).
+
+  /// DEBUG : passe la carte courante SANS appliquer d'effet (parcourir
+  /// librement le contenu). Enchaîne sur la gare suivante si le segment est
+  /// fini ; reboucle à la 1re gare après la dernière.
+  EngineState debugSkipCard() {
+    if (_queue.isNotEmpty) _queue.removeAt(0);
+    _gs.cardSegmentProgress =
+        ((_segmentTotal - _queue.length) / _segmentTotal).clamp(0.0, 1.0);
+    if (_queue.isEmpty) {
+      final next = (_gs.cardGareIndex ?? 0) + 1;
+      _gs.cardGareIndex = next >= segments.length ? 0 : next;
+      _gs.refreshWeatherForZone();
+      _gs.save();
+      _loadSegment();
+    }
+    return _emit();
+  }
+
+  /// DEBUG : recharge directement le segment d'une gare donnée (wrap autour
+  /// des 14). Sert à tester n'importe quelle gare sans tout rejouer.
+  EngineState debugGoToGare(int idx) {
+    final n = segments.length;
+    _gs.cardGareIndex = ((idx % n) + n) % n;
+    _gs.refreshWeatherForZone();
+    _gs.save();
+    _queue.clear();
+    _loadSegment();
+    return _emit();
+  }
+
   EngineState _emit() {
     final card = _queue.isEmpty ? null : _queue.first;
     return EngineState(
