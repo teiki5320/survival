@@ -385,9 +385,12 @@ class _WagonScreenState extends State<WagonScreen>
       _pendingDoor = dest;
       _doorPushToken++;
     });
+    // Fondu RAPIDE (180 ms) : le noir tombe presque tout de suite -> le
+    // changement de sprite (idle -> open_door, non raccord) n'a pas le temps
+    // d'être visible. Le swap se fait à la fin du fondu (noir plein garanti).
     _curtain
         .animateTo(1.0,
-            duration: const Duration(milliseconds: 360),
+            duration: const Duration(milliseconds: 180),
             curve: Curves.easeOutCubic)
         .whenComplete(() {
       if (mounted) _doCurtainSwap(_applyPendingDoor);

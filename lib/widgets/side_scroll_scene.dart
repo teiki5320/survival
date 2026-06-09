@@ -165,12 +165,12 @@ class SideScrollScene extends StatefulWidget {
   /// Left bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the door (= porte
   /// gauche du wagon vers la locomotive).
-  static const double heroXMin = 0.27;
+  static const double heroXMin = 0.30;
 
   /// Right bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the right door
   /// (= ouverture sur la map du monde).
-  static const double heroXMax = 0.81;
+  static const double heroXMax = 0.78;
 
   /// Centres X normalisés des props interactifs. Le parent compare
   /// _heroX à ces valeurs pour décider quoi afficher sur l'action FAB.
@@ -2344,9 +2344,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (_bathing || _showering || _duoActive || _petDog) {
       return const SizedBox.shrink();
     }
-    // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
-    // est dessiné plus grand dans le cadre -> son sol est plus bas.
-    final feetY = h * (widget.secondWagon ? 0.80 : 0.785);
+    // Wagon's interior floor sits roughly at this Y. La héroïne marchait plus
+    // BAS (0.785) que la sœur/le chien (0.74) -> collée au bord bas du wagon.
+    // Alignée sur la ligne de sol des compagnons.
+    final feetY = h * (widget.secondWagon ? 0.78 : 0.745);
     final anchorX = _heroX * w;
 
     // Cas spéciaux ancrés sur le lit : la fille n'est pas sur le sol,
