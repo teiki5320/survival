@@ -231,7 +231,8 @@ class _WagonScreenState extends State<WagonScreen>
       _unlocked('filter') && _near(GameState.instance.w1x('filtre'));
   bool get _atLamp =>
       _unlocked('lamp') && _near(GameState.instance.w1x('lamp'));
-  bool get _atStove => _unlocked('stove') && _near(SideScrollScene.stoveCenterX);
+  bool get _atStove =>
+      _unlocked('stove') && _near(GameState.instance.w1x('gaziniere'));
   bool get _atHydro =>
       _unlocked('hydro') && _near(GameState.instance.w1x('bac'));
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);

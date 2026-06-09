@@ -243,7 +243,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // props AJUSTABLES (position/taille réglables en debug) rendus à part via
   // _buildWagon1Adjustable — pas dans cette liste générique (figée).
   static final List<_PropDef> _propDefs = [
-    const _PropDef('stove',    'Gaziniere', animated: true,  frameCount: 49),
     const _PropDef('notebook', 'Carnet',    animated: false),
     const _PropDef('firstaid', 'Secours',   animated: false),
     const _PropDef('bowl',     'Gamelle',   animated: false),
@@ -1678,6 +1677,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
+                      // HUD ajuster wagon 1 (debug) — AU-DESSUS de tout pour
+                      // rester lisible. Panneau interactif (coords + flip).
+                      if (!widget.secondWagon && widget.wagon1Adjust)
+                        _wagon1CoordHud(GameState.instance),
                     ],
                   ),
                 ),
@@ -1723,10 +1726,24 @@ class _SideScrollSceneState extends State<SideScrollScene>
     required void Function(double newH) onResize,
     VoidCallback? onTap,
     bool? adjust,
+    int flipBits = 0,
   }) {
     final ph = h * heightFrac;
     final pw = ph * aspect;
-    final tinted = _nightTint(child);
+    // Miroir H (bit 1) / V (bit 2) appliqué à l'asset, réglable en mode ajuster.
+    Widget flipped = child;
+    if (flipBits != 0) {
+      flipped = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scaleByDouble(
+            (flipBits & 1) != 0 ? -1.0 : 1.0,
+            (flipBits & 2) != 0 ? -1.0 : 1.0,
+            1.0,
+            1.0),
+        child: child,
+      );
+    }
+    final tinted = _nightTint(flipped);
     final adjusting = adjust ?? widget.wagon2Adjust;
     if (!adjusting) {
       // Hors mode ajuster : tappable si onTap fourni (ex. armoire = garde-robe),
@@ -1816,6 +1833,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 w: w, h: h,
                 cx: gs.w1x(key), topY: gs.w1y(key), heightFrac: gs.w1h(key),
                 aspect: aspect, label: key, adjust: widget.wagon1Adjust,
+                flipBits: gs.w1Flip(key),
                 child: child,
                 onMove: (dx, dy) => gs.w1Move(key, dx, dy),
                 onResize: (nh) => gs.w1Resize(key, nh),
@@ -1833,49 +1851,82 @@ class _SideScrollSceneState extends State<SideScrollScene>
     return Positioned.fill(
       child: Stack(
         children: [
+          // Gazinière à bois (cuisine) — animée, ajustable.
+          prop('gaziniere', 'stove', 1.0, anim('stove', 49)),
           prop('lamp', 'lamp', 268 / 507, lampChild),
           prop('bac', 'hydro', 204 / 212, still('assets/objects/bac_18.png')),
-          prop('filtre', 'filter', 222 / 245, anim('filtre', 25)),
+          // Filtre = ANCIEN filtre (tank niveau d'eau), réglable.
+          prop('filtre', 'filter', 196 / 356,
+              _WaterTankSprite(level: _filterDisplayLevel, fit: BoxFit.contain)),
           prop('poele', 'stove', 150 / 218,
               still('assets/objects/poele_20.png')),
-          if (widget.wagon1Adjust) _wagon1CoordHud(gs),
         ],
       ),
     );
   }
 
   Widget _wagon1CoordHud(GameState gs) {
-    String l(String n) =>
-        '${n.padRight(7)} x${gs.w1x(n).toStringAsFixed(3)}  y${gs.w1y(n).toStringAsFixed(3)}  h${gs.w1h(n).toStringAsFixed(3)}';
-    final lines = ['lamp', 'bac', 'filtre', 'poele'].map(l).toList();
+    Widget flipBtn(String lab, bool on, VoidCallback tap) => GestureDetector(
+          onTap: tap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            margin: const EdgeInsets.only(left: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: on ? const Color(0xFFE8B96B) : Colors.white24,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(lab,
+                style: TextStyle(
+                    color: on ? const Color(0xFF2A2018) : Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
+          ),
+        );
+    Widget row(String n) {
+      final t =
+          '${n.padRight(9)} x${gs.w1x(n).toStringAsFixed(3)} y${gs.w1y(n).toStringAsFixed(3)} h${gs.w1h(n).toStringAsFixed(3)}';
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: 232,
+              child: Text(t,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontFamily: 'monospace')),
+            ),
+            flipBtn('↔', gs.w1FlipH(n), () => setState(() => gs.w1ToggleFlip(n, 1))),
+            flipBtn('↕', gs.w1FlipV(n), () => setState(() => gs.w1ToggleFlip(n, 2))),
+          ],
+        ),
+      );
+    }
+
     return Positioned(
       left: 8,
       bottom: 8,
-      child: IgnorePointer(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.62),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('AJUSTER WAGON 1 — pincer = taille',
-                  style: TextStyle(
-                      color: Color(0xFFE8B96B),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold)),
-              for (final s in lines)
-                Text(s,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        height: 1.3)),
-            ],
-          ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('AJUSTER WAGON 1 — pincer = taille · ↔↕ = miroir',
+                style: TextStyle(
+                    color: Color(0xFFE8B96B),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold)),
+            for (final n in ['gaziniere', 'lamp', 'bac', 'filtre', 'poele'])
+              row(n),
+          ],
         ),
       ),
     );
@@ -2358,6 +2409,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         startX: _dogX,
         minX: 0.30,
         maxX: 0.80,
+        night: widget.night,
         onSettled: (x) {
           _dogX = x;
           widget.onDogX?.call(x);
@@ -2556,6 +2608,7 @@ class _PropDef {
     this.key,
     this.label, {
     required this.animated,
+    // ignore: unused_element_parameter
     this.frameCount = 1,
   });
 
@@ -2751,6 +2804,18 @@ class _SisterCharacterState extends State<_SisterCharacter>
       _ctrl.stop();
       setState(() => _anim = null);
     }
+    // La nuit tombe -> elle va se coucher PEU APRÈS (1-3 s), pas au prochain
+    // tick de 7 s.
+    if (!old.night && widget.night) {
+      Timer(Duration(milliseconds: 1000 + _rng.nextInt(2000)), () {
+        if (mounted &&
+            widget.night &&
+            _anim != 'sleep' &&
+            !_goingToBed) {
+          _walkTo(widget.bedCenterX, toBed: true);
+        }
+      });
+    }
   }
 
   void _decide() {
@@ -2865,7 +2930,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
     // Contenu du sprite (MESURÉ) : corps horizontal occupant 0.738 du cadre en
     // largeur, centré verticalement à 0.563 du cadre. La sœur est petite -> on
     // limite la longueur à ~0.5 de la largeur du lit.
-    final bodyLen = widget.bedWidth * 0.50 * w; // longueur du corps (réduite)
+    final bodyLen = widget.bedWidth * 0.42 * w; // longueur du corps (réduite)
     final boxSize = bodyLen / 0.738;            // cadre 512 correspondant
     final left = widget.bedCenterX * w - boxSize / 2;
     final mattressY = (widget.bedTopY + 0.105) * h; // ligne du matelas (un peu + bas)
@@ -2909,6 +2974,7 @@ class _DogCharacter extends StatefulWidget {
     required this.minX,
     required this.maxX,
     required this.onSettled,
+    this.night = false,
   });
   final Widget Function(Widget child) tint;
   final double heightFrac;
@@ -2917,6 +2983,7 @@ class _DogCharacter extends StatefulWidget {
   final double minX;
   final double maxX;
   final ValueChanged<double> onSettled;
+  final bool night;
 
   @override
   State<_DogCharacter> createState() => _DogCharacterState();
@@ -2935,11 +3002,37 @@ class _DogCharacterState extends State<_DogCharacter>
   bool _faceRight = true;
   String? _anim; // null = idle ; 'walk' ; ou une anim du pool
   int _frames = 25;
+  bool _sleeping = false; // dort la nuit (sleep en boucle)
 
   static const _pool = [
     ('stretch_yawn', 2000), ('head_tilt', 1500), ('bark', 1400),
     ('wag_tail', 1600), ('lay_down', 2000), ('sleep', 2600),
   ];
+
+  @override
+  void didUpdateWidget(covariant _DogCharacter old) {
+    super.didUpdateWidget(old);
+    // Le jour se lève -> réveil.
+    if (old.night && !widget.night && _sleeping) {
+      _sleeping = false;
+      _ctrl.stop();
+      setState(() => _anim = null);
+    }
+    // La nuit tombe -> il se couche et dort PEU APRÈS (2-4 s).
+    if (!old.night && widget.night) {
+      Timer(Duration(milliseconds: 2000 + _rng.nextInt(2000)), () {
+        if (mounted && widget.night && !_sleeping) _sleepNow();
+      });
+    }
+  }
+
+  void _sleepNow() {
+    _move.stop();
+    _sleeping = true;
+    setState(() { _anim = 'sleep'; _frames = 25; });
+    _ctrl.duration = const Duration(milliseconds: 3200); // respiration lente
+    _ctrl.repeat();
+  }
 
   @override
   void initState() {
@@ -2974,6 +3067,11 @@ class _DogCharacterState extends State<_DogCharacter>
 
   void _decide() {
     if (!mounted || _anim == 'walk') return;
+    if (widget.night || _sleeping) {
+      // La nuit, il dort (pas de balade).
+      if (!_sleeping) _sleepNow();
+      return;
+    }
     if (_rng.nextDouble() < 0.5) {
       _walkTo(widget.minX + _rng.nextDouble() * (widget.maxX - widget.minX));
     } else {

@@ -166,7 +166,7 @@ class GameState extends ChangeNotifier {
       final w1p = data['wagon1Props'];
       if (w1p is Map) {
         w1p.forEach((k, v) {
-          if (v is List && v.length == 3 && wagon1Props.containsKey(k)) {
+          if (v is List && v.length >= 3 && wagon1Props.containsKey(k)) {
             wagon1Props[k as String] =
                 v.map((e) => (e as num).toDouble()).toList();
           }
@@ -569,18 +569,27 @@ class GameState extends ChangeNotifier {
   /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
   double stoveX = 0.479, stoveY = 0.445, stoveH = 0.263;
 
-  /// Props ajustables du wagon 1 (lampe, bac de culture, filtre, poêle à bois) :
-  /// [x (centre, frac w), y (haut, frac h), h (hauteur, frac h)]. Déplaçables +
-  /// redimensionnables en mode ajuster debug, persistés.
+  /// Props ajustables du wagon 1 (lampe, bac de culture, filtre, poêle à bois,
+  /// gazinière) : [x (centre, frac w), y (haut, frac h), h (hauteur, frac h),
+  /// flipBits (0=aucun, 1=miroir H, 2=miroir V, 3=les deux)]. Déplaçables +
+  /// redimensionnables + miroitables en mode ajuster debug, persistés.
   final Map<String, List<double>> wagon1Props = {
-    'lamp': [0.415, 0.300, 0.150],
-    'bac': [0.800, 0.470, 0.230],
-    'filtre': [0.727, 0.500, 0.230],
-    'poele': [0.480, 0.470, 0.250],
+    'lamp': [0.415, 0.300, 0.150, 0],
+    'bac': [0.800, 0.470, 0.230, 0],
+    'filtre': [0.727, 0.500, 0.230, 0],
+    'poele': [0.480, 0.470, 0.250, 0],
+    'gaziniere': [0.629, 0.445, 0.263, 0],
   };
   double w1x(String k) => wagon1Props[k]![0];
   double w1y(String k) => wagon1Props[k]![1];
   double w1h(String k) => wagon1Props[k]![2];
+  int w1Flip(String k) {
+    final p = wagon1Props[k]!;
+    return p.length > 3 ? p[3].toInt() : 0;
+  }
+
+  bool w1FlipH(String k) => (w1Flip(k) & 1) != 0;
+  bool w1FlipV(String k) => (w1Flip(k) & 2) != 0;
   void w1Move(String k, double dx, double dy) {
     final p = wagon1Props[k]!;
     p[0] = (p[0] + dx).clamp(0.02, 0.98);
@@ -589,6 +598,16 @@ class GameState extends ChangeNotifier {
 
   void w1Resize(String k, double h) {
     wagon1Props[k]![2] = h;
+  }
+
+  void w1ToggleFlip(String k, int bit) {
+    final p = wagon1Props[k]!;
+    while (p.length < 4) {
+      p.add(0);
+    }
+    p[3] = (p[3].toInt() ^ bit).toDouble();
+    save();
+    notifyListeners();
   }
 
   /// Props positionnables du cellier (x=fraction w du centre, y=fraction h du
