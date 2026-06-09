@@ -168,8 +168,6 @@ class _WagonScreenState extends State<WagonScreen>
   int _showerToken = 0;
   // Mode ajuster (cellier) : déplacer/redimensionner les props + voir coords.
   bool _w2Adjust = false;
-  // Mode ajuster du POÊLE (wagon 1, debug) : le déplacer/redimensionner.
-  bool _stoveAdjust = false;
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
   // Interaction sœur (test manuel) : alterne lecture / câlin à chaque tap.
@@ -228,8 +226,7 @@ class _WagonScreenState extends State<WagonScreen>
   bool get _atFilter =>
       _unlocked('filter') && _near(SideScrollScene.filterCenterX);
   bool get _atLamp => _unlocked('lamp') && _near(SideScrollScene.lampCenterX);
-  bool get _atStove =>
-      _unlocked('stove') && _near(GameState.instance.stoveX);
+  bool get _atStove => _unlocked('stove') && _near(SideScrollScene.stoveCenterX);
   bool get _atHydro => _unlocked('hydro') && _near(SideScrollScene.hydroCenterX);
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
   // Proximité de la baignoire dans le cellier (position réglable).
@@ -621,7 +618,6 @@ class _WagonScreenState extends State<WagonScreen>
           child: SideScrollScene(
             secondWagon: secondWagon,
             wagon2Adjust: secondWagon && _w2Adjust,
-            stoveAdjust: !secondWagon && _stoveAdjust,
             bathToken: _bathToken,
             showerToken: _showerToken,
             petDogToken: _petDogToken,
@@ -816,24 +812,6 @@ class _WagonScreenState extends State<WagonScreen>
                           _w2Adjust ? const Color(0xFF2A2018) : null,
                       onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
                       child: Icon(_w2Adjust ? Icons.check : Icons.edit),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  // Wagon 1 seulement : placer/régler le POÊLE.
-                  if (!secondWagon) ...[
-                    FloatingActionButton.small(
-                      heroTag: 'stove_adjust',
-                      tooltip: _stoveAdjust
-                          ? 'Terminer le placement du poêle'
-                          : 'Placer / régler le poêle',
-                      backgroundColor:
-                          _stoveAdjust ? const Color(0xFFE8B96B) : null,
-                      foregroundColor:
-                          _stoveAdjust ? const Color(0xFF2A2018) : null,
-                      onPressed: () =>
-                          setState(() => _stoveAdjust = !_stoveAdjust),
-                      child: Icon(
-                          _stoveAdjust ? Icons.check : Icons.local_fire_department),
                     ),
                     const SizedBox(height: 12),
                   ],
