@@ -540,6 +540,35 @@ map_route, **hydro_tank**, **title_bg**.
 
 ---
 
+## 🎯 BOUCLE DE JEU CIBLE (validée 2026-06-08) — `docs/boucle_jeu.png`
+
+Structure macro du jeu, à construire :
+1. **Cinématique d'ouverture** : la nuit de la fuite (explosions, famille
+   séparée, Shen monte dans le train).
+2. **On apparaît dans le train VIDE + abîmé** (seule, stats au plus bas, froid).
+3. **Bulles de TUTO** : résument ce qui vient de se passer, PUIS s'affichent à
+   **chaque 1re utilisation** d'un élément.
+4. Puis **LA BOUCLE**, répétée à chaque gare jusqu'au nord :
+   - **a) ~10 cartes** (Reigns) : choix qui font avancer l'histoire ET
+     **débloquent des objets** (filtre, hydro…), parfois éclairent le passé.
+   - **b) Cinématique** : le train entre en gare et s'arrête.
+   - **c) Gare = COMBAT** : un évènement qui fait avancer l'histoire OU fait
+     gagner un **élément clé**, joué pendant un combat.
+   - **d) S'occuper de Shen** entre les phases : **comme les Sims / un
+     Tamagotchi** (manger, boire, dormir, se laver, jouer avec le chien…).
+
+**Géo** : au départ le train est **entre la ville natale** (point de départ =
+là où le jeu se TERMINE) **et la 1re gare**.
+
+**Exemple gare 1** : les ~10 cartes font gagner **filtre à eau + tour hydro** ;
+à ce stade train abîmé + froid + stats ~0 → cinématique : entrée en gare,
+**un chiot sur le quai**, on sort, on se fait attaquer → bien jouer = **sauver
+le chiot**.
+
+**⚠️ Sprites** : `open_door` et `idle` ne sont pas raccord (oreille dehors vs
+sous les cheveux) → différence d'ART (pas un bug code). À régénérer pour
+matcher si on veut un raccord parfait.
+
 ## 🎯 Direction Reigns — VALIDÉE (2026-05-31)
 
 Concept Reigns **acté**. Reste à trancher en impl : hybride (wagon
