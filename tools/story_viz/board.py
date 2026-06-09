@@ -18,24 +18,24 @@ def zonename(g):
     return "FROID"
 
 GARES={
-1:[("G1","Ville en flammes","Regarder","M-6","Fermer la porte","M+3","gain"),
+1:[("G1","Ville en flammes","Regarder","M-6 +LIT","Fermer la porte","M+3 +LIT","gain"),
    ("G1b","Chiot sous un banc","Le recueillir","M+15 +CHIEN +GAMELLE","Refuser","M-5","gain"),
    ("G1c","Séparation (souvenir)","Jurer de les retrouver","M+10","Se préparer au pire","M-8 F+4",None)],
-2:[("G2","Nourrir la loco","Déchiffrer le manuel","B+18 F-4 +LAMPE +TABLE","À l'instinct","B+6 M-3 +LAMPE +TABLE",None),
+2:[("G2","Nourrir la loco","Déchiffrer le manuel","B+18 F-4 +LAMPE","À l'instinct","B+6 M-3 +LAMPE",None),
    ("G2win","COMBAT BON : dépôt sécurisé","Plein de bois","B+12","Chercher vivres","F+8 S+5","bon"),
    ("G2lose","COMBAT RATÉ : réserve pillée","Sauver le reste","B-6","Repartir furieuse","M-4 F-3","rate")],
 3:[("G3","Pillards/brouillard","Passer en fantôme","B-6 M-4 +CARNET","Accélérer","B-10 M+3 +CARNET",None),
    ("G3b","Foulard d'enfant","Risquer pour l'attraper","F-8 M+12 +indice","Ne pas risquer","M-8",None),
    ("G3win","COMBAT BON : wagon intact","Souffler","M+8","Fouiller butin","F+6 B+4","bon"),
    ("G3lose","COMBAT RATÉ : wagon abîmé","Colmater","B-6 M-3","Repartir","F-5","rate")],
-4:[("G4","Mur des disparus","Y croire, foncer","M+14 B-8 +indice","Rester méfiante","M-4","gain"),
+4:[("G4","Mur des disparus","Y croire, foncer","M+14 B-8 +FILTRE +indice","Rester méfiante","M-4 +FILTRE","gain"),
    ("G4win","COMBAT BON : village sûr","Fouiller maisons","F+8 S+6","Chercher messages","M+8","bon"),
    ("G4lose","COMBAT RATÉ : embuscade","Décrocher vite","F-6 M-3","Récupérer un peu","S-5 B-4","rate")],
 5:[("G5","LA SŒUR, vivante !","Courir la serrer","M+40 +SŒUR","(idem)","M+40 +SŒUR","gain"),
    ("G5b","Parents au nord","Lui promettre","M+12 +cap","Rester prudente","M+4 +cap",None),
    ("G5win","COMBAT BON : sœur indemne","La serrer encore","M+10","Filer vite","B+4 M+5","bon"),
    ("G5lose","COMBAT RATÉ : elle a vu","La consoler","M-3 F-4 +SOIN","L'endurcir","M+4","rate")],
-6:[("G6","Camp louche","Troquer et partir","F+12 S+8 M-6 +COMMODE","Ne pas s'attarder","M+6 F-5 +COMMODE",None),
+6:[("G6","Camp louche","Troquer et partir","F+12 S+8 M-6 +ARMOIRE +CELLIER","Ne pas s'attarder","M+6 F-5 +ARMOIRE +CELLIER",None),
    ("G6win","COMBAT BON : respect du camp","Négocier d'égal","F+10 S+6 M+4","Garde payée","F+12 B+4","bon"),
    ("G6lose","COMBAT RATÉ : prix durcis","Payer fort","F-8 M-4","Partir sans rien","M-5","rate")],
 7:[("G7","Souvenir d'enfance","Raconter","M+16 B-5","Garder le cap","M+4",None),
@@ -47,7 +47,7 @@ GARES={
 9:[("G9","Sœur fiévreuse","La veiller","F-10 M+12 +SOIN","Braver la tempête","S-12 M+8 +SOIN",None),
    ("G9win","COMBAT BON : sœur reposée","Soigner sans relâche","M+10 +SOIN","Récup. matériel","F+8 B+6","bon"),
    ("G9lose","COMBAT RATÉ : fièvre remonte","Tout donner","F-10 M+6 +SOIN","Foncer à l'abri","B-8 M-4","rate")],
-10:[("G10","Serre cosy","Vrai repos","F+20 S+16 M+18 +BAIN +DOUCHE","Plein, repartir","F+12 S+10 B+12 +BAIN +DOUCHE","gain"),
+10:[("G10","Serre cosy","Vrai repos","F+20 S+16 M+18 +HYDRO +BAIN +DOUCHE +LANTERNES","Plein, repartir","F+12 S+10 B+12 +HYDRO +BAIN +DOUCHE +LANTERNES","gain"),
    ("G10win","COMBAT BON : serre défendue","Récolte massive","F+14 S+10","Profiter","M+12","bon"),
    ("G10lose","COMBAT RATÉ : serre saccagée","Sauver plants","F+6 M-3","Repartir dégoûtée","M-5","rate")],
 11:[("G11","Barrage pillards","Foncer","B-18 M-6","Négocier","F-16 S-10 M+4",None),
@@ -63,8 +63,8 @@ GARES={
    ("G14lose","COMBAT RATÉ : entrée cabossée","S'effondrer","M+4","Tenir pour elle","M-3","rate"),
    ("G14","Refuge — arrivée","Chercher vos parents","→ FIN","(idem)","→ FIN",None)],
 }
-NAMES=["Gare natale","Dépôt de fret","Halte 47","Village fantôme","Pont/fleuve","Camp-refuge",
-"Halte 12","Zone froide","Plaine enneigée","Oasis serre","Halte 31","Tour de guet","Col gelé","Refuge nord"]
+NAMES=["Kogarashi (natale)","Kurogane (dépôt)","Karasuno","Mayoidani (fantôme)","Tsukibashi (pont)","Yasuragi (camp)",
+"Hoshikage","Kiribe (froid)","Shizuhara","Hidamari (serre)","Yukihara","Miharashi (guet)","Fubuki (col)","Hokuto (refuge)"]
 
 GAINF={'aLeChien':'CHIEN','aLaSoeur':'SŒUR','aLaRadio':'RADIO','radio1':'R1','radio2':'R2',
 'radio3':'R3','asset_bed':'LIT','asset_filter':'FILTRE','asset_hydro':'HYDRO','indiceSoeur':'indice',
@@ -130,7 +130,7 @@ ct(x+10,cy2,"si X",Fn(13),(255,255,255),"lm"); x+=64
 ct(x,cy2,"= carte conditionnelle  ·  (indice / cap / SOIN = petits flags, non mis en évidence)",Fn(15),INK,"lm")
 
 # Les GROS gains à mettre en évidence (objets + persos + radio)
-BIGTOK=['CHIEN','SŒUR','LIT','FILTRE','HYDRO','RADIO','R1','R2','R3','GAMELLE','LAMPE','TABLE','CARNET','COMMODE','POÊLE','TROUSSE','BAIN','DOUCHE']
+BIGTOK=['CHIEN','SŒUR','LIT','FILTRE','HYDRO','RADIO','R1','R2','R3','GAMELLE','LAMPE','CARNET','ARMOIRE','CELLIER','POÊLE','TROUSSE','BAIN','DOUCHE','LANTERNES']
 def big_of(lfx,rfx):
     blob=" "+lfx+" "+rfx+" "
     return [t for t in BIGTOK if (" +"+t+" ") in blob or ("+"+t) in blob]

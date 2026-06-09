@@ -30,11 +30,11 @@ left_x, right_x = 150, 1500          # première / dernière gare
 track_y = 560
 xs = [left_x + i*(right_x-left_x)/(N-1) for i in range(N)]
 
-names = ["Gare natale","Dépôt de fret","Halte 47","Village fantôme","Pont sur le fleuve",
-         "Camp-refuge","Halte 12","Entrée zone froide","Plaine enneigée","Oasis (serre)",
-         "Halte 31","Tour de guet","Col gelé","Refuge du nord"]
-beats = ["ville en flammes","nourrir la loco","pillards/brouillard","mur des disparus","RETROUVAILLES sœur",
-         "camp louche","souvenir d'enfance","la sœur grelotte","sœur fiévreuse","répit cosy",
+names = ["Kogarashi","Kurogane","Karasuno","Mayoidani","Tsukibashi",
+         "Yasuragi","Hoshikage","Kiribe","Shizuhara","Hidamari",
+         "Yukihara","Miharashi","Fubuki","Hokuto"]
+beats = ["ville natale en flammes","nourrir la loco","pillards/brouillard","mur des disparus / radio","RETROUVAILLES sœur",
+         "camp louche","souvenir d'enfance","la sœur grelotte","sœur fiévreuse","répit cosy (serre)",
          "barrage pillards","refuge en vue","sacrifice loco","CLIMAX / fins"]
 combat_reactive = set(range(1,14))  # TOUTES les gares (sauf gare 1 tuto) ont une conséquence combat
 
@@ -77,11 +77,15 @@ ctext((xs[2]), 200, "● chaque gare : le combat a une CONSÉQUENCE (carte verte
 
 # ---- Objets débloqués, PAR GARE (empilés au-dessus de la station) ----
 OBJ_COL={'LIT':(201,155,106),'GAMELLE':(176,122,74),'LAMPE':(228,180,90),
- 'TABLE':(168,128,80),'CARNET':(150,120,175),'FILTRE EAU':(111,168,199),
- 'COMMODE':(150,112,82),'POÊLE':(200,95,70),'TROUSSE':(208,120,120),
- 'HYDRO':(123,174,107),'BAIN':(95,160,200),'DOUCHE':(92,150,182)}
-gare_objs={0:['LIT','GAMELLE'],1:['LAMPE','TABLE'],2:['CARNET'],3:['FILTRE EAU'],
- 5:['COMMODE'],7:['POÊLE','TROUSSE'],9:['HYDRO','BAIN','DOUCHE']}
+ 'CARNET':(150,120,175),'FILTRE EAU':(111,168,199),
+ 'ARMOIRE':(150,112,82),'POÊLE':(200,95,70),'TROUSSE':(208,120,120),
+ 'HYDRO':(123,174,107),'BAIN':(95,160,200),'DOUCHE':(92,150,182),
+ 'LANTERNES':(214,170,90)}
+# Placement RÉEL (flags asset_* dans cards_data) : lit+gamelle g1, lampe g2,
+# carnet g3, filtre g4, armoire+cellier g6, poêle+trousse g8,
+# hydro+bain+douche+lanternes g10. (TABLE retirée ; ARMOIRE = dans le cellier.)
+gare_objs={0:['LIT','GAMELLE'],1:['LAMPE'],2:['CARNET'],3:['FILTRE EAU'],
+ 5:['ARMOIRE'],7:['POÊLE','TROUSSE'],9:['HYDRO','BAIN','DOUCHE','LANTERNES']}
 ctext(150, 244, "OBJETS DÉBLOQUÉS (apparaissent dans le wagon à cette gare)", F(17, True), INK)
 for gi, objs in gare_objs.items():
     x = xs[gi]
@@ -144,8 +148,8 @@ for title, col, cond in ends:
 # ---- Légende bas ----
 ly = H-120
 ctext(110, ly, "✓ SANS le mode debug, le jeu suit EXACTEMENT ce plan : wagon vide au départ, tout apparaît à sa gare.", F(16, True), (90,120,70), anchor="lm")
-ctext(110, ly+30, "À valider : CHIEN reste gare 1 (chiot pendant la fuite) — le déplacer en gare 2-3 ?", F(15), INK, anchor="lm")
-ctext(110, ly+58, "Le mode debug (🐞) affiche tout d'un coup pour tester les anims.", F(14), INK2, anchor="lm")
+ctext(110, ly+30, "LIT = débloqué dès la GARE 1 (carte G1, les 2 choix). ARMOIRE = dans le 2e wagon (cellier), débloqué gare 6. TABLE retirée.", F(15), INK, anchor="lm")
+ctext(110, ly+58, "Le mode debug (🐞) affiche tout d'un coup + permet de jouer les cartes librement (Passer / sauter de gare).", F(14), INK2, anchor="lm")
 ctext(W-110, ly+58, "Le Vieux : SUPPRIMÉ ✓", F(16, True), (123,140,90), anchor="rm")
 
 img.save("/home/user/survival/docs/histoire_schema.png")
