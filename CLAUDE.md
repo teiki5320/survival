@@ -271,7 +271,7 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
   `title_bg.png`, titre, sous-titre, "Continuer" / "Nouvelle partie".
 - `lib/widgets/side_scroll_scene.dart` (~2400 l.) — Scène wagon : 4 parallax
   (sky 80s / horizon 20s / mid 10s / foreground 8s), wagon image, héroïne +
-  chien, props (hydro/lamp/stove/filter/table/notebook/firstaid/commode/bowl),
+  chien, props (hydro/lamp/stove/filter/notebook/firstaid/bowl),
   silhouettes humaines + foreground life, animations atmosphère. **Filtre =
   asset tank dynamique** selon `waterTankGlasses` (6 frames 0→5).
   - **Wagon = 2 stages** (windowed/clean) ; dirty+swept retirés.
@@ -338,8 +338,10 @@ prompt ne décrit QUE les différences / ce qui change par rapport à la réf.
   pet_dog (49fr).
 - Métriques actuelles `crouch` scale 1.10, `pet_dog` scale 0.70
   (réduits plusieurs fois suite à demandes user).
-- **Props actifs wagon** : hydro, lamp, stove, filter (= tank dynamique),
-  table, notebook, firstaid, commode, bowl, dog statique.
+- **Props actifs wagon 1** : hydro, lamp, stove, filter (= tank dynamique),
+  notebook, firstaid, bowl, dog statique. (table biscuits RETIRÉE ;
+  **armoire/commode DÉPLACÉE dans le wagon 2/cellier**, placeable via
+  `w2_adjust`, tap = garde-robe — coords `GameState.wagon2Commode*`.)
 - **Chien statique** + bouton action alterne pet_dog / crouch+wag_tail.
 - **Spawn perso au retour** : sortie loco → heroXMin, sortie map → heroXMax.
 
@@ -772,8 +774,10 @@ contenu. Ce qui a changé (TOUT est dans le code, vérifié) :
   `sisterShown`) lue À LA FOIS par la visibilité (side_scroll) ET l'interaction
   (main `_at*`). Un objet non débloqué est **invisible ET non cliquable**.
 - **Tout placé par gare** (flags `asset_*` dans `cards_data`) : lit+gamelle g1,
-  lampe+table g2, carnet g3, filtre g4, commode g6, poêle+trousse g8,
-  hydro+bain+douche+lanternes g10. **Wagon 2 (cellier) = asset_wagon2 (gare 6)**
+  lampe g2, carnet g3, filtre g4, commode (armoire, dans le cellier) g6,
+  poêle+trousse g8, hydro+bain+douche+lanternes g10. (`asset_table` reste posé
+  g2 mais la table n'a plus de prop — retirée.) **Wagon 2 (cellier) =
+  asset_wagon2 (gare 6)**
   (porte droite verrouillée avant). Chien=`aLeChien` (g1), sœur=`aLaSoeur` (g5).
 - **Cartes inter-gares FIXES** : `_drawFillers` joue TOUTES les cartes éligibles
   dans l'ordre (plus de tirage aléatoire / shuffle ; `drawCount` ignoré).

@@ -68,6 +68,8 @@ class GameState extends ChangeNotifier {
         'showerPanelH': showerPanelH,
         'showerHeadX': showerHeadX, 'showerHeadY': showerHeadY,
         'showerHeadH': showerHeadH,
+        'wagon2CommodeX': wagon2CommodeX, 'wagon2CommodeY': wagon2CommodeY,
+        'wagon2CommodeH': wagon2CommodeH,
         'locoMapCx': locoMapCx, 'locoMapCy': locoMapCy, 'locoMapW': locoMapW,
         'locoMapTurnY': locoMapTurnY, 'locoMapLeanZ': locoMapLeanZ,
         'waterTankGlasses': waterTankGlasses,
@@ -164,6 +166,9 @@ class GameState extends ChangeNotifier {
       showerHeadX = (data['showerHeadX'] as num?)?.toDouble() ?? showerHeadX;
       showerHeadY = (data['showerHeadY'] as num?)?.toDouble() ?? showerHeadY;
       showerHeadH = (data['showerHeadH'] as num?)?.toDouble() ?? showerHeadH;
+      wagon2CommodeX = (data['wagon2CommodeX'] as num?)?.toDouble() ?? wagon2CommodeX;
+      wagon2CommodeY = (data['wagon2CommodeY'] as num?)?.toDouble() ?? wagon2CommodeY;
+      wagon2CommodeH = (data['wagon2CommodeH'] as num?)?.toDouble() ?? wagon2CommodeH;
       locoMapCx = (data['locoMapCx'] as num?)?.toDouble() ?? locoMapCx;
       locoMapCy = (data['locoMapCy'] as num?)?.toDouble() ?? locoMapCy;
       locoMapW = (data['locoMapW'] as num?)?.toDouble() ?? locoMapW;
@@ -551,6 +556,9 @@ class GameState extends ChangeNotifier {
   double bathX = 0.48, bathY = 0.48, bathH = 0.31;
   double showerPanelX = 0.72, showerPanelY = 0.47, showerPanelH = 0.32;
   double showerHeadX = 0.75, showerHeadY = 0.22, showerHeadH = 0.32;
+  // Armoire à vêtements (commode) déplacée dans le cellier : tap = ouvre la
+  // garde-robe, déplaçable/redimensionnable en mode ajuster.
+  double wagon2CommodeX = 0.30, wagon2CommodeY = 0.55, wagon2CommodeH = 0.22;
 
   /// Carte du voyage accrochée dans la LOCOMOTIVE : centre (cx,cy en fractions
   /// de la scène) + largeur (fraction de la largeur). Déplaçable + pinçable en

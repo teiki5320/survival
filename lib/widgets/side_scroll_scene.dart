@@ -239,10 +239,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('lamp',     'Lampe',     animated: true,  frameCount: 49),
     const _PropDef('stove',    'Poele',     animated: true,  frameCount: 49),
     const _PropDef('filter',   'Filtre',    animated: false),
-    const _PropDef('table',    'Table',     animated: false),
     const _PropDef('notebook', 'Carnet',    animated: false),
     const _PropDef('firstaid', 'Secours',   animated: false),
-    const _PropDef('commode',  'Commode',   animated: false),
     const _PropDef('bowl',     'Gamelle',   animated: false),
     const _PropDef('wallmap',  'Carte',     animated: false),
   ];
@@ -252,10 +250,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'lamp':     _PropPos(0.415, 0.323, 0.104),
     'stove':    _PropPos(0.629, 0.445, 0.263),
     'filter':   _PropPos(0.727, 0.514, 0.200),
-    'table':    _PropPos(0.479, 0.557, 0.151),
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
-    'commode':  _PropPos(0.539, 0.571, 0.139),
     'bowl':     _PropPos(0.481, 0.669, 0.080),
     // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
     // Format paysage (la map est plus large que haute).
@@ -1714,17 +1710,26 @@ class _SideScrollSceneState extends State<SideScrollScene>
     required String label,
     required void Function(double dx, double dy) onMove,
     required void Function(double newH) onResize,
+    VoidCallback? onTap,
   }) {
     final ph = h * heightFrac;
     final pw = ph * aspect;
     final tinted = _nightTint(child);
     if (!widget.wagon2Adjust) {
+      // Hors mode ajuster : tappable si onTap fourni (ex. armoire = garde-robe),
+      // sinon décoratif (ignore les pointeurs).
       return Positioned(
         left: w * cx - pw / 2,
         top: h * topY,
         width: pw,
         height: ph,
-        child: IgnorePointer(child: tinted),
+        child: onTap == null
+            ? IgnorePointer(child: tinted)
+            : GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onTap,
+                child: tinted,
+              ),
       );
     }
     return Positioned(
@@ -1895,6 +1900,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
                   ),
                 ),
               ),
+          // Armoire à vêtements (commode) : débloquée avec le cellier
+          // (asset_commode, gare 6) ou en debug. Tap = ouvre la garde-robe,
+          // déplaçable/redimensionnable en mode ajuster comme les autres props.
+          if (_propUnlocked('commode'))
+            _w2Drag(
+              w: w, h: h, cx: gs.wagon2CommodeX, topY: gs.wagon2CommodeY,
+              heightFrac: gs.wagon2CommodeH, aspect: 1.0,
+              label: 'armoire',
+              child: Image.asset('assets/objects/commode.png',
+                  fit: BoxFit.contain, gaplessPlayback: true),
+              onTap: widget.onOpenWardrobe,
+              onMove: (dx, dy) {
+                gs.wagon2CommodeX = (gs.wagon2CommodeX + dx).clamp(0.04, 0.96);
+                gs.wagon2CommodeY = (gs.wagon2CommodeY + dy).clamp(0.04, 0.85);
+              },
+              onResize: (nh) => gs.wagon2CommodeH = nh,
+            ),
           // HUD coordonnées (mode ajuster) : lecture des x/y/h pour rebaker.
           if (widget.wagon2Adjust) _coordHud(gs),
         ],
@@ -1911,6 +1933,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       l('pommeau  ', gs.showerHeadX, gs.showerHeadY, gs.showerHeadH),
       l('lampe A  ', gs.wagon2LampAx, gs.wagon2LampAy, gs.wagon2LampAH),
       l('lampe B  ', gs.wagon2LampBx, gs.wagon2LampBy, gs.wagon2LampBH),
+      l('armoire  ', gs.wagon2CommodeX, gs.wagon2CommodeY, gs.wagon2CommodeH),
     ];
     return Positioned(
       left: 8,
@@ -2132,21 +2155,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
 
-    // commode = tappable (ouvre wardrobe), bowl = tap
-    // pour remplir si vide, reste = inert.
-    if (def.key == 'commode' && widget.onOpenWardrobe != null) {
-      return Positioned(
-        left: left,
-        top: top,
-        width: propW,
-        height: propH,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onOpenWardrobe,
-          child: wrapped,
-        ),
-      );
-    }
+    // bowl = tap pour remplir si vide, reste = inert. (L'armoire/commode a
+    // été déplacée dans le cellier — voir _buildWagon2Props.)
     if (def.key == 'bowl') {
       return Positioned(
         left: left,
