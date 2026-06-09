@@ -8,11 +8,11 @@
 // une horloge : sa position = la gare courante de la run + progression dans
 // le segment. Ainsi la carte reflète l'histoire au lieu de tourner en boucle.
 const List<double> kGarePositions = [
-  0.9887, // 1  Kogarashi (ville natale / fantôme)
+  0.2857, // 1  Kogarashi (ville natale) — placé à l'EX-emplacement de Mayoidani
   0.0865, // 2  Karasuno
   0.1854, // 3  Kurogane (dépôt ferroviaire)
   0.2143, // 4  Hoshikage
-  0.2857, // 5  Mayoidani (ex-village fantôme, radio)
+  0.9887, // 5  Mayoidani (ex-village fantôme, radio) — EX-emplacement du départ
   0.3467, // 6  Shizuhara
   0.4024, // 7  Yasuragi (camp-refuge)
   0.4631, // 8  Tsukibashi (pont) — ENTRÉE ZONE FROIDE
