@@ -821,12 +821,16 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  /// Démarre une nouvelle run : remet jauges, flags, progression à zéro.
+  // Stat de départ VOLONTAIREMENT BASSE : on commence l'aventure « au mini »
+  // (train abîmé, froid, à bout). À remonter en jouant. (Ajustable.)
+  static const int kStartStat = 25;
+
+  /// Démarre une nouvelle run : remet jauges (basses), flags, progression à 0.
   void startCardRun() {
-    cardSoif = 70;
-    cardFaim = 70;
-    cardBois = 70;
-    cardMoral = 70;
+    cardSoif = kStartStat;
+    cardFaim = kStartStat;
+    cardBois = kStartStat;
+    cardMoral = kStartStat;
     cardGareIndex = 0;
     cardFlags.clear();
     cardSeenOneshot.clear();

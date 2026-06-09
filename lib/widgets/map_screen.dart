@@ -260,7 +260,9 @@ class _MapScreenState extends State<MapScreen>
                       tooltip: 'Retour au train',
                       onTap: widget.onClose,
                     ),
-                    if (widget.onOpenWorkshop != null) ...[
+                    // Atelier & quotidien : réservé au MODE DEBUG pour l'instant.
+                    if (widget.onOpenWorkshop != null &&
+                        GameState.instance.debugMode) ...[
                       const SizedBox(height: 10),
                       _WorkshopFab(onPressed: widget.onOpenWorkshop!),
                     ],
@@ -282,23 +284,17 @@ class _MapScreenState extends State<MapScreen>
               ),
             ),
           ),
-          // Action principale + HUD de zone, en bas au centre.
+          // Action principale : AU CENTRE de l'image.
+          if (widget.onOpenCards != null)
+            Center(child: _ContinueJourneyButton(onTap: widget.onOpenCards!)),
+          // HUD de zone : tout en bas (un peu plus bas qu'avant).
           SafeArea(
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (widget.onOpenCards != null) ...[
-                      _ContinueJourneyButton(onTap: widget.onOpenCards!),
-                      const SizedBox(height: 12),
-                    ],
-                    _TrainZoneHUD(
-                        path: path, displayPosition: _displayPosition),
-                  ],
-                ),
+                padding: const EdgeInsets.only(bottom: 6),
+                child: _TrainZoneHUD(
+                    path: path, displayPosition: _displayPosition),
               ),
             ),
           ),
@@ -1088,7 +1084,7 @@ class _TrainZoneHUD extends StatelessWidget {
     final progressPct = (gs.cardSegmentProgress * 100).round();
     final String etaLabel;
     if (!gs.hasCardRun) {
-      etaLabel = 'Voyage à commencer';
+      etaLabel = ''; // pas de "Voyage à commencer" (inutile)
     } else if (nextStation == null) {
       etaLabel = 'Terminus — refuge nord';
     } else {
@@ -1128,14 +1124,14 @@ class _TrainZoneHUD extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 18),
           const SizedBox(width: 8),
-          Text('$zoneLabel  •  ',
-              style: TextStyle(color: color, fontSize: 13)),
-          const Icon(Icons.train, color: Colors.white70, size: 14),
-          const SizedBox(width: 4),
-          Text(
-            etaLabel,
-            style: const TextStyle(color: Colors.white70, fontSize: 13),
-          ),
+          Text(zoneLabel, style: TextStyle(color: color, fontSize: 13)),
+          if (etaLabel.isNotEmpty) ...[
+            Text('  •  ', style: TextStyle(color: color, fontSize: 13)),
+            const Icon(Icons.train, color: Colors.white70, size: 14),
+            const SizedBox(width: 4),
+            Text(etaLabel,
+                style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          ],
         ],
       ),
     );

@@ -17,13 +17,15 @@ paysage défile latéralement derrière, la locomotive est à gauche.
 **Esthétique cible** : Studio Ghibli + lofi anime, hand-painted, palette warm
 honey browns / cream / soft amber dedans, cold blue / pale fog dehors.
 
-**État actuel (2026-06-05)** : prototype riche. Wagon 1 vivant (Shen + sœur +
-chien **autonomes ET mobiles**), **2e wagon (cellier)** avec bain/douche/
-lanternes posables, **moteur de cartes** (CardsScreen) + carte 14 gares,
-**thermomètre/froid** branché sur le moral. Mini-jeu hydro + filtre eau inline.
-**NOUVEAU : mini-jeu de COMBAT aux gares** (`roof_defense_game.dart`) — Shen
-défend le train, on tire des pierres en arc sur les pillards. Audio sans
-musique.
+**État actuel (2026-06-09, build 0.99.9+213)** : prototype riche + onboarding.
+Wagon 1 vivant (Shen, + sœur/chien quand débloqués), **2e wagon (cellier)** à
+gagner (gare 6), **moteur de cartes** (14 gares, cartes inter-gares FIXES) +
+combat aux gares (`roof_defense_game.dart`, mode DUEL = le jeu). **Cinématique
+d'ouverture + bulles de tuto**. **Mode debug** unifié (bouton bas-gauche) :
+OFF = vrai jeu (wagon vide/abîmé, objets/persos débloqués au fil de l'histoire,
+stats de départ basses), ON = tout affiché + outils. Map UNIQUEMENT via la loco,
+cartes via « Continuer le voyage ». Thermomètre auto, musique réactivée.
+Voir le bloc « GROSSE SESSION 2026-06-09 » plus bas pour le détail.
 
 **✅ DIRECTION VALIDÉE (2026-05-31)** : gameplay **Reigns-like** + histoire
 canon (Shen fuit la 3e GM, cherche sa famille, train → refuge nord). Le
@@ -208,7 +210,7 @@ courbe de 10 duels.
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
 - **iOS 26 beta + debug** : crash `EXC_BAD_ACCESS`. Parade : **toujours
   `flutter run --release`**.
-- **Version actuelle** : `0.93.0+197` dans `pubspec.yaml`. Le **n° de build**
+- **Version actuelle** : `0.99.9+213` dans `pubspec.yaml`. Le **n° de build**
   s'affiche en bas de l'écran de chargement (`build X.Y.Z`, hardcodé dans
   `loading_screen.dart` — à bumper avec la version) pour vérifier quelle build
   TestFlight tourne (il y a un délai Xcode Cloud → TestFlight).
@@ -663,33 +665,37 @@ l'enfant / la sœur), à nommer plus tard.
 
 ## Ce qui reste à faire
 
-### 🚨 Priorité — suite de l'intégration COMBAT ↔ GARE ↔ SCORE
-**Socle FAIT (0.71.0)** : score /100, récompenses ressources, flags de tier,
-combat lancé à chaque gare depuis `cards_screen`, exemple de branche gare 3.
-Reste :
-0a. **Une idée de combat distincte par gare** (14 angles : décor, type de
-    pillards dominant, objectif). Aujourd'hui toutes les gares lancent la même
-    campagne 5 vagues.
-0b. **Brancher plus de gares sur le tier** : gare 5 (sauver la sœur selon
-    `combatGood_4`), gare 11/13 (climax pillards), etc. Mécanique en place
-    (`combatTier*`/`combatGood_N` lisibles dans `gareCards(flags)`).
-0c. **Boutique IAP** (4,99 € = 500 ferraille) — confort de combat seulement,
-    **jamais bloquer l'histoire** (éthique validée).
-0d. **Décider du combat à la gare 1** (idx 0) : actuellement SAUTÉ (tuto).
-0e. **Rebrancher l'apparition progressive des objets** : repasser
-    `side_scroll_scene._showAllProps` à `false` une fois le reste validé (les
-    flags `asset_bed/filter/hydro` sont déjà posés dans `cards_data`).
+### ✅ DÉJÀ FAIT (ne pas re-coder)
+Thermomètre AUTO ; `_showAllProps`→debug + objets placés par gare ; combat lancé
+à chaque gare + **conséquence vert/rouge à chaque gare** ; cinématique
+d'ouverture + bulles de tuto ; Nouvelle partie = vrai reset ; source unique de
+déblocage (visible=cliquable) ; cartes inter-gares FIXES ; map via loco + cartes
+via « Continuer le voyage » ; anims de mort pillards ; stats de départ basses.
 
-### 🚨 Priorité — relier la vie du wagon au gameplay Reigns
-1. **Brancher le thermomètre en AUTO** : `cabinTemp` calculée depuis la **zone
-   de la map** (tempéré→nord glacé) + **bois** (feu) + **météo** + **nuit**.
-   Aujourd'hui c'est manuel (bouton test). Débrancher le test ensuite.
-2. **Poêle à réinstaller** : mécanique où `stoveInstalled` devient un vrai
-   objet à placer dans le wagon (impacte la résistance au froid).
-3. **Habits chauds** : outfits avec `outfitWarmth` (wardrobe a déjà 1 outfit).
-4. **Relier map ↔ cartes ↔ wagon** : avancer sur la map = piochage de cartes,
-   zone change la temp/ambiance. Écrire le **contenu cartes** (14 gares +
-   ~130 fillers + arcs persos) dans `cards_data.dart`.
+### 🚨 Priorité — boucle de jeu (vision `docs/boucle_jeu.png`)
+0a. **Géo de départ** (décision user en attente) : renommer la ville de départ
+    (= fin), décider s'il faut un nœud « ville natale » AVANT la gare 1 sur la
+    map, positionner le train juste après. Fichier : `lib/widgets/map_screen.dart`
+    + `kGarePositions`/`_stations` dans `lib/constants.dart`.
+0b. **1er combat = TUTO** (décision 5) : aujourd'hui combat sauté à idx 0
+    (`cards_screen._presentCurrentCard`, `idx >= 1`). En faire un combat guidé,
+    et y rattacher le **sauvetage du chiot** (vision). Lié au placement du chien
+    (déplacer `aLeChien` g1→g2-3, décision 3).
+0c. **Tamagotchi** : besoins de Shen (faim/soif/sommeil/hygiène/jeu) qui
+    descendent avec le temps, remontés par les objets (manger/boire/dormir/
+    laver/jouer). Les actions existent déjà ; reste la décroissance temporelle.
+0d. **Cinématiques d'entrée en gare** (version texte comme l'ouverture).
+0e. **Une idée de combat distincte par gare** (14 angles). `_duelTest=true`.
+0f. **Brancher plus de gares sur le tier** combat (sœur malade, accueil refuge…)
+    via `combatTier*`/`combatGood_N` dans `gareCards(flags)`.
+0g. **Boutique IAP** (4,99 €=500 ferraille) — confort seulement.
+
+### Priorité — froid / confort (en partie fait)
+1. ✅ Thermomètre auto (zone+météo+nuit+feu). Reste à **équilibrer** (le nord
+   doit rester gérable : froid bloque le gain de moral).
+2. **Poêle interactif** : `stoveInstalled` en vrai objet à installer.
+3. **Habits chauds** : outfits avec `outfitWarmth` (wardrobe a 1 outfit).
+4. **Crédits de cartes** : à reconsidérer (cartes fixes = runs ~2× plus longues).
 
 ### Priorité — vie des wagons (idées validées en discussion)
 5. **Interactions émergentes** : chien/sœur suivent ou rejoignent Shen ;
@@ -757,28 +763,60 @@ Reste :
 
 ## Notes pour la prochaine session
 
-**Dernier sujet abordé (2026-06-04→05)** : grosse session **COMBAT**. On a
-intégré et débuggé le mini-jeu de combat aux gares (`roof_defense_game.dart`) :
-tir en arc, types de pillards (basic/lanceur/brute/boss), mêlée qui frappe le
-train, atelier d'upgrades en ferraille, perks/coffres/frénésie, mode campagne
-+ survie. On a corrigé 3 gros bugs (**écran bleu = StackFit.expand**, **freeze
-ConcurrentModification**, **OOM = cache/precache whitelist**), refait le décor
-en **vue de loin** (`gare_shoot.png`) avec gameplay en scene-units, ajouté les
-**nouveaux sprites sœur** (walk/idle/sleep sur le lit), et **durci la
-difficulté** par simulation (vagues DUR-B : correct perd ~70 %, bon ~90 %).
-Dernière action : **ré-affiché TOUS les objets du wagon** (`_showAllProps=true`)
-le temps de tout vérifier. Build **0.70.0+152**.
+**GROSSE SESSION 2026-06-09 (builds 0.92 → 0.99.8)** — UX, onboarding, nettoyage,
+contenu. Ce qui a changé (TOUT est dans le code, vérifié) :
 
-**À reprendre (dans l'ordre suggéré)** :
-1. **CÂBLER COMBAT ↔ GARE ↔ SCORE** (priorité 0a→0f de la roadmap) : c'est LE
-   gros chantier suivant. `onResult(score100)` → ressources + branches
-   d'histoire, lancer le combat à l'arrivée en gare, une idée par gare,
-   boutique IAP, puis rebrancher `_showAllProps=false`.
-2. **Écrire le contenu cartes** (`cards_data.dart`) : ~10 fillers entre chaque
-   gare qui débloquent les objets (lit→filtre→hydro) + arcs persos.
-3. **Brancher le thermomètre en auto** (zone map + bois + météo + nuit) et
-   débrancher le bouton test.
-4. **Vie des wagons** : interactions émergentes, fix nuit-sœur-qui-bouge-pas.
+- **Mode debug unifié** (`GameState.debugMode`, bouton « debug »/« DEBUG ON »
+  bas-gauche du wagon). OFF = vrai jeu, ON = tous les outils + tout affiché.
+- **SOURCE UNIQUE de déblocage** (`GameState.propUnlocked(key)` / `dogShown` /
+  `sisterShown`) lue À LA FOIS par la visibilité (side_scroll) ET l'interaction
+  (main `_at*`). Un objet non débloqué est **invisible ET non cliquable**.
+- **Tout placé par gare** (flags `asset_*` dans `cards_data`) : lit+gamelle g1,
+  lampe+table g2, carnet g3, filtre g4, commode g6, poêle+trousse g8,
+  hydro+bain+douche+lanternes g10. **Wagon 2 (cellier) = asset_wagon2 (gare 6)**
+  (porte droite verrouillée avant). Chien=`aLeChien` (g1), sœur=`aLaSoeur` (g5).
+- **Cartes inter-gares FIXES** : `_drawFillers` joue TOUTES les cartes éligibles
+  dans l'ordre (plus de tirage aléatoire / shuffle ; `drawCount` ignoré).
+- **Conséquence de COMBAT à CHAQUE gare** : helper `_combat()` dans cards_data
+  (vert = High|Mid, rouge = Low). `_duelTest = true` (duel = LE jeu, NE PAS
+  rebrancher sur debug).
+- **Anims de mort pillards** : `lanceur_die` (depuis le `Fall/` user, miroité) +
+  `pillard1_die` jouées ; knockback d'origine conservé (brute/boss = ragdoll).
+- **Cinématique d'ouverture** (`opening_cinematic.dart`, texte+fondu, sans art)
+  + **bulles de tuto** (`tutorial_overlay.dart` : intro + hint 1re utilisation).
+  Persistés : `seenTips`, `introCinematicSeen` (reset en Nouvelle partie).
+- **Nouvelle partie = vrai reset** (`GameState.resetForNewGame()` : vide flags,
+  jauges, objets, tips). Avant, `aLeChien` restait en mémoire (chien fantôme).
+- **Stats de départ BASSES** (`GameState.kStartStat = 25`) : on commence « au
+  mini ».
+- **Température AUTO** (zone+météo+nuit+feu), **musique réactivée**, **perf**
+  (précache statique, `shouldRepaint` ciblés, OOM), **~340 l. de code mort
+  retirées** (Le Vieux supprimé, `_DogActor`, cookToken…). `flutter analyze`=0.
+- **UI épurée** : en jeu, map UNIQUEMENT via la carte de la LOCO ; les cartes
+  s'ouvrent via **« Continuer le voyage »** (bouton centré sur la map) ; map
+  redessinée (close+atelier ronds) ; atelier réservé au **debug**. Halo lampe
+  wagon+loco gatés ; silhouettes de fond retirées. **Porte** : fondu noir
+  RAPIDE dès le clic (`easeOutCubic` 420 ms) → plus de saut de sprite.
+- **Visuels de design** dans `docs/` (régénérables via `tools/story_viz/`) :
+  `plan_global.png` (tout), `histoire_schema/complet.png`, `objets_placement.png`,
+  `boucle_jeu.png`, `histoire_tableau.md`, + `docs/a_faire.md`.
+
+**DÉCISIONS DU USER (2026-06-09) — appliquées sauf mention** :
+1. **Géo** : commencer APRÈS une ville de départ À RENOMMER (propositions
+   données en chat ; à câbler sur la map). ⏳ EN ATTENTE du nom + structure.
+2. **Crédits** : gardés pour l'instant ; mais stats de départ basses → FAIT.
+3. **Chien plus tard (gare 2-3)** : ⏳ à câbler (déplacer `aLeChien` g1→g2),
+   MAIS attention au lien avec la vision « 1er combat = sauver le chiot ».
+4. **Placement objets** : « on verra en testant » → laissé tel quel.
+5. **1er combat = TUTO** : ⏳ à faire (combat sauté à idx 0 ; `idx>=1` dans
+   `cards_screen._presentCurrentCard`). Dépend de la géo/structure.
+6. **Atelier réservé au debug** → FAIT.
+
+**À reprendre (suggéré)** : (a) trancher la **géo de départ** (nom de la ville +
+faut-il un nœud « ville natale » avant la gare 1 sur la map) ; (b) **1er combat
+tuto** + placement du chien (liés) ; (c) **Tamagotchi** : besoins de Shen qui
+descendent avec le temps, remontés par les objets ; (d) cinématiques d'entrée
+en gare (version texte) ; (e) une idée de combat par gare ; (f) boutique IAP.
 
 **À ne PAS faire / refaire** :
 - Reproposer des mini-jeux modaux (hydro OK, filtre inline OK, wood retiré).
