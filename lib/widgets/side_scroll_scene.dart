@@ -53,6 +53,7 @@ class SideScrollScene extends StatefulWidget {
     this.duoToken = 0,
     this.duoAnim = 'readduo',
     this.wagon2Adjust = false,
+    this.stoveAdjust = false,
     this.onSisterX,
     this.onDogX,
   });
@@ -96,6 +97,10 @@ class SideScrollScene extends StatefulWidget {
   /// Mode "ajuster" du cellier : props déplaçables (drag) + redimensionnables
   /// (pincer) + HUD des coordonnées. Off = props figés (jeu normal).
   final bool wagon2Adjust;
+
+  /// Mode "ajuster" du POÊLE (wagon 1, debug) : le poêle devient déplaçable +
+  /// redimensionnable au doigt. Off = poêle figé.
+  final bool stoveAdjust;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -1510,6 +1515,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         for (final def in _propDefs)
                           if (_propUnlocked(def.key))
                             _buildProp(def: def, w: w, h: h),
+                      // HUD coords du poêle (mode ajuster debug du wagon 1).
+                      if (!widget.secondWagon && widget.stoveAdjust)
+                        _stoveCoordHud(GameState.instance),
                       // Cellier : props déplaçables (lanternes, baignoire,
                       // panneau douche, pommeau) + anim bain quand elle baigne.
                       if (widget.secondWagon) _buildWagon2Props(w, h),
@@ -1553,7 +1561,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                 animation: _sky,
                                 x: 0.415,
                                 y: 0.34,
-                                radius: 0.34,
+                                radius: 0.18,
                                 floorY: 0.74, // sol du wagon 1
                               ),
                             ),
@@ -1714,11 +1722,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
     required void Function(double dx, double dy) onMove,
     required void Function(double newH) onResize,
     VoidCallback? onTap,
+    bool? adjust,
   }) {
     final ph = h * heightFrac;
     final pw = ph * aspect;
     final tinted = _nightTint(child);
-    if (!widget.wagon2Adjust) {
+    final adjusting = adjust ?? widget.wagon2Adjust;
+    if (!adjusting) {
       // Hors mode ajuster : tappable si onTap fourni (ex. armoire = garde-robe),
       // sinon décoratif (ignore les pointeurs).
       return Positioned(
@@ -1897,7 +1907,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       animation: _sky,
                       x: lampPos.$1,
                       y: lampPos.$2,
-                      radius: 0.40,
+                      radius: 0.21,
                       floorY: 0.88, // sol du cellier
                     ),
                   ),
@@ -1923,6 +1933,42 @@ class _SideScrollSceneState extends State<SideScrollScene>
           // HUD coordonnées (mode ajuster) : lecture des x/y/h pour rebaker.
           if (widget.wagon2Adjust) _coordHud(gs),
         ],
+      ),
+    );
+  }
+
+  // HUD coords du poêle (wagon 1, mode ajuster debug) — pour rebaker la valeur.
+  Widget _stoveCoordHud(GameState gs) {
+    final line =
+        'poêle  x${gs.stoveX.toStringAsFixed(3)}  y${gs.stoveY.toStringAsFixed(3)}  h${gs.stoveH.toStringAsFixed(3)}';
+    return Positioned(
+      left: 8,
+      bottom: 8,
+      child: IgnorePointer(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.62),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('AJUSTER POÊLE — pincer = taille',
+                  style: TextStyle(
+                      color: Color(0xFFE8B96B),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold)),
+              Text(line,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      height: 1.35)),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -2101,13 +2147,24 @@ class _SideScrollSceneState extends State<SideScrollScene>
         fit: boxFit,
       );
     }
-    Widget wrapped = _nightTint(sprite);
-    if (def.key == 'stove' && (pos.animDx != 0 || pos.animDy != 0)) {
-      wrapped = Transform.translate(
-        offset: Offset(w * pos.animDx, h * pos.animDy),
-        child: wrapped,
+    // Poêle : positionné via GameState (déplaçable + redimensionnable en mode
+    // ajuster debug), PAS via _propPos. Défaut = ancien emplacement de la table
+    // à biscuits. Hors mode ajuster il reste figé (décoratif).
+    if (def.key == 'stove') {
+      final gs = GameState.instance;
+      return _w2Drag(
+        w: w, h: h, cx: gs.stoveX, topY: gs.stoveY, heightFrac: gs.stoveH,
+        aspect: 1.0, label: 'poêle',
+        adjust: widget.stoveAdjust,
+        child: sprite,
+        onMove: (dx, dy) {
+          gs.stoveX = (gs.stoveX + dx).clamp(0.04, 0.96);
+          gs.stoveY = (gs.stoveY + dy).clamp(0.0, 0.85);
+        },
+        onResize: (nh) => gs.stoveH = nh,
       );
     }
+    Widget wrapped = _nightTint(sprite);
     // Lampe à pétrole : dim quand éteinte (GameState.lampOn = false).
     if (def.key == 'lamp') {
       wrapped = AnimatedBuilder(

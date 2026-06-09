@@ -63,6 +63,7 @@ class GameState extends ChangeNotifier {
         'wagon2LampBx': wagon2LampBx,
         'wagon2LampBy': wagon2LampBy,
         'wagon2LampAH': wagon2LampAH, 'wagon2LampBH': wagon2LampBH,
+        'stoveX': stoveX, 'stoveY': stoveY, 'stoveH': stoveH,
         'bathX': bathX, 'bathY': bathY, 'bathH': bathH,
         'showerPanelX': showerPanelX, 'showerPanelY': showerPanelY,
         'showerPanelH': showerPanelH,
@@ -157,6 +158,9 @@ class GameState extends ChangeNotifier {
       wagon2LampBy = (data['wagon2LampBy'] as num?)?.toDouble() ?? wagon2LampBy;
       wagon2LampAH = (data['wagon2LampAH'] as num?)?.toDouble() ?? wagon2LampAH;
       wagon2LampBH = (data['wagon2LampBH'] as num?)?.toDouble() ?? wagon2LampBH;
+      stoveX = (data['stoveX'] as num?)?.toDouble() ?? stoveX;
+      stoveY = (data['stoveY'] as num?)?.toDouble() ?? stoveY;
+      stoveH = (data['stoveH'] as num?)?.toDouble() ?? stoveH;
       bathX = (data['bathX'] as num?)?.toDouble() ?? bathX;
       bathY = (data['bathY'] as num?)?.toDouble() ?? bathY;
       bathH = (data['bathH'] as num?)?.toDouble() ?? bathH;
@@ -549,6 +553,10 @@ class GameState extends ChangeNotifier {
   /// Déplaçables au doigt dans le wagon 2 ; sauvegardées.
   double wagon2LampAx = 0.25, wagon2LampAy = 0.24, wagon2LampAH = 0.12;
   double wagon2LampBx = 0.53, wagon2LampBy = 0.26, wagon2LampBH = 0.12;
+
+  /// Poêle du wagon 1 : position + taille déplaçables (mode ajuster debug).
+  /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
+  double stoveX = 0.479, stoveY = 0.445, stoveH = 0.263;
 
   /// Props positionnables du cellier (x=fraction w du centre, y=fraction h du
   /// haut, h=fraction h de la hauteur). Déplaçables + redimensionnables,

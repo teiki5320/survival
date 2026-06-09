@@ -272,12 +272,14 @@ class _LampGlowPainter extends CustomPainter {
       Paint()
         ..blendMode = BlendMode.plus
         ..shader = const RadialGradient(
+          // Halo nettement plus discret : cœur peu opaque pour NE PAS masquer
+          // la lampe, retombée rapide (un voile chaud, pas un disque plein).
           colors: [
-            Color(0x66FFE6AE),
-            Color(0x22FFD98A),
+            Color(0x33FFE6AE),
+            Color(0x14FFD98A),
             Color(0x00000000),
           ],
-          stops: [0.0, 0.34, 1.0],
+          stops: [0.0, 0.4, 1.0],
         ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
     );
 

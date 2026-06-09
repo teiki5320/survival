@@ -617,7 +617,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                                 animation: _sky,
                                 x: 0.62,
                                 y: 0.20,
-                                radius: 0.34,
+                                radius: 0.18,
                                 floorY: 0.92,
                               ),
                             ),
