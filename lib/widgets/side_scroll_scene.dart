@@ -165,12 +165,12 @@ class SideScrollScene extends StatefulWidget {
   /// Left bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the door (= porte
   /// gauche du wagon vers la locomotive).
-  static const double heroXMin = 0.22;
+  static const double heroXMin = 0.27;
 
   /// Right bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the right door
   /// (= ouverture sur la map du monde).
-  static const double heroXMax = 0.86;
+  static const double heroXMax = 0.81;
 
   /// Centres X normalisés des props interactifs. Le parent compare
   /// _heroX à ces valeurs pour décider quoi afficher sur l'action FAB.

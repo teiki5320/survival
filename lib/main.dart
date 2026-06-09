@@ -292,15 +292,23 @@ class _WagonScreenState extends State<WagonScreen>
   }
 
   /// Effectue [applySwap] (le setState qui change de scène) à l'abri du rideau :
-  /// on force le noir complet, on swap, on maintient un court instant (le temps
-  /// que la nouvelle scène se monte), puis on révèle.
+  /// on s'assure d'être au NOIR PLEIN (en terminant le fondu en cours s'il
+  /// n'est pas fini), on swap, on maintient un court instant (le temps que la
+  /// nouvelle scène se monte), puis on révèle.
   void _curtainSwap(VoidCallback applySwap) {
     if (!mounted) return;
-    // Si le fondu n'a pas été lancé au clic (sortie loco/map), on assombrit ici.
-    if (_curtain.value < 1.0 && !_curtain.isAnimating) {
-      _curtain.forward(from: _curtain.value).whenComplete(() {
-        _doCurtainSwap(applySwap);
-      });
+    // Tant qu'on n'est pas au noir complet, on FINIT (ou démarre) le fondu vers
+    // le noir AVANT de swapper. Indispensable : si l'anim de porte se termine
+    // avant la fin du fondu (hoquet de précache), un swap immédiat se verrait à
+    // travers un rideau encore translucide -> clignotement. animateTo remplace
+    // proprement le fondu en cours, et on swap seulement une fois noir plein.
+    if (_curtain.value < 1.0) {
+      final remainMs = (260 * (1.0 - _curtain.value)).round().clamp(60, 260);
+      _curtain
+          .animateTo(1.0,
+              duration: Duration(milliseconds: remainMs),
+              curve: Curves.easeOut)
+          .whenComplete(() => _doCurtainSwap(applySwap));
       return;
     }
     _doCurtainSwap(applySwap);
@@ -308,6 +316,7 @@ class _WagonScreenState extends State<WagonScreen>
 
   void _doCurtainSwap(VoidCallback applySwap) {
     if (!mounted) return;
+    _curtain.stop(); // coupe tout fondu résiduel qui pourrait ré-éclaircir
     _curtain.value = 1.0; // noir complet garanti avant le swap
     setState(applySwap);
     Future.delayed(const Duration(milliseconds: 120), () {
