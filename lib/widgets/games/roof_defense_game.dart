@@ -281,11 +281,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   // couvre plus la hauteur écran -> bande vide sous l'image. 1.0 = vue la plus
   // large possible sans révéler le bord bas du décor.
   static const double _zoomAim = 1.0; // dézoom LARGE pendant la visée (plancher)
-  // Zoom d'INTRO : vrai GROS PLAN sur le wagon/Shen au départ du duel (le décor
-  // est en "vue de loin" -> il faut zoomer fort pour que ce soit un gros plan,
-  // sinon tout reste petit = "ça reste dézoomé"). On dézoome ensuite vers
-  // _zoomRest pour révéler le terrain de jeu avant de rendre la main.
-  static const double _zoomIntro = 2.2;
   static const double _kBg = 0.9; // parallaxe du fond lointain
   double _zoomCur = 1.35, _zoomTarget = 1.35;
   double _camLaunchHold = 0; // reste sur le train un instant après le tir
@@ -433,11 +428,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       _enemyAiming = false;
       _enemyThrowing = false;
       _intro = false;
-      _foeName = _foeNames[_rng.nextInt(_foeNames.length)]; // prêt dès le HUD
       _windowHalo = 0;
-      // Démarre AU GROS PLAN d'intro (pas au zoom de jeu) -> vrai gros plan
-      // de départ, puis l'intro dézoome vers _zoomRest.
-      _zoomCur = _zoomTarget = _zoomIntro;
+      _zoomCur = _zoomTarget = _zoomRest;
       _phase = _Phase.playing;
       _banner = 1.8;
     }
@@ -538,10 +530,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         _shield = _shieldMax; // bouclier rechargé à chaque vague
         _bombLeft = _bombMax; // bombe dispo une fois par vague
         if (_duelTest) {
-          // Intro : la caméra va voir l'ennemi (son nom, déjà fixé au début de
-          // la bannière, reste cohérent entre bannière et intro), puis revient.
+          // Intro : la caméra va voir l'ennemi, son nom s'affiche, puis revient.
           _intro = true;
           _introT = 3.0;
+          _foeName = _foeNames[_rng.nextInt(_foeNames.length)];
         } else {
           _spawnBarrel();
           if (_isBossWave) _spawnBoss();
@@ -913,30 +905,11 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     }
     final flying = lead != null || eShot != null;
 
-    if (_intro) {
-      // Intro cinématique en 3 temps (durée _introT = 3 s) :
-      //  1) gros plan tenu sur le WAGON,
-      //  2) la caméra glisse PRÉSENTER l'adversaire (son nom s'affiche),
-      //  3) retour au wagon avant de rendre la main au joueur.
-      // On reste au zoom "wagon" (_zoomRest) pendant toute l'intro ; le dézoom
-      // n'arrive qu'à la visée (quand on tend l'arc).
-      final elapsed = 3.0 - _introT;
-      if (elapsed < 0.9 || foe == null) {
-        // 1) GROS PLAN tenu sur le WAGON (zoom fort = vrai gros plan).
-        _zoomTarget = _zoomIntro;
-        _camTarget = _camHome;
-        _camYTarget = _camYHome;
-      } else if (elapsed < 2.2) {
-        // 2) on PRÉSENTE l'ennemi (toujours en gros plan, la caméra glisse).
-        _zoomTarget = _zoomIntro;
-        _camTarget = foe.x;
-        _camYTarget = math.min(_camYHome, foe.feetY - foe.height * 0.5);
-      } else {
-        // 3) DÉZOOM vers le cadre de jeu + retour au wagon (révèle le terrain).
-        _zoomTarget = _zoomRest;
-        _camTarget = _camHome;
-        _camYTarget = _camYHome;
-      }
+    if (_intro && foe != null) {
+      // Intro : la caméra glisse lentement vers l'ennemi (on voit son nom).
+      _zoomTarget = _zoomRest;
+      _camTarget = foe.x;
+      _camYTarget = math.min(_camYHome, foe.feetY - foe.height * 0.5);
     } else if (_looking && !flying) {
       // Caméra libre : on regarde où on veut (dézoom large pour voir loin).
       _zoomTarget = _zoomAim;
@@ -1341,7 +1314,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     setState(() {
       _phase = _Phase.playing;
       _banner = 1.8;
-      _foeName = _foeNames[_rng.nextInt(_foeNames.length)]; // adversaire du duel
     });
   }
 
@@ -2035,13 +2007,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               children: [
                 Row(
                   children: [
-                    // En DUEL : on affiche l'adversaire (pas un compteur de
-                    // vagues "Vague 1/5" qui casse l'effet duel).
-                    _hud(_duelTest
-                        ? (_foeName.isEmpty ? 'Duel' : _foeName)
-                        : _mode == _Mode.campaign
-                            ? 'Vague ${_wave + 1}/$_campaignWaves'
-                            : 'Vague ${_wave + 1}'),
+                    _hud(_mode == _Mode.campaign
+                        ? 'Vague ${_wave + 1}/$_campaignWaves'
+                        : 'Vague ${_wave + 1}'),
                     const SizedBox(width: 10),
                     _hearts(),
                     if (_shield > 0) ...[
@@ -2161,11 +2129,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
             color: Colors.black.withValues(alpha: 0.55),
             borderRadius: BorderRadius.circular(14),
           ),
-          // En DUEL : titre de duel (nom de l'adversaire) au lieu de "Vague X".
-          child: Text(
-              _duelTest
-                  ? '⚔ ${_foeName.isEmpty ? 'Duel' : _foeName}'
-                  : 'Vague ${_wave + 1}',
+          child: Text('Vague ${_wave + 1}',
               style: const TextStyle(
                   color: Color(0xFFFFD9A0),
                   fontSize: 34,
