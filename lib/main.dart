@@ -278,12 +278,14 @@ class _WagonScreenState extends State<WagonScreen>
     reverseDuration: const Duration(milliseconds: 240),
   );
 
-  /// Démarre l'assombrissement progressif (appelé au CLIC sur une porte). La
-  /// durée matche l'anim d'ouverture (~1 s) pour finir au noir pile quand la
-  /// scène va basculer.
+  /// Démarre l'assombrissement dès le CLIC sur une porte. RAPIDE au début
+  /// (easeOut) pour couvrir tout de suite le changement de sprite (open_door) :
+  /// ~80 % de noir en ~180 ms, noir plein en ~420 ms — donc plus aucun "saut"
+  /// visible. La scène basculera ensuite à la fin de l'anim de porte.
   void _startDoorFade() {
     _curtain.animateTo(1.0,
-        duration: const Duration(milliseconds: 820), curve: Curves.easeInCubic);
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic);
   }
 
   /// Effectue [applySwap] (le setState qui change de scène) à l'abri du rideau :
