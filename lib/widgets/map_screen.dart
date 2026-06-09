@@ -39,21 +39,24 @@ class _Station {
 // Positions (t) tirées de kGarePositions (constants.dart) : source unique de
 // vérité partagée avec le moteur de cartes, pour que carte et run ne dérivent
 // jamais. Ici on n'ajoute que les noms / type / locationId.
+// Noms de gares japonisants (ordre du voyage, escalade vers le grand froid).
+// Le locationId reste une clé interne stable (sauvegarde / déblocage) : on ne
+// change QUE le nom affiché.
 final List<_Station> _stations = [
-  _Station('Station abandonnée', kGarePositions[0], big: true, locationId: 'station_abandonnee'),
-  _Station('Halte 47', kGarePositions[1]),
-  _Station('Dépôt ferroviaire', kGarePositions[2], big: true, locationId: 'depot_ferroviaire'),
-  _Station('Halte 12', kGarePositions[3]),
-  _Station('Village fantôme', kGarePositions[4], big: true, locationId: 'village_fantome'),
-  _Station('Halte 83', kGarePositions[5]),
-  _Station('Camp-refuge', kGarePositions[6], locationId: 'camp_refuge'),
-  _Station('Pont suspendu', kGarePositions[7], locationId: 'pont_suspendu'),
-  _Station('Halte 9', kGarePositions[8]),
-  _Station('Oasis perdue', kGarePositions[9], locationId: 'oasis_perdue'),
-  _Station('Halte 31', kGarePositions[10]),
-  _Station('Tour de guet', kGarePositions[11], locationId: 'tour_de_guet'),
-  _Station('Halte 6', kGarePositions[12]),
-  _Station('Tunnel nord', kGarePositions[13], locationId: 'tunnel_nord'),
+  _Station('Kogarashi', kGarePositions[0], big: true, locationId: 'station_abandonnee'),
+  _Station('Karasuno', kGarePositions[1]),
+  _Station('Kurogane', kGarePositions[2], big: true, locationId: 'depot_ferroviaire'),
+  _Station('Hoshikage', kGarePositions[3]),
+  _Station('Mayoidani', kGarePositions[4], big: true, locationId: 'village_fantome'),
+  _Station('Shizuhara', kGarePositions[5]),
+  _Station('Yasuragi', kGarePositions[6], locationId: 'camp_refuge'),
+  _Station('Tsukibashi', kGarePositions[7], locationId: 'pont_suspendu'),
+  _Station('Kiribe', kGarePositions[8]),
+  _Station('Hidamari', kGarePositions[9], locationId: 'oasis_perdue'),
+  _Station('Yukihara', kGarePositions[10]),
+  _Station('Miharashi', kGarePositions[11], locationId: 'tour_de_guet'),
+  _Station('Fubuki', kGarePositions[12]),
+  _Station('Hokuto', kGarePositions[13], locationId: 'tunnel_nord'),
 ];
 
 // ---------------------------------------------------------------------------
@@ -851,8 +854,8 @@ class _MapStatsBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: const StatRingsBar(
-        ringSize: 46,
-        emojiSize: 20,
+        ringSize: 34,
+        emojiSize: 15,
         mainAxisSize: MainAxisSize.min,
       ),
     );

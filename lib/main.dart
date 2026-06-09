@@ -697,8 +697,8 @@ class _WagonScreenState extends State<WagonScreen>
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const StatRingsBar(
-                  ringSize: 46,
-                  emojiSize: 20,
+                  ringSize: 34,
+                  emojiSize: 15,
                   mainAxisSize: MainAxisSize.min,
                   alignment: MainAxisAlignment.center,
                 ),

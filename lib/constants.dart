@@ -8,20 +8,20 @@
 // une horloge : sa position = la gare courante de la run + progression dans
 // le segment. Ainsi la carte reflète l'histoire au lieu de tourner en boucle.
 const List<double> kGarePositions = [
-  0.9887, // 1  Station abandonnée
-  0.0865, // 2  Halte 47
-  0.1854, // 3  Dépôt ferroviaire
-  0.2143, // 4  Halte 12
-  0.2857, // 5  Village fantôme
-  0.3467, // 6  Halte 83
-  0.4024, // 7  Camp-refuge
-  0.4631, // 8  Pont suspendu — ENTRÉE ZONE FROIDE
-  0.5714, // 9  Halte 9
-  0.6409, // 10 Oasis perdue
-  0.6771, // 11 Halte 31
-  0.7923, // 12 Tour de guet
-  0.8571, // 13 Halte 6
-  0.9286, // 14 Tunnel nord (refuge)
+  0.9887, // 1  Kogarashi (ville natale / fantôme)
+  0.0865, // 2  Karasuno
+  0.1854, // 3  Kurogane (dépôt ferroviaire)
+  0.2143, // 4  Hoshikage
+  0.2857, // 5  Mayoidani (ex-village fantôme, radio)
+  0.3467, // 6  Shizuhara
+  0.4024, // 7  Yasuragi (camp-refuge)
+  0.4631, // 8  Tsukibashi (pont) — ENTRÉE ZONE FROIDE
+  0.5714, // 9  Kiribe
+  0.6409, // 10 Hidamari (oasis / serre)
+  0.6771, // 11 Yukihara
+  0.7923, // 12 Miharashi (tour de guet)
+  0.8571, // 13 Fubuki (col gelé)
+  0.9286, // 14 Hokuto (tunnel nord / refuge)
 ];
 
 // Gare (0-based) à partir de laquelle on bascule dans le grand nord glacé.
@@ -38,8 +38,8 @@ const int kColdBoisDrainPerCard = 2;
 // grand nord, sinon la loco s'éteint. Valeurs calées par simulation.
 const int kWoodStartReserve = 4;
 // Bûches offertes à l'arrivée de certaines gares (index 0-based de la gare).
-// idx 2 = Dépôt ferroviaire, idx 6 = Camp-refuge (juste avant le froid),
-// idx 9 = Oasis perdue (répit en plein froid). Calé par simulation : le bois
+// idx 2 = Kurogane (dépôt), idx 6 = Yasuragi (camp, juste avant le froid),
+// idx 9 = Hidamari (oasis, répit en plein froid). Calé par simulation : le bois
 // devient une cause de mort réelle (~16% des morts d'un joueur attentif, 68%
 // d'un joueur négligent) sans empêcher un joueur soigneux de survivre.
 const Map<int, int> kWoodSupplyByGare = {2: 5, 6: 6, 9: 4};

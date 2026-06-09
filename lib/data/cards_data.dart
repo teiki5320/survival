@@ -91,7 +91,7 @@ List<StoryCard> _gare1(Set<String> f) => [
       StoryCard(
         id: 'G1',
         kind: CardKind.gare,
-        speaker: 'Gare natale',
+        speaker: 'Kogarashi',
         text:
             "La locomotive s'ébranle. Par la porte du wagon, ta ville natale s'embrase — le quai, la foule, les autres trains qui ne partiront jamais. Quelque part là-dedans, tes parents et ta petite sœur.",
         left: _c("Regarder jusqu'au bout",
@@ -104,7 +104,7 @@ List<StoryCard> _gare1(Set<String> f) => [
       StoryCard(
         id: 'G1b',
         kind: CardKind.gare,
-        speaker: 'Gare natale',
+        speaker: 'Kogarashi',
         text:
             "Le train n'a pas encore pris sa vitesse. Sous un banc renversé du wagon, deux yeux brillent : un chiot tremblant, oublié là, seul comme toi.",
         left: _c("Le recueillir",
@@ -117,7 +117,7 @@ List<StoryCard> _gare1(Set<String> f) => [
       StoryCard(
         id: 'G1c',
         kind: CardKind.gare,
-        speaker: 'Gare natale',
+        speaker: 'Kogarashi',
         text:
             "La nuit tombe sur un monde noir. Tu revois la cohue : tes parents qui te poussaient en avant, la main de ta sœur arrachée à la tienne. Tu n'as vu personne tomber — mais personne s'en sortir non plus.",
         left: _c("Te jurer de les retrouver",
@@ -133,7 +133,7 @@ List<StoryCard> _gare2(Set<String> f) => [
       StoryCard(
         id: 'G2',
         kind: CardKind.gare,
-        speaker: 'Dépôt de fret',
+        speaker: 'Kurogane',
         text:
             "Au dépôt de fret, le foyer de la loco agonise. Tu ne sais pas la nourrir — trop de bois l'étouffe, trop peu l'éteint. Un manuel graisseux traîne dans la cabine.",
         left: _c("Déchiffrer le manuel, page à page",
@@ -145,7 +145,7 @@ List<StoryCard> _gare2(Set<String> f) => [
             flags: ['asset_lamp', 'asset_table'],
             result: "Tu charges au jugé. Le feu crachote, capricieux. Tu apprendras dans la fumée et les jurons. Tu emportes quand même une lampe et une table trouvées au dépôt."),
       ),
-      ..._combat(f, 'G2', 'Dépôt de fret',
+      ..._combat(f, 'G2', 'Kurogane',
           winText:
               "Des charognards rôdaient dans le dépôt ; tu les as tenus en respect. Les hangars sont à toi.",
           winL: _c("Faire le plein de bois",
@@ -168,9 +168,9 @@ List<StoryCard> _gare3(Set<String> f) => [
       StoryCard(
         id: 'G3',
         kind: CardKind.gare,
-        speaker: 'Halte 47',
+        speaker: 'Karasuno',
         text:
-            "Halte 47, noyée dans un brouillard épais. Des formes bougent entre les wagons rouillés — des pillards, qui fouillent les morts. Ils n'ont pas encore vu ta loco.",
+            "Karasuno, noyée dans un brouillard épais. Des formes bougent entre les wagons rouillés — des pillards, qui fouillent les morts. Ils n'ont pas encore vu ta loco.",
         left: _c("Couper les feux, passer en fantôme",
             fx: {Stat.bois: -6, Stat.moral: -4},
             flags: ['asset_notebook'],
@@ -183,7 +183,7 @@ List<StoryCard> _gare3(Set<String> f) => [
       StoryCard(
         id: 'G3b',
         kind: CardKind.gare,
-        speaker: 'Halte 47',
+        speaker: 'Karasuno',
         text:
             "Sur le quai défilant, un foulard d'enfant accroché à un clou claque au vent. Rouge à pois blancs. Le même que celui de ta petite sœur. À s'y méprendre.",
         left: _c("Risquer tout pour l'attraper",
@@ -194,7 +194,7 @@ List<StoryCard> _gare3(Set<String> f) => [
             result: "Tu restes à bord. Mais le doute te ronge : et si c'était elle qui l'avait laissé là — un signe, pour toi ?"),
       ),
       // Conséquence du COMBAT de gare (réussi / raté).
-      ..._combat(f, 'G3', 'Halte 47',
+      ..._combat(f, 'G3', 'Karasuno',
           winText:
               "Les derniers pillards détalent dans la brume. Le wagon n'a pas une éraflure — tu les as tenus à distance, pierre après pierre.",
           winL: _c("Souffler un instant",
@@ -217,7 +217,7 @@ List<StoryCard> _gare4(Set<String> f) => [
       StoryCard(
         id: 'G4',
         kind: CardKind.gare,
-        speaker: 'Village fantôme',
+        speaker: 'Mayoidani',
         text:
             "Un mur couvert de messages de disparus. Au milieu, une écriture maladroite d'enfant : « JE VAIS AU NORD. JE T'ATTENDS. » Pas de nom.",
         left: _c("Y croire, foncer au nord",
@@ -228,7 +228,7 @@ List<StoryCard> _gare4(Set<String> f) => [
             fx: {Stat.moral: -4}, flags: ['asset_filter'],
             result: "Des milliers d'enfants ont écrit ça. Tu n'oses pas y croire. Pas encore. Tu fouilles le village et en ramènes au moins un filtre à eau."),
       ),
-      ..._combat(f, 'G4', 'Village fantôme',
+      ..._combat(f, 'G4', 'Mayoidani',
           winText:
               "Les rôdeurs du village ont fui devant ta défense. Tu peux fouiller les ruines tranquillement.",
           winL: _c("Fouiller les maisons",
@@ -251,7 +251,7 @@ List<StoryCard> _gare5(Set<String> f) => [
       StoryCard(
         id: 'G5',
         kind: CardKind.gare,
-        speaker: 'Pont sur le fleuve',
+        speaker: 'Tsukibashi',
         text:
             "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
         left: _c("Courir la serrer dans tes bras",
@@ -272,7 +272,7 @@ List<StoryCard> _gare5(Set<String> f) => [
       ),
       // Conséquence du COMBAT : comment tu as tenu le pont décide de l'état
       // dans lequel tu retrouves ta sœur.
-      ..._combat(f, 'G5', 'Pont sur le fleuve',
+      ..._combat(f, 'G5', 'Tsukibashi',
           winText:
               "Les pillards qui rôdaient autour d'elle ont fui devant ta défense acharnée. Pas une égratignure sur ta petite sœur.",
           winL: _c("La serrer encore", fx: {Stat.moral: 10}, result: "Elle est sauve, entière, à toi. Tu as tenu le pont pour elle, et tu le referais mille fois."),
@@ -287,7 +287,7 @@ List<StoryCard> _gare6(Set<String> f) => [
       StoryCard(
         id: 'G6',
         kind: CardKind.gare,
-        speaker: 'Camp-refuge',
+        speaker: 'Yasuragi',
         text:
             "Un camp de survivants. On peut troquer, mais ils regardent ta sœur avec trop d'intérêt — ici, un enfant en bonne santé, ça se monnaie.",
         left: _c("Troquer vite et partir",
@@ -297,7 +297,7 @@ List<StoryCard> _gare6(Set<String> f) => [
             fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_commode', 'asset_wagon2'],
             result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. En partant, tu accroches un 2e wagon (cellier) laissé là, et tu emportes une commode."),
       ),
-      ..._combat(f, 'G6', 'Camp-refuge',
+      ..._combat(f, 'G6', 'Yasuragi',
           winText:
               "Quand des rôdeurs ont voulu tester le train, tu les as repoussés net. Le camp t'a vue faire — on te respecte, désormais.",
           winL: _c("Négocier d'égale à égale",
@@ -320,7 +320,7 @@ List<StoryCard> _gare7(Set<String> f) => [
       StoryCard(
         id: 'G7',
         kind: CardKind.gare,
-        speaker: 'Halte 12',
+        speaker: 'Hoshikage',
         text:
             "Cette halte, vous y veniez enfant, toutes les deux, regarder les trains. Ta sœur la reconnaît et sourit pour la première fois depuis la fuite.",
         left: _c("Lui raconter ce souvenir",
@@ -328,7 +328,7 @@ List<StoryCard> _gare7(Set<String> f) => [
         right: _c("Garder le cap, ne pas t'arrêter",
             fx: {Stat.moral: 4}, result: "Tu serres les dents et tu avances. Le nord d'abord. Les souvenirs, après."),
       ),
-      ..._combat(f, 'G7', 'Halte 12',
+      ..._combat(f, 'G7', 'Hoshikage',
           winText:
               "Tu as écarté la menace avant qu'elle ne gâche l'instant. La halte de votre enfance reste un refuge.",
           winL: _c("Offrir un vrai moment à ta sœur",
@@ -351,7 +351,7 @@ List<StoryCard> _gare8(Set<String> f) => [
       StoryCard(
         id: 'G8',
         kind: CardKind.gare,
-        speaker: 'Entrée zone froide',
+        speaker: 'Kiribe',
         text:
             "Le froid mord pour de bon. Ta sœur grelotte, ses lèvres bleuissent. Elle n'a pas de vrai manteau.",
         left: _c("Lui donner le tien",
@@ -359,7 +359,7 @@ List<StoryCard> _gare8(Set<String> f) => [
         right: _c("Pousser le feu à fond",
             fx: {Stat.bois: -16, Stat.moral: 6}, flags: ['asset_stove', 'asset_firstaid'], result: "Tu sacrifies ta réserve de bois pour la réchauffer. Le wagon est un four, pour l'instant. Tu finis par installer un vrai poêle et dénicher une trousse de secours."),
       ),
-      ..._combat(f, 'G8', 'Entrée zone froide',
+      ..._combat(f, 'G8', 'Kiribe',
           winText:
               "Les rôdeurs du froid n'ont pas approché : ta défense les a dissuadés. Le wagon reste hermétique au gel.",
           winL: _c("Calfeutrer pendant le calme",
@@ -382,7 +382,7 @@ List<StoryCard> _gare9(Set<String> f) => [
       StoryCard(
         id: 'G9',
         kind: CardKind.gare,
-        speaker: 'Plaine enneigée',
+        speaker: 'Shizuhara',
         text:
             "Le blizzard enferme le train. Ta sœur brûle de fièvre, délire, t'appelle dans son sommeil agité. Tu n'as presque plus rien.",
         left: _c("La veiller toute la nuit",
@@ -390,7 +390,7 @@ List<StoryCard> _gare9(Set<String> f) => [
         right: _c("Braver la tempête pour des remèdes",
             fx: {Stat.soif: -12, Stat.moral: 8}, flags: ['soeurProtegee'], result: "Tu sors dans le blizzard, tu reviens gelée avec des cachets périmés. Ça suffit. De justesse."),
       ),
-      ..._combat(f, 'G9', 'Plaine enneigée',
+      ..._combat(f, 'G9', 'Shizuhara',
           winText:
               "Malgré le blizzard, tu as repoussé ceux qui voulaient profiter de ta détresse. La sœur a pu se reposer au chaud.",
           winL: _c("La soigner sans relâche",
@@ -413,7 +413,7 @@ List<StoryCard> _gare10(Set<String> f) => [
       StoryCard(
         id: 'G10',
         kind: CardKind.gare,
-        speaker: 'Oasis perdue',
+        speaker: 'Hidamari',
         text:
             "Une serre intacte, chaude, verdoyante. Ta sœur court entre les plants en riant. Un répit irréel. On pourrait... rester ici ?",
         left: _c("S'accorder un vrai repos",
@@ -425,7 +425,7 @@ List<StoryCard> _gare10(Set<String> f) => [
             flags: ['asset_hydro', 'asset_bath', 'asset_shower', 'asset_lantern'],
             result: "« Papa et maman attendent. » Elle comprend. Vous emportez des plants, le matériel hydroponique, de quoi installer un bain, une douche et des lanternes dans le cellier, et repartez le ventre plein, le cœur lourd."),
       ),
-      ..._combat(f, 'G10', 'Oasis perdue',
+      ..._combat(f, 'G10', 'Hidamari',
           winText:
               "Des maraudeurs convoitaient la serre ; tu l'as défendue. Toute cette abondance est à vous.",
           winL: _c("Récolte massive",
@@ -448,7 +448,7 @@ List<StoryCard> _gare11(Set<String> f) => [
       StoryCard(
         id: 'G11',
         kind: CardKind.gare,
-        speaker: 'Halte 31',
+        speaker: 'Yukihara',
         text:
             "Des pillards ont dressé un barrage sur la voie. Ils veulent le train, les vivres — et ils ont vu ta sœur.",
         left: _c("Foncer dans le barrage",
@@ -457,7 +457,7 @@ List<StoryCard> _gare11(Set<String> f) => [
             fx: {Stat.faim: -16, Stat.soif: -10, Stat.moral: 4}, result: "Tu sacrifies la moitié de vos réserves pour qu'ils vous laissent passer. Affamées, mais entières."),
       ),
       // Conséquence du COMBAT : l'assaut du barrage tourne selon ta défense.
-      ..._combat(f, 'G11', 'Halte 31',
+      ..._combat(f, 'G11', 'Yukihara',
           winText:
               "Ta riposte a brisé leur élan : les pillards refluent, abandonnant le barrage et leurs réserves dans la panique.",
           winL: _c("Rafler leur butin", fx: {Stat.faim: 10, Stat.bois: 8}, result: "Vivres et bois pris à l'ennemi en déroute. Le train repart, ravitaillé sur leur dos."),
@@ -472,7 +472,7 @@ List<StoryCard> _gare12(Set<String> f) => [
       StoryCard(
         id: 'G12',
         kind: CardKind.gare,
-        speaker: 'Tour de guet',
+        speaker: 'Miharashi',
         text:
             "Du haut d'une tour, vous le voyez enfin : le refuge du nord, ses cheminées qui fument. Et, plantée devant, une pancarte : « FAMILLES — REGROUPEMENT SECTEUR EST ». Ta sœur te serre la main à la broyer.",
         left: _c("Lui jurer qu'ils sont là",
@@ -480,7 +480,7 @@ List<StoryCard> _gare12(Set<String> f) => [
         right: _c("Tempérer son espoir",
             fx: {Stat.moral: 6}, result: "« On verra, ma puce. On verra. » Tu ne veux pas qu'elle s'effondre si... non. N'y pense pas."),
       ),
-      ..._combat(f, 'G12', 'Tour de guet',
+      ..._combat(f, 'G12', 'Miharashi',
           winText:
               "Tu as tenu le poste contre une dernière bande de rôdeurs. Du haut de la tour, la voie vers le refuge est dégagée.",
           winL: _c("Repérer le meilleur chemin",
@@ -503,7 +503,7 @@ List<StoryCard> _gare13(Set<String> f) => [
       StoryCard(
         id: 'G13',
         kind: CardKind.gare,
-        speaker: 'Col gelé',
+        speaker: 'Fubuki',
         text:
             "La loco rend l'âme dans la dernière montée, à un souffle du sommet. Plus de bois. Il faut sacrifier quelque chose, vite, avant que le froid ne vous prenne.",
         left: _c("Brûler tout le mobilier du wagon",
@@ -511,7 +511,7 @@ List<StoryCard> _gare13(Set<String> f) => [
         right: _c("Descendre pousser ensemble",
             fx: {Stat.faim: -14, Stat.soif: -10, Stat.moral: 10}, result: "Vous poussez à deux, à mains nues dans la neige, en hurlant. La loco bascule de l'autre côté. Vous l'avez fait. Ensemble."),
       ),
-      ..._combat(f, 'G13', 'Col gelé',
+      ..._combat(f, 'G13', 'Fubuki',
           winText:
               "Des charognards guettaient les trains en perdition dans le col. Tu les as tenus à distance — la loco aura sa chance.",
           winL: _c("Récupérer leur bois",
@@ -532,7 +532,7 @@ List<StoryCard> _gare13(Set<String> f) => [
 
 List<StoryCard> _gare14(Set<String> f) => [
       // Conséquence du DERNIER combat, AVANT la résolution finale.
-      ..._combat(f, 'G14', 'Refuge du nord',
+      ..._combat(f, 'G14', 'Hokuto',
           winText:
               "Des pillards voulaient une dernière proie aux portes du refuge. Tu les as balayés. Le train entre en gare, triomphant.",
           winL: _c("Entrer la tête haute",
@@ -552,7 +552,7 @@ List<StoryCard> _gare14(Set<String> f) => [
       StoryCard(
         id: 'G14',
         kind: CardKind.gare,
-        speaker: 'Refuge du nord',
+        speaker: 'Hokuto',
         text:
             "Le train entre en gare du refuge. Ta sœur écrase son visage contre la vitre. Sur le quai, la foule des familles qui cherchent les leurs. Tu descends, le cœur en feu.",
         left: _c("Chercher vos parents dans la foule",

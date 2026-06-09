@@ -738,8 +738,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const StatRingsBar(
-                          ringSize: 46,
-                          emojiSize: 20,
+                          ringSize: 34,
+                          emojiSize: 15,
                           mainAxisSize: MainAxisSize.min,
                           alignment: MainAxisAlignment.center,
                         ),
