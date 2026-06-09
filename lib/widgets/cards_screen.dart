@@ -263,6 +263,9 @@ class _CardsScreenState extends State<CardsScreen>
                         _statsRow(),
                         _gareProgress(),
                         _debugBar(),
+                        // Marge sous le trait de progression : la carte ne doit
+                        // plus passer par-dessus la ligne des gares.
+                        const SizedBox(height: 16),
                         Expanded(child: _cardArea()),
                         _bottomZone(),
                         const SizedBox(height: 10),
@@ -512,7 +515,8 @@ class _CardsScreenState extends State<CardsScreen>
   Widget _statsRow() {
     final s = _engine.stats;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      // Remonté (vertical réduit) pour dégager le trait de progression.
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: Stat.values.map((st) {
@@ -969,7 +973,8 @@ class _CardsScreenState extends State<CardsScreen>
     final card = _state.card;
     if (card == null) return const SizedBox(height: 56);
     // Plus de crédits : on bloque le tirage et on invite à attendre.
-    if (GameState.instance.cardCredits <= 0) {
+    // (En debug le tirage est gratuit -> pas de message.)
+    if (GameState.instance.cardCredits <= 0 && !GameState.instance.debugMode) {
       final next = GameState.instance.msToNextCredit;
       return Container(
         height: 56,
@@ -994,53 +999,21 @@ class _CardsScreenState extends State<CardsScreen>
         ),
       );
     }
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _swipeButton(card.left, false)),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 6),
-            child: Icon(Icons.swipe, color: Colors.white24, size: 22),
-          ),
-          Expanded(child: _swipeButton(card.right, true)),
-        ],
-      ),
-    );
-  }
-
-  Widget _swipeButton(CardChoice choice, bool right) {
-    return GestureDetector(
-      onTap: () => _commit(right),
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment:
-            right ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!right)
-                const Icon(Icons.chevron_left,
-                    color: Colors.white54, size: 20),
-              Flexible(
-                child: Text(
-                  choice.label,
-                  textAlign: right ? TextAlign.right : TextAlign.left,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                ),
-              ),
-              if (right)
-                const Icon(Icons.chevron_right,
-                    color: Colors.white54, size: 20),
-            ],
-          ),
-          if (choice.effects.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            _deltaChips(choice.effects),
+    // Les choix s'affichent sur les CÔTÉS de la carte pendant le glissé
+    // (_choiceTag). On ne garde donc en bas qu'un discret indice de swipe,
+    // plus les libellés blancs en double à gauche/droite.
+    return const SizedBox(
+      height: 56,
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swipe, color: Colors.white30, size: 20),
+            SizedBox(width: 8),
+            Text('Glisse à gauche ou à droite pour choisir',
+                style: TextStyle(color: Colors.white38, fontSize: 12)),
           ],
-        ],
+        ),
       ),
     );
   }
