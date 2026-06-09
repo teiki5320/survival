@@ -630,8 +630,19 @@ class _WagonScreenState extends State<WagonScreen>
             onSisterX: (x) => setState(() => _sisterLiveX = x),
             onDogX: (x) => setState(() => _dogLiveX = x),
             initialHeroX: _heroSpawnX,
-            wagonStage:
-                secondWagon ? GameState.instance.wagon2Stage : _wagonStage,
+            // En mode debug : wagon NETTOYÉ (stage 1) + tous les objets
+            // (gérés par propUnlocked). En jeu : le cellier (wagon 2) est
+            // ENCOMBRÉ au départ et son rangement se GAGNE dans l'histoire
+            // (flag asset_wagon2, gare 6) ou via le FAB debug (wagon2Stage).
+            wagonStage: GameState.instance.debugMode
+                ? 1
+                : (secondWagon
+                    ? ((GameState.instance.wagon2Stage >= 1 ||
+                            GameState.instance.cardFlags
+                                .contains('asset_wagon2'))
+                        ? 1
+                        : 0)
+                    : _wagonStage),
             running: _running,
             night: _night,
             dancing: _dancing,
@@ -992,10 +1003,10 @@ class _WagonScreenState extends State<WagonScreen>
             : 'Porte vers la locomotive : c\'est là qu\'on ouvre la carte du voyage.'
       );
     }
-    if (_atRightDoor &&
-        !_inWagon2 &&
-        GameState.instance.propUnlocked('wagon2')) {
-      return (id: 'go_cellier', text: 'Le cellier (2e wagon) : bain, douche…');
+    if (_atRightDoor && !_inWagon2) {
+      // Le cellier est accessible dès le départ, mais ENCOMBRÉ tant que son
+      // rangement n'est pas gagné dans l'histoire (wagon2Stage 0 = en désordre).
+      return (id: 'go_cellier', text: 'Le cellier (2e wagon).');
     }
     if (_atBath) return (id: 'bath', text: 'Un bon bain pour te détendre.');
     if (_atShower) return (id: 'shower', text: 'Une douche pour te laver.');
@@ -1031,12 +1042,10 @@ class _WagonScreenState extends State<WagonScreen>
       // Porte gauche : loco (wagon 1) ou retour wagon 1 (depuis wagon 2).
       icon = Icons.meeting_room;
       action = _inWagon2 ? _returnToWagon1 : _enterLocomotive;
-    } else if (_atRightDoor &&
-        !_doorPushing &&
-        !_inWagon2 &&
-        GameState.instance.propUnlocked('wagon2')) {
+    } else if (_atRightDoor && !_doorPushing && !_inWagon2) {
       // Porte droite du wagon 1 : ouverture vers le 2e wagon (cellier).
-      // Verrouillée tant que le cellier n'est pas gagné (asset_wagon2).
+      // Accessible dès le départ ; le cellier est juste ENCOMBRÉ tant que son
+      // rangement n'est pas gagné dans l'histoire (wagon2Stage).
       icon = Icons.meeting_room;
       action = _enterWagon2;
     } else if (_atBath) {

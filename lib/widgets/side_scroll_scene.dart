@@ -580,7 +580,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (soif < 55 && soif <= faim && soif <= moral) {
       _startAutoSpecial('drink'); // a soif -> boit
     } else if (moral < 62) {
-      const pool = ['read', 'warm_hands', 'dance'];
+      // warm_hands RETIRÉ du pool : ce geste « se réchauffer les mains » n'a de
+      // sens que quand il fait froid (géré plus haut via 'cold'), pas comme
+      // remontée de moral générique -> il paraissait sortir de nulle part.
+      const pool = ['read', 'dance'];
       _startAutoSpecial(pool[r.nextInt(pool.length)]); // remonte le moral
     } else {
       // tout va bien : elle flâne ou fait une petite pause.
