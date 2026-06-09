@@ -2456,6 +2456,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     final adjustedFeetY = deepInWagon ? feetY - h * 0.06 : feetY;
+    // Ancrage HORIZONTAL sur le PERSO (pas la boîte) : on cale le centre du
+    // perso (m.cx, miroité si besoin) sur anchorX. Évite le "saut" au passage
+    // entre anims à boîtes de largeurs différentes (ex. idle -> open_door).
+    final effCx = shouldMirror ? (1 - m.cx) : m.cx;
     Widget sprite =
         Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
     if (shouldMirror) {
@@ -2468,7 +2472,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     sprite = _nightTint(sprite);
 
     return Positioned(
-      left: anchorX - heroWidth / 2,
+      left: anchorX - heroWidth * effCx,
       top: adjustedFeetY - heroHeight * m.feet,
       width: heroWidth,
       height: heroHeight,

@@ -25,11 +25,19 @@ class AnimMetrics {
     required this.aspect,
     required this.feet,
     this.noMirror = false,
+    this.cx = 0.5,
   });
 
   final double scale;
   final double aspect;
   final double feet;
+
+  /// Centre HORIZONTAL du personnage dans la bbox du sprite (fraction de
+  /// largeur, 0..1). Sert à ancrer le PERSO (et pas la boîte) sur sa position
+  /// écran : sans ça, les sprites à boîte large (512×512 : open_door…) où le
+  /// perso est légèrement décentré font "sauter" le perso au changement d'anim
+  /// (la boîte large amplifie le petit décalage). 0.5 = centré (défaut).
+  final double cx;
 
   /// Si vrai, le sprite n'est JAMAIS flippé horizontalement quel que
   /// soit `_heroFacingRight`. À mettre sur les anims dont la
@@ -67,8 +75,8 @@ const double kHeroBaseHeight = 0.36;
 /// sont capées plus bas pour ne pas que le meuble domine.
 const Map<String, AnimMetrics> kAnimMetrics = {
   // --- Debout, crops serrés (legacy 170×381 / 91×372) ---
-  'walk_right':    AnimMetrics(scale: 1.01, aspect: 166 / 381, feet: 0.984),
-  'idle_right':    AnimMetrics(scale: 1.00, aspect:  91 / 372, feet: 0.989),
+  'walk_right':    AnimMetrics(scale: 1.01, aspect: 166 / 381, feet: 0.984, cx: 0.518),
+  'idle_right':    AnimMetrics(scale: 1.00, aspect:  91 / 372, feet: 0.989, cx: 0.478),
 
   // --- Couchée (366×103) — géométrie horizontale, scale=1.0 ---
   'sleep_right':   AnimMetrics(
@@ -93,7 +101,7 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   'wake_up':       AnimMetrics(
     scale: 1.67, aspect: 1.0, feet: 0.859, noMirror: true,
   ),
-  'open_door':     AnimMetrics(scale: 1.37, aspect: 1.0, feet: 0.863),
+  'open_door':     AnimMetrics(scale: 1.37, aspect: 1.0, feet: 0.863, cx: 0.479),
 
   // --- Loco-only ---
   'warm_hands':    AnimMetrics(
