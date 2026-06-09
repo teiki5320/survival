@@ -251,62 +251,54 @@ class _MapScreenState extends State<MapScreen>
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    FloatingActionButton.small(
-                      heroTag: 'map_close',
+                    _MapIconButton(
+                      icon: Icons.close,
                       tooltip: 'Retour au train',
-                      backgroundColor: const Color(0xFFB85522),
-                      foregroundColor: Colors.white,
-                      onPressed: widget.onClose,
-                      child: const Icon(Icons.close),
+                      onTap: widget.onClose,
                     ),
-                    const SizedBox(height: 8),
-                    // Entrée principale des cartes narratives (le voyage).
-                    if (widget.onOpenCards != null) ...[
-                      FloatingActionButton.extended(
-                        heroTag: 'map_open_cards',
-                        backgroundColor: const Color(0xFFE8B96B),
-                        foregroundColor: const Color(0xFF2A2018),
-                        onPressed: widget.onOpenCards,
-                        icon: const Icon(Icons.style),
-                        label: const Text('Continuer le voyage'),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
                     if (widget.onOpenWorkshop != null) ...[
+                      const SizedBox(height: 10),
                       _WorkshopFab(onPressed: widget.onOpenWorkshop!),
-                      const SizedBox(height: 8),
                     ],
                     // Placement des gares = outil de réglage : MODE DEBUG only.
-                    if (GameState.instance.debugMode)
-                      FloatingActionButton.small(
-                        heroTag: 'map_adjust',
-                        tooltip: 'Placer les gares',
-                        backgroundColor: _stationAdjust
-                            ? const Color(0xFFFF6B00)
-                            : const Color(0xFF6A5A4A),
-                        foregroundColor: Colors.white,
-                        onPressed: () =>
-                            setState(() => _stationAdjust = !_stationAdjust),
-                        child: Icon(_stationAdjust
+                    if (GameState.instance.debugMode) ...[
+                      const SizedBox(height: 10),
+                      _MapIconButton(
+                        icon: _stationAdjust
                             ? Icons.check
-                            : Icons.edit_location_alt),
+                            : Icons.edit_location_alt,
+                        tooltip: 'Placer les gares',
+                        active: _stationAdjust,
+                        onTap: () =>
+                            setState(() => _stationAdjust = !_stationAdjust),
                       ),
+                    ],
                   ],
                 ),
               ),
             ),
           ),
+          // Action principale + HUD de zone, en bas au centre.
           SafeArea(
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _TrainZoneHUD(
-                    path: path, displayPosition: _displayPosition),
+                padding: const EdgeInsets.only(bottom: 14),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (widget.onOpenCards != null) ...[
+                      _ContinueJourneyButton(onTap: widget.onOpenCards!),
+                      const SizedBox(height: 12),
+                    ],
+                    _TrainZoneHUD(
+                        path: path, displayPosition: _displayPosition),
+                  ],
+                ),
               ),
             ),
           ),
@@ -873,6 +865,78 @@ class _MapStatsBar extends StatelessWidget {
 
 /// FAB "Atelier & Quotidien" avec une pastille verte quand un coffre ou une
 /// mission journalière est réclamable (incitation à revenir).
+/// Bouton rond cohérent du menu map (parchemin sombre + liseré ambré).
+class _MapIconButton extends StatelessWidget {
+  const _MapIconButton(
+      {required this.icon, required this.onTap, this.tooltip, this.active = false});
+  final IconData icon;
+  final VoidCallback onTap;
+  final String? tooltip;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final btn = GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFFD9A05B) : const Color(0xE62A2018),
+          shape: BoxShape.circle,
+          border: Border.all(color: const Color(0xFFD9A05B), width: 1.5),
+          boxShadow: const [BoxShadow(color: Color(0x66000000), blurRadius: 8)],
+        ),
+        child: Icon(icon,
+            color: active ? const Color(0xFF2A2018) : const Color(0xFFEAD8B6),
+            size: 22),
+      ),
+    );
+    return tooltip != null ? Tooltip(message: tooltip!, child: btn) : btn;
+  }
+}
+
+/// Gros bouton d'action principal de la map : ouvrir les cartes du voyage.
+class _ContinueJourneyButton extends StatelessWidget {
+  const _ContinueJourneyButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFF2C078), Color(0xFFD97A35)],
+          ),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: const Color(0xFFFFE6B8), width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x99000000), blurRadius: 16, offset: Offset(0, 5)),
+            BoxShadow(color: Color(0x55FFB347), blurRadius: 22, spreadRadius: 1),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.auto_stories, color: Color(0xFF3A2410), size: 22),
+            SizedBox(width: 10),
+            Text('Continuer le voyage',
+                style: TextStyle(
+                    color: Color(0xFF3A2410),
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _WorkshopFab extends StatelessWidget {
   const _WorkshopFab({required this.onPressed});
   final VoidCallback onPressed;
@@ -885,14 +949,8 @@ class _WorkshopFab extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        FloatingActionButton.small(
-          heroTag: 'map_workshop',
-          tooltip: 'Atelier & quotidien',
-          backgroundColor: const Color(0xFF3A4656),
-          foregroundColor: Colors.white,
-          onPressed: onPressed,
-          child: const Icon(Icons.build),
-        ),
+        _MapIconButton(
+            icon: Icons.build, tooltip: 'Atelier & quotidien', onTap: onPressed),
         if (hasReward)
           Positioned(
             right: -1,

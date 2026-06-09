@@ -986,19 +986,12 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (e.dying) return;
     e.dying = true;
     e.dieT = _dieDur;
-    if (_hasDieAnim(e.type)) {
-      // Anim de chute jouée SUR PLACE (léger recul vers la droite), pas de
-      // pantin lancé en l'air.
-      e.dieVX = head ? 0.22 : 0.12;
-      e.dieVY = 0;
-      e.dieRotV = 0;
-    } else {
-      // Point 2 — RAGDOLL (brute/boss) : il part en pantin (recule + saute +
-      // tourne). Un headshot l'envoie plus fort.
-      e.dieVX = (head ? 0.9 : 0.55) + _rng.nextDouble() * 0.2;
-      e.dieVY = head ? -1.3 : -0.95;
-      e.dieRotV = (head ? 7.0 : 4.5) * (_rng.nextBool() ? 1 : -1);
-    }
+    // Knockback d'origine (le combat "d'avant") : TOUS les pillards sont
+    // projetés en arrière. Les types animés jouent en plus leur anim de chute
+    // (sans spin) ; brute/boss tournent en pantin.
+    e.dieVX = (head ? 0.9 : 0.55) + _rng.nextDouble() * 0.2;
+    e.dieVY = head ? -1.3 : -0.95;
+    e.dieRotV = (head ? 7.0 : 4.5) * (_rng.nextBool() ? 1 : -1);
     // Point 8 — finish cinématique : coup de zoom + ralenti sur le kill.
     _camPunch = 1.0;
     _slowmo = math.max(_slowmo, head ? 0.45 : 0.3);
