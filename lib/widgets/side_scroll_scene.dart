@@ -697,10 +697,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // déclenchables manuellement via le bouton action (duoToken).
 
     // Quand il fait froid (thermomètre), elle frissonne (plus souvent si
-    // c'est très froid).
+    // c'est très froid). Si elle est près du POÊLE ALLUMÉ, elle se réchauffe
+    // les mains au lieu de frissonner.
     if (GameState.instance.feltCold &&
         r.nextDouble() < 0.35 + GameState.instance.coldness * 0.03) {
-      _startAutoSpecial('cold', frames: 8);
+      final gs = GameState.instance;
+      final nearPoele = !widget.secondWagon &&
+          gs.poeleOn &&
+          (_heroX - gs.w1x('poele')).abs() < 0.12;
+      _startAutoSpecial(nearPoele ? 'warm_hands' : 'cold',
+          frames: nearPoele ? 49 : 8);
       return;
     }
 
@@ -1656,6 +1662,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           child: WindowRain(
                             animation: _sky,
                             density: GameState.instance.weather == Weather.snowy ? 15 : 25,
+                          ),
+                        ),
+                      // Givre sur les vitres quand il fait froid (intensité =
+                      // coldness). Retour visuel direct de la température.
+                      if (!widget.secondWagon && GameState.instance.feltCold)
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          top: h * 0.16,
+                          height: h * 0.46,
+                          child: IgnorePointer(
+                            child: WindowFrost(
+                              intensity:
+                                  (GameState.instance.coldness / 9).clamp(0.25, 1.0),
+                            ),
                           ),
                         ),
                       // 4g. Props installés dans le wagon (tour hydro,

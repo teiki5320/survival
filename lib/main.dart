@@ -334,11 +334,21 @@ class _WagonScreenState extends State<WagonScreen>
       GameState.instance.setNight(_night);
       _refreshMusic();
     });
+    // Tension du froid : tant qu'il fait froid (poêle éteint / pas de bois /
+    // grand nord), le moral s'érode doucement -> il faut se réchauffer.
+    _coldTimer = Timer.periodic(const Duration(seconds: 14), (_) {
+      if (!mounted) return;
+      final gs = GameState.instance;
+      if (gs.feltCold) gs.nudgeCardStat('moral', -1);
+    });
   }
+
+  Timer? _coldTimer;
 
   @override
   void dispose() {
     _dayNightTimer?.cancel();
+    _coldTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _curtain.dispose();

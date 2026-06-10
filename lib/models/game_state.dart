@@ -302,6 +302,7 @@ class GameState extends ChangeNotifier {
   void setPoeleOn(bool v) {
     if (poeleOn == v) return;
     poeleOn = v;
+    _recomputeAutoTemp(); // le poêle change la chaleur de la cabine
     notifyListeners();
     save();
   }
@@ -370,15 +371,11 @@ class GameState extends ChangeNotifier {
         break;
     }
     if (isNight) t -= 3;
-    // Le poêle bien alimenté rend la cabine COSY même au nord (fantaisie "près
-    // du feu") : un feu plein vainc le froid de jour, mais nuit/tempête restent
-    // précaires -> il faut entretenir le bois.
-    if (stoveInstalled) {
-      if (cardBois >= 40) {
-        t += 14;
-      } else if (cardBois >= 12) {
-        t += 7;
-      }
+    // CHALEUR DU POÊLE À BOIS : c'est le poêle ALLUMÉ (et alimenté en bois) qui
+    // réchauffe la cabine. Éteint = aucune chaleur. C'est le levier ACTIF du
+    // confort : entretenir le feu coûte du bois mais vainc le froid.
+    if (poeleOn && cardBois > 0) {
+      t += cardBois >= 30 ? 18 : 12; // feu vif si bonne réserve
     }
     return t.clamp(-15.0, 28.0);
   }
@@ -990,6 +987,9 @@ class GameState extends ChangeNotifier {
         cardFaim = (cardFaim + delta).clamp(0, statMax);
       case 'bois':
         cardBois = (cardBois + delta).clamp(0, statMax);
+        // Plus de bois -> poêle s'éteint tout seul (et la cabine refroidit).
+        if (cardBois <= 0 && poeleOn) poeleOn = false;
+        _recomputeAutoTemp(); // le bois alimente le feu -> impacte la chaleur
       case 'moral':
         // Le froid empêche de GAGNER du moral (on peut encore en perdre).
         if (delta > 0 && feltCold) delta = 0;
