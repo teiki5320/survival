@@ -470,7 +470,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // vaciller les flammes (poêle ET cuisinière).
   bool _cookLit = false;
   AnimationController? _fireLoop;
-  Timer? _cookT1, _cookT2;
+  Timer? _cookT1, _cookT2, _cookT3;
+  bool _cookSeqActive = false; // bloque l'autonomie pendant la cuisson
   // Poêle à bois : timer qui fait descendre le bois doucement tant qu'il brûle.
   Timer? _poeleDrainTimer;
   // Bac de culture : pousse (0..1) en 20 s une fois semé, puis récolte.
@@ -571,9 +572,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void _startCook() {
     final gs = GameState.instance;
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
+    _cookSeqActive = true; // bloque l'autonomie jusqu'à la fin du repas
     _startAutoSpecial('use_back', frames: 24);
     _cookT1?.cancel();
     _cookT2?.cancel();
+    _cookT3?.cancel();
     _cookT1 = Timer(const Duration(milliseconds: 1100), () {
       if (mounted) setState(() => _cookLit = true); // allumage (feu animé)
     });
@@ -582,6 +585,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       setState(() => _cookLit = false); // extinction
       _startAutoSpecial('eat', frames: 49); // mange au sol
       gs.nudgeCardStat('faim', 14);
+    });
+    // Fin de la séquence (après le repas, ~3.5 s d'anim) -> autonomie réactivée.
+    _cookT3 = Timer(const Duration(milliseconds: 9700), () {
+      if (mounted) _cookSeqActive = false;
     });
   }
 
@@ -678,6 +685,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _waking ||
         _doorPushing ||
         _activeSpecial != null ||
+        _cookSeqActive || // séquence cuisinière en cours (tour -> repas)
         _idleBreak != null;
     if (busy || _duoActive) return;
 
@@ -1028,6 +1036,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _fireLoop?.dispose();
     _cookT1?.cancel();
     _cookT2?.cancel();
+    _cookT3?.cancel();
     _poeleDrainTimer?.cancel();
     _bacTimer?.cancel();
     _sky.dispose();
