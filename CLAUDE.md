@@ -746,6 +746,10 @@ via « Continuer le voyage » ; anims de mort pillards ; stats de départ basses
 - **Langue** : français, ton décontracté direct.
 - **Style** : cash, pas de blabla, pas de flatterie.
 - **TOUJOURS NUMÉROTER** les listes / propositions / options (1, 2, 3...).
+- **RÉCAP DE FIN OBLIGATOIRE** : à CHAQUE fois qu'on finit une demande, terminer
+  par un **tableau récap** de ce qui est fait, façon `| # | Demande | État |`
+  avec **✅** pour fait. Si un point n'est PAS fait : **❌** + une explication
+  courte du pourquoi. (Demande explicite de l'utilisateur 2026-06.)
 - **Délégations explicites** :
   - Commit : OUI à chaque modification.
   - Décisions UX / esthétiques : NON, toujours proposer plusieurs options.
