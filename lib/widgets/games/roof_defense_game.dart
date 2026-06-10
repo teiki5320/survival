@@ -986,12 +986,19 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (e.dying) return;
     e.dying = true;
     e.dieT = _dieDur;
-    // Knockback d'origine (le combat "d'avant") : TOUS les pillards sont
-    // projetés en arrière. Les types animés jouent en plus leur anim de chute
-    // (sans spin) ; brute/boss tournent en pantin.
-    e.dieVX = (head ? 0.9 : 0.55) + _rng.nextDouble() * 0.2;
-    e.dieVY = head ? -1.3 : -0.95;
-    e.dieRotV = (head ? 7.0 : 4.5) * (_rng.nextBool() ? 1 : -1);
+    // Mort : les types AVEC anim de chute (lanceur/basic) tombent EN ARRIÈRE
+    // via leur animation, SUR PLACE (pas de knockback physique qui glisse
+    // par-dessus et écrase la chute). Seuls brute/boss (sans anim) sont
+    // projetés en pantin.
+    if (_hasDieAnim(e.type)) {
+      e.dieVX = 0;
+      e.dieVY = 0;
+      e.dieRotV = 0;
+    } else {
+      e.dieVX = (head ? 0.9 : 0.55) + _rng.nextDouble() * 0.2;
+      e.dieVY = head ? -1.3 : -0.95;
+      e.dieRotV = (head ? 7.0 : 4.5) * (_rng.nextBool() ? 1 : -1);
+    }
     // Point 8 — finish cinématique : coup de zoom + ralenti sur le kill.
     _camPunch = 1.0;
     _slowmo = math.max(_slowmo, head ? 0.45 : 0.3);
@@ -1888,7 +1895,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
               1;
           return 'assets/characters/lanceur_throw_$pf.png';
         }
-        return 'assets/characters/lanceur_walk_$wf.png';
+        // Le pillard reste SUR PLACE -> idle animé (respiration), plus de
+        // "marche sur place". Même perso que lanceur_throw/lanceur_die.
+        final idf = (e.anim * 9).floor() % 49 + 1;
+        return 'assets/characters/pillard4_idle_$idf.png';
     }
   }
 
