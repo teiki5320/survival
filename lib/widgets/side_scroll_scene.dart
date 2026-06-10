@@ -597,14 +597,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void _bacAction() {
     final gs = GameState.instance;
     if (gs.bacGrowth >= 1.0) {
+      // Récolte : +10 faim, le bac redevient VIDE (re-semable).
       gs.nudgeCardStat('faim', 10);
-      gs.setBacGrowth(0.30); // plante sans fruits (repart vers les fruits)
+      gs.setBacGrowth(0.0);
+      gs.setBacSown(false);
+      _bacGrowing = false;
+      _bacTimer?.cancel();
       _showBacFloat('+10');
     } else if (!gs.bacSown) {
       gs.setBacSown(true);
       _showBacFloat('Semé 🌱');
+      _ensureBacGrowing();
     }
-    _ensureBacGrowing();
   }
 
   void _ensureBacGrowing() {
