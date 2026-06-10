@@ -47,6 +47,7 @@ class SideScrollScene extends StatefulWidget {
     this.specialAnimNextFrames = 25,
     this.initialHeroX = 0.5,
     this.secondWagon = false,
+    this.isAtelier = false,
     this.bathToken = 0,
     this.showerToken = 0,
     this.petDogToken = 0,
@@ -81,6 +82,11 @@ class SideScrollScene extends StatefulWidget {
   /// carnet, trousse, commode, gamelle, chien, sœur). Seule l'héroïne reste,
   /// avec son autonomie. La porte gauche y ramène au 1er wagon.
   final bool secondWagon;
+
+  /// `true` rend l'ATELIER (wagon du milieu) : background `atelier_messy/clean`,
+  /// objets fonctionnels (cuisinière, poêle, lampe, bac, filtre). Pas de
+  /// compagnons ni de lit. Se comporte comme le salon pour le déplacement.
+  final bool isAtelier;
 
   /// Incrémenté par le parent quand on appuie sur l'action "bain" (Shen est
   /// près de la baignoire). Lance le tour (use_back) puis l'anim de bain ;
@@ -871,6 +877,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/wagon_clean.png',
       'assets/background/wagon2_messy.png',
       'assets/background/wagon2_clean.png',
+      'assets/background/atelier_messy.png',
+      'assets/background/atelier_clean.png',
       'assets/background/wagon_rails.png',
       'assets/objects/bed.png',
     ]) {
@@ -1595,7 +1603,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     normalised state so the in-app adjustment
                       //     mode can drag + resize them live; final
                       //     values get baked back into the defaults.
-                      if (!widget.secondWagon && _bedUnlocked)
+                      if (!widget.secondWagon && !widget.isAtelier && _bedUnlocked)
                         Positioned(
                           left: w * _bedLeft,
                           top: h * _bedTop,
@@ -1674,12 +1682,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       //     lampe, poêle, filtre eau, chien, table,
                       //     carnet, trousse). Rendus avant la fille pour
                       //     qu'elle puisse passer devant.
-                      if (!widget.secondWagon)
+                      // Props du SALON (carnet, trousse, gamelle, carte) :
+                      // uniquement dans le wagon de vie.
+                      if (!widget.secondWagon && !widget.isAtelier)
                         for (final def in _propDefs)
                           if (_propUnlocked(def.key))
                             _buildProp(def: def, w: w, h: h),
-                      // Props AJUSTABLES du wagon 1 (lampe, bac, filtre, poêle).
-                      if (!widget.secondWagon) _buildWagon1Adjustable(w, h),
+                      // Props AJUSTABLES de l'ATELIER (cuisinière, lampe, bac,
+                      // filtre, poêle).
+                      if (widget.isAtelier) _buildWagon1Adjustable(w, h),
                       // Cellier : props déplaçables (lanternes, baignoire,
                       // panneau douche, pommeau) + anim bain quand elle baigne.
                       if (widget.secondWagon) _buildWagon2Props(w, h),
@@ -1695,24 +1706,31 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             intensity: 1.15),
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
+                      // Compagnons (sœur + chien) : SALON uniquement.
                       if (!widget.secondWagon &&
+                          !widget.isAtelier &&
                           !_petDog &&
                           _dogShown)
                         _buildStaticDog(w, h),
-                      // Caresse chien (Shen + husky) déclenchée par le bouton.
-                      if (!widget.secondWagon && _petDog && _dogShown)
+                      if (!widget.secondWagon &&
+                          !widget.isAtelier &&
+                          _petDog &&
+                          _dogShown)
                         _buildPetDog(w, h),
-                      // Petite soeur autonome (solo). Masquée pendant le duo
-                      // câlin (le sprite duo la contient déjà).
-                      if (!widget.secondWagon && !_duoActive && _sisterShown)
+                      if (!widget.secondWagon &&
+                          !widget.isAtelier &&
+                          !_duoActive &&
+                          _sisterShown)
                         _buildSister(w, h),
-                      // Duo sœur+Shen (câlin/lecture, déclenché par proximité).
-                      if (!widget.secondWagon && _duoActive && _sisterShown)
+                      if (!widget.secondWagon &&
+                          !widget.isAtelier &&
+                          _duoActive &&
+                          _sisterShown)
                         _buildDuo(w, h),
                       // 4c. Halo de la lampe — UNIQUEMENT si la lampe est
                       //     débloquée (présente) ET allumée. Sinon pas de halo
                       //     fantôme.
-                      if (!widget.secondWagon &&
+                      if (widget.isAtelier &&
                           _propUnlocked('lamp') &&
                           GameState.instance.lampOn)
                         Positioned.fill(
@@ -1844,7 +1862,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         ),
                       // HUD ajuster wagon 1 (debug) — AU-DESSUS de tout pour
                       // rester lisible. Panneau interactif (coords + flip).
-                      if (!widget.secondWagon && widget.wagon1Adjust)
+                      if (widget.isAtelier && widget.wagon1Adjust)
                         _wagon1CoordHud(GameState.instance),
                     ],
                   ),
@@ -2778,10 +2796,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
             'assets/background/wagon2_messy.png',
             'assets/background/wagon2_clean.png',
           ]
-        : const [
-            'assets/background/wagon_windowed.png',
-            'assets/background/wagon_clean.png',
-          ];
+        : widget.isAtelier
+            ? const [
+                'assets/background/atelier_messy.png',
+                'assets/background/atelier_clean.png',
+              ]
+            : const [
+                'assets/background/wagon_windowed.png',
+                'assets/background/wagon_clean.png',
+              ];
     final i = stage.clamp(0, assets.length - 1);
     return assets[i];
   }

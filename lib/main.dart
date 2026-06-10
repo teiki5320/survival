@@ -139,7 +139,12 @@ class _WagonScreenState extends State<WagonScreen>
   int _lieDownToken = 0;
 
   bool _inLocomotive = false;
-  bool _inWagon2 = false;
+  // Wagon courant : 0 = salon (sœur/chien/lit), 1 = atelier (cuisinière, poêle,
+  // lampe, bac, filtre), 2 = cellier (bain, douche, armoire, lanternes).
+  int _wagon = 0;
+  bool get _inLiving => _wagon == 0;
+  bool get _inAtelier => _wagon == 1;
+  bool get _inCellier => _wagon == 2;
   bool _onMap = false;
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
@@ -244,15 +249,15 @@ class _WagonScreenState extends State<WagonScreen>
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
-      _inWagon2 && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
+      _inCellier && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
   // Proximité de la douche (panneau) dans le cellier.
   bool get _atShower =>
-      _inWagon2 &&
+      _inCellier &&
       _unlocked('shower') &&
       _near(GameState.instance.showerPanelX, 0.12);
-  // Proximité de la petite sœur (wagon 1, position vivante).
+  // Proximité de la petite sœur (salon, position vivante).
   bool get _atSister =>
-      !_inWagon2 && GameState.instance.sisterShown && _near(_sisterLiveX, 0.08);
+      _inLiving && GameState.instance.sisterShown && _near(_sisterLiveX, 0.08);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -394,26 +399,17 @@ class _WagonScreenState extends State<WagonScreen>
     });
   }
 
-  // Wagon 1, porte droite : anim d'ouverture vers la droite -> wagon 2.
-  void _enterWagon2() {
-    if (_doorPushing || _curtain.isAnimating) return;
-    _startDoorFade();
-    setState(() {
-      _doorPushing = true;
-      _doorPushRight = true;
-      _pendingDoor = 'wagon2';
-      _doorPushToken++;
-    });
-  }
+  int _pendingWagon = 0; // wagon visé par l'anim de porte (si _pendingDoor='wagon')
 
-  // Wagon 2, porte gauche : anim d'ouverture vers la gauche -> wagon 1.
-  void _returnToWagon1() {
+  // Porte d'un wagon vers le wagon voisin : delta = +1 (droite) / -1 (gauche).
+  void _wagonDoor(int delta) {
     if (_doorPushing || _curtain.isAnimating) return;
     _startDoorFade();
     setState(() {
       _doorPushing = true;
-      _doorPushRight = false;
-      _pendingDoor = 'wagon1';
+      _doorPushRight = delta > 0;
+      _pendingDoor = 'wagon';
+      _pendingWagon = (_wagon + delta).clamp(0, 2);
       _doorPushToken++;
     });
   }
@@ -423,22 +419,17 @@ class _WagonScreenState extends State<WagonScreen>
     final dest = _pendingDoor;
     _pendingDoor = null;
     // L'anim de porte a joué EN ENTIER (20 frames). On échange maintenant la
-    // scène DERRIÈRE le rideau noir : le perso de la loco est rendu plus gros
-    // (caméra rapprochée), sans le rideau on voyait un "saut" au passage.
+    // scène DERRIÈRE le rideau noir.
     _curtainSwap(() {
       _doorPushing = false;
-      switch (dest) {
-        case 'loco':
-          _inLocomotive = true;
-          break;
-        case 'wagon2':
-          _inWagon2 = true;
-          _heroSpawnX = 0.12; // arrive tout près de la porte (gauche) du cellier
-          break;
-        case 'wagon1':
-          _inWagon2 = false;
-          _heroSpawnX = SideScrollScene.heroXMax; // revient côté droit
-          break;
+      if (dest == 'loco') {
+        _inLocomotive = true;
+      } else if (dest == 'wagon') {
+        final from = _wagon;
+        _wagon = _pendingWagon;
+        // Vers la DROITE (wagon+1) -> on arrive côté gauche (0.12) ; vers la
+        // GAUCHE (wagon-1) -> on arrive côté droit.
+        _heroSpawnX = _wagon > from ? 0.12 : SideScrollScene.heroXMax;
       }
     });
     if (dest == 'loco') _audio.startFire();
@@ -596,10 +587,13 @@ class _WagonScreenState extends State<WagonScreen>
                     },
                     onReturn: _exitLocomotive,
                   )
-                : _inWagon2
+                : _wagon == 2
                     ? _buildWagon(
-                        key: const ValueKey('wagon2'), secondWagon: true)
-                    : _buildWagon(key: const ValueKey('wagon')),
+                        key: const ValueKey('cellier'), secondWagon: true)
+                    : _wagon == 1
+                        ? _buildWagon(
+                            key: const ValueKey('atelier'), isAtelier: true)
+                        : _buildWagon(key: const ValueKey('salon')),
           ),
           // Rideau noir : par-dessus tout, masque le swap de scène (porte).
           Positioned.fill(
@@ -623,7 +617,7 @@ class _WagonScreenState extends State<WagonScreen>
               !_inWorkshop &&
               !_inShootGame &&
               !_inLocomotive &&
-              !_inWagon2 &&
+              _inLiving &&
               !_doorPushing &&
               GameState.instance.introCinematicSeen &&
               !GameState.instance.tipSeen('intro_done'))
@@ -638,15 +632,17 @@ class _WagonScreenState extends State<WagonScreen>
     );
   }
 
-  Widget _buildWagon({required Key key, bool secondWagon = false}) {
+  Widget _buildWagon(
+      {required Key key, bool secondWagon = false, bool isAtelier = false}) {
     return Stack(
       key: key,
       children: [
         Positioned.fill(
           child: SideScrollScene(
             secondWagon: secondWagon,
+            isAtelier: isAtelier,
             wagon2Adjust: secondWagon && _w2Adjust,
-            wagon1Adjust: !secondWagon && _w1Adjust,
+            wagon1Adjust: isAtelier && _w1Adjust,
             bathToken: _bathToken,
             cuisiniereToken: _cuisiniereToken,
             poeleToken: _poeleToken,
@@ -658,19 +654,20 @@ class _WagonScreenState extends State<WagonScreen>
             onSisterX: (x) => setState(() => _sisterLiveX = x),
             onDogX: (x) => setState(() => _dogLiveX = x),
             initialHeroX: _heroSpawnX,
-            // En mode debug : wagon NETTOYÉ (stage 1) + tous les objets
-            // (gérés par propUnlocked). En jeu : le cellier (wagon 2) est
-            // ENCOMBRÉ au départ et son rangement se GAGNE dans l'histoire
-            // (flag asset_wagon2, gare 6) ou via le FAB debug (wagon2Stage).
+            // En mode debug : wagon NETTOYÉ (stage 1) + tous les objets.
+            // En jeu : cellier ET atelier sont ENCOMBRÉS au départ, leur
+            // rangement se gagne (flag / FAB debug). Salon = _wagonStage.
             wagonStage: GameState.instance.debugMode
                 ? 1
-                : (secondWagon
+                : secondWagon
                     ? ((GameState.instance.wagon2Stage >= 1 ||
                             GameState.instance.cardFlags
                                 .contains('asset_wagon2'))
                         ? 1
                         : 0)
-                    : _wagonStage),
+                    : isAtelier
+                        ? GameState.instance.atelierStage
+                        : _wagonStage,
             running: _running,
             night: _night,
             dancing: _dancing,
@@ -785,14 +782,19 @@ class _WagonScreenState extends State<WagonScreen>
                   const SizedBox(height: 12),
                   FloatingActionButton.small(
                     heroTag: 'cycle_wagon_stage',
-                    tooltip: _inWagon2
+                    tooltip: _inCellier
                         ? 'Cellier: ${_wagon2Labels[GameState.instance.wagon2Stage.clamp(0, 1)]}'
-                        : 'Wagon: ${_stageLabels[_wagonStage.clamp(0, _stageLabels.length - 1)]}',
+                        : _inAtelier
+                            ? 'Atelier: ${_wagon2Labels[GameState.instance.atelierStage.clamp(0, 1)]}'
+                            : 'Salon: ${_stageLabels[_wagonStage.clamp(0, _stageLabels.length - 1)]}',
                     onPressed: () {
                       setState(() {
-                        if (_inWagon2) {
-                          final gs = GameState.instance;
+                        final gs = GameState.instance;
+                        if (_inCellier) {
                           gs.wagon2Stage = (gs.wagon2Stage + 1) % 2;
+                          gs.save();
+                        } else if (_inAtelier) {
+                          gs.atelierStage = (gs.atelierStage + 1) % 2;
                           gs.save();
                         } else {
                           _wagonStage = (_wagonStage + 1) % 2;
@@ -849,13 +851,13 @@ class _WagonScreenState extends State<WagonScreen>
                     ),
                     const SizedBox(height: 12),
                   ],
-                  // Wagon 1 seulement : ajuster lampe/bac/filtre/poêle.
-                  if (!secondWagon) ...[
+                  // Atelier seulement : ajuster cuisinière/lampe/bac/filtre/poêle.
+                  if (isAtelier) ...[
                     FloatingActionButton.small(
                       heroTag: 'w1_adjust',
                       tooltip: _w1Adjust
                           ? 'Terminer le placement'
-                          : 'Ajuster lampe/bac/filtre/poêle',
+                          : 'Ajuster cuisinière/lampe/bac/filtre/poêle',
                       backgroundColor:
                           _w1Adjust ? const Color(0xFFE8B96B) : null,
                       foregroundColor:
@@ -1043,35 +1045,38 @@ class _WagonScreenState extends State<WagonScreen>
     if (_doorPushing) return null;
     if (_atLeftDoor) {
       return (
-        id: 'go_loco',
-        text: _inWagon2
-            ? 'Retour au wagon principal.'
-            : 'Porte vers la locomotive : c\'est là qu\'on ouvre la carte du voyage.'
+        id: 'go_left',
+        text: _inLiving
+            ? 'Porte vers la locomotive : c\'est là qu\'on ouvre la carte du voyage.'
+            : _inAtelier
+                ? 'Retour au salon (sœur, chien, lit).'
+                : 'Retour à l\'atelier.'
       );
     }
-    if (_atRightDoor && !_inWagon2) {
-      // Le cellier est accessible dès le départ, mais ENCOMBRÉ tant que son
-      // rangement n'est pas gagné dans l'histoire (wagon2Stage 0 = en désordre).
-      return (id: 'go_cellier', text: 'Le cellier (2e wagon).');
+    if (_atRightDoor && !_inCellier) {
+      return (
+        id: 'go_right',
+        text: _inLiving ? 'L\'atelier (cuisine, poêle, serre…).' : 'Le cellier (bain, douche).'
+      );
     }
     if (_atBath) return (id: 'bath', text: 'Un bon bain pour te détendre.');
     if (_atShower) return (id: 'shower', text: 'Une douche pour te laver.');
     if (_atSister) {
       return (id: 'sister', text: 'Ta sœur : un câlin remonte le moral.');
     }
-    if (!_inWagon2 && _atBed) {
+    if (_inLiving && _atBed) {
       return (id: 'bed', text: 'Dors ici pour récupérer des forces.');
     }
-    if (!_inWagon2 && _atNotebook) {
+    if (_inLiving && _atNotebook) {
       return (id: 'notebook', text: 'Lis un moment : ça apaise.');
     }
-    if (!_inWagon2 && _atFilter) {
-      return (id: 'filter', text: 'Remplis le filtre, puis bois (jauge Soif).');
-    }
-    if (!_inWagon2 && _atDog) {
+    if (_inLiving && _atDog) {
       return (id: 'dog', text: 'Caresse le chien : ça réchauffe le cœur.');
     }
-    if (!_inWagon2 && _atHydro) {
+    if (_inAtelier && _atFilter) {
+      return (id: 'filter', text: 'Remplis le filtre, puis bois (jauge Soif).');
+    }
+    if (_inAtelier && _atHydro) {
       final ripe = GameState.instance.bacGrowth >= 1.0;
       final sown = GameState.instance.bacSown;
       return (
@@ -1083,13 +1088,13 @@ class _WagonScreenState extends State<WagonScreen>
                 : 'Sème des graines dans le bac.'
       );
     }
-    if (!_inWagon2 && _atLamp) {
+    if (_inAtelier && _atLamp) {
       return (id: 'lamp', text: 'Allume ou éteins la lampe.');
     }
-    if (!_inWagon2 && _atStove) {
+    if (_inAtelier && _atStove) {
       return (id: 'cuisiniere', text: 'Cuisine un repas (jauge Faim).');
     }
-    if (!_inWagon2 && _atPoele) {
+    if (_inAtelier && _atPoele) {
       return (
         id: 'poele',
         text: GameState.instance.poeleOn
@@ -1105,15 +1110,13 @@ class _WagonScreenState extends State<WagonScreen>
     VoidCallback? action;
 
     if (_atLeftDoor && !_doorPushing) {
-      // Porte gauche : loco (wagon 1) ou retour wagon 1 (depuis wagon 2).
+      // Porte gauche : salon -> loco ; sinon -> wagon précédent (gauche).
       icon = Icons.meeting_room;
-      action = _inWagon2 ? _returnToWagon1 : _enterLocomotive;
-    } else if (_atRightDoor && !_doorPushing && !_inWagon2) {
-      // Porte droite du wagon 1 : ouverture vers le 2e wagon (cellier).
-      // Accessible dès le départ ; le cellier est juste ENCOMBRÉ tant que son
-      // rangement n'est pas gagné dans l'histoire (wagon2Stage).
+      action = _inLiving ? _enterLocomotive : () => _wagonDoor(-1);
+    } else if (_atRightDoor && !_doorPushing && !_inCellier) {
+      // Porte droite : vers le wagon suivant (salon->atelier->cellier).
       icon = Icons.meeting_room;
-      action = _enterWagon2;
+      action = () => _wagonDoor(1);
     } else if (_atBath) {
       // Cellier, près de la baignoire : entrer / sortir du bain.
       // (+moral géré dans la scène, à l'entrée uniquement.)
@@ -1132,17 +1135,17 @@ class _WagonScreenState extends State<WagonScreen>
             _duoToken++;
             GameState.instance.nudgeCardStat('moral', 8);
           });
-    } else if (!_inWagon2 && _atBed) {
+    } else if (_inLiving && _atBed) {
       icon = Icons.bed;
       action = () => setState(() => _lieDownToken++);
-    } else if (!_inWagon2 && _atNotebook) {
+    } else if (_inLiving && _atNotebook) {
       icon = Icons.menu_book;
       action = () {
         _triggerSpecial('read', frames: 49);
         // Lire réconforte : +moral.
         GameState.instance.nudgeCardStat('moral', 10);
       };
-    } else if (!_inWagon2 && _atFilter) {
+    } else if (_inAtelier && _atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
       if (glasses == 0) {
         // Vide → remplir.
@@ -1163,7 +1166,7 @@ class _WagonScreenState extends State<WagonScreen>
           GameState.instance.setWaterTankGlasses(glasses - 1);
         };
       }
-    } else if (!_inWagon2 && _atDog) {
+    } else if (_inLiving && _atDog) {
       icon = Icons.pets;
       action = () {
         // Sprite Shen + husky (caresse -> câlin), bon chien.
@@ -1171,12 +1174,12 @@ class _WagonScreenState extends State<WagonScreen>
         GameState.instance.nudgeCardStat('moral', 10);
         _audio.playSfx('dog_bark');
       };
-    } else if (!_inWagon2 && _atHydro) {
+    } else if (_inAtelier && _atHydro) {
       // Bac de culture : semer / récolter (séquence dans la scène). Plus de
       // fenêtre de mini-jeu serre.
       icon = Icons.yard;
       action = () => setState(() => _bacToken++);
-    } else if (!_inWagon2 && _atLamp) {
+    } else if (_inAtelier && _atLamp) {
       icon = GameState.instance.lampOn
           ? Icons.lightbulb
           : Icons.lightbulb_outline;
@@ -1184,12 +1187,12 @@ class _WagonScreenState extends State<WagonScreen>
         setState(() => GameState.instance.toggleLamp());
         _audio.playSfx('lamp_toggle');
       };
-    } else if (!_inWagon2 && _atStove) {
+    } else if (_inAtelier && _atStove) {
       // Cuisinière : Shen se tourne, la cuisinière s'allume 5 s, puis elle
       // mange au sol (séquence pilotée dans la scène).
       icon = Icons.local_dining;
       action = () => setState(() => _cuisiniereToken++);
-    } else if (!_inWagon2 && _atPoele) {
+    } else if (_inAtelier && _atPoele) {
       // Poêle à bois : allumer/éteindre (brûle du bois doucement).
       icon = Icons.local_fire_department;
       action = () => setState(() => _poeleToken++);

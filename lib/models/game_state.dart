@@ -60,6 +60,7 @@ class GameState extends ChangeNotifier {
         'dailyGaresWon': dailyGaresWon,
         'dailyClaimed': dailyClaimed.toList(),
         'wagon2Stage': wagon2Stage,
+        'atelierStage': atelierStage,
         'wagon2LampAx': wagon2LampAx,
         'wagon2LampAy': wagon2LampAy,
         'wagon2LampBx': wagon2LampBx,
@@ -159,6 +160,7 @@ class GameState extends ChangeNotifier {
         dailyClaimed = (data['dailyClaimed'] as List).cast<String>().toSet();
       }
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
+      atelierStage = ((data['atelierStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
       wagon2LampAy = (data['wagon2LampAy'] as num?)?.toDouble() ?? wagon2LampAy;
       wagon2LampBx = (data['wagon2LampBx'] as num?)?.toDouble() ?? wagon2LampBx;
@@ -584,6 +586,9 @@ class GameState extends ChangeNotifier {
 
   /// 2e wagon (cellier) : 0 = en désordre (état initial), 1 = aménagé/propre.
   int wagon2Stage = 0;
+
+  /// Atelier (wagon du milieu) : 0 = sale/encombré, 1 = rangé/propre.
+  int atelierStage = 0;
 
   /// Position des 2 lanternes du cellier (fraction w pour x, h pour y).
   /// Déplaçables au doigt dans le wagon 2 ; sauvegardées.
