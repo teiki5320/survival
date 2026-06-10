@@ -753,6 +753,9 @@ via « Continuer le voyage » ; anims de mort pillards ; stats de départ basses
     les prompts.
   - Drop de fichiers dans le repo : lui (Mac terminal ou iPad GitHub web).
 - **Pas d'estimations de temps**.
+- **Ne JAMAIS dramatiser la charge de travail** : pas de « beaucoup à faire »,
+  « gros morceau », « c'est conséquent », etc. C'est une IA, le travail est
+  facile/rapide. On fait, point. (Demande explicite de l'utilisateur 2026-06.)
 - **Pas de mini-jeux modaux** pour eau (l'utilisateur n'aime pas).
   Préférer interaction inline avec l'asset (tap sur prop = action).
 - **L'utilisateur préfère les itérations rapides** : commit même quand
