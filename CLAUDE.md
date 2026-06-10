@@ -880,8 +880,10 @@ en gare (version texte) ; (e) une idée de combat par gare ; (f) boutique IAP.
   tout (OOM), ou `_stones.add()` en pleine itération (freeze).
 - Tenter d'habiller Shen avec la robe sans sprites régénérés (abandonné).
 
-**Persos à l'écran** : Shen (jeune femme, chemise blanche pieds nus — voulu),
-la **petite sœur** (pyjama, couettes — bien plus petite que Shen), le **husky**.
+**Persos à l'écran** : Shen (**jeune femme de 20 ANS, adulte — JAMAIS une
+enfant**, chemise blanche pieds nus — voulu), la **petite sœur** (7 ans,
+pyjama, couettes — bien plus petite que Shen ; c'est ELLE l'enfant), le
+**husky**.
 Le câlin debout sœur (`hugduo`) était mal généré → on utilise `sister_hug`
 (sœur petite + Shen accroupie).
 
