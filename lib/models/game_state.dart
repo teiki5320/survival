@@ -42,7 +42,6 @@ class GameState extends ChangeNotifier {
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
         'cabinTemp': cabinTemp,
-        'stoveInstalled': stoveInstalled,
         'outfitWarmth': outfitWarmth,
         'shootWeaponLevel': shootWeaponLevel,
         'shootBestStars': shootBestStars,
@@ -124,7 +123,6 @@ class GameState extends ChangeNotifier {
       // 2 stages désormais (windowed/clean) : clamp pour vieilles sauvegardes.
       wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       cabinTemp = (data['cabinTemp'] as num?)?.toDouble() ?? cabinTemp;
-      stoveInstalled = (data['stoveInstalled'] as bool?) ?? stoveInstalled;
       outfitWarmth = (data['outfitWarmth'] as num?)?.toInt() ?? outfitWarmth;
       shootWeaponLevel =
           (data['shootWeaponLevel'] as num?)?.toInt() ?? shootWeaponLevel;
@@ -334,7 +332,6 @@ class GameState extends ChangeNotifier {
   // Protection contre le froid : meilleur wagon + habits chauds -> Shen
   // supporte des températures plus basses (seuil plus bas). Le poêle, lui,
   // RÉCHAUFFE la cabine (entre dans cabinTemp via le feu, pas ici).
-  bool stoveInstalled = true; // le poêle "à remettre dans le wagon"
   int outfitWarmth = 0; // bonus tenue (0 = tenue de base)
 
   /// Température cible calculée depuis l'environnement : zone traversée +
@@ -553,12 +550,14 @@ class GameState extends ChangeNotifier {
   /// l'histoire. Garde le meilleur score de la gare.
   void applyCombatRewards(int gareIndex, int score100) {
     final s = score100.clamp(0, 100);
-    // Un bon score ravitaille vraiment le train (loot réel, non atténué).
+    // Ravitaillement CALIBRÉ PAR SIMULATION (tools/sim_current.py, départ 25) :
+    // à ces valeurs, un joueur correct survit ~63%, négligent ~11%, expert ~99%.
+    // (Les anciennes valeurs 20/12/12/10 rendaient le jeu trivial : casual 97%.)
     applyCardDeltas({
-      'bois': (s / 100 * 20).round(),
-      'soif': (s / 100 * 12).round(),
-      'faim': (s / 100 * 12).round(),
-      'moral': (s / 100 * 10).round(),
+      'bois': (s / 100 * 13).round(),
+      'soif': (s / 100 * 7).round(),
+      'faim': (s / 100 * 7).round(),
+      'moral': (s / 100 * 6).round(),
     });
     // Tier (on nettoie l'ancien avant de reposer) + flag de réussite par gare.
     cardFlags.removeWhere((f) => f.startsWith('combatTier'));

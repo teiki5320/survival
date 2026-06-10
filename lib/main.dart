@@ -10,7 +10,6 @@ import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
 import 'widgets/cards_screen.dart';
 import 'widgets/stat_rings.dart';
-import 'widgets/games/hydro_game.dart';
 import 'widgets/games/roof_defense_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/loading_screen.dart';
@@ -148,7 +147,6 @@ class _WagonScreenState extends State<WagonScreen>
   bool _onMap = false;
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
-  bool _inHydroGame = false;
   bool _inCards = false;
   bool _inShootGame = false; // mini-jeu défense du toit (gares)
   bool _inWorkshop = false; // atelier + quotidien + collection (depuis la map)
@@ -351,14 +349,26 @@ class _WagonScreenState extends State<WagonScreen>
         gs.nudgeCardStat('moral', -(d < 1 ? 1 : d));
       }
     });
+    // TAMAGOTCHI LÉGER : faim et soif descendent doucement avec le temps passé
+    // dans le train (-1 toutes les 25 s, hors cartes/combat qui ont leur propre
+    // économie). Manger (cuisinière/bac) et boire (filtre) deviennent
+    // NÉCESSAIRES, pas décoratifs.
+    _needsTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+      if (!mounted || _inCards || _inShootGame) return;
+      final gs = GameState.instance;
+      gs.nudgeCardStat('faim', -1);
+      gs.nudgeCardStat('soif', -1);
+    });
   }
 
   Timer? _coldTimer;
+  Timer? _needsTimer;
 
   @override
   void dispose() {
     _dayNightTimer?.cancel();
     _coldTimer?.cancel();
+    _needsTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _curtain.dispose();
@@ -525,11 +535,6 @@ class _WagonScreenState extends State<WagonScreen>
                 key: const ValueKey('cards'),
                 onClose: () => setState(() => _inCards = false),
               )
-            : _inHydroGame
-            ? HydroGameTier1(
-                key: const ValueKey('hydro_game'),
-                onClose: () => setState(() => _inHydroGame = false),
-              )
             : _inWardrobe
             ? WardrobeScreen(
                 key: const ValueKey('wardrobe'),
@@ -612,7 +617,6 @@ class _WagonScreenState extends State<WagonScreen>
           // Bulles de TUTO d'intro : seulement sur la vue wagon 1, une fois.
           if (!_onMap &&
               !_inCards &&
-              !_inHydroGame &&
               !_inWardrobe &&
               !_inWorkshop &&
               !_inShootGame &&

@@ -477,7 +477,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _cookLit = false;
   AnimationController? _fireLoop;
   Timer? _cookT1, _cookT2, _cookT3;
-  bool _cookSeqActive = false; // bloque l'autonomie pendant la cuisson
   // Poêle à bois : timer qui fait descendre le bois doucement tant qu'il brûle.
   Timer? _poeleDrainTimer;
   // Bac de culture : pousse (0..1) en 20 s une fois semé, puis récolte.
@@ -550,10 +549,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Autonomie de Shen DÉSACTIVÉE (demande utilisateur) : le perso principal
     // reste en idle, ne se balade plus et ne lance plus d'actions tout seul.
     // Tout passe par les actions DÉCLENCHÉES par le joueur (boutons / objets).
-    // (Le timer d'autonomie n'est plus démarré ; _autonomyTick conservé.)
+    // (Le timer d'autonomie n'existe plus.)
   }
 
-  Timer? _autonomyTimer;
 
   /// Lance une animation spéciale one-shot de façon autonome (même mécanique
   /// que celle pilotée par le parent via specialAnimToken).
@@ -578,7 +576,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void _startCook() {
     final gs = GameState.instance;
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
-    _cookSeqActive = true; // bloque l'autonomie jusqu'à la fin du repas
     _startAutoSpecial('use_back', frames: 24);
     _cookT1?.cancel();
     _cookT2?.cancel();
@@ -591,10 +588,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       setState(() => _cookLit = false); // extinction
       _startAutoSpecial('eat', frames: 49); // mange au sol
       gs.nudgeCardStat('faim', 14);
-    });
-    // Fin de la séquence (après le repas, ~3.5 s d'anim) -> autonomie réactivée.
-    _cookT3 = Timer(const Duration(milliseconds: 9700), () {
-      if (mounted) _cookSeqActive = false;
     });
   }
 
@@ -682,73 +675,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// Comportement autonome de Shen, dicté par ses besoins (cosmétique : la
   /// scène ne modifie pas les stats, gérées par les cartes). Elle ne fait
   /// rien si elle est déjà occupée (marche, dort, anim, porte...).
-  // ignore: unused_element
-  void _autonomyTick() {
-    if (!mounted || !widget.running) return;
-    final busy = _heroTarget != null ||
-        _heroSleeping ||
-        _heroDancing ||
-        _heroLyingDown ||
-        _waking ||
-        _doorPushing ||
-        _activeSpecial != null ||
-        _cookSeqActive || // séquence cuisinière en cours (tour -> repas)
-        _idleBreak != null;
-    if (busy || _duoActive) return;
-
-    final r = math.Random();
-
-    // NOTE : le duo auto par proximité est désactivé — il faisait disparaître
-    // puis réapparaître la sœur (solo masqué par le sprite duo) dès que Shen
-    // passait à côté d'elle, ce qui paraissait buggé. Les duos restent
-    // déclenchables manuellement via le bouton action (duoToken).
-
-    // Quand il fait froid (thermomètre), elle frissonne (plus souvent si
-    // c'est très froid). Si elle est près du POÊLE ALLUMÉ, elle se réchauffe
-    // les mains au lieu de frissonner.
-    if (GameState.instance.feltCold &&
-        r.nextDouble() < 0.35 + GameState.instance.coldness * 0.03) {
-      final gs = GameState.instance;
-      final nearPoele = !widget.secondWagon &&
-          gs.poeleOn &&
-          (_heroX - gs.w1x('poele')).abs() < 0.12;
-      _startAutoSpecial(nearPoele ? 'warm_hands' : 'cold',
-          frames: nearPoele ? 49 : 8);
-      return;
-    }
-
-    // 2e wagon : pas de props (poêle/filtre/jardin) -> elle se contente de
-    // flâner et de petites pauses, pas d'actions liées aux besoins.
-    if (widget.secondWagon) {
-      if (r.nextBool()) {
-        _walkTo(_moveMin + r.nextDouble() * (_moveMax - _moveMin));
-      } else {
-        _startAutoSpecial(r.nextBool() ? 'yawn' : 'stretch');
-      }
-      return;
-    }
-
-    final gs = GameState.instance;
-    final moral = gs.cardMoral;
-
-    // NB : auto-boire RETIRÉ — Shen ne boit plus toute seule. Boire ne se fait
-    // QUE via le filtre à eau (elle prend l'eau dans sa tasse).
-    if (moral < 62) {
-      // warm_hands RETIRÉ du pool : ce geste « se réchauffer les mains » n'a de
-      // sens que quand il fait froid (géré plus haut via 'cold'), pas comme
-      // remontée de moral générique -> il paraissait sortir de nulle part.
-      const pool = ['read', 'dance'];
-      _startAutoSpecial(pool[r.nextInt(pool.length)]); // remonte le moral
-    } else {
-      // tout va bien : elle flâne ou fait une petite pause.
-      if (r.nextBool()) {
-        _walkTo(_moveMin + r.nextDouble() * (_moveMax - _moveMin));
-      } else {
-        _startAutoSpecial(r.nextBool() ? 'yawn' : 'stretch');
-      }
-    }
-  }
-
   void _onGameStateChanged() {
     if (!mounted) return;
     final zone = GameState.instance.trainZone;
@@ -1043,7 +969,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     GameState.instance.removeListener(_onGameStateChanged);
     _heroTicker.dispose();
     _heroAnim.dispose();
-    _autonomyTimer?.cancel();
     _horizonRotateTimer?.cancel();
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
@@ -2779,6 +2704,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
         child: sprite,
       );
     }
+    // TENUE CHAUDE — overlay simple : une écharpe peinte par-dessus le sprite
+    // quand une tenue chaude est portée (outfitWarmth > 0). Affichée seulement
+    // sur idle/walk (les autres anims ont des poses trop différentes).
+    if (GameState.instance.outfitWarmth > 0 &&
+        (prefix == 'idle_right' || prefix == 'walk_right')) {
+      sprite = Stack(
+        fit: StackFit.expand,
+        children: [
+          sprite,
+          CustomPaint(
+            painter: _ScarfPainter(
+              facingRight: !shouldMirror,
+              neckCx: effCx,
+              sway: (frame % 49) / 49.0,
+            ),
+          ),
+        ],
+      );
+    }
     sprite = _nightTint(sprite);
 
     return Positioned(
@@ -3666,4 +3610,87 @@ class _WaterTankSprite extends StatelessWidget {
       fit: fit,
     );
   }
+}
+
+/// Écharpe peinte par-dessus Shen (tenue chaude, overlay simple sans sprites
+/// dédiés) : bande autour du cou + pan qui pend et ondule doucement.
+/// Dessinée dans la boîte du sprite ; tailles en fraction de hauteur (h).
+class _ScarfPainter extends CustomPainter {
+  _ScarfPainter({
+    required this.facingRight,
+    required this.neckCx,
+    required this.sway,
+  });
+  final bool facingRight;
+  final double neckCx; // centre du perso dans la boîte (fraction de largeur)
+  final double sway; // 0..1 cycle d'ondulation
+
+  static const _scarf = Color(0xFFA8453A); // rouge brique chaud
+  static const _scarfLight = Color(0xFFC2685B);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final h = size.height;
+    final cx = size.width * neckCx;
+    final neckY = h * 0.225; // hauteur du cou (sous le menton)
+    final bandW = h * 0.085;
+    final bandH = h * 0.045;
+    // Bande de cou (deux épaisseurs pour un peu de volume).
+    final band = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+          center: Offset(cx, neckY), width: bandW, height: bandH),
+      Radius.circular(bandH * 0.5),
+    );
+    canvas.drawRRect(band, Paint()..color = _scarf);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromCenter(
+            center: Offset(cx, neckY - bandH * 0.22),
+            width: bandW * 0.92,
+            height: bandH * 0.5),
+        Radius.circular(bandH * 0.3),
+      ),
+      Paint()..color = _scarfLight,
+    );
+    // Pan qui pend DERRIÈRE l'épaule (côté dos = opposé au regard), avec une
+    // ondulation douce.
+    final dir = facingRight ? -1.0 : 1.0;
+    final wave = math.sin(sway * 2 * math.pi) * h * 0.012;
+    final tailTopX = cx + dir * bandW * 0.32;
+    final tail = Path()
+      ..moveTo(tailTopX - bandW * 0.16, neckY)
+      ..lineTo(tailTopX + bandW * 0.16, neckY)
+      ..quadraticBezierTo(
+        tailTopX + bandW * 0.22 + dir * h * 0.012,
+        neckY + h * 0.07,
+        tailTopX + bandW * 0.10 + dir * h * 0.022 + wave,
+        neckY + h * 0.13,
+      )
+      ..lineTo(tailTopX - bandW * 0.20 + dir * h * 0.022 + wave,
+          neckY + h * 0.125)
+      ..quadraticBezierTo(
+        tailTopX - bandW * 0.22 + dir * h * 0.010,
+        neckY + h * 0.06,
+        tailTopX - bandW * 0.16,
+        neckY,
+      )
+      ..close();
+    canvas.drawPath(tail, Paint()..color = _scarf);
+    // Petite rayure crème au bout du pan.
+    final stripeY = neckY + h * 0.112;
+    canvas.drawLine(
+      Offset(tailTopX - bandW * 0.18 + dir * h * 0.020 + wave, stripeY),
+      Offset(tailTopX + bandW * 0.08 + dir * h * 0.020 + wave, stripeY),
+      Paint()
+        ..color = const Color(0xFFE8D9B8)
+        ..strokeWidth = h * 0.008
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_ScarfPainter old) =>
+      old.sway != sway ||
+      old.facingRight != facingRight ||
+      old.neckCx != neckCx;
 }

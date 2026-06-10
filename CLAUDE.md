@@ -27,6 +27,46 @@ stats de départ basses), ON = tout affiché + outils. Map UNIQUEMENT via la loc
 cartes via « Continuer le voyage ». Thermomètre auto, musique réactivée.
 Voir le bloc « GROSSE SESSION 2026-06-09 » plus bas pour le détail.
 
+### ⚡ SESSION 2026-06-10 (builds 0.99.10 → 0.99.39) — résumé
+- **3 WAGONS** : salon (sœur/chien/lit/carnet/trousse/gamelle) → **atelier**
+  (cuisinière/poêle/lampe/bac/filtre, bg `atelier_messy/clean`) → cellier
+  (bain/douche/armoire). Navigation `_wagon` 0/1/2, `_wagonDoor(±1)`.
+- **Autonomie de Shen SUPPRIMÉE** (demande user : perso idle, tout est
+  déclenché par le joueur). Sœur+chien dorment la nuit, réveil au jour.
+- **Objets atelier interactifs** : cuisinière (tap → se tourne → feu animé 5 s
+  → mange au sol `eat_1..49`, +14 faim) ; poêle à bois (ON/OFF, feu animé,
+  chauffe la cabine, bois -1/9 s, s'éteint à 0 bois) ; bac de culture (semer →
+  pousse 20 s → récolter +10 faim, bac redevient vide) ; filtre = ancien tank.
+  Tous **ajustables** (FAB debug : drag+pincer+miroir ↔↕, HUD coords,
+  `GameState.wagon1Props`).
+- **Température (règle précise)** : cabine = zone(17/12/5/-4) + météo(0/-1/-2/-4)
+  + nuit(-3) + poêle ALLUMÉ(+12, +18 si bois≥30). Froid si < seuil
+  (12 - wagonStage×2 - outfitWarmth) → givre fenêtres, gains moral bloqués,
+  drain moral = max(1, coldness/5) toutes les 14 s.
+- **TAMAGOTCHI léger** : faim/soif -1 toutes les 25 s (hors cartes/combat).
+- **Tenue chaude** : écharpe peinte (`_ScarfPainter`) par-dessus idle/walk
+  quand `outfitWarmth > 0` (pas de sprites dédiés).
+- **ÉQUILIBRAGE RECALIBRÉ par simulation** (`tools/sim_current.py`, départ 25) :
+  récompenses combat réduites à 13/7/7/6 (score/100 ×) → careless 12 %,
+  casual 63 %, smart ~100 %. (Avant : 20/12/12/10 = trivial, casual 97 %.)
+- **Combat** : pillard SUR PLACE en idle animé (`pillard4_idle_1..49`, même
+  perso que lanceur) ; touché = vraie chute en arrière LENTE (aller-retour
+  frames die) puis se relève ; mort 1.9 s ; **escalade par gare** (hp 5→11,
+  visée 1.9→1.1 s, dispersion 0.14→0.06). Zoom repos 2.2, dézoom visée 1.3.
+- **Noms de gares japonisants** : Kogarashi (départ, à l'ex-position de
+  Mayoidani) · Karasuno · Kurogane · Hoshikage · Mayoidani · Shizuhara ·
+  Yasuragi · Tsukibashi · Kiribe · Hidamari · Yukihara · Miharashi · Fubuki ·
+  Hokuto. (locationId inchangés.)
+- **Cartes** : barre debug (Passer ▸ / ◀▶ Gare, swipe gratuit en debug) ;
+  ronds stats remontés ; libellés bas suprimés (choix = côtés au glissé).
+- **Fix portes** : ancrage du perso par `cx` mesuré par anim (plus de saut
+  idle→open_door) ; séquence porte = originale (anim entière + fondu 420 ms).
+- **Code mort retiré** : mini-jeu serre (HydroGameTier1 inaccessible),
+  `stoveInstalled`, `_autonomyTick`. `sim_game.py` = PÉRIMÉ (départ 70, sans
+  combat) → utiliser `tools/sim_current.py`.
+- **Reste à faire** : cinématiques d'entrée en gare (texte, comme l'ouverture),
+  boutique IAP, 1er combat tuto + chiot, vraie tenue d'hiver (sprites).
+
 **✅ DIRECTION VALIDÉE (2026-05-31)** : gameplay **Reigns-like** + histoire
 canon (Shen fuit la 3e GM, cherche sa famille, train → refuge nord). Le
 **moteur de cartes existe** (`lib/widgets/cards_screen.dart`, données

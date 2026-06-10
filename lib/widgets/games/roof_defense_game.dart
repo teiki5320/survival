@@ -836,8 +836,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           _playerTurn = true;
         } else {
           // Recentre sur le pillard, il vise (télégraphe) avant de lancer.
+          // ESCALADE PAR GARE : il vise de plus en plus vite (1.9 s -> ~1.1 s).
           _enemyAiming = true;
-          _enemyAimT = 1.9; // lancer du pillard retardé
+          _enemyAimT =
+              (1.9 - widget.gareIndex * 0.06).clamp(1.1, 1.9).toDouble();
 
         }
       }
@@ -876,7 +878,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     final from = Offset(e.x - e.height * 0.2, e.feetY - e.height * 0.55);
     const ge = _g * 0.5; // gravité des tirs ennemis (cf _updateProjectiles)
     const t = 4.8; // vol très lent (suivable à la caméra)
-    const spread = 0.14; // niveau 1 : dispersion autour de la fenêtre
+    // ESCALADE PAR GARE : le pillard vise de mieux en mieux au fil du voyage
+    // (gare 1 : dispersion 0.14 ; gare 14 : ~0.06).
+    final spread =
+        (0.14 - widget.gareIndex * 0.006).clamp(0.06, 0.14).toDouble();
     final to = Offset(
       _muzX + _gauss() * spread, // un peu court / un peu long
       _muzY + _gauss() * spread * 0.8, // un peu haut / un peu bas
@@ -1127,10 +1132,13 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           speed: 0, height: 0.22, anim: anim, hp: _bruteHp,
         )..throwT = _rng.nextDouble() * 2.0);
       case _PillType.lanceur:
+        // ESCALADE PAR GARE : pillards plus coriaces au fil du voyage
+        // (gare 1 : 5 hp ; gare 14 : ~11 hp).
+        final duelHp = 5 + (widget.gareIndex * 0.45).round();
         _enemies.add(_Enemy(
           type: type, x: x, feetY: feetY,
           speed: 0, height: 0.17, anim: anim,
-          hp: _duelTest ? 6 : 1,
+          hp: _duelTest ? duelHp : 1,
         )..throwT = _rng.nextDouble() * 1.5);
       case _PillType.basic:
         // Pillard doré rare : jackpot de ferraille, mais il décampe au bout de
