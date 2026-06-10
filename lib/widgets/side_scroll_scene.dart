@@ -374,12 +374,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Random idle break: after ~15 s standing still the heroine plays a
   // yawn or look-window sheet once, then returns to idle. Breaks the
   // monotony without needing any input.
-  int _idleStillMs = 0;
+  // ignore: unused_field
+  int _idleStillMs = 0; // (pauses d'inactivité désactivées)
   String? _idleBreak; // 'yawn' / 'look_window' while playing
   int _idleBreakFrame = 0;
   int _idleBreakAccumMs = 0;
   static const int _idleBreakFrameMs = 65;
-  static const int _idleBreakAfterMs = 15000;
 
   // Bain (cellier) : après s'être tournée (use_back), Shen entre dans le bain.
   // L'anim bath_1..8 (qui contient sa propre cuve) remplace l'héroïne + la
@@ -541,10 +541,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
         if (mounted) setState(() => _thoughtEmoji = null);
       });
     });
-    // Autonomie de Shen : toutes les ~14s, si elle est oisive, elle fait une
-    // action choisie selon ses besoins (les 4 stats), façon Sims.
-    _autonomyTimer =
-        Timer.periodic(const Duration(seconds: 14), (_) => _autonomyTick());
+    // Autonomie de Shen DÉSACTIVÉE (demande utilisateur) : le perso principal
+    // reste en idle, ne se balade plus et ne lance plus d'actions tout seul.
+    // Tout passe par les actions DÉCLENCHÉES par le joueur (boutons / objets).
+    // (Le timer d'autonomie n'est plus démarré ; _autonomyTick conservé.)
   }
 
   Timer? _autonomyTimer;
@@ -676,6 +676,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// Comportement autonome de Shen, dicté par ses besoins (cosmétique : la
   /// scène ne modifie pas les stats, gérées par les cartes). Elle ne fait
   /// rien si elle est déjà occupée (marche, dort, anim, porte...).
+  // ignore: unused_element
   void _autonomyTick() {
     if (!mounted || !widget.running) return;
     final busy = _heroTarget != null ||
@@ -1316,18 +1317,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _idleAccumMs -= _idleFrameMs;
           _idleFrame = (_idleFrame + 1) % _heroFrameCount;
         }
-        _idleStillMs += dtMs;
-        // Pick an idle break when she's been still long enough. Look
-        // at the window if she's near one, otherwise yawn (with a
-        // probability so it doesn't fire like clockwork).
-        if (_idleStillMs >= _idleBreakAfterMs) {
-          _idleStillMs = 0;
-          if (math.Random().nextDouble() < 0.6) {
-            _idleBreak = 'yawn';
-          }
-          _idleBreakFrame = 0;
-          _idleBreakAccumMs = 0;
-        }
+        // Pauses d'inactivité (yawn) DÉSACTIVÉES : Shen reste en idle pur.
+        _idleStillMs = 0;
       });
       return;
     }

@@ -334,12 +334,17 @@ class _WagonScreenState extends State<WagonScreen>
       GameState.instance.setNight(_night);
       _refreshMusic();
     });
-    // Tension du froid : tant qu'il fait froid (poêle éteint / pas de bois /
-    // grand nord), le moral s'érode doucement -> il faut se réchauffer.
+    // Tension du froid (RÈGLE PRÉCISE) : toutes les 14 s, si la cabine est sous
+    // le seuil de froid, le moral s'érode d'un cran PROPORTIONNEL à l'intensité
+    // du froid : drain = max(1, coldness / 5) (coldness = seuil − température).
+    //   léger (coldness ~5) → −1   |  mordant (~10) → −2   |  glacial (~20) → −4
     _coldTimer = Timer.periodic(const Duration(seconds: 14), (_) {
       if (!mounted) return;
       final gs = GameState.instance;
-      if (gs.feltCold) gs.nudgeCardStat('moral', -1);
+      if (gs.feltCold) {
+        final d = (gs.coldness / 5).round();
+        gs.nudgeCardStat('moral', -(d < 1 ? 1 : d));
+      }
     });
   }
 
