@@ -226,10 +226,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // s'approcher de la porte (gauche), et tant qu'il est EN DÉSORDRE
   // (wagonStage 0) elle ne peut pas avancer : le bazar la bloque près de
   // l'entrée. Une fois AMÉNAGÉ (stage >= 1) elle circule dans tout le wagon.
-  double get _moveMin => widget.secondWagon ? 0.10 : _heroXMin;
+  // L'atelier a ses portes dessinées plus PRÈS DES BORDS que le salon ->
+  // bornes élargies (sinon Shen s'arrête avant la porte gauche).
+  double get _moveMin =>
+      widget.secondWagon ? 0.10 : (widget.isAtelier ? 0.08 : _heroXMin);
   double get _moveMax => widget.secondWagon
       ? (widget.wagonStage >= 1 ? _heroXMax : 0.30)
-      : _heroXMax;
+      : (widget.isAtelier ? 0.92 : _heroXMax);
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
