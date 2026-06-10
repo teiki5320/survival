@@ -159,7 +159,8 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _stoneR = 0.013;
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
-  static const double _dieDur = 1.2;
+  static const double _dieDur = 1.9; // mort : chute LENTE bien visible
+  static const double _staggerDur = 1.6; // touché : tombe en arrière puis relève
   static const double _pillFeet = 0.855; // mesuré sur pillard1_walk
   static const double _pillContentH = 0.70;
   static const double _bruteAtkDur = 0.8;
@@ -726,7 +727,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (e.hp > 0) {
         e.x = (e.x + (_duelTest ? 0.14 : 0.04)).clamp(0.9, _imgA - 0.08);
         e.throwing = false;
-        if (!leg) e.staggerT = 0.9; // chute + relève
+        if (!leg) e.staggerT = _staggerDur; // chute en arrière + relève (lente)
       } else {
         e.x += 0.015;
       }
@@ -1785,10 +1786,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
         rot = e.dieRot;
       }
       if (e.dieT < 0.3) opacity = (e.dieT / 0.3).clamp(0.0, 1.0);
+    } else if (e.staggerT > 0 && _hasDieAnim(e.type)) {
+      // Touché (pas mort) : il TOMBE EN ARRIÈRE via l'anim de chute puis se
+      // RELÈVE — lecture aller-retour LENTE (chute partielle), frames de mort
+      // pré-flippées (pas de miroir).
+      final p = (1 - e.staggerT / _staggerDur).clamp(0.0, 1.0); // 0 -> 1
+      final fall = p < 0.5 ? p * 2 : (1 - p) * 2; // 0 -> 1 -> 0
+      final f = (fall * 14).round().clamp(0, 14) + 1; // chute partielle 1..15
+      final prefix =
+          e.type == _PillType.lanceur ? 'lanceur_die' : 'pillard1_die';
+      asset = 'assets/characters/${prefix}_$f.png';
+      mirror = false;
     } else {
       asset = _liveAsset(e);
-      // Tombe à la renverse puis se relève (touché au corps).
-      if (e.staggerT > 0) rot = 1.15 * (e.staggerT / 0.9).clamp(0.0, 1.0);
+      // Brute/boss (sans anim de chute) : bascule par rotation.
+      if (e.staggerT > 0) rot = 1.15 * (e.staggerT / _staggerDur).clamp(0.0, 1.0);
     }
     // cacheWidth : on décode petit (les pillards s'affichent en ~100-180 px) ->
     // mémoire image divisée par ~4, évite l'OOM en combat.
