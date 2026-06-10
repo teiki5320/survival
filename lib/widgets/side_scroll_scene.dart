@@ -54,6 +54,7 @@ class SideScrollScene extends StatefulWidget {
     this.duoAnim = 'readduo',
     this.cuisiniereToken = 0,
     this.poeleToken = 0,
+    this.bacToken = 0,
     this.wagon2Adjust = false,
     this.wagon1Adjust = false,
     this.onSisterX,
@@ -65,6 +66,7 @@ class SideScrollScene extends StatefulWidget {
   /// descend doucement).
   final int cuisiniereToken;
   final int poeleToken;
+  final int bacToken;
 
   /// Wagon visual progression, 0..3:
   ///   0 — dirty (initial discovery: trash, broken windows, scratches)
@@ -464,13 +466,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
   String? _nextSpecial;
   int _nextSpecialFrames = 25;
 
-  // Cuisinière : feu (0=éteint, 1=allumé), piloté par _cookCtrl pendant la
-  // séquence (tour -> allumage -> 5 s -> extinction -> mange au sol).
-  double _cookFire = 0;
-  AnimationController? _cookCtrl;
+  // Cuisinière : allumée (feu animé en boucle) ou éteinte. _fireLoop fait
+  // vaciller les flammes (poêle ET cuisinière).
+  bool _cookLit = false;
+  AnimationController? _fireLoop;
   Timer? _cookT1, _cookT2;
   // Poêle à bois : timer qui fait descendre le bois doucement tant qu'il brûle.
   Timer? _poeleDrainTimer;
+  // Bac de culture : pousse (0..1) en 20 s une fois semé, puis récolte.
+  bool _bacGrowing = false;
+  Timer? _bacTimer;
+  String? _bacFloat; // texte flottant ("Semé 🌱" / "+10")
+  double _bacFloatT = 0; // 1 -> 0 (fondu/montée)
 
   // Door-push: short one-shot animation played when entering the
   // locomotive. Fires onDoorPushDone when complete.
@@ -502,11 +509,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
-    // Feu de la cuisinière : monte/descend en ~900 ms.
-    _cookCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
-      ..addListener(() => setState(() => _cookFire = _cookCtrl!.value));
+    // Boucle de flammes (poêle + cuisinière) : ping-pong doux -> ça vacille.
+    _fireLoop = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 650))
+      ..repeat(reverse: true);
     if (GameState.instance.poeleOn) _startPoeleDrain();
+    _ensureBacGrowing(); // reprend la pousse si déjà semé
     _lastZone = GameState.instance.trainZone;
     _horizonRotateTimer = Timer.periodic(_horizonRotatePeriod, (_) {
       if (!mounted) return;
@@ -558,8 +566,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     });
   }
 
-  /// Cuisinière : Shen se tourne, la cuisinière s'allume 5 s, s'éteint, puis
-  /// Shen mange au sol (+faim).
+  /// Cuisinière : Shen se tourne, la cuisinière s'allume 5 s (feu animé en
+  /// boucle), s'éteint, puis Shen mange au sol (+faim).
   void _startCook() {
     final gs = GameState.instance;
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
@@ -567,13 +575,68 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT1?.cancel();
     _cookT2?.cancel();
     _cookT1 = Timer(const Duration(milliseconds: 1100), () {
-      if (mounted) _cookCtrl?.forward(from: 0); // allumage
+      if (mounted) setState(() => _cookLit = true); // allumage (feu animé)
     });
     _cookT2 = Timer(const Duration(milliseconds: 6100), () {
       if (!mounted) return;
-      _cookCtrl?.reverse(); // extinction
+      setState(() => _cookLit = false); // extinction
       _startAutoSpecial('eat', frames: 49); // mange au sol
       gs.nudgeCardStat('faim', 14);
+    });
+  }
+
+  /// Frame de flamme animée (poêle/cuisinière) : ping-pong sur la plage de
+  /// frames "feu vif" pour que ça vacille.
+  int get _fireFrame {
+    final v = _fireLoop?.value ?? 0.0;
+    return 18 + (v * 7).round(); // frames 18..25
+  }
+
+  /// Bac de culture : 1er clic = on sème (pousse 20 s) ; clic sur plante mûre
+  /// = récolte (+10 faim, plante sans fruits, float "+10").
+  void _bacAction() {
+    final gs = GameState.instance;
+    if (gs.bacGrowth >= 1.0) {
+      gs.nudgeCardStat('faim', 10);
+      gs.setBacGrowth(0.30); // plante sans fruits (repart vers les fruits)
+      _showBacFloat('+10');
+    } else if (!gs.bacSown) {
+      gs.setBacSown(true);
+      _showBacFloat('Semé 🌱');
+    }
+    _ensureBacGrowing();
+  }
+
+  void _ensureBacGrowing() {
+    final gs = GameState.instance;
+    if (!gs.bacSown || gs.bacGrowth >= 1.0) {
+      _bacGrowing = false;
+      return;
+    }
+    if (_bacGrowing) return;
+    _bacGrowing = true;
+    _bacTimer?.cancel();
+    // Pousse jusqu'aux fruits en 20 s (depuis l'état courant).
+    _bacTimer = Timer.periodic(const Duration(milliseconds: 220), (t) {
+      if (!mounted) { t.cancel(); return; }
+      final g = (gs.bacGrowth + 0.220 / 20.0).clamp(0.0, 1.0);
+      gs.setBacGrowth(g);
+      if (g >= 1.0) {
+        _bacGrowing = false;
+        t.cancel();
+      }
+      setState(() {});
+    });
+  }
+
+  void _showBacFloat(String text) {
+    setState(() { _bacFloat = text; _bacFloatT = 1.0; });
+    int i = 0;
+    Timer.periodic(const Duration(milliseconds: 100), (t) {
+      if (!mounted) { t.cancel(); return; }
+      i++;
+      setState(() => _bacFloatT = (1.0 - i / 14.0).clamp(0.0, 1.0));
+      if (i >= 14) { t.cancel(); if (mounted) setState(() => _bacFloat = null); }
     });
   }
 
@@ -848,6 +911,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (oldWidget.poeleToken != widget.poeleToken) {
       _togglePoele();
     }
+    if (oldWidget.bacToken != widget.bacToken) {
+      _bacAction();
+    }
     if (oldWidget.bathToken != widget.bathToken) {
       setState(() {
         if (_bathing) {
@@ -955,10 +1021,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
     _filterFillCtrl?.dispose();
-    _cookCtrl?.dispose();
+    _fireLoop?.dispose();
     _cookT1?.cancel();
     _cookT2?.cancel();
     _poeleDrainTimer?.cancel();
+    _bacTimer?.cancel();
     _sky.dispose();
     _horizon.dispose();
     _mid.dispose();
@@ -1921,29 +1988,66 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: anim('lamp', 49),
     );
 
-    // Cuisinière : frame selon le feu (0=éteinte … 1=allumée), piloté par la
-    // séquence de cuisson.
-    final cookFrame = (_cookFire * 24).round().clamp(0, 24) + 1;
-    // Poêle à bois : allumé (frame 20) ou éteint (frame 1) selon GameState.
+    final fire = _fireLoop ?? kAlwaysCompleteAnimation;
+    // Cuisinière : éteinte (frame 1) ou feu ANIMÉ EN BOUCLE pendant la cuisson.
+    final cuisiniereChild = AnimatedBuilder(
+      animation: fire,
+      builder: (_, __) => still(
+          'assets/objects/cuisiniere_${_cookLit ? _fireFrame : 1}.png'),
+    );
+    // Poêle à bois : éteint (frame 1) ou feu ANIMÉ EN BOUCLE tant qu'allumé.
     final poeleChild = AnimatedBuilder(
+      animation: Listenable.merge([gs, fire]),
+      builder: (_, __) => still(
+          'assets/objects/poele_${gs.poeleOn ? _fireFrame : 1}.png'),
+    );
+    // Bac de culture : frame selon la pousse (0=semé … 1=fruits mûrs).
+    final bacChild = AnimatedBuilder(
       animation: gs,
       builder: (_, __) => still(
-          'assets/objects/poele_${gs.poeleOn ? 20 : 1}.png'),
+          'assets/objects/bac_${(gs.bacGrowth * 24).round().clamp(0, 24) + 1}.png'),
     );
 
     return Positioned.fill(
       child: Stack(
         children: [
-          // Cuisinière à bois — s'allume pendant la cuisson, sinon éteinte.
-          prop('gaziniere', 'stove', 172 / 192,
-              still('assets/objects/cuisiniere_$cookFrame.png')),
+          prop('gaziniere', 'stove', 172 / 192, cuisiniereChild),
           prop('lamp', 'lamp', 268 / 507, lampChild),
-          prop('bac', 'hydro', 204 / 212, still('assets/objects/bac_18.png')),
+          prop('bac', 'hydro', 204 / 212, bacChild),
           // Filtre = ANCIEN filtre (tank niveau d'eau), réglable.
           prop('filtre', 'filter', 196 / 356,
               _WaterTankSprite(level: _filterDisplayLevel, fit: BoxFit.contain)),
           prop('poele', 'stove', 150 / 218, poeleChild),
+          // Float récolte/semis au-dessus du bac.
+          if (_bacFloat != null && _propUnlocked('hydro'))
+            _bacFloatWidget(w, h),
         ],
+      ),
+    );
+  }
+
+  Widget _bacFloatWidget(double w, double h) {
+    final gs = GameState.instance;
+    final cx = gs.w1x('bac') * w;
+    final topY = (gs.w1y('bac') - 0.04 - (1 - _bacFloatT) * 0.05) * h;
+    return Positioned(
+      left: cx - 60,
+      top: topY,
+      width: 120,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: _bacFloatT.clamp(0.0, 1.0),
+          child: Text(
+            _bacFloat!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF8BD18B),
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+            ),
+          ),
+        ),
       ),
     );
   }

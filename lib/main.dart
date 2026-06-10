@@ -172,9 +172,10 @@ class _WagonScreenState extends State<WagonScreen>
   bool _w1Adjust = false;
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
-  // Cuisinière (cuisine + mange au sol) / poêle à bois (allumage).
+  // Cuisinière (cuisine + mange au sol) / poêle à bois (allumage) / bac (semer).
   int _cuisiniereToken = 0;
   int _poeleToken = 0;
+  int _bacToken = 0;
   // Interaction sœur (test manuel) : alterne lecture / câlin à chaque tap.
   int _duoToken = 0;
   String _duoAnimToPlay = 'readduo';
@@ -634,6 +635,7 @@ class _WagonScreenState extends State<WagonScreen>
             bathToken: _bathToken,
             cuisiniereToken: _cuisiniereToken,
             poeleToken: _poeleToken,
+            bacToken: _bacToken,
             showerToken: _showerToken,
             petDogToken: _petDogToken,
             duoToken: _duoToken,
@@ -1055,7 +1057,16 @@ class _WagonScreenState extends State<WagonScreen>
       return (id: 'dog', text: 'Caresse le chien : ça réchauffe le cœur.');
     }
     if (!_inWagon2 && _atHydro) {
-      return (id: 'hydro', text: 'La serre : fais pousser de quoi manger.');
+      final ripe = GameState.instance.bacGrowth >= 1.0;
+      final sown = GameState.instance.bacSown;
+      return (
+        id: 'hydro',
+        text: ripe
+            ? 'Récolte les fruits (+ Faim).'
+            : sown
+                ? 'Ça pousse… reviens quand c\'est mûr.'
+                : 'Sème des graines dans le bac.'
+      );
     }
     if (!_inWagon2 && _atLamp) {
       return (id: 'lamp', text: 'Allume ou éteins la lampe.');
@@ -1146,8 +1157,10 @@ class _WagonScreenState extends State<WagonScreen>
         _audio.playSfx('dog_bark');
       };
     } else if (!_inWagon2 && _atHydro) {
+      // Bac de culture : semer / récolter (séquence dans la scène). Plus de
+      // fenêtre de mini-jeu serre.
       icon = Icons.yard;
-      action = () => setState(() => _inHydroGame = true);
+      action = () => setState(() => _bacToken++);
     } else if (!_inWagon2 && _atLamp) {
       icon = GameState.instance.lampOn
           ? Icons.lightbulb

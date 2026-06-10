@@ -33,6 +33,7 @@ class GameState extends ChangeNotifier {
       final data = jsonEncode({
         'lampOn': _lampOn,
         'poeleOn': poeleOn,
+        'bacGrowth': bacGrowth, 'bacSown': bacSown,
         'debugMode': debugMode,
         'seenTips': seenTips.toList(),
         'introCinematicSeen': introCinematicSeen,
@@ -96,6 +97,8 @@ class GameState extends ChangeNotifier {
       final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _lampOn = data['lampOn'] as bool? ?? true;
       poeleOn = data['poeleOn'] as bool? ?? false;
+      bacGrowth = (data['bacGrowth'] as num?)?.toDouble() ?? 0.0;
+      bacSown = data['bacSown'] as bool? ?? false;
       debugMode = data['debugMode'] as bool? ?? false;
       seenTips.clear();
       if (data['seenTips'] is List) {
@@ -299,6 +302,20 @@ class GameState extends ChangeNotifier {
   void setPoeleOn(bool v) {
     if (poeleOn == v) return;
     poeleOn = v;
+    notifyListeners();
+    save();
+  }
+
+  /// Bac de culture : pousse (0=semé … 1=fruits mûrs) + semé une fois lancé.
+  double bacGrowth = 0.0;
+  bool bacSown = false;
+  void setBacGrowth(double v) {
+    bacGrowth = v.clamp(0.0, 1.0);
+    notifyListeners(); // pas de save() à chaque tick (trop fréquent)
+  }
+
+  void setBacSown(bool v) {
+    bacSown = v;
     notifyListeners();
     save();
   }
