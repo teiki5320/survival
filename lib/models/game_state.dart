@@ -32,6 +32,7 @@ class GameState extends ChangeNotifier {
       final path = _getSavePathSync();
       final data = jsonEncode({
         'lampOn': _lampOn,
+        'poeleOn': poeleOn,
         'debugMode': debugMode,
         'seenTips': seenTips.toList(),
         'introCinematicSeen': introCinematicSeen,
@@ -94,6 +95,7 @@ class GameState extends ChangeNotifier {
       if (!file.existsSync()) return;
       final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _lampOn = data['lampOn'] as bool? ?? true;
+      poeleOn = data['poeleOn'] as bool? ?? false;
       debugMode = data['debugMode'] as bool? ?? false;
       seenTips.clear();
       if (data['seenTips'] is List) {
@@ -288,6 +290,15 @@ class GameState extends ChangeNotifier {
   bool get lampOn => _lampOn;
   void toggleLamp() {
     _lampOn = !_lampOn;
+    notifyListeners();
+    save();
+  }
+
+  /// Poêle à bois allumé : tant qu'il brûle, le bois descend doucement.
+  bool poeleOn = false;
+  void setPoeleOn(bool v) {
+    if (poeleOn == v) return;
+    poeleOn = v;
     notifyListeners();
     save();
   }

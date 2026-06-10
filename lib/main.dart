@@ -172,6 +172,9 @@ class _WagonScreenState extends State<WagonScreen>
   bool _w1Adjust = false;
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
+  // Cuisinière (cuisine + mange au sol) / poêle à bois (allumage).
+  int _cuisiniereToken = 0;
+  int _poeleToken = 0;
   // Interaction sœur (test manuel) : alterne lecture / câlin à chaque tap.
   int _duoToken = 0;
   String _duoAnimToPlay = 'readduo';
@@ -233,6 +236,8 @@ class _WagonScreenState extends State<WagonScreen>
       _unlocked('lamp') && _near(GameState.instance.w1x('lamp'));
   bool get _atStove =>
       _unlocked('stove') && _near(GameState.instance.w1x('gaziniere'));
+  bool get _atPoele =>
+      _unlocked('stove') && _near(GameState.instance.w1x('poele'));
   bool get _atHydro =>
       _unlocked('hydro') && _near(GameState.instance.w1x('bac'));
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
@@ -627,6 +632,8 @@ class _WagonScreenState extends State<WagonScreen>
             wagon2Adjust: secondWagon && _w2Adjust,
             wagon1Adjust: !secondWagon && _w1Adjust,
             bathToken: _bathToken,
+            cuisiniereToken: _cuisiniereToken,
+            poeleToken: _poeleToken,
             showerToken: _showerToken,
             petDogToken: _petDogToken,
             duoToken: _duoToken,
@@ -677,6 +684,7 @@ class _WagonScreenState extends State<WagonScreen>
               final wasF = _atFilter;
               final wasLamp = _atLamp;
               final wasStove = _atStove;
+              final wasPoele = _atPoele;
               final wasDog = _atDog;
               final wasHydro = _atHydro;
               _heroX = x;
@@ -687,6 +695,7 @@ class _WagonScreenState extends State<WagonScreen>
                   wasF != _atFilter ||
                   wasLamp != _atLamp ||
                   wasStove != _atStove ||
+                  wasPoele != _atPoele ||
                   wasDog != _atDog ||
                   wasHydro != _atHydro) {
                 setState(() {});
@@ -1051,6 +1060,17 @@ class _WagonScreenState extends State<WagonScreen>
     if (!_inWagon2 && _atLamp) {
       return (id: 'lamp', text: 'Allume ou éteins la lampe.');
     }
+    if (!_inWagon2 && _atStove) {
+      return (id: 'cuisiniere', text: 'Cuisine un repas (jauge Faim).');
+    }
+    if (!_inWagon2 && _atPoele) {
+      return (
+        id: 'poele',
+        text: GameState.instance.poeleOn
+            ? 'Éteindre le poêle.'
+            : 'Allumer le poêle (brûle du bois, réchauffe).'
+      );
+    }
     return null;
   }
 
@@ -1136,6 +1156,15 @@ class _WagonScreenState extends State<WagonScreen>
         setState(() => GameState.instance.toggleLamp());
         _audio.playSfx('lamp_toggle');
       };
+    } else if (!_inWagon2 && _atStove) {
+      // Cuisinière : Shen se tourne, la cuisinière s'allume 5 s, puis elle
+      // mange au sol (séquence pilotée dans la scène).
+      icon = Icons.local_dining;
+      action = () => setState(() => _cuisiniereToken++);
+    } else if (!_inWagon2 && _atPoele) {
+      // Poêle à bois : allumer/éteindre (brûle du bois doucement).
+      icon = Icons.local_fire_department;
+      action = () => setState(() => _poeleToken++);
     } else if (_doorPushing) {
       icon = Icons.meeting_room;
     }

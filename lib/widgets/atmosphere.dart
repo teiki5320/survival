@@ -193,12 +193,18 @@ class LampGlow extends StatelessWidget {
     required this.y,
     this.radius = 0.42,
     this.floorY = 0.92,
+    this.halo = true,
   });
   final Animation<double> animation;
   final double x;
   final double y;
   final double radius;
   final double floorY;
+
+  /// `true` (défaut) = halo lumineux autour de la lampe. Pour les lampes dont
+  /// le sprite porte déjà sa propre lueur, mettre `false` : on ne garde que la
+  /// LUMIÈRE PROJETÉE (cône + flaque au sol), plus large.
+  final bool halo;
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +213,7 @@ class LampGlow extends StatelessWidget {
         animation: animation,
         builder: (_, __) => CustomPaint(
           painter: _LampGlowPainter(animation.value,
-              x: x, y: y, radius: radius, floorY: floorY),
+              x: x, y: y, radius: radius, floorY: floorY, halo: halo),
         ),
       ),
     );
@@ -219,12 +225,14 @@ class _LampGlowPainter extends CustomPainter {
       {required this.x,
       required this.y,
       required this.radius,
-      required this.floorY});
+      required this.floorY,
+      this.halo = true});
   final double t;
   final double x;
   final double y;
   final double radius;
   final double floorY;
+  final bool halo;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -235,10 +243,10 @@ class _LampGlowPainter extends CustomPainter {
         math.sin(t * 2 * math.pi * 1.6) * 0.04 + math.sin(t * 2 * math.pi * 9) * 0.02;
     final r = base * (1.0 + flicker);
 
-    // 1) Cône de lumière qui tombe vers le sol.
+    // 1) Cône de lumière qui tombe vers le sol — LARGE (lumière projetée).
     final fy = size.height * floorY;
     if (fy > cy) {
-      final spread = base * 0.85;
+      final spread = base * (halo ? 0.85 : 1.35);
       final cone = Path()
         ..moveTo(cx - spread * 0.18, cy)
         ..lineTo(cx + spread * 0.18, cy)
@@ -264,42 +272,42 @@ class _LampGlowPainter extends CustomPainter {
       );
     }
 
-    // 2) Halo chaud autour de la lampe. Dégradé qui retombe VITE : un voile
-    //    doux qui émane du verre, pas un disque plein qui masque la lampe.
-    canvas.drawCircle(
-      Offset(cx, cy),
-      r,
-      Paint()
-        ..blendMode = BlendMode.plus
-        ..shader = const RadialGradient(
-          // Halo nettement plus discret : cœur peu opaque pour NE PAS masquer
-          // la lampe, retombée rapide (un voile chaud, pas un disque plein).
-          colors: [
-            Color(0x33FFE6AE),
-            Color(0x14FFD98A),
-            Color(0x00000000),
-          ],
-          stops: [0.0, 0.4, 1.0],
-        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
-    );
-
-    // 3) Cœur brillant : la lampe brille elle-même (additif -> le verre
-    //    s'illumine par-dessus le sprite au lieu de le recouvrir).
-    final coreR = base * 0.20;
-    canvas.drawCircle(
-      Offset(cx, cy),
-      coreR,
-      Paint()
-        ..blendMode = BlendMode.plus
-        ..shader = const RadialGradient(
-          colors: [
-            Color(0xFFFFF6D8),
-            Color(0xCCFFE2A0),
-            Color(0x00FFD98A),
-          ],
-          stops: [0.0, 0.5, 1.0],
-        ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: coreR)),
-    );
+    // 2+3) Halo + cœur brillant AUTOUR de la lampe — seulement si [halo].
+    //      Les nouvelles lampes portent déjà leur lueur dans le sprite -> on
+    //      coupe le halo (sinon double lueur) et on ne garde que la lumière
+    //      projetée (le cône large ci-dessus).
+    if (halo) {
+      canvas.drawCircle(
+        Offset(cx, cy),
+        r,
+        Paint()
+          ..blendMode = BlendMode.plus
+          ..shader = const RadialGradient(
+            colors: [
+              Color(0x33FFE6AE),
+              Color(0x14FFD98A),
+              Color(0x00000000),
+            ],
+            stops: [0.0, 0.4, 1.0],
+          ).createShader(Rect.fromCircle(center: Offset(cx, cy), radius: r)),
+      );
+      final coreR = base * 0.20;
+      canvas.drawCircle(
+        Offset(cx, cy),
+        coreR,
+        Paint()
+          ..blendMode = BlendMode.plus
+          ..shader = const RadialGradient(
+            colors: [
+              Color(0xFFFFF6D8),
+              Color(0xCCFFE2A0),
+              Color(0x00FFD98A),
+            ],
+            stops: [0.0, 0.5, 1.0],
+          ).createShader(
+              Rect.fromCircle(center: Offset(cx, cy), radius: coreR)),
+      );
+    }
   }
 
   @override

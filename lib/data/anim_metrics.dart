@@ -102,6 +102,11 @@ const Map<String, AnimMetrics> kAnimMetrics = {
     scale: 1.67, aspect: 1.0, feet: 0.859, noMirror: true,
   ),
   'open_door':     AnimMetrics(scale: 1.37, aspect: 1.0, feet: 0.863, cx: 0.479),
+  // Shen mange au sol (à genoux, bol). Crop serré -> feet ~1.0. Plus petite
+  // qu'en debout (figure agenouillée).
+  'eat':           AnimMetrics(
+    scale: 0.72, aspect: 202 / 335, feet: 1.0, noMirror: true,
+  ),
 
   // --- Loco-only ---
   'warm_hands':    AnimMetrics(

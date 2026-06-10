@@ -52,11 +52,19 @@ class SideScrollScene extends StatefulWidget {
     this.petDogToken = 0,
     this.duoToken = 0,
     this.duoAnim = 'readduo',
+    this.cuisiniereToken = 0,
+    this.poeleToken = 0,
     this.wagon2Adjust = false,
     this.wagon1Adjust = false,
     this.onSisterX,
     this.onDogX,
   });
+
+  /// Tap cuisinière : Shen se tourne, la cuisinière s'allume 5 s, puis elle
+  /// mange au sol. Tap poêle : Shen se tourne, le poêle s'allume (bois qui
+  /// descend doucement).
+  final int cuisiniereToken;
+  final int poeleToken;
 
   /// Wagon visual progression, 0..3:
   ///   0 — dirty (initial discovery: trash, broken windows, scratches)
@@ -456,6 +464,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
   String? _nextSpecial;
   int _nextSpecialFrames = 25;
 
+  // Cuisinière : feu (0=éteint, 1=allumé), piloté par _cookCtrl pendant la
+  // séquence (tour -> allumage -> 5 s -> extinction -> mange au sol).
+  double _cookFire = 0;
+  AnimationController? _cookCtrl;
+  Timer? _cookT1, _cookT2;
+  // Poêle à bois : timer qui fait descendre le bois doucement tant qu'il brûle.
+  Timer? _poeleDrainTimer;
+
   // Door-push: short one-shot animation played when entering the
   // locomotive. Fires onDoorPushDone when complete.
   bool _doorPushing = false;
@@ -486,6 +502,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _smoke = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
     _applyRunning();
     _heroTicker = createTicker(_onHeroTick)..start();
+    // Feu de la cuisinière : monte/descend en ~900 ms.
+    _cookCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
+      ..addListener(() => setState(() => _cookFire = _cookCtrl!.value));
+    if (GameState.instance.poeleOn) _startPoeleDrain();
     _lastZone = GameState.instance.trainZone;
     _horizonRotateTimer = Timer.periodic(_horizonRotatePeriod, (_) {
       if (!mounted) return;
@@ -537,6 +558,47 @@ class _SideScrollSceneState extends State<SideScrollScene>
     });
   }
 
+  /// Cuisinière : Shen se tourne, la cuisinière s'allume 5 s, s'éteint, puis
+  /// Shen mange au sol (+faim).
+  void _startCook() {
+    final gs = GameState.instance;
+    _heroFacingRight = gs.w1x('gaziniere') > _heroX;
+    _startAutoSpecial('use_back', frames: 24);
+    _cookT1?.cancel();
+    _cookT2?.cancel();
+    _cookT1 = Timer(const Duration(milliseconds: 1100), () {
+      if (mounted) _cookCtrl?.forward(from: 0); // allumage
+    });
+    _cookT2 = Timer(const Duration(milliseconds: 6100), () {
+      if (!mounted) return;
+      _cookCtrl?.reverse(); // extinction
+      _startAutoSpecial('eat', frames: 49); // mange au sol
+      gs.nudgeCardStat('faim', 14);
+    });
+  }
+
+  /// Poêle à bois : Shen se tourne, le poêle s'allume (ou s'éteint), et tant
+  /// qu'il brûle le bois descend doucement.
+  void _togglePoele() {
+    final gs = GameState.instance;
+    _heroFacingRight = gs.w1x('poele') > _heroX;
+    _startAutoSpecial('use_back', frames: 24);
+    gs.setPoeleOn(!gs.poeleOn);
+    if (gs.poeleOn) {
+      _startPoeleDrain();
+    } else {
+      _poeleDrainTimer?.cancel();
+    }
+  }
+
+  void _startPoeleDrain() {
+    _poeleDrainTimer?.cancel();
+    _poeleDrainTimer = Timer.periodic(const Duration(seconds: 9), (_) {
+      if (!mounted || !GameState.instance.poeleOn) return;
+      GameState.instance.nudgeCardStat('bois', -1);
+    });
+  }
+
   /// Comportement autonome de Shen, dicté par ses besoins (cosmétique : la
   /// scène ne modifie pas les stats, gérées par les cartes). Elle ne fait
   /// rien si elle est déjà occupée (marche, dort, anim, porte...).
@@ -579,11 +641,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     final gs = GameState.instance;
-    final soif = gs.cardSoif, faim = gs.cardFaim, moral = gs.cardMoral;
+    final moral = gs.cardMoral;
 
-    if (soif < 55 && soif <= faim && soif <= moral) {
-      _startAutoSpecial('drink'); // a soif -> boit
-    } else if (moral < 62) {
+    // NB : auto-boire RETIRÉ — Shen ne boit plus toute seule. Boire ne se fait
+    // QUE via le filtre à eau (elle prend l'eau dans sa tasse).
+    if (moral < 62) {
       // warm_hands RETIRÉ du pool : ce geste « se réchauffer les mains » n'a de
       // sens que quand il fait froid (géré plus haut via 'cold'), pas comme
       // remontée de moral générique -> il paraissait sortir de nulle part.
@@ -780,6 +842,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _heroTarget = target;
       });
     }
+    if (oldWidget.cuisiniereToken != widget.cuisiniereToken) {
+      _startCook();
+    }
+    if (oldWidget.poeleToken != widget.poeleToken) {
+      _togglePoele();
+    }
     if (oldWidget.bathToken != widget.bathToken) {
       setState(() {
         if (_bathing) {
@@ -887,6 +955,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
     _filterFillCtrl?.dispose();
+    _cookCtrl?.dispose();
+    _cookT1?.cancel();
+    _cookT2?.cancel();
+    _poeleDrainTimer?.cancel();
     _sky.dispose();
     _horizon.dispose();
     _mid.dispose();
@@ -1560,7 +1632,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                 x: GameState.instance.w1x('lamp'),
                                 y: GameState.instance.w1y('lamp') +
                                     GameState.instance.w1h('lamp') * 0.4,
-                                radius: 0.18,
+                                radius: 0.34, // lumière projetée plus large
+                                halo: false, // le sprite porte déjà sa lueur
                                 floorY: 0.74, // sol du wagon 1
                               ),
                             ),
@@ -1848,18 +1921,28 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: anim('lamp', 49),
     );
 
+    // Cuisinière : frame selon le feu (0=éteinte … 1=allumée), piloté par la
+    // séquence de cuisson.
+    final cookFrame = (_cookFire * 24).round().clamp(0, 24) + 1;
+    // Poêle à bois : allumé (frame 20) ou éteint (frame 1) selon GameState.
+    final poeleChild = AnimatedBuilder(
+      animation: gs,
+      builder: (_, __) => still(
+          'assets/objects/poele_${gs.poeleOn ? 20 : 1}.png'),
+    );
+
     return Positioned.fill(
       child: Stack(
         children: [
-          // Gazinière à bois (cuisine) — animée, ajustable.
-          prop('gaziniere', 'stove', 1.0, anim('stove', 49)),
+          // Cuisinière à bois — s'allume pendant la cuisson, sinon éteinte.
+          prop('gaziniere', 'stove', 172 / 192,
+              still('assets/objects/cuisiniere_$cookFrame.png')),
           prop('lamp', 'lamp', 268 / 507, lampChild),
           prop('bac', 'hydro', 204 / 212, still('assets/objects/bac_18.png')),
           // Filtre = ANCIEN filtre (tank niveau d'eau), réglable.
           prop('filtre', 'filter', 196 / 356,
               _WaterTankSprite(level: _filterDisplayLevel, fit: BoxFit.contain)),
-          prop('poele', 'stove', 150 / 218,
-              still('assets/objects/poele_20.png')),
+          prop('poele', 'stove', 150 / 218, poeleChild),
         ],
       ),
     );
