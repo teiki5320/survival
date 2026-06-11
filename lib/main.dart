@@ -86,14 +86,6 @@ class _RootScreenState extends State<RootScreen> {
     }
   }
 
-  // Nouvelle partie lancée DEPUIS le jeu (menu de la map) : reset complet puis
-  // retour au chargement -> cinématique d'ouverture (introCinematicSeen=false).
-  void _newGameFromInGame() {
-    GameState.instance.resetForNewGame();
-    GameState.instance.save();
-    setState(() => _phase = _Phase.loading);
-  }
-
   @override
   Widget build(BuildContext context) {
     // Précharge tous les sprites pendant la phase loading AVANT d'entrer
@@ -119,10 +111,7 @@ class _RootScreenState extends State<RootScreen> {
             setState(() => _phase = _Phase.game);
           },
         ),
-      _Phase.game => WagonScreen(
-          key: const ValueKey('wagon_root'),
-          onNewGame: _newGameFromInGame,
-        ),
+      _Phase.game => const WagonScreen(key: ValueKey('wagon_root')),
     };
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 800),
@@ -132,10 +121,7 @@ class _RootScreenState extends State<RootScreen> {
 }
 
 class WagonScreen extends StatefulWidget {
-  const WagonScreen({super.key, this.onNewGame});
-
-  /// Lance une nouvelle partie depuis le jeu (menu de la map).
-  final VoidCallback? onNewGame;
+  const WagonScreen({super.key});
 
   @override
   State<WagonScreen> createState() => _WagonScreenState();
@@ -592,7 +578,6 @@ class _WagonScreenState extends State<WagonScreen>
                   _inCards = true;
                   _cardsFromLoco = true; // voyage : retour loco en quittant
                 }),
-                onNewGame: widget.onNewGame,
               )
             : _inLocomotive
                 ? LocomotiveScene(

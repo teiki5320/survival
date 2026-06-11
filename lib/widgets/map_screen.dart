@@ -181,12 +181,8 @@ class MapScreen extends StatefulWidget {
     this.onGareSelected,
     this.onOpenWorkshop,
     this.onOpenCards,
-    this.onNewGame,
   });
   final VoidCallback onClose;
-
-  /// Lance une nouvelle partie (reset + cinématique). Confirmation avant.
-  final VoidCallback? onNewGame;
 
   /// Tap sur une gare -> lance le combat de cette gare (la map = le menu).
   final void Function(int gareIndex)? onGareSelected;
@@ -213,37 +209,6 @@ class _MapScreenState extends State<MapScreen>
   late final _ArcPath _trackPath = _ArcPath(_buildSpline(_trackPoints));
 
   _ArcPath _getPath() => _trackPath;
-
-  // Confirmation avant de tout effacer : une nouvelle partie réinitialise la
-  // progression (objets, compagnons, jauges) et rejoue la cinématique.
-  Future<void> _confirmNewGame() async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2630),
-        title: const Text('Nouvelle partie ?',
-            style: TextStyle(color: Color(0xFFFFD9A0))),
-        content: const Text(
-          'Ta progression actuelle sera effacée et l\'histoire reprendra au début.',
-          style: TextStyle(color: Color(0xFFD7C5A6)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Annuler',
-                style: TextStyle(color: Color(0xFF9A8A6E))),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFB85522)),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Nouvelle partie'),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) widget.onNewGame?.call();
-  }
 
   @override
   void initState() {
@@ -298,11 +263,6 @@ class _MapScreenState extends State<MapScreen>
                       tooltip: 'Retour au train',
                       onTap: widget.onClose,
                     ),
-                    // Nouvelle partie (toujours dispo) : reset + cinématique.
-                    if (widget.onNewGame != null) ...[
-                      const SizedBox(height: 10),
-                      _NewGameButton(onTap: _confirmNewGame),
-                    ],
                     // Atelier & quotidien : réservé au MODE DEBUG pour l'instant.
                     if (widget.onOpenWorkshop != null &&
                         GameState.instance.debugMode) ...[
@@ -329,7 +289,16 @@ class _MapScreenState extends State<MapScreen>
           ),
           // Action principale : AU CENTRE de l'image.
           if (widget.onOpenCards != null)
-            Center(child: _ContinueJourneyButton(onTap: widget.onOpenCards!)),
+            Center(
+              child: _ContinueJourneyButton(
+                onTap: widget.onOpenCards!,
+                // « Débuter » tant que rien n'a commencé, sinon « Continuer ».
+                label: ((GameState.instance.cardGareIndex ?? 0) > 0 ||
+                        GameState.instance.gareBestScore.isNotEmpty)
+                    ? 'Continuer le voyage'
+                    : 'Débuter le voyage',
+              ),
+            ),
           // HUD de zone : tout en bas (un peu plus bas qu'avant).
           SafeArea(
             child: Align(
@@ -522,8 +491,7 @@ class _MapPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _drawShadowSilhouettes(canvas, size);
-
+    // Silhouettes animées (zombies/animaux) retirées : map statique.
     if (!hideStationLabels) _drawStations(canvas, size);
     _drawSmokeTrail(canvas, size);
     _drawTrain(canvas, size);
@@ -717,161 +685,6 @@ class _MapPainter extends CustomPainter {
     canvas.restore();
   }
 
-  // ===========================================================================
-  // Shadow silhouettes — zombies (cold zone) + animals (warm zone)
-  // ===========================================================================
-
-  void _drawShadowSilhouettes(Canvas canvas, Size size) {
-    final t = elapsed;
-    _drawZombieSilhouettes(canvas, size, t);
-    _drawAnimalSilhouettes(canvas, size, t);
-  }
-
-  void _drawZombieSilhouettes(Canvas canvas, Size size, double t) {
-    for (int i = 0; i < 6; i++) {
-      final seed = i * 127.0;
-      final speed = 0.012 + (seed * 0.17 % 0.008);
-      final x = ((seed * 0.41 + t * speed) % 1.4) - 0.2;
-      final baseY = 0.32 + (seed * 0.23 % 0.12);
-      final h = 14.0 + (seed % 8);
-      final px = x * size.width;
-      final py = baseY * size.height;
-      final opacity = 0.15 + (seed * 0.11 % 0.15);
-
-      // Bob up/down while walking
-      final bob = math.sin(t * 2.5 + seed) * 1.5;
-      // Lean slightly
-      final lean = math.sin(t * 1.2 + seed * 0.7) * 0.08;
-
-      final paint = Paint()
-        ..color = Color.fromRGBO(20, 20, 30, opacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);
-
-      canvas.save();
-      canvas.translate(px, py + bob);
-      canvas.skew(lean, 0);
-
-      // Head
-      canvas.drawCircle(Offset(0, -h), h * 0.2, paint);
-      // Body
-      canvas.drawLine(Offset(0, -h + h * 0.2), Offset(0, -h * 0.35), paint..strokeWidth = 2.5);
-      // Arms (asymmetric, one drooping)
-      final armSway = math.sin(t * 2.0 + seed) * 3;
-      canvas.drawLine(Offset(0, -h * 0.7), Offset(-5 + armSway, -h * 0.35), paint);
-      canvas.drawLine(Offset(0, -h * 0.7), Offset(6, -h * 0.2), paint);
-      // Legs (shuffling)
-      final legPhase = math.sin(t * 3.0 + seed) * 2.5;
-      canvas.drawLine(Offset(0, -h * 0.35), Offset(-3 + legPhase, 0), paint);
-      canvas.drawLine(Offset(0, -h * 0.35), Offset(3 - legPhase, 0), paint);
-
-      canvas.restore();
-    }
-  }
-
-  void _drawAnimalSilhouettes(Canvas canvas, Size size, double t) {
-    // Wolves — 3, prowling across the warm zone
-    for (int i = 0; i < 3; i++) {
-      final seed = i * 193.0;
-      final speed = 0.018 + (seed * 0.13 % 0.01);
-      final facingLeft = i.isEven;
-      final rawX = (seed * 0.37 + t * speed) % 1.4;
-      final x = facingLeft ? 1.2 - rawX : rawX - 0.2;
-      final baseY = 0.62 + (seed * 0.19 % 0.12);
-      final px = x * size.width;
-      final py = baseY * size.height;
-      final opacity = 0.18 + (seed * 0.11 % 0.12);
-      final dir = facingLeft ? -1.0 : 1.0;
-
-      final paint = Paint()
-        ..color = Color.fromRGBO(30, 20, 15, opacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.2)
-        ..strokeWidth = 2
-        ..strokeCap = StrokeCap.round;
-
-      // Trot animation
-      final legF = math.sin(t * 4.0 + seed) * 3;
-      final legB = math.sin(t * 4.0 + seed + math.pi) * 3;
-      final headBob = math.sin(t * 2.0 + seed) * 1;
-
-      canvas.save();
-      canvas.translate(px, py);
-
-      // Body line
-      canvas.drawLine(Offset(-10 * dir, 0), Offset(10 * dir, -1 + headBob), paint);
-      // Head
-      canvas.drawCircle(Offset(12 * dir, -3 + headBob), 3, paint);
-      // Ears
-      canvas.drawLine(Offset(11 * dir, -3 + headBob), Offset(10 * dir, -7 + headBob), paint..strokeWidth = 1.5);
-      canvas.drawLine(Offset(13 * dir, -3 + headBob), Offset(14 * dir, -7 + headBob), paint);
-      // Front legs
-      paint.strokeWidth = 1.8;
-      canvas.drawLine(Offset(6 * dir, 0), Offset(6 * dir + legF * dir * 0.3, 6), paint);
-      canvas.drawLine(Offset(8 * dir, 0), Offset(8 * dir - legF * dir * 0.3, 6), paint);
-      // Back legs
-      canvas.drawLine(Offset(-6 * dir, 0), Offset(-6 * dir + legB * dir * 0.3, 6), paint);
-      canvas.drawLine(Offset(-8 * dir, 0), Offset(-8 * dir - legB * dir * 0.3, 6), paint);
-      // Tail
-      final tailWag = math.sin(t * 3.0 + seed) * 2;
-      canvas.drawLine(Offset(-10 * dir, -1), Offset(-15 * dir, -4 + tailWag),
-          paint..strokeWidth = 1.5);
-
-      canvas.restore();
-    }
-
-    // Rats — 4, scurrying fast
-    for (int i = 0; i < 4; i++) {
-      final seed = i * 83.0 + 500;
-      final speed = 0.04 + (seed * 0.11 % 0.02);
-      final x = ((seed * 0.43 + t * speed) % 1.6) - 0.3;
-      final baseY = 0.55 + (seed * 0.31 % 0.25);
-      final px = x * size.width;
-      final py = baseY * size.height;
-      final opacity = 0.12 + (seed * 0.07 % 0.1);
-
-      final paint = Paint()
-        ..color = Color.fromRGBO(25, 20, 20, opacity)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 0.8);
-
-      // Tiny body
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset(px, py), width: 6, height: 3),
-        paint,
-      );
-      // Tail
-      final tailCurve = math.sin(t * 10 + seed) * 2;
-      canvas.drawLine(
-        Offset(px - 3, py),
-        Offset(px - 8, py - 1 + tailCurve),
-        paint..strokeWidth = 0.8,
-      );
-    }
-
-    // Crows — 5, circling in the sky
-    for (int i = 0; i < 5; i++) {
-      final seed = i * 67.0 + 300;
-      final cx = 0.25 + (seed * 0.23 % 0.50);
-      final cy = 0.15 + (seed * 0.17 % 0.12);
-      final radius = 0.04 + (seed * 0.11 % 0.03);
-      final angle = t * (0.3 + i * 0.1) + seed;
-      final x = (cx + math.cos(angle) * radius) * size.width;
-      final y = (cy + math.sin(angle) * radius * 0.4) * size.height;
-      final wingPhase = math.sin(t * 6 + seed) * 3;
-      final opacity = 0.2 + (seed * 0.07 % 0.15);
-
-      final birdPath = Path()
-        ..moveTo(x - 5, y + wingPhase)
-        ..lineTo(x, y)
-        ..lineTo(x + 5, y + wingPhase);
-      canvas.drawPath(
-        birdPath,
-        Paint()
-          ..color = Color.fromRGBO(15, 15, 20, opacity)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-  }
 
   @override
   bool shouldRepaint(_MapPainter old) => true;
@@ -937,8 +750,9 @@ class _MapIconButton extends StatelessWidget {
 
 /// Gros bouton d'action principal de la map : ouvrir les cartes du voyage.
 class _ContinueJourneyButton extends StatelessWidget {
-  const _ContinueJourneyButton({required this.onTap});
+  const _ContinueJourneyButton({required this.onTap, required this.label});
   final VoidCallback onTap;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -958,13 +772,13 @@ class _ContinueJourneyButton extends StatelessWidget {
             BoxShadow(color: Color(0x55FFB347), blurRadius: 22, spreadRadius: 1),
           ],
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_stories, color: Color(0xFF3A2410), size: 22),
-            SizedBox(width: 10),
-            Text('Continuer le voyage',
-                style: TextStyle(
+            const Icon(Icons.auto_stories, color: Color(0xFF3A2410), size: 22),
+            const SizedBox(width: 10),
+            Text(label,
+                style: const TextStyle(
                     color: Color(0xFF3A2410),
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -977,43 +791,6 @@ class _ContinueJourneyButton extends StatelessWidget {
 }
 
 /// Bouton libellé « Nouvelle partie » — bien visible (pas une icône cryptique).
-class _NewGameButton extends StatelessWidget {
-  const _NewGameButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-        decoration: BoxDecoration(
-          color: const Color(0xE6B85522),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFFFD9A0), width: 1.2),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x88000000), blurRadius: 10, offset: Offset(0, 3)),
-          ],
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.restart_alt, color: Colors.white, size: 19),
-            SizedBox(width: 7),
-            Text('Nouvelle partie',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.2)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _WorkshopFab extends StatelessWidget {
   const _WorkshopFab({required this.onPressed});
   final VoidCallback onPressed;
