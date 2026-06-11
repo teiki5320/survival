@@ -65,7 +65,7 @@ class _OpeningCinematicState extends State<OpeningCinematic>
       'Le train s\'est arraché à la nuit. Derrière moi, ma ville n\'était plus que flammes.',
     ]),
     _Beat(null, [
-      'Seule, dans le dernier wagon d\'un monde mort.',
+      'Seule, dans un wagon perdu d\'un monde mort.',
       'Mais quelque part, là-haut… peut-être qu\'ils m\'attendent.',
     ]),
   ];

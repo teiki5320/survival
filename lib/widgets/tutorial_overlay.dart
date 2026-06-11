@@ -7,7 +7,7 @@ class IntroTutorial extends StatefulWidget {
   final VoidCallback onDone;
 
   static const List<String> messages = [
-    'Te voilà. Seule, dans le dernier wagon d\'un train qui file vers le nord.',
+    'Te voilà. Seule, dans un wagon d\'un train qui file vers le nord.',
     'Le wagon est vide et abîmé. À toi d\'en refaire un foyer, gare après gare.',
     'Il fait froid et tes forces sont au plus bas. Chaque geste compte, ici.',
     'Pour voyager : prends la porte de GAUCHE → la locomotive → touche la carte murale.',
