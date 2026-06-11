@@ -218,7 +218,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Heroine state. Position is normalised to the scene width. X bounds
   // keep her on the wagon's parquet floor — left of 0.25 is the
   // locomotive / coupling, right of 0.82 is the closed back-door area.
-  static const int _heroFrameCount = 49;
+  static const int _heroFrameCount = 25;
   static const double _heroXMin = SideScrollScene.heroXMin;
   static const double _heroXMax = SideScrollScene.heroXMax;
 
@@ -589,7 +589,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT2 = Timer(const Duration(milliseconds: 6100), () {
       if (!mounted) return;
       setState(() => _cookLit = false); // extinction
-      _startAutoSpecial('eat', frames: 49); // mange au sol
+      _startAutoSpecial('eat', frames: 25); // mange au sol
       gs.nudgeCardStat('faim', 14);
     });
   }

@@ -1170,7 +1170,7 @@ class _WagonScreenState extends State<WagonScreen>
     } else if (_inLiving && _atNotebook) {
       icon = Icons.menu_book;
       action = () {
-        _triggerSpecial('read', frames: 49);
+        _triggerSpecial('read', frames: 25);
         // Lire réconforte : +moral.
         GameState.instance.nudgeCardStat('moral', 10);
       };

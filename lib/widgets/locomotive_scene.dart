@@ -56,7 +56,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   late final AnimationController _sky;
   late final AnimationController _horizon;
 
-  static const int _heroFrameCount = 49;
+  static const int _heroFrameCount = 25;
   static const double _heroXMin = 0.30;
   static const double _heroXMax = 0.72;
   static const double _heroSpeed = 0.18;
