@@ -31,7 +31,10 @@ class _OpeningCinematicState extends State<OpeningCinematic>
       'Le soir, on riait tous ensemble autour de la table.',
     ]),
     _Beat('assets/cinematic/cine_open_avant3.png', [
-      'Je croyais que ces jours-là ne finiraient jamais.',
+      'Le matin, je coiffais ses cheveux. Elle riait pour un rien.',
+    ]),
+    _Beat('assets/cinematic/cine_open_avant4.png', [
+      'Ces petits moments-là… je les croyais éternels.',
     ]),
     // --- La nuit de la fuite ---
     _Beat('assets/cinematic/cine_open_1.png', [
