@@ -277,6 +277,7 @@ class _CardsScreenState extends State<CardsScreen>
               Positioned.fill(
                 child: RoofDefenseGame(
                   key: ValueKey('gareCombat_$_combatGare'),
+                  gareIndex: _combatGare!,
                   onExit: () {},
                   onResult: (score) => _onCombatResult(_combatGare!, score),
                 ),

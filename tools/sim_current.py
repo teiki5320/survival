@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Simulation Train Cosy ACTUEL : depart 25 (kStartStat) + recompense combat (~score 70) injectee a chaque gare. Reflete le jeu reel (cartes + combat), contrairement a sim_game.py (depart 70, sans combat). Lancer: python3 tools/sim_current.py"""
+"""Simulation Train Cosy ACTUEL : depart 25 (kStartStat) + recompense combat
+(~score 70) injectee a chaque gare. Reflete le jeu reel (cartes + combat),
+contrairement a sim_game.py (depart 70, sans combat).
+Lancer: python3 tools/sim_current.py
 
 Parse les vraies cartes de lib/data/cards_data.dart (paires de choix +
-effets + flags), puis rejoue des milliers de runs sous les règles réelles :
+effets + flags), puis rejoue des milliers de runs sous les regles reelles :
   - 14 segments, fillers drawCount=4 (sauf 12,13 = 0)
-  - pertes ×1.5, gains de moral ×0.6
-  - mécanique sœur : après flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
+  - pertes x1.5, gains de moral x0.6
+  - mecanique soeur : apres flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
   - budget wagon : 2 ravitaillements de +10 par segment
   - mort si une jauge <= 0 ; fin selon resolveTrainCosyEnding
-Stats départ 70/70/70/70.
+Stats depart 25/25/25/25 (kStartStat).
 """
 import re, random, sys, collections
 
@@ -156,7 +159,8 @@ def run(strategy, refuels_per_seg):
                 return tag, stats, flags, dead
     # fin
     moral = stats['moral']; aSoeur = 'aLaSoeur' in flags
-    if aSoeur and soin>=SOIN_REQ and moral>=MORAL_REQ: end='famille'
+    if aSoeur and soin>=SOIN_REQ and moral>=MORAL_REQ and 'radio3' in flags: end='secret'
+    elif aSoeur and soin>=SOIN_REQ and moral>=MORAL_REQ: end='famille'
     elif aSoeur and moral>=30: end='ensemble'
     else: end='abandon'
     return end, stats, flags, None
@@ -168,7 +172,7 @@ def trial(strategy, refuels, n=4000):
         e,_s,_f,dead = run(strategy, refuels)
         ends[e]+=1
         if dead: deaths[dead]+=1
-        if e in ('famille','ensemble'): survived+=1
+        if e in ('famille','ensemble','secret'): survived+=1
         if e=='famille': famille+=1
     return survived/n, famille/n, ends, deaths
 
@@ -183,7 +187,7 @@ if '--wood' in sys.argv:
         n=4000; surv=0; boisdeath=0
         for _ in range(n):
             e,_s,_f,dead = run('casual',2)
-            if e in ('famille','ensemble'): surv+=1
+            if e in ('famille','ensemble','secret'): surv+=1
             if dead=='bois': boisdeath+=1
         print(f"{ws:>5} {str(sup):>16} | {surv*100/n:6.1f}% {boisdeath*100/n:11.1f}%")
     sys.exit(0)
