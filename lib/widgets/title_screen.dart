@@ -228,17 +228,20 @@ class _MenuButton extends StatelessWidget {
               onPressed: onPressed,
               child: Text(label),
             )
-          : OutlinedButton(
-              style: OutlinedButton.styleFrom(
+          // Bouton secondaire : fond plein semi-opaque (au lieu d'un simple
+          // contour qui se fondait dans le décor et passait inaperçu).
+          : FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xE61E2630),
                 foregroundColor: const Color(0xFFFFD9A0),
-                side: const BorderSide(
-                    color: Color(0xFFB8945C), width: 1.4),
                 padding:
                     const EdgeInsets.symmetric(vertical: 16),
                 textStyle: const TextStyle(
                   fontSize: 18,
                   letterSpacing: 2,
                 ),
+                side: const BorderSide(
+                    color: Color(0xFFB8945C), width: 1.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
                 ),
