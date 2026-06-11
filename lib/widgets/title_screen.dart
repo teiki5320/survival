@@ -177,9 +177,7 @@ class _TitleScreenState extends State<TitleScreen>
                               // Toujours présent, couleur pleine distincte =
                               // impossible à manquer.
                               _MenuButton(
-                                label: _hasSave
-                                    ? 'Nouvelle partie'
-                                    : 'Commencer',
+                                label: 'Nouvelle partie',
                                 bg: const Color(0xFF2F6E54),
                                 onPressed: _newGame,
                               ),
