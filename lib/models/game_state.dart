@@ -13,6 +13,20 @@ class GameState extends ChangeNotifier {
   }
   static final GameState instance = GameState._();
 
+  // --- Autosave débounced : toute modif d'état (notifyListeners) programme
+  // une sauvegarde ~1,2 s plus tard. Sans ça, la progression d'un joueur
+  // normal n'était jamais persistée -> pas de « Continuer » au relancement.
+  Timer? _autosaveTimer;
+  bool _loaded = false;
+
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    if (!_loaded) return; // pas d'autosave pendant le chargement initial
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(const Duration(milliseconds: 1200), save);
+  }
+
   // --- Persistence (pur dart:io, zéro plugin natif) ---
   static String? _savePath;
 
@@ -207,6 +221,8 @@ class GameState extends ChangeNotifier {
       // démarre sur une partie vierge plutôt que de crasher, mais on LOG (en
       // debug) pour ne pas perdre l'info silencieusement.
       debugPrint('GameState.load() a échoué, partie vierge utilisée: $e\n$st');
+    } finally {
+      _loaded = true; // autosave actif une fois le chargement terminé
     }
   }
 
@@ -591,8 +607,8 @@ class GameState extends ChangeNotifier {
 
   /// Position des 2 lanternes du cellier (fraction w pour x, h pour y).
   /// Déplaçables au doigt dans le wagon 2 ; sauvegardées.
-  double wagon2LampAx = 0.25, wagon2LampAy = 0.24, wagon2LampAH = 0.12;
-  double wagon2LampBx = 0.53, wagon2LampBy = 0.26, wagon2LampBH = 0.12;
+  double wagon2LampAx = 0.27, wagon2LampAy = 0.21, wagon2LampAH = 0.12;
+  double wagon2LampBx = 0.49, wagon2LampBy = 0.22, wagon2LampBH = 0.12;
 
   /// Poêle du wagon 1 : position + taille déplaçables (mode ajuster debug).
   /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
@@ -603,11 +619,11 @@ class GameState extends ChangeNotifier {
   /// flipBits (0=aucun, 1=miroir H, 2=miroir V, 3=les deux)]. Déplaçables +
   /// redimensionnables + miroitables en mode ajuster debug, persistés.
   final Map<String, List<double>> wagon1Props = {
-    'lamp': [0.415, 0.300, 0.150, 0],
-    'bac': [0.800, 0.470, 0.230, 0],
-    'filtre': [0.727, 0.500, 0.230, 0],
-    'poele': [0.480, 0.470, 0.250, 0],
-    'gaziniere': [0.629, 0.445, 0.263, 0],
+    'lamp': [0.640, 0.251, 0.108, 0],
+    'bac': [0.514, 0.464, 0.307, 0],
+    'filtre': [0.379, 0.530, 0.230, 0],
+    'poele': [0.276, 0.523, 0.239, 0],
+    'gaziniere': [0.695, 0.486, 0.278, 0],
   };
   double w1x(String k) => wagon1Props[k]![0];
   double w1y(String k) => wagon1Props[k]![1];
@@ -643,11 +659,11 @@ class GameState extends ChangeNotifier {
   /// haut, h=fraction h de la hauteur). Déplaçables + redimensionnables,
   /// sauvegardés. Valeurs par défaut calées en jeu (mode ajuster).
   double bathX = 0.48, bathY = 0.48, bathH = 0.31;
-  double showerPanelX = 0.72, showerPanelY = 0.47, showerPanelH = 0.32;
+  double showerPanelX = 0.77, showerPanelY = 0.44, showerPanelH = 0.35;
   double showerHeadX = 0.75, showerHeadY = 0.22, showerHeadH = 0.32;
   // Armoire à vêtements (commode) déplacée dans le cellier : tap = ouvre la
   // garde-robe, déplaçable/redimensionnable en mode ajuster.
-  double wagon2CommodeX = 0.30, wagon2CommodeY = 0.55, wagon2CommodeH = 0.22;
+  double wagon2CommodeX = 0.29, wagon2CommodeY = 0.53, wagon2CommodeH = 0.23;
 
   /// Carte du voyage accrochée dans la LOCOMOTIVE : centre (cx,cy en fractions
   /// de la scène) + largeur (fraction de la largeur). Déplaçable + pinçable en

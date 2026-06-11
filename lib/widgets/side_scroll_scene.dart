@@ -229,9 +229,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // L'atelier a ses portes dessinées plus PRÈS DES BORDS que le salon ->
   // bornes élargies (sinon Shen s'arrête avant la porte gauche).
   double get _moveMin =>
-      widget.secondWagon ? 0.10 : (widget.isAtelier ? 0.08 : _heroXMin);
+      widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.08 : _heroXMin);
+  // Cellier : bornes resserrées (ne plus monter sur les portes G/D).
   double get _moveMax => widget.secondWagon
-      ? (widget.wagonStage >= 1 ? _heroXMax : 0.30)
+      ? (widget.wagonStage >= 1 ? 0.82 : 0.30)
       : (widget.isAtelier ? 0.92 : _heroXMax);
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
