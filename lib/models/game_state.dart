@@ -82,6 +82,8 @@ class GameState extends ChangeNotifier {
         'stoveX': stoveX, 'stoveY': stoveY, 'stoveH': stoveH,
         'wagon1Props':
             wagon1Props.map((k, v) => MapEntry(k, v.toList())),
+        'salonProps':
+            salonProps.map((k, v) => MapEntry(k, v.toList())),
         'bathX': bathX, 'bathY': bathY, 'bathH': bathH,
         'showerPanelX': showerPanelX, 'showerPanelY': showerPanelY,
         'showerPanelH': showerPanelH,
@@ -96,6 +98,7 @@ class GameState extends ChangeNotifier {
         'hydroTier': hydroTier,
         'woodTier': woodTier,
         'cardsRun': _cardsRunToJson(),
+        'layoutBaked': true, // coords d'objets validées appliquées
       });
       await File(path).writeAsString(data);
     } catch (e) {
@@ -191,6 +194,15 @@ class GameState extends ChangeNotifier {
           }
         });
       }
+      final slp = data['salonProps'];
+      if (slp is Map) {
+        slp.forEach((k, v) {
+          if (v is List && v.length >= 4 && salonProps.containsKey(k)) {
+            salonProps[k as String] =
+                v.map((e) => (e as num).toDouble()).toList();
+          }
+        });
+      }
       bathX = (data['bathX'] as num?)?.toDouble() ?? bathX;
       bathY = (data['bathY'] as num?)?.toDouble() ?? bathY;
       bathH = (data['bathH'] as num?)?.toDouble() ?? bathH;
@@ -215,6 +227,10 @@ class GameState extends ChangeNotifier {
       hydroTier = (data['hydroTier'] as num?)?.toInt() ?? 1;
       woodTier = (data['woodTier'] as num?)?.toInt() ?? 1;
       _loadCardsRun(data['cardsRun']);
+      // MIGRATION : les anciennes sauvegardes ont des coords d'objets périmées
+      // (jamais re-sauvées car l'autosave est récent) -> on applique une fois
+      // les bonnes positions bakées, puis on marque la save (layoutBaked).
+      if (data['layoutBaked'] != true) applyBakedLayout();
       notifyListeners();
     } catch (e, st) {
       // Sauvegarde illisible (JSON corrompu, droits, disque plein...) : on
@@ -625,6 +641,49 @@ class GameState extends ChangeNotifier {
     'poele': [0.276, 0.523, 0.239, 0],
     'gaziniere': [0.695, 0.486, 0.278, 0],
   };
+  /// Props ajustables du SALON (carnet, secours, gamelle, carte murale) :
+  /// [centreX, top, height, width] en fractions. Réglables en debug, persistés.
+  final Map<String, List<double>> salonProps = {
+    'notebook': [0.249, 0.670, 0.070, 0.070],
+    'firstaid': [0.296, 0.635, 0.110, 0.110],
+    'bowl': [0.481, 0.669, 0.080, 0.080],
+    'wallmap': [0.205, 0.300, 0.135, 0.185],
+  };
+  double slx(String k) => salonProps[k]![0];
+  double sly(String k) => salonProps[k]![1];
+  double slh(String k) => salonProps[k]![2];
+  double slw(String k) => salonProps[k]![3];
+  void slMove(String k, double dx, double dy) {
+    final p = salonProps[k]!;
+    p[0] = (p[0] + dx).clamp(0.02, 0.98);
+    p[1] = (p[1] + dy).clamp(0.0, 0.92);
+    notifyListeners();
+  }
+
+  void slResize(String k, double h) {
+    final p = salonProps[k]!;
+    final ratio = p[3] / p[2]; // garde l'aspect
+    p[2] = h.clamp(0.03, 0.6);
+    p[3] = p[2] * ratio;
+    notifyListeners();
+  }
+
+  /// Réapplique les positions/tailles d'objets « validées » (atelier + cellier).
+  /// Utilisé en migration (anciennes saves) et dispo pour un reset propre.
+  void applyBakedLayout() {
+    wagon1Props['lamp'] = [0.640, 0.251, 0.108, 0];
+    wagon1Props['bac'] = [0.514, 0.464, 0.307, 0];
+    wagon1Props['filtre'] = [0.379, 0.530, 0.230, 0];
+    wagon1Props['poele'] = [0.276, 0.523, 0.239, 0];
+    wagon1Props['gaziniere'] = [0.695, 0.486, 0.278, 0];
+    bathX = 0.48; bathY = 0.48; bathH = 0.31;
+    showerPanelX = 0.77; showerPanelY = 0.44; showerPanelH = 0.35;
+    showerHeadX = 0.75; showerHeadY = 0.22; showerHeadH = 0.32;
+    wagon2LampAx = 0.27; wagon2LampAy = 0.21; wagon2LampAH = 0.12;
+    wagon2LampBx = 0.49; wagon2LampBy = 0.22; wagon2LampBH = 0.12;
+    wagon2CommodeX = 0.29; wagon2CommodeY = 0.53; wagon2CommodeH = 0.23;
+  }
+
   double w1x(String k) => wagon1Props[k]![0];
   double w1y(String k) => wagon1Props[k]![1];
   double w1h(String k) => wagon1Props[k]![2];

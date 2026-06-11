@@ -174,6 +174,8 @@ class _WagonScreenState extends State<WagonScreen>
   bool _w2Adjust = false;
   // Mode ajuster wagon 1 (debug) : lampe/bac/filtre/poêle déplaçables+taille.
   bool _w1Adjust = false;
+  // Mode ajuster salon (debug) : carnet/secours/gamelle/carte déplaçables.
+  bool _salonAdjust = false;
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
   // Cuisinière (cuisine + mange au sol) / poêle à bois (allumage) / bac (semer).
@@ -657,6 +659,7 @@ class _WagonScreenState extends State<WagonScreen>
             isAtelier: isAtelier,
             wagon2Adjust: secondWagon && _w2Adjust,
             wagon1Adjust: isAtelier && _w1Adjust,
+            salonAdjust: !secondWagon && !isAtelier && _salonAdjust,
             bathToken: _bathToken,
             cuisiniereToken: _cuisiniereToken,
             poeleToken: _poeleToken,
@@ -878,6 +881,23 @@ class _WagonScreenState extends State<WagonScreen>
                           _w1Adjust ? const Color(0xFF2A2018) : null,
                       onPressed: () => setState(() => _w1Adjust = !_w1Adjust),
                       child: Icon(_w1Adjust ? Icons.check : Icons.edit),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  // Salon seulement : ajuster carnet/secours/gamelle/carte.
+                  if (!isAtelier && !secondWagon) ...[
+                    FloatingActionButton.small(
+                      heroTag: 'salon_adjust',
+                      tooltip: _salonAdjust
+                          ? 'Terminer le placement'
+                          : 'Ajuster carnet/secours/gamelle/carte',
+                      backgroundColor:
+                          _salonAdjust ? const Color(0xFFE8B96B) : null,
+                      foregroundColor:
+                          _salonAdjust ? const Color(0xFF2A2018) : null,
+                      onPressed: () =>
+                          setState(() => _salonAdjust = !_salonAdjust),
+                      child: Icon(_salonAdjust ? Icons.check : Icons.edit),
                     ),
                     const SizedBox(height: 12),
                   ],

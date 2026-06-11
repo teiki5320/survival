@@ -58,6 +58,7 @@ class SideScrollScene extends StatefulWidget {
     this.bacToken = 0,
     this.wagon2Adjust = false,
     this.wagon1Adjust = false,
+    this.salonAdjust = false,
     this.onSisterX,
     this.onDogX,
   });
@@ -117,6 +118,10 @@ class SideScrollScene extends StatefulWidget {
   /// Mode "ajuster" du wagon 1 (debug) : lampe, bac de culture, filtre et poêle
   /// à bois deviennent déplaçables + redimensionnables. Off = figés.
   final bool wagon1Adjust;
+
+  /// Mode "ajuster" du SALON (debug) : carnet, secours, gamelle, carte murale
+  /// déplaçables + redimensionnables. Off = figés.
+  final bool salonAdjust;
 
   /// When `false` all parallax + smoke animations freeze (the train stopped).
   /// The heroine can still walk — only the world stops moving.
@@ -1621,7 +1626,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       if (!widget.secondWagon && !widget.isAtelier)
                         for (final def in _propDefs)
                           if (_propUnlocked(def.key))
-                            _buildProp(def: def, w: w, h: h),
+                            widget.salonAdjust
+                                ? _buildSalonDrag(def, w, h)
+                                : _buildProp(def: def, w: w, h: h),
+                      // HUD coords du salon en mode ajuster.
+                      if (widget.salonAdjust)
+                        _salonCoordHud(GameState.instance),
                       // Props AJUSTABLES de l'ATELIER (cuisinière, lampe, bac,
                       // filtre, poêle).
                       if (widget.isAtelier) _buildWagon1Adjustable(w, h),
@@ -1937,6 +1947,77 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Props AJUSTABLES du wagon 1 : lampe (animée, on/off), bac de culture
   // (ex-tour hydro), filtre à eau (électrique animé), poêle à bois (allumé).
   // Position + taille réglables en mode ajuster debug (GameState.wagon1Props).
+  /// Sprite simple d'un prop du salon (sans interaction) pour le mode ajuster.
+  Widget _salonSprite(_PropDef def) {
+    if (def.key == 'bowl') {
+      return Image.asset(
+          _bowlFull ? 'assets/objects/bowl_full.png'
+                    : 'assets/objects/bowl_empty.png',
+          fit: BoxFit.contain);
+    }
+    if (def.key == 'wallmap') {
+      return Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF6B4A2A),
+          border: Border.all(color: const Color(0xFF3A2410), width: 3),
+        ),
+        child: const Center(
+          child: Icon(Icons.map, color: Color(0xFFE8C98A), size: 30)),
+      );
+    }
+    return Image.asset('assets/objects/${def.key}.png', fit: BoxFit.contain);
+  }
+
+  /// Prop du salon en mode AJUSTER : déplaçable + redimensionnable (debug).
+  Widget _buildSalonDrag(_PropDef def, double w, double h) {
+    final gs = GameState.instance;
+    final k = def.key;
+    final aspect = gs.slw(k) / gs.slh(k);
+    return _w2Drag(
+      w: w, h: h,
+      cx: gs.slx(k), topY: gs.sly(k), heightFrac: gs.slh(k),
+      aspect: aspect, label: k, adjust: true,
+      child: _salonSprite(def),
+      onMove: (dx, dy) => gs.slMove(k, dx, dy),
+      onResize: (nh) => gs.slResize(k, nh),
+    );
+  }
+
+  Widget _salonCoordHud(GameState gs) {
+    Widget row(String k) {
+      final t =
+          '${k.padRight(9)} x${gs.slx(k).toStringAsFixed(3)} y${gs.sly(k).toStringAsFixed(3)} h${gs.slh(k).toStringAsFixed(3)}';
+      return Text(t,
+          style: const TextStyle(
+              color: Colors.white, fontSize: 10, fontFamily: 'monospace'));
+    }
+
+    return Positioned(
+      left: 8,
+      bottom: 8,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('AJUSTER SALON — pincer = taille',
+                style: TextStyle(
+                    color: Color(0xFFE8B96B),
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold)),
+            for (final k in const ['notebook', 'firstaid', 'bowl', 'wallmap'])
+              row(k),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildWagon1Adjustable(double w, double h) {
     final gs = GameState.instance;
     Widget anim(String prefix, int n) => _AnimatedSprite(
@@ -2379,7 +2460,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     required double h,
   }) {
 
-    final pos = _propPos[def.key]!;
+    // Coords du salon = persistées (réglables en debug) ; fallback sur la
+    // table figée pour tout prop hors salon.
+    final sp = GameState.instance.salonProps[def.key];
+    final pos = sp != null
+        ? _PropPos(sp[0], sp[1], sp[2], sp[3])
+        : _propPos[def.key]!;
     final propH = h * pos.height;
     final propW = w * pos.width;
     final left = w * pos.left - propW / 2;
