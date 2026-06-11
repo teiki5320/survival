@@ -36,10 +36,13 @@ class _OpeningCinematicState extends State<OpeningCinematic>
     _Beat('assets/cinematic/cine_open_avant4.png', [
       'Ces petits moments-là… je les croyais éternels.',
     ]),
+    _Beat('assets/cinematic/cine_open_avant5.png', [
+      'Mais un soir, je me suis endormie en paix…',
+    ]),
     // --- La nuit de la fuite ---
     _Beat('assets/cinematic/cine_open_1.png', [
-      'Et puis une nuit, le ciel a pris feu.',
-      'Mes parents m\'ont réveillée, la voix tremblante.',
+      '…et je me suis réveillée dans le feu.',
+      'Mes parents me secouaient, la voix tremblante.',
     ]),
     _Beat('assets/cinematic/cine_open_fuite.png', [
       '« Cours, ma chérie, cours ! » Le couloir brûlait déjà.',

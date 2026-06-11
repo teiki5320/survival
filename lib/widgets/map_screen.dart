@@ -181,8 +181,12 @@ class MapScreen extends StatefulWidget {
     this.onGareSelected,
     this.onOpenWorkshop,
     this.onOpenCards,
+    this.onNewGame,
   });
   final VoidCallback onClose;
+
+  /// Lance une nouvelle partie (reset + cinématique). Confirmation avant.
+  final VoidCallback? onNewGame;
 
   /// Tap sur une gare -> lance le combat de cette gare (la map = le menu).
   final void Function(int gareIndex)? onGareSelected;
@@ -209,6 +213,37 @@ class _MapScreenState extends State<MapScreen>
   late final _ArcPath _trackPath = _ArcPath(_buildSpline(_trackPoints));
 
   _ArcPath _getPath() => _trackPath;
+
+  // Confirmation avant de tout effacer : une nouvelle partie réinitialise la
+  // progression (objets, compagnons, jauges) et rejoue la cinématique.
+  Future<void> _confirmNewGame() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E2630),
+        title: const Text('Nouvelle partie ?',
+            style: TextStyle(color: Color(0xFFFFD9A0))),
+        content: const Text(
+          'Ta progression actuelle sera effacée et l\'histoire reprendra au début.',
+          style: TextStyle(color: Color(0xFFD7C5A6)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Annuler',
+                style: TextStyle(color: Color(0xFF9A8A6E))),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFB85522)),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Nouvelle partie'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) widget.onNewGame?.call();
+  }
 
   @override
   void initState() {
@@ -263,6 +298,15 @@ class _MapScreenState extends State<MapScreen>
                       tooltip: 'Retour au train',
                       onTap: widget.onClose,
                     ),
+                    // Nouvelle partie (toujours dispo) : reset + cinématique.
+                    if (widget.onNewGame != null) ...[
+                      const SizedBox(height: 10),
+                      _MapIconButton(
+                        icon: Icons.restart_alt,
+                        tooltip: 'Nouvelle partie',
+                        onTap: _confirmNewGame,
+                      ),
+                    ],
                     // Atelier & quotidien : réservé au MODE DEBUG pour l'instant.
                     if (widget.onOpenWorkshop != null &&
                         GameState.instance.debugMode) ...[
