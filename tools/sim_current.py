@@ -124,9 +124,14 @@ def run(strategy, refuels_per_seg):
     wood = WOOD_START
     for si, (gare, fill, draw) in enumerate(segments):
         wood += WOOD_SUPPLY.get(si, 0)
-        # Recompense COMBAT (~score 70, joueur correct) injectee a chaque gare.
-        stats['bois']=min(100,stats['bois']+14); stats['soif']=min(100,stats['soif']+8)
-        stats['faim']=min(100,stats['faim']+8); stats['moral']=min(100,stats['moral']+7)
+        # Recompense COMBAT realiste : le score baisse avec l'escalade par gare
+        # (gareIndex transmis -> hp/visee/dispersion montent). Formule reelle
+        # 13/7/7/6 x score/100 (applyCombatRewards). skill 85, -3/gare.
+        score = max(0, min(100, 85 - si*3))
+        stats['bois']=min(100,stats['bois']+round(score/100*13))
+        stats['soif']=min(100,stats['soif']+round(score/100*7))
+        stats['faim']=min(100,stats['faim']+round(score/100*7))
+        stats['moral']=min(100,stats['moral']+round(score/100*6))
         # budget wagon : recharge les N stats les plus basses. Recharger BOIS
         # exige de brûler 1 bûche ; sans bois en réserve, on recharge la stat
         # non-bois la plus basse à la place.
