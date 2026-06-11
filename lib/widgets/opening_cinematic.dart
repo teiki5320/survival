@@ -19,14 +19,17 @@ class _Beat {
 
 class _OpeningCinematicState extends State<OpeningCinematic>
     with SingleTickerProviderStateMixin {
-  // Script câblé sur les 5 images peintes.
+  // Script câblé sur les plans peints (« La nuit de la fuite »).
   static const List<_Beat> _beats = [
     _Beat('assets/cinematic/cine_open_1.png', [
       'Cette nuit-là, le ciel s\'est embrasé.',
-      'Ses parents l\'ont réveillée. Il fallait fuir.',
+      'Ses parents l\'ont réveillée.',
     ]),
-    _Beat('assets/cinematic/cine_open_2.jpg', [
-      'Dans la foule, ils ont été séparés.',
+    _Beat('assets/cinematic/cine_open_fuite.png', [
+      'Il fallait fuir. Vite, dans le couloir en flammes.',
+    ]),
+    _Beat('assets/cinematic/cine_open_separation.png', [
+      'Dehors, la foule les a emportés. Ils ont été séparés.',
     ]),
     _Beat('assets/cinematic/cine_open_3.jpg', [
       'Au bout du quai, une vieille locomotive à bois chauffait déjà.',
