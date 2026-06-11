@@ -383,11 +383,11 @@ class _WagonScreenState extends State<WagonScreen>
   // porte : l'anim d'ouverture dure ~1 s, largement le temps de tout décoder)
   // pour qu'elles ne saccadent pas au 1er affichage dans la cabine.
   static const Map<String, int> _locoAnims = {
-    'carry_walk': 49,
-    'warm_hands': 49,
+    'carry_walk': 25,
+    'warm_hands': 25,
     'open_door': 20,
-    'walk_right': 49,
-    'idle_right': 49,
+    'walk_right': 25,
+    'idle_right': 25,
   };
 
   void _warmLocoAnims() {

@@ -17,7 +17,7 @@ CHAR = os.path.join(ROOT, 'assets', 'characters')
 BACKUP = os.path.join(ROOT, 'frames_backup_49', 'characters')
 
 HALVE = ['idle_right', 'walk_right', 'sleep_right', 'dance', 'wake_up',
-         'read', 'eat']
+         'read', 'eat', 'carry_walk', 'warm_hands']
 TRIM = {'use_back': 24}  # garde 1..24, retire le reste
 
 
