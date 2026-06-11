@@ -345,7 +345,10 @@ class _WagonScreenState extends State<WagonScreen>
     // du froid : drain = max(1, coldness / 5) (coldness = seuil − température).
     //   léger (coldness ~5) → −1   |  mordant (~10) → −2   |  glacial (~20) → −4
     _coldTimer = Timer.periodic(const Duration(seconds: 14), (_) {
-      if (!mounted) return;
+      // Pas de drain pendant cartes/combat (qui ont leur propre économie) :
+      // sinon on pouvait perdre la run sur un timer non actionnable en plein
+      // combat. Cohérent avec le timer des besoins.
+      if (!mounted || _inCards || _inShootGame) return;
       final gs = GameState.instance;
       if (gs.feltCold) {
         final d = (gs.coldness / 5).round();

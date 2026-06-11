@@ -18,11 +18,12 @@ class GameState extends ChangeNotifier {
   // normal n'était jamais persistée -> pas de « Continuer » au relancement.
   Timer? _autosaveTimer;
   bool _loaded = false;
+  bool _loading = false; // verrou : pas de save() pendant un load()
 
   @override
   void notifyListeners() {
     super.notifyListeners();
-    if (!_loaded) return; // pas d'autosave pendant le chargement initial
+    if (!_loaded || _loading) return; // pas d'autosave pendant un chargement
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer(const Duration(milliseconds: 1200), save);
   }
@@ -42,6 +43,7 @@ class GameState extends ChangeNotifier {
   }
 
   Future<void> save() async {
+    if (_loading) return; // ne pas écraser pendant qu'on charge
     try {
       final path = _getSavePathSync();
       final data = jsonEncode({
@@ -107,6 +109,8 @@ class GameState extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    _loading = true;
+    _autosaveTimer?.cancel(); // annule un autosave en attente avant de charger
     try {
       final path = _getSavePathSync();
       final file = File(path);
@@ -238,6 +242,7 @@ class GameState extends ChangeNotifier {
       // debug) pour ne pas perdre l'info silencieusement.
       debugPrint('GameState.load() a échoué, partie vierge utilisée: $e\n$st');
     } finally {
+      _loading = false;
       _loaded = true; // autosave actif une fois le chargement terminé
     }
   }

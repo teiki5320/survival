@@ -57,7 +57,8 @@ const int kIdleFrameMs = 80;
 const int kDanceFrameMs = 55;
 const int kSleepFrameMs = 110;
 const int kSpecialFrameMs = 70;
-const int kHeroFrameCount = 49;
+// Anims héroïne réduites à 25 frames (cf. _heroFrameCount dans les scènes).
+const int kHeroFrameCount = 25;
 
 // --- Dog ---
 const double kDogDefaultHeight = 0.136;

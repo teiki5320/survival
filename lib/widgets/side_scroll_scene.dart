@@ -856,6 +856,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _heroDancing = false;
         _heroLyingDown = false;
         _heroTarget = null;
+        // Annule un bain/douche armé : sinon la fin de CE special anim
+        // déclencherait à tort l'entrée dans le bain (_pendingBath).
+        _pendingBath = false;
+        _pendingShower = false;
+        _bathHeld = false;
       });
     }
     if (oldWidget.dancing != widget.dancing) {

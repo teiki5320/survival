@@ -1386,6 +1386,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   }
 
   void _gameOver({required bool won}) {
+    // Garde de ré-entrée : 2 projectiles qui touchent le train la même frame
+    // (ou une explosion + un tir) appelaient _gameOver 2× -> scrap/niveau
+    // d'arme/missions comptés en double.
+    if (_phase != _Phase.playing) return;
     _won = won;
     final gs = GameState.instance;
     _wonStars = won ? (_hpLost == 0 ? 3 : (_hpLost <= 2 ? 2 : 1)) : 0;
