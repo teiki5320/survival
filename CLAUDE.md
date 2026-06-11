@@ -27,6 +27,58 @@ stats de départ basses), ON = tout affiché + outils. Map UNIQUEMENT via la loc
 cartes via « Continuer le voyage ». Thermomètre auto, musique réactivée.
 Voir le bloc « GROSSE SESSION 2026-06-09 » plus bas pour le détail.
 
+### 🔍 SESSION 2026-06-11 (builds 0.99.40 → 0.99.6x) — CINÉMATIQUE + AUDIT + FIXES
+- **Cinématique d'ouverture** : 13 plans peints câblés (`opening_cinematic.dart`,
+  assets `cine_open_*` dans `assets/cinematic/`) — prélude « monde d'avant » (5
+  plans warm) + nuit de la fuite, **1re personne**, ton sentimental. Fallback
+  fond sombre si une image manque.
+- **Menu** : « Nouvelle partie » TOUJOURS visible (bouton vert plein, écran-titre
+  scroll-safe) ; le bouton in-game (map) a été **retiré** (menu = écran-titre).
+  **Sauvegarde fiabilisée** : autosave débounced (1,2 s) + verrou `_loading` →
+  « Continuer » réapparaît. Migration `applyBakedLayout` (flag `layoutBaked`).
+- **Map** : bouton central « **Débuter le voyage** » (puis « Continuer ») ;
+  **animations/silhouettes retirées** ; **départ Kogarashi ↔ Miharashi** (positions
+  échangées dans `constants.dart`).
+- **Wagons** : cellier bornes resserrées ; **salon ajustable en debug** (FAB
+  `salon_adjust`, `salonProps` persisté) ; coords objets bakées (atelier/cellier).
+  Cuisinière : demi-tour avant de manger + **déplacement bloqué pendant la cuisson**
+  (`_cooking`) + sprite `eat` recalibré.
+- **Réduction de frames Shen** : idle/walk/sleep/dance/wake_up/read/eat/stretch →
+  **25** (use_back 24, carry_walk/warm_hands 25). `_heroFrameCount=25`. Backup
+  `frames_backup_49/` (gitignored) + `tools/reduce_frames.py --restore`.
+- **AUDIT APPROFONDI (2 passes agent + simulations)** — bugs réels corrigés :
+  - **Combat `_gameOver` x2/frame** (double scrap/arme/missions) → garde.
+  - **`gareIndex` pas transmis** (`cards_screen`) → **l'escalade par gare était
+    MORTE** (gare 2 = gare 14). RÉACTIVÉ. C'est ce fix qui rééquilibre tout.
+  - Race save/`_newGame`, froid qui drainait en cartes/combat, bain détourné
+    par un special anim, carry_walk/warm_hands tronqués (régression de la
+    réduction de frames).
+  - **Anti-farm combat** : perdre/abandonner une gare ne crédite plus
+    ferraille/missions.
+- **NARRATION (cartes)** — `cards_data.dart` :
+  - **Gares 13-14 remplies** (`_fill13`/`_fill14`, 8 cartes de climax ; avant
+    `fillerPool: []`).
+  - **`capParents` câblé** dans `resolveTrainCosyEnding` : sépare `famille`/`secret`
+    (engagement à retrouver les parents, gare 5) de **`ensemble`** (acceptation).
+    → la fin « ensemble » passe de **1% à ~33% (casual)**, le thème
+    espoir/acceptation est enfin incarné. Flags morts `combatGood_N`/`combatTierMid`
+    retirés, `indiceSoeur` câblé (payoff G5).
+  - Radio : refuser ne coupe plus la fin secrète (les 2 choix gardent la radio).
+- **ÉQUILIBRAGE VALIDÉ** (`tools/sim_current.py` réparée + modèle d'escalade
+  combat) : careless **12%** / casual **63%** / smart **100%**, fins réparties.
+  Barème combat **inchangé** (13/7/7/6) — c'est l'escalade `gareIndex` réactivée
+  qui rééquilibre, pas le barème.
+- **CANON vs CODE (à retenir)** : le **« Vieux » (cheminot) et « l'enfant
+  trouvé »** du canon (table 14 gares plus bas) **n'existent PAS dans le code**
+  (supprimés). La **sœur est retrouvée GARE 5** (Tsukibashi), pas gare 7. La
+  table canon ci-dessous n'est PAS à jour sur ces points — le CODE fait foi.
+- **`outfitWarmth`** : 3e tenue **manteau d'hiver (warmth 8)** → le nord devient
+  gérable (sprite dédié encore à faire, écharpe peinte en attendant).
+- **Reste connu (non bloquant)** : duel mono-type (lanceur, 5 vagues escaladées
+  — variété de TYPES d'ennemis = feature à valider) ; double couche de bois
+  (réserve bûches → jauge cardBois, cohérent mais à documenter) ; combat
+  turn-based sans pression de temps = **voulu** (cosy).
+
 ### ⚡ SESSION 2026-06-10 (builds 0.99.10 → 0.99.39) — résumé
 - **3 WAGONS** : salon (sœur/chien/lit/carnet/trousse/gamelle) → **atelier**
   (cuisinière/poêle/lampe/bac/filtre, bg `atelier_messy/clean`) → cellier
