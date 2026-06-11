@@ -484,8 +484,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Cuisinière : allumée (feu animé en boucle) ou éteinte. _fireLoop fait
   // vaciller les flammes (poêle ET cuisinière).
   bool _cookLit = false;
+  // True pendant toute la séquence de cuisine : bloque le déplacement de Shen.
+  bool _cooking = false;
   AnimationController? _fireLoop;
-  Timer? _cookT1, _cookT2, _cookT3;
+  Timer? _cookT1, _cookT2, _cookT3, _cookT4;
   // Poêle à bois : timer qui fait descendre le bois doucement tant qu'il brûle.
   Timer? _poeleDrainTimer;
   // Bac de culture : pousse (0..1) en 20 s une fois semé, puis récolte.
@@ -585,10 +587,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void _startCook() {
     final gs = GameState.instance;
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
+    _cooking = true; // bloque le déplacement pendant toute la séquence
+    _heroTarget = null; // si elle marchait, on l'arrête
     _startAutoSpecial('use_back', frames: 24);
     _cookT1?.cancel();
     _cookT2?.cancel();
     _cookT3?.cancel();
+    _cookT4?.cancel();
     _cookT1 = Timer(const Duration(milliseconds: 1100), () {
       if (mounted) setState(() => _cookLit = true); // allumage (feu animé)
     });
@@ -602,6 +607,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       if (!mounted) return;
       _startAutoSpecial('eat', frames: 25);
       gs.nudgeCardStat('faim', 14);
+    });
+    // Fin du repas : Shen peut de nouveau se déplacer.
+    _cookT4 = Timer(const Duration(milliseconds: 9700), () {
+      if (mounted) setState(() => _cooking = false);
     });
   }
 
@@ -991,6 +1000,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT1?.cancel();
     _cookT2?.cancel();
     _cookT3?.cancel();
+    _cookT4?.cancel();
     _poeleDrainTimer?.cancel();
     _bacTimer?.cancel();
     _sky.dispose();
@@ -1312,6 +1322,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   void _walkTo(double normalizedX) {
+    if (_cooking) return; // Shen cuisine/mange : pas de déplacement
     final clamped = normalizedX.clamp(_moveMin, _moveMax);
     final wasSleeping = _heroSleeping;
     setState(() {
