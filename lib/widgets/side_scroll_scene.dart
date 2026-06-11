@@ -606,7 +606,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT3 = Timer(const Duration(milliseconds: 7500), () {
       if (!mounted) return;
       _startAutoSpecial('eat', frames: 25);
-      gs.nudgeCardStat('faim', 8); // rééquilibré (était 14, trop généreux)
+      // CONVERSION (rien de gratuit) : la gazinière BRÛLE DU BOIS pour cuire.
+      gs.nudgeCardStat('bois', -8);
+      gs.nudgeCardStat('faim', 12);
     });
     // Fin du repas : Shen peut de nouveau se déplacer.
     _cookT4 = Timer(const Duration(milliseconds: 9700), () {
@@ -626,16 +628,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
   void _bacAction() {
     final gs = GameState.instance;
     if (gs.bacGrowth >= 1.0) {
-      // Récolte : +10 faim, le bac redevient VIDE (re-semable).
-      gs.nudgeCardStat('faim', 10);
+      // Récolte : +12 faim (bouffe SANS bois, mais il a fallu de l'eau).
+      gs.nudgeCardStat('faim', 12);
       gs.setBacGrowth(0.0);
       gs.setBacSown(false);
       _bacGrowing = false;
       _bacTimer?.cancel();
-      _showBacFloat('+10');
+      _showBacFloat('+12');
     } else if (!gs.bacSown) {
+      // Semer = ARROSER : coûte de l'eau (conversion eau -> nourriture + temps).
+      gs.nudgeCardStat('soif', -6);
       gs.setBacSown(true);
-      _showBacFloat('Semé 🌱');
+      _showBacFloat('Semé 🌱 (−6 eau)');
       _ensureBacGrowing();
     }
   }
@@ -687,12 +691,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
   }
 
+  // Le drain du poêle est désormais GLOBAL (géré dans main.dart, actif où que
+  // soit Shen). Cette méthode ne fait plus que (re)dessiner l'état du feu.
   void _startPoeleDrain() {
     _poeleDrainTimer?.cancel();
-    _poeleDrainTimer = Timer.periodic(const Duration(seconds: 9), (_) {
-      if (!mounted || !GameState.instance.poeleOn) return;
-      GameState.instance.nudgeCardStat('bois', -1);
-    });
   }
 
   /// Comportement autonome de Shen, dicté par ses besoins (cosmétique : la
@@ -1074,7 +1076,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _bathFrame = 0;
                 _bathHeld = false;
                 _bathAccumMs = 0;
-                // +moral à l'ENTRÉE seulement (pas de farm en toggle).
+                // Conversion EAU -> moral (le bain consomme de l'eau).
+                GameState.instance.nudgeCardStat('soif', -8);
                 GameState.instance.nudgeCardStat('moral', 12);
               } else if (_pendingShower) {
                 _pendingShower = false;
@@ -1084,6 +1087,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _showerWashed = false;
                 _showerWashCycles = 0;
                 _showerWaterTick = 0;
+                GameState.instance.nudgeCardStat('soif', -6);
                 GameState.instance.nudgeCardStat('moral', 10);
               }
               return;

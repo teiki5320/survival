@@ -359,22 +359,33 @@ class _WagonScreenState extends State<WagonScreen>
     // dans le train (-1 toutes les 25 s, hors cartes/combat qui ont leur propre
     // économie). Manger (cuisinière/bac) et boire (filtre) deviennent
     // NÉCESSAIRES, pas décoratifs.
-    _needsTimer = Timer.periodic(const Duration(seconds: 25), (_) {
+    // SURVIE : besoins plus mordants (−1/18 s ≈ −3,3/min) hors cartes/combat.
+    _needsTimer = Timer.periodic(const Duration(seconds: 18), (_) {
       if (!mounted || _inCards || _inShootGame) return;
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
       gs.nudgeCardStat('soif', -1);
     });
+    // POÊLE À BOIS : draine le bois GLOBALEMENT tant qu'il est allumé (avant,
+    // le drain vivait dans l'atelier -> chaleur gratuite ailleurs). Le poêle
+    // s'éteint tout seul à 0 bois (nudgeCardStat).
+    _poeleTimer = Timer.periodic(const Duration(seconds: 9), (_) {
+      if (!mounted || _inCards || _inShootGame) return;
+      final gs = GameState.instance;
+      if (gs.poeleOn) gs.nudgeCardStat('bois', -1);
+    });
   }
 
   Timer? _coldTimer;
   Timer? _needsTimer;
+  Timer? _poeleTimer;
 
   @override
   void dispose() {
     _dayNightTimer?.cancel();
     _coldTimer?.cancel();
     _needsTimer?.cancel();
+    _poeleTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _curtain.dispose();
@@ -1185,9 +1196,11 @@ class _WagonScreenState extends State<WagonScreen>
     } else if (_inAtelier && _atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
       if (glasses == 0) {
-        // Vide → remplir.
+        // Vide → remplir : PURIFIER/BOUILLIR coûte du bois (rien de gratuit).
+        // Conversion bois -> réserve d'eau potable.
         icon = Icons.water;
         action = () {
+          GameState.instance.nudgeCardStat('bois', -6);
           GameState.instance
               .setWaterTankGlasses(GameState.waterTankMax);
         };
@@ -1196,7 +1209,7 @@ class _WagonScreenState extends State<WagonScreen>
         icon = Icons.local_drink;
         action = () {
           // Boire = 1 verre de la cuve (réserve) + remonte la jauge Soif.
-          GameState.instance.nudgeCardStat('soif', 10);
+          GameState.instance.nudgeCardStat('soif', 8);
           _triggerSpecial('use_back', frames: 24,
               next: 'drink', nextFrames: 25);
           _audio.playSfx('drink');
