@@ -727,7 +727,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       if (e.hp > 0) {
         e.x = (e.x + (_duelTest ? 0.14 : 0.04)).clamp(0.9, _imgA - 0.08);
         e.throwing = false;
-        if (!leg) e.staggerT = _staggerDur; // chute en arrière + relève (lente)
+        // TOUT coup non létal -> il tombe en arrière puis se relève (même une
+        // touche à la jambe). L'anim de chute se joue à chaque coup encaissé.
+        e.staggerT = _staggerDur;
       } else {
         e.x += 0.015;
       }
