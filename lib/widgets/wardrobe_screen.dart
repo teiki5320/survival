@@ -30,7 +30,16 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     _Outfit(
       name: 'Robe de lin',
       frontAsset: 'assets/objects/outfit_robe.png',
-      warmth: 4,
+      warmth: 3,
+    ),
+    // Manteau d'hiver : le VRAI outil contre le froid du nord (warmth 8 ->
+    // seuil de froid 12 - stage*2 - 8, géable avec le poêle). Sprite dédié à
+    // venir ; en attendant on réutilise le rendu robe + l'écharpe peinte
+    // (_ScarfPainter) qui s'affiche dès que outfitWarmth > 0.
+    _Outfit(
+      name: 'Manteau d\'hiver',
+      frontAsset: 'assets/objects/outfit_robe.png',
+      warmth: 8,
     ),
   ];
 

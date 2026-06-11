@@ -65,7 +65,7 @@ List<StoryCard> _combat(
           right: loseR),
     ];
   }
-  if (f.contains('combatTierHigh') || f.contains('combatTierMid')) {
+  if (f.contains('combatTierHigh')) {
     return [
       StoryCard(
           id: '${gare}win',
@@ -749,6 +749,13 @@ final List<StoryCard> _fill4 = [
 ];
 
 final List<StoryCard> _fill5 = [
+  // Payoff des indices (foulard G3, dessin/mur G4) : ils ont entretenu
+  // l'espoir jusqu'aux retrouvailles. Sans ce câblage, indiceSoeur était mort.
+  _filler('F5_indices_payoff',
+      "Tu ressors le foulard, le dessin du mur, tous les indices gardés de gare en gare. Chacun te criait qu'elle était vivante. Tu as eu raison de ne jamais y renoncer.",
+      _c("Les serrer une dernière fois", fx: {Stat.moral: 13}, result: "Ils t'ont tenue debout dans le noir. Aujourd'hui, ils t'ont menée jusqu'à elle."),
+      _c("Les confier au vent", fx: {Stat.moral: 9, Stat.faim: 3}, result: "Tu les relâches un à un. Ils ont fait leur travail. Maintenant tu l'as, ELLE, en vrai."),
+      requires: (f) => f.contains('indiceSoeur') && f.contains('aLaSoeur')),
   _filler('F5_trainvide',
       "Un train croise le tien : vide, portes ouvertes, pas une âme. Le fouiller, c'est s'arrêter en terrain à découvert.",
       _c("Le piller", fx: {Stat.bois: 12, Stat.faim: 8, Stat.moral: -6}, result: "Du charbon, des vivres — et la question glaçante : où sont passés ses passagers ?"),

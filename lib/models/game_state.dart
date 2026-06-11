@@ -596,14 +596,11 @@ class GameState extends ChangeNotifier {
       'faim': (s / 100 * 7).round(),
       'moral': (s / 100 * 6).round(),
     });
-    // Tier (on nettoie l'ancien avant de reposer) + flag de réussite par gare.
+    // Tier de combat = win/lose honnête (seuil 50). 'combatTierMid' supprimé
+    // (il était traité comme High -> flag redondant). High = victoire (le
+    // beat winText/winL/winR), Low = défaite (loseText...).
     cardFlags.removeWhere((f) => f.startsWith('combatTier'));
-    cardFlags.add(s >= 80
-        ? 'combatTierHigh'
-        : s >= 50
-            ? 'combatTierMid'
-            : 'combatTierLow');
-    if (s >= 70) cardFlags.add('combatGood_$gareIndex');
+    cardFlags.add(s >= 50 ? 'combatTierHigh' : 'combatTierLow');
     cardFlags.add('combatDone_$gareIndex');
     if (s > (gareBestScore[gareIndex] ?? 0)) gareBestScore[gareIndex] = s;
     notifyListeners();

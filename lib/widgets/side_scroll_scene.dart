@@ -606,7 +606,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT3 = Timer(const Duration(milliseconds: 7500), () {
       if (!mounted) return;
       _startAutoSpecial('eat', frames: 25);
-      gs.nudgeCardStat('faim', 14);
+      gs.nudgeCardStat('faim', 8); // rééquilibré (était 14, trop généreux)
     });
     // Fin du repas : Shen peut de nouveau se déplacer.
     _cookT4 = Timer(const Duration(milliseconds: 9700), () {

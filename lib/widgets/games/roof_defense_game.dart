@@ -1411,14 +1411,21 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _nearMiss =
         !won && _mode == _Mode.campaign && _wave >= _campaignWaves - 1;
     if (_nearMiss) _shownScrap += 15;
-    gs.scrap += _shownScrap;
+    // ANTI-FARM : en mode gare, PERDRE (ou abandonner) ne rapporte RIEN.
+    // Sinon on pouvait abandonner en boucle pour farmer ferraille + missions
+    // puis « Réessayer » gratuitement. Seule une victoire crédite.
+    final crediter = won || !_gareMode;
+    if (crediter) {
+      gs.scrap += _shownScrap;
+      gs.reportCombat(
+        kills: _kills,
+        scrapCollected: _shownScrap,
+        perfect: won && _hpLost == 0,
+      );
+    } else {
+      _shownScrap = 0; // affichage : rien gagné
+    }
     _runScrap = 0;
-    // Alimente les missions quotidiennes.
-    gs.reportCombat(
-      kills: _kills,
-      scrapCollected: _shownScrap,
-      perfect: won && _hpLost == 0,
-    );
     // Hors mode gare : petit bonus direct. En mode gare, les ressources sont
     // attribuées par applyCombatRewards(score100) quand on valide l'écran de fin.
     if (won && !_gareMode) {
