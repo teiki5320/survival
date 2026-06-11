@@ -586,6 +586,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// boucle), s'éteint, puis Shen mange au sol (+faim).
   void _startCook() {
     final gs = GameState.instance;
+    // SURVIE : pas de feu sans bois -> on ne peut pas cuisiner (sinon repas
+    // gratuit quand le bois est vide). Le manque de bois EST le frein.
+    if (gs.cardBois < 8) return;
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
     _cooking = true; // bloque le déplacement pendant toute la séquence
     _heroTarget = null; // si elle marchait, on l'arrête
@@ -636,7 +639,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _bacTimer?.cancel();
       _showBacFloat('+12');
     } else if (!gs.bacSown) {
-      // Semer = ARROSER : coûte de l'eau (conversion eau -> nourriture + temps).
+      // Semer = ARROSER : coûte de l'eau. Pas d'eau -> pas de semis.
+      if (gs.cardSoif < 6) return;
       gs.nudgeCardStat('soif', -6);
       gs.setBacSown(true);
       _showBacFloat('Semé 🌱 (−6 eau)');
@@ -906,6 +910,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _bathFrame = 0;
           _pendingBath = false;
         } else {
+          // SURVIE : le bain coûte de l'eau ET ne donne du moral que si on
+          // n'a pas froid (le moral est bloqué en froid) -> on refuse d'entrer
+          // sans eau ou en froid, plutôt que de gaspiller l'eau pour rien.
+          if (GameState.instance.cardSoif < 8 ||
+              GameState.instance.feltCold) {
+            return;
+          }
           // Se tourner vers la cuve (use_back) puis l'anim de bain s'enchaîne
           // (cf. hook de fin de use_back dans _onHeroTick).
           _heroDancing = false;
@@ -932,6 +943,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _showerFrame = 0;
           _pendingShower = false;
         } else {
+          if (GameState.instance.cardSoif < 6 ||
+              GameState.instance.feltCold) {
+            return;
+          }
           _heroDancing = false;
           _heroSleeping = false;
           _heroLyingDown = false;

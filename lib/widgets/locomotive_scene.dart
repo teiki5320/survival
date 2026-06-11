@@ -261,6 +261,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   void _throwLog() {
     // Reject if a sequence is already running.
     if (_action != _LocoAction.idle) return;
+    // Tas de bûches vide -> pas d'anim pour rien (le geste ne donnerait pas
+    // de bois).
+    if (GameState.instance.gareWoodLeft <= 0) return;
     setState(() {
       _action = _LocoAction.walkToWoodpile;
       _heroTarget = _woodpileX;

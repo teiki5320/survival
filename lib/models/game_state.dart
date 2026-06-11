@@ -921,6 +921,7 @@ class GameState extends ChangeNotifier {
   int gareWoodLeft = 4;
   void setGareWoodLeft(int v) {
     gareWoodLeft = v.clamp(0, 99);
+    save(); // atomicité avec le flag woodpile_$idx (cardFlags persisté)
     notifyListeners();
   }
 
@@ -1088,8 +1089,9 @@ class GameState extends ChangeNotifier {
         if (delta > 0 && feltCold) delta = 0;
         cardMoral = (cardMoral + delta).clamp(0, statMax);
     }
+    // Pas de save() direct ici : l'autosave débounced (via notifyListeners)
+    // suffit. Évite 1 écriture disque complète par tick de decay/poêle/besoin.
     notifyListeners();
-    save();
   }
 
   Map<String, dynamic> _cardsRunToJson() => {

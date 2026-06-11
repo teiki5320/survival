@@ -1200,7 +1200,10 @@ class _WagonScreenState extends State<WagonScreen>
         // Conversion bois -> réserve d'eau potable.
         icon = Icons.water;
         action = () {
-          GameState.instance.nudgeCardStat('bois', -6);
+          // Purifier/bouillir EXIGE du feu : pas de bois -> pas d'eau potable.
+          // Coût relevé (l'eau était ~5x moins chère que les autres ressources).
+          if (GameState.instance.cardBois < 10) return;
+          GameState.instance.nudgeCardStat('bois', -10);
           GameState.instance
               .setWaterTankGlasses(GameState.waterTankMax);
         };
@@ -1209,7 +1212,7 @@ class _WagonScreenState extends State<WagonScreen>
         icon = Icons.local_drink;
         action = () {
           // Boire = 1 verre de la cuve (réserve) + remonte la jauge Soif.
-          GameState.instance.nudgeCardStat('soif', 8);
+          GameState.instance.nudgeCardStat('soif', 6);
           _triggerSpecial('use_back', frames: 24,
               next: 'drink', nextFrames: 25);
           _audio.playSfx('drink');
