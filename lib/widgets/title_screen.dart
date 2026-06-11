@@ -169,16 +169,18 @@ class _TitleScreenState extends State<TitleScreen>
                               if (_hasSave)
                                 _MenuButton(
                                   label: 'Continuer',
-                                  filled: true,
+                                  bg: const Color(0xFFB85522),
                                   onPressed: () =>
                                       widget.onStart(fromScratch: false),
                                 ),
-                              if (_hasSave) const SizedBox(height: 12),
+                              if (_hasSave) const SizedBox(height: 14),
+                              // Toujours présent, couleur pleine distincte =
+                              // impossible à manquer.
                               _MenuButton(
                                 label: _hasSave
                                     ? 'Nouvelle partie'
                                     : 'Commencer',
-                                filled: !_hasSave,
+                                bg: const Color(0xFF2F6E54),
                                 onPressed: _newGame,
                               ),
                             ],
@@ -200,55 +202,29 @@ class _MenuButton extends StatelessWidget {
   const _MenuButton({
     required this.label,
     required this.onPressed,
-    this.filled = false,
+    required this.bg,
   });
   final String label;
   final VoidCallback onPressed;
-  final bool filled;
+  final Color bg;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: 260,
-      child: filled
-          ? FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFB85522),
-                foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-              onPressed: onPressed,
-              child: Text(label),
-            )
-          // Bouton secondaire : fond plein semi-opaque (au lieu d'un simple
-          // contour qui se fondait dans le décor et passait inaperçu).
-          : FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xE61E2630),
-                foregroundColor: const Color(0xFFFFD9A0),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 16),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  letterSpacing: 2,
-                ),
-                side: const BorderSide(
-                    color: Color(0xFFB8945C), width: 1.4),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-              ),
-              onPressed: onPressed,
-              child: Text(label),
-            ),
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: bg,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          textStyle: const TextStyle(fontSize: 18, letterSpacing: 2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(label),
+      ),
     );
   }
 }
