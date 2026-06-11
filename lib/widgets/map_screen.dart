@@ -301,11 +301,7 @@ class _MapScreenState extends State<MapScreen>
                     // Nouvelle partie (toujours dispo) : reset + cinématique.
                     if (widget.onNewGame != null) ...[
                       const SizedBox(height: 10),
-                      _MapIconButton(
-                        icon: Icons.restart_alt,
-                        tooltip: 'Nouvelle partie',
-                        onTap: _confirmNewGame,
-                      ),
+                      _NewGameButton(onTap: _confirmNewGame),
                     ],
                     // Atelier & quotidien : réservé au MODE DEBUG pour l'instant.
                     if (widget.onOpenWorkshop != null &&
@@ -973,6 +969,44 @@ class _ContinueJourneyButton extends StatelessWidget {
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.3)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Bouton libellé « Nouvelle partie » — bien visible (pas une icône cryptique).
+class _NewGameButton extends StatelessWidget {
+  const _NewGameButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        decoration: BoxDecoration(
+          color: const Color(0xE6B85522),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFFFD9A0), width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x88000000), blurRadius: 10, offset: Offset(0, 3)),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.restart_alt, color: Colors.white, size: 19),
+            SizedBox(width: 7),
+            Text('Nouvelle partie',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2)),
           ],
         ),
       ),
