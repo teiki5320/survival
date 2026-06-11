@@ -19,29 +19,44 @@ class _Beat {
 
 class _OpeningCinematicState extends State<OpeningCinematic>
     with SingleTickerProviderStateMixin {
-  // Script câblé sur les plans peints (« La nuit de la fuite »).
+  // Script câblé sur les plans peints (« La nuit de la fuite »). Récit à la
+  // première personne (Shen), ton sentimental.
   static const List<_Beat> _beats = [
+    // --- Le monde d'avant (prélude warm) ---
+    _Beat('assets/cinematic/cine_open_avant1.png', [
+      'Avant, il y avait ma ville. Paisible, longtemps épargnée par la guerre.',
+    ]),
+    _Beat('assets/cinematic/cine_open_avant2.png', [
+      'Mes parents. Ma petite sœur.',
+      'Le soir, on riait tous ensemble autour de la table.',
+    ]),
+    _Beat('assets/cinematic/cine_open_avant3.png', [
+      'Je croyais que ces jours-là ne finiraient jamais.',
+    ]),
+    // --- La nuit de la fuite ---
     _Beat('assets/cinematic/cine_open_1.png', [
-      'Cette nuit-là, le ciel s\'est embrasé.',
-      'Ses parents l\'ont réveillée.',
+      'Et puis une nuit, le ciel a pris feu.',
+      'Mes parents m\'ont réveillée, la voix tremblante.',
     ]),
     _Beat('assets/cinematic/cine_open_fuite.png', [
-      'Il fallait fuir. Vite, dans le couloir en flammes.',
+      '« Cours, ma chérie, cours ! » Le couloir brûlait déjà.',
     ]),
     _Beat('assets/cinematic/cine_open_separation.png', [
-      'Dehors, la foule les a emportés. Ils ont été séparés.',
+      'Dehors, la foule nous a arrachés les uns aux autres.',
+      'Je les ai perdus.',
     ]),
     _Beat('assets/cinematic/cine_open_3.jpg', [
-      'Au bout du quai, une vieille locomotive à bois chauffait déjà.',
+      'Au bout du quai, une vieille locomotive à bois respirait encore.',
     ]),
     _Beat('assets/cinematic/cine_open_4.jpg', [
-      'Elle est montée. Elle s\'est cachée dans le dernier wagon.',
+      'Je suis montée. Je me suis cachée, le cœur en miettes.',
     ]),
     _Beat('assets/cinematic/cine_open_5.png', [
-      'Le train est parti. La gare a brûlé derrière elle.',
+      'Le train est parti. Derrière moi, ma ville n\'était plus que flammes.',
     ]),
     _Beat(null, [
-      'Seule. Dans le dernier wagon d\'un monde mort.',
+      'Seule, dans le dernier wagon d\'un monde mort.',
+      'Mais quelque part, là-haut… peut-être qu\'ils m\'attendent.',
     ]),
   ];
 
@@ -69,10 +84,12 @@ class _OpeningCinematicState extends State<OpeningCinematic>
   }
 
   // Précharge l'image du beat courant + suivant pour éviter un flash gris.
+  // Silencieux si l'asset n'existe pas encore (prélude pas encore fourni).
   void _precacheNext() {
     for (final j in [_i, _i + 1]) {
       if (j < _beats.length && _beats[j].image != null) {
-        precacheImage(AssetImage(_beats[j].image!), context);
+        precacheImage(AssetImage(_beats[j].image!), context,
+            onError: (_, __) {});
       }
     }
   }
@@ -149,6 +166,23 @@ class _OpeningCinematicState extends State<OpeningCinematic>
                       key: ValueKey(beat.image),
                       fit: BoxFit.cover,
                       gaplessPlayback: true,
+                      // Fallback si l'image n'est pas encore fournie (prélude) :
+                      // fond sombre dégradé, le texte du récit reste lisible.
+                      errorBuilder: (_, __, ___) => const DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Color(0xFF0A0E14),
+                              Color(0xFF1A130C),
+                              Color(0xFF2A1206),
+                            ],
+                            stops: [0.0, 0.6, 1.0],
+                          ),
+                        ),
+                        child: SizedBox.expand(),
+                      ),
                     ),
             ),
             // Voile sombre pour lisibilité du texte (plus dense en bas).
