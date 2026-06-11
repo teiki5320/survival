@@ -160,7 +160,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
   static const double _reload = 0.26;
   static const double _impactDur = 0.32;
   static const double _dieDur = 1.9; // mort : chute LENTE bien visible
-  static const double _staggerDur = 1.6; // touché : tombe en arrière puis relève
+  static const double _staggerDur = 2.1; // touché : tombe en arrière puis relève (lent)
   static const double _pillFeet = 0.855; // mesuré sur pillard1_walk
   static const double _pillContentH = 0.70;
   static const double _bruteAtkDur = 0.8;
@@ -277,7 +277,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
 
   // --- Caméra : zoom FIXE, on SUIT le projectile (le pillard est hors champ
   //     au lancer, la caméra le révèle en suivant la pierre). Retour au train. ---
-  static const double _zoomRest = 2.2; // VRAI gros plan sur le train (repos + départ)
+  static const double _zoomRest = 2.0; // gros plan sur le train (repos + départ, légèrement dézoomé)
   // Dézoom de visée : plancher RELEVÉ à 1.3 -> on dézoome moins large pour ne
   // PAS révéler le hors-champ (bande vide / bords du décor). 1.0 sortait de
   // l'image.
@@ -1800,7 +1800,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
       // pré-flippées (pas de miroir).
       final p = (1 - e.staggerT / _staggerDur).clamp(0.0, 1.0); // 0 -> 1
       final fall = p < 0.5 ? p * 2 : (1 - p) * 2; // 0 -> 1 -> 0
-      final f = (fall * 14).round().clamp(0, 14) + 1; // chute partielle 1..15
+      // Chute BIEN visible : on va loin dans l'anim de mort (frames 1..32)
+      // puis on revient -> il bascule en arrière nettement, puis se relève.
+      final f = (fall * 31).round().clamp(0, 31) + 1;
       final prefix =
           e.type == _PillType.lanceur ? 'lanceur_die' : 'pillard1_die';
       asset = 'assets/characters/${prefix}_$f.png';

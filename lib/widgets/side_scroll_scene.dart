@@ -590,7 +590,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT2 = Timer(const Duration(milliseconds: 6100), () {
       if (!mounted) return;
       setState(() => _cookLit = false); // extinction
-      _startAutoSpecial('eat', frames: 25); // mange au sol
+      _startAutoSpecial('use_back', frames: 24); // se retourne à nouveau
+    });
+    // ... puis elle s'installe et mange au sol.
+    _cookT3 = Timer(const Duration(milliseconds: 7500), () {
+      if (!mounted) return;
+      _startAutoSpecial('eat', frames: 25);
       gs.nudgeCardStat('faim', 14);
     });
   }
