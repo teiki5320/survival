@@ -148,6 +148,7 @@ class _WagonScreenState extends State<WagonScreen>
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
   bool _inCards = false;
+  bool _cardsFromLoco = false; // cartes ouvertes via le voyage (loco->map) : y revenir
   bool _inShootGame = false; // mini-jeu défense du toit (gares)
   bool _inWorkshop = false; // atelier + quotidien + collection (depuis la map)
   // Combat lancé depuis une gare de la map (la map = le menu). On mémorise
@@ -533,7 +534,15 @@ class _WagonScreenState extends State<WagonScreen>
             : _inCards
             ? CardsScreen(
                 key: const ValueKey('cards'),
-                onClose: () => setState(() => _inCards = false),
+                onClose: () => setState(() {
+                  _inCards = false;
+                  // Le voyage se pilote depuis la loco : on y revient en
+                  // quittant les cartes (sinon on retombait sur le wagon 1).
+                  if (_cardsFromLoco) {
+                    _cardsFromLoco = false;
+                    _inLocomotive = true;
+                  }
+                }),
               )
             : _inWardrobe
             ? WardrobeScreen(
@@ -567,6 +576,7 @@ class _WagonScreenState extends State<WagonScreen>
                 onOpenCards: () => setState(() {
                   _onMap = false;
                   _inCards = true;
+                  _cardsFromLoco = true; // voyage : retour loco en quittant
                 }),
               )
             : _inLocomotive
