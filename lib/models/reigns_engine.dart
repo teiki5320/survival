@@ -173,9 +173,10 @@ class ReignsEngine {
     final seg = segments[idx];
     // Réapprovisionnement en bois à certaines gares. Garde anti-double via un
     // flag de run, pour ne pas re-créditer si on recharge une sauvegarde.
-    final supply = kWoodSupplyByGare[idx];
-    if (supply != null && flags.add('woodGiven_$idx')) {
-      _gs.grantItem('wood', supply);
+    // Bois fusionné : chaque gare a un tas de bûches à ramasser à la loco
+    // (base 4 + bonus aux gares de ravitaillement). Set une seule fois par gare.
+    if (flags.add('woodpile_$idx')) {
+      _gs.setGareWoodLeft(4 + (kWoodSupplyByGare[idx] ?? 0));
     }
     _queue
       ..clear()

@@ -31,11 +31,11 @@ const int kColdGareIndex = 7;
 // qui relie la carte au gameplay ; calé par simulation).
 const int kColdBoisDrainPerCard = 2;
 
-// --- Réserve de bois (bûches) ---
-// Le bois est une RÉSERVE épuisable (itemCount('wood')), pas une prod infinie :
-// alimenter le foyer (jauge Bois) consomme 1 bûche. On se réapprovisionne à
-// certaines gares (dépôt, camp, oasis) → il faut FAIRE DES STOCKS avant le
-// grand nord, sinon la loco s'éteint. Valeurs calées par simulation.
+// --- Bois (FUSIONNÉ) ---
+// Le bois = UNE seule jauge `cardBois` (0-100, mort à 0). `gareWoodLeft` =
+// bûches à ramasser à la loco pour la gare courante (chaque bûche = +10
+// cardBois). Tas par gare = 4 + bonus aux gares de ravitaillement (dépôt,
+// camp, oasis). Le poêle, la gazinière et le froid puisent tous dans cardBois.
 const int kWoodStartReserve = 4;
 // Bûches offertes à l'arrivée de certaines gares (index 0-based de la gare).
 // idx 2 = Kurogane (dépôt), idx 6 = Yasuragi (camp, juste avant le froid),

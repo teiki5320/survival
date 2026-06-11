@@ -606,12 +606,12 @@ class _WagonScreenState extends State<WagonScreen>
                       _mapFromLoco = true;
                     }),
                     onThrowLog: () {
-                      // Nourrir le foyer = brûler 1 bûche de la réserve et
-                      // remonter la jauge Bois. Sans bûche, le geste ne donne
-                      // rien (la réserve reste à gérer).
+                      // Ramasser une bûche du tas de la gare et la jeter au
+                      // foyer = +10 à la jauge Bois. Le tas est limité par gare
+                      // (gareWoodLeft) : il faut le gérer.
                       final gs = GameState.instance;
-                      if (gs.itemCount('wood') > 0) {
-                        gs.consumeItem('wood');
+                      if (gs.gareWoodLeft > 0) {
+                        gs.setGareWoodLeft(gs.gareWoodLeft - 1);
                         gs.nudgeCardStat('bois', 10);
                         setState(() => _logsThrown++);
                       }

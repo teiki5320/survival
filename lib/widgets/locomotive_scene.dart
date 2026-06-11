@@ -745,11 +745,11 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                         ),
                         const SizedBox(height: 4),
                         Builder(builder: (_) {
-                          final stock = GameState.instance.itemCount('wood');
+                          final stock = GameState.instance.gareWoodLeft;
                           return Text(
                             stock > 0
-                                ? 'Réserve de bois : $stock'
-                                : 'Réserve vide — fais le plein aux gares',
+                                ? 'Bûches à ramasser ici : $stock'
+                                : 'Tas vide — d\'autres bûches à la prochaine gare',
                             style: TextStyle(
                               color: stock > 0
                                   ? const Color(0xFFFFD9A0)

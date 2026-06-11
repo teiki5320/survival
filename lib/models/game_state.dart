@@ -54,6 +54,7 @@ class GameState extends ChangeNotifier {
         'seenTips': seenTips.toList(),
         'introCinematicSeen': introCinematicSeen,
         'items': _items,
+        'gareWoodLeft': gareWoodLeft,
         'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
@@ -132,6 +133,7 @@ class GameState extends ChangeNotifier {
           _items[k as String] = (v as num).toInt();
         });
       }
+      gareWoodLeft = (data['gareWoodLeft'] as num?)?.toInt() ?? gareWoodLeft;
       _flags.clear();
       if (data['flags'] is List) {
         _flags.addAll((data['flags'] as List).cast<String>());
@@ -912,6 +914,16 @@ class GameState extends ChangeNotifier {
   int cardBois = 70;
   int cardMoral = 70;
 
+  /// Bois fusionné : `cardBois` est LA jauge de bois (mort à 0). `gareWoodLeft`
+  /// = combien de bûches il reste à ramasser à la loco pour CETTE gare (chaque
+  /// bûche jetée au foyer = +10 cardBois). Remplace l'ancienne réserve
+  /// `_items['wood']` (deux nombres de bois -> un seul).
+  int gareWoodLeft = 4;
+  void setGareWoodLeft(int v) {
+    gareWoodLeft = v.clamp(0, 99);
+    notifyListeners();
+  }
+
   // Progression de la run en cours (null = pas de run / terminée).
   int? cardGareIndex; // segment courant (0-based)
   final Set<String> cardFlags = {}; // flags narratifs de la run
@@ -1013,7 +1025,7 @@ class GameState extends ChangeNotifier {
     cardCreditNextMs = 0;
     cardSegmentProgress = 0.0;
     // Réserve de bois de départ (bûches dans le wagon).
-    _items['wood'] = kWoodStartReserve;
+    gareWoodLeft = kWoodStartReserve; // bûches à ramasser à la gare de départ
     // Météo de départ cohérente avec la zone tempérée du début.
     _pickWeather();
     save();
