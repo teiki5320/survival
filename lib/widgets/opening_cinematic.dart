@@ -54,11 +54,14 @@ class _OpeningCinematicState extends State<OpeningCinematic>
     _Beat('assets/cinematic/cine_open_3.jpg', [
       'Au bout du quai, une vieille locomotive à bois respirait encore.',
     ]),
+    _Beat('assets/cinematic/cine_open_montee.png', [
+      'Des inconnus s\'y entassaient, fuyant la ville comme moi.',
+    ]),
     _Beat('assets/cinematic/cine_open_4.jpg', [
-      'Je suis montée. Je me suis cachée, le cœur en miettes.',
+      'Je me suis glissée dans le dernier wagon. Cachée, le cœur en miettes.',
     ]),
     _Beat('assets/cinematic/cine_open_5.png', [
-      'Le train est parti. Derrière moi, ma ville n\'était plus que flammes.',
+      'Le train s\'est arraché à la nuit. Derrière moi, ma ville n\'était plus que flammes.',
     ]),
     _Beat(null, [
       'Seule, dans le dernier wagon d\'un monde mort.',
