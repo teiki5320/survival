@@ -256,8 +256,8 @@ List<StoryCard> _gare5(Set<String> f) => [
             "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
         left: _c("Courir la serrer dans tes bras",
             fx: {Stat.moral: 40}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi."),
-        right: _c("Courir la serrer dans tes bras",
-            fx: {Stat.moral: 40}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi."),
+        right: _c("La couvrir et vérifier qu'elle va bien",
+            fx: {Stat.moral: 34, Stat.faim: 4}, flags: ['aLaSoeur', 'soeurProtegee'], result: "Avant les larmes, tu l'enveloppes, tu palpes ses bras gelés, tu la fais manger. Elle est entière. ELLE EST LÀ. Puis seulement tu t'effondres de soulagement."),
       ),
       StoryCard(
         id: 'G5b',
@@ -265,10 +265,13 @@ List<StoryCard> _gare5(Set<String> f) => [
         speaker: 'Ta sœur',
         text:
             "« Papa et maman... ils sont partis devant. Vers le nord, un refuge. Ils m'ont dit de les attendre, que quelqu'un viendrait. » Ses yeux brillent. « Je savais que ce serait toi. »",
-        left: _c("Lui promettre de les retrouver",
-            fx: {Stat.moral: 12}, flags: ['capParents'], result: "« On va les retrouver. Tous les deux. » Tu y crois, maintenant. Tu as une raison."),
-        right: _c("Rester prudente devant elle",
-            fx: {Stat.moral: 4}, flags: ['capParents'], result: "Tu hoches la tête sans promettre. Mais au fond, le cap est fixé : le nord, les parents."),
+        // CHOIX STRUCTURANT (décide famille vs ensemble) : t'engager à
+        // retrouver les parents (espoir, cap au nord) OU te concentrer sur la
+        // sécurité de ta sœur ici et maintenant (acceptation).
+        left: _c("Jurer de retrouver papa et maman",
+            fx: {Stat.moral: 12}, flags: ['capParents'], result: "« On va les retrouver. Tous les deux. » Tu y crois, maintenant. Tu as une raison de tenir jusqu'au bout."),
+        right: _c("Te concentrer sur elle, ici, maintenant",
+            fx: {Stat.moral: 6, Stat.faim: 5, Stat.soif: 5}, flags: ['soeurProtegee'], result: "« L'important, c'est toi. Le reste viendra. » Tu la nourris, tu la réchauffes. Tu ne promets rien que le monde pourrait briser."),
       ),
       // Conséquence du COMBAT : comment tu as tenu le pont décide de l'état
       // dans lequel tu retrouves ta sœur.
@@ -727,7 +730,7 @@ final List<StoryCard> _fill4 = [
   _filler('F4_radio_trouvee',
       "Dans les décombres d'un bureau de poste, une radio à manivelle, intacte. Un fil vers le monde — s'il reste un monde au bout.",
       _c("L'emporter précieusement", fx: {Stat.moral: 8, Stat.faim: -3}, flags: ['aLaRadio'], result: "Tu la serres contre toi comme un trésor. Ce soir, tu tourneras la manivelle."),
-      _c("Trop lourde, trop d'espoir", fx: {Stat.moral: -4}, result: "Tu la reposes. Écouter le silence du monde, tu n'es pas sûre de le supporter."),
+      _c("L'emporter, mais sans trop d'espoir", fx: {Stat.moral: -2, Stat.faim: -3}, flags: ['aLaRadio'], result: "Tu la glisses dans ton sac, le cœur lourd. Écouter le silence du monde te fait peur — mais tu la gardes, on ne sait jamais."),
       oneshot: true),
   _filler('F4_dessin_soeur',
       "Parmi les messages du mur, un dessin d'enfant : deux bonshommes-bâtons main dans la main, un grand, un petit. « MA GRANDE SŒUR VIENDRA. »",
@@ -1120,9 +1123,50 @@ final List<StoryCard> _fill12 = [
       requires: (f) => f.contains('aLaSoeur')),
 ];
 
-// ============================================================
-// LE SCÉNARIO : 14 segments
-// ============================================================
+// Gare 13 — Fubuki, le col gelé : la loco menace de lâcher, le froid est
+// absolu, il faut tout donner. (Avant : aucun filler -> climax vide.)
+final List<StoryCard> _fill13 = [
+  _filler('F13_souffle',
+      "La loco tousse, crache une vapeur noire. Le manomètre plonge. Elle n'aime pas cette pente, ce froid, ce poids.",
+      _c("La ménager, ralentir", fx: {Stat.bois: 6, Stat.moral: -5}, result: "Tu coupes la vapeur, tu pries. Elle tient, de justesse, mais chaque mètre est une éternité."),
+      _c("La pousser à fond", fx: {Stat.bois: -12, Stat.moral: 6}, result: "Tu enfournes tout. La loco rugit, crache le feu, et arrache la pente d'un coup. Brûlant, mais glorieux.")),
+  _filler('F13_blizzard',
+      "Un blizzard efface le monde. Tu ne vois plus les rails. Avancer à l'aveugle, ou attendre que ça passe ?",
+      _c("Avancer à l'aveugle", fx: {Stat.moral: -6, Stat.soif: -4}, result: "Tu devines la voie au son des roues. Terrifiant, mais tu gagnes du terrain."),
+      _c("Attendre la fin du blizzard", fx: {Stat.bois: -8, Stat.faim: -6}, result: "Tu te terres, le poêle dévorant le bois pour ne pas geler. L'attente coûte cher.")),
+  _filler('F13_soeur_gel',
+      "Ta sœur grelotte, les lèvres bleues. Le wagon ne tient plus la chaleur.",
+      _c("Lui donner ton manteau", fx: {Stat.moral: 10, Stat.soif: -4}, flags: ['soeurProtegee'], result: "Tu grelottes à sa place. Elle s'endort contre toi, au chaud. Ça en vaut chaque frisson."),
+      _c("Tout brûler pour chauffer", fx: {Stat.bois: -14, Stat.moral: 5}, flags: ['soeurProtegee'], result: "Tu nourris le poêle jusqu'à ce qu'elle cesse de trembler. Le bois fond, mais elle respire."),
+      requires: (f) => f.contains('aLaSoeur')),
+  _filler('F13_sacrifice',
+      "Plus assez de bois pour le sommet. Il reste le mobilier du wagon, et le vieux carnet où tu notes tout depuis le départ.",
+      _c("Brûler les meubles", fx: {Stat.bois: 14, Stat.moral: -6}, result: "Le wagon se vide, nu et froid, mais la loco repart. Le confort contre l'avenir."),
+      _c("Brûler le carnet", fx: {Stat.bois: 8, Stat.moral: -12}, result: "Tu regardes tes mots noircir : les morts, les gares, les espoirs. Tout part en fumée, et la loco grimpe.")),
+  _filler('F13_sommet',
+      "Et soudain, la pente s'inverse. Le sommet. De l'autre côté, une vallée — et tout au fond, une lueur qui n'est pas le soleil.",
+      _c("T'autoriser à espérer", fx: {Stat.moral: 16, Stat.faim: -3}, result: "Le refuge. C'est forcément le refuge. Tu ris et tu pleures en même temps."),
+      _c("Rester prudente jusqu'au bout", fx: {Stat.moral: 6}, result: "Tu as trop vu pour crier victoire. Mais ton cœur, lui, s'est déjà mis à courir.")),
+];
+
+// Gare 14 — Hokuto, le refuge : l'arrivée, le quai, les visages. Le moment
+// que tout le voyage préparait. (Avant : aucun filler.)
+final List<StoryCard> _fill14 = [
+  _filler('F14_fumees',
+      "Les fumées du refuge montent droites dans l'air glacé. Des toits, des lumières, des gens. Vivants.",
+      _c("Accélérer vers elles", fx: {Stat.bois: -4, Stat.moral: 12}, result: "Tu ne sens plus la fatigue. La loco file vers la chaleur des autres."),
+      _c("Ralentir, savourer", fx: {Stat.moral: 9}, result: "Tu veux garder ce moment : le dernier où tout est encore possible, où ils sont peut-être tous là.")),
+  _filler('F14_seuil',
+      "Le train ralentit le long d'un quai bondé. Des dizaines de visages se tournent vers toi. Le cœur te manque : et s'ils n'étaient pas parmi eux ?",
+      _c("Descendre la tête haute", fx: {Stat.moral: 10}, result: "Quoi qu'il arrive, tu les as menées jusqu'ici. Tu poses le pied sur le quai."),
+      _c("Chercher déjà des yeux", fx: {Stat.moral: 6, Stat.soif: -3}, result: "Tu scrutes chaque visage, le souffle court, avant même que le train ne s'arrête.")),
+  _filler('F14_soeur_seuil',
+      "Ta sœur serre ta main à la broyer. « Et s'ils ne sont pas là ? » Sa voix tremble de la même peur que la tienne.",
+      _c("« Alors on les cherchera. Ensemble. »", fx: {Stat.moral: 12}, flags: ['soeurProtegee'], result: "Elle hoche la tête. Tant que vous êtes deux, rien n'est tout à fait perdu."),
+      _c("La serrer sans un mot", fx: {Stat.moral: 8}, flags: ['soeurProtegee'], result: "Pas besoin de mots. Vos deux peurs, à parts égales, et vos deux courages."),
+      requires: (f) => f.contains('aLaSoeur')),
+];
+
 
 final List<Segment> trainCosyScenario = [
   Segment(gareCards: _gare1, fillerPool: _fill1, drawCount: 4),
@@ -1137,8 +1181,8 @@ final List<Segment> trainCosyScenario = [
   Segment(gareCards: _gare10, fillerPool: _fill10, drawCount: 4),
   Segment(gareCards: _gare11, fillerPool: _fill11, drawCount: 4),
   Segment(gareCards: _gare12, fillerPool: _fill12, drawCount: 4),
-  const Segment(gareCards: _gare13, fillerPool: [], drawCount: 0),
-  const Segment(gareCards: _gare14, fillerPool: [], drawCount: 0),
+  Segment(gareCards: _gare13, fillerPool: _fill13, drawCount: 4),
+  Segment(gareCards: _gare14, fillerPool: _fill14, drawCount: 4),
 ];
 
 /// Résout la fin à partir des stats finales + flags.
@@ -1158,10 +1202,15 @@ String resolveTrainCosyEnding(Map<Stat, int> stats, Set<String> flags) {
   // Fin SECRÈTE : tu as suivi la voix radio jusqu'au bout (radio3) ET réuni
   // toutes les conditions de la fin pleine -> tu apprends que la voix qui
   // t'a guidée était celle de maman.
-  if (aSoeur && soin >= 2 && moral >= 65 && flags.contains('radio3')) {
+  // Fin pleine (parents retrouvés) : il faut S'ÊTRE ENGAGÉ à les chercher
+  // (capParents, gare 5) en plus du soin + moral élevé. Sans cet engagement,
+  // même un excellent voyage donne 'ensemble' (tu as choisi de protéger ta
+  // sœur plutôt que de courir après l'espoir) -> incarne le thème du jeu.
+  final capParents = flags.contains('capParents');
+  if (aSoeur && capParents && soin >= 2 && moral >= 65 && flags.contains('radio3')) {
     return 'secret';
   }
-  if (aSoeur && soin >= 2 && moral >= 65) return 'famille';
+  if (aSoeur && capParents && soin >= 2 && moral >= 65) return 'famille';
   if (aSoeur && moral >= 30) return 'ensemble';
   return 'abandon';
 }

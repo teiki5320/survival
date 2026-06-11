@@ -158,9 +158,9 @@ def run(strategy, refuels_per_seg):
                 tag = 'abandon' if dead=='moral' else 'mort'
                 return tag, stats, flags, dead
     # fin
-    moral = stats['moral']; aSoeur = 'aLaSoeur' in flags
-    if aSoeur and soin>=SOIN_REQ and moral>=MORAL_REQ and 'radio3' in flags: end='secret'
-    elif aSoeur and soin>=SOIN_REQ and moral>=MORAL_REQ: end='famille'
+    moral = stats['moral']; aSoeur = 'aLaSoeur' in flags; cap = 'capParents' in flags
+    if aSoeur and cap and soin>=SOIN_REQ and moral>=MORAL_REQ and 'radio3' in flags: end='secret'
+    elif aSoeur and cap and soin>=SOIN_REQ and moral>=MORAL_REQ: end='famille'
     elif aSoeur and moral>=30: end='ensemble'
     else: end='abandon'
     return end, stats, flags, None
