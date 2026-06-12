@@ -68,10 +68,11 @@ Voir le bloc « GROSSE SESSION 2026-06-09 » plus bas pour le détail.
   combat) : careless **12%** / casual **63%** / smart **100%**, fins réparties.
   Barème combat **inchangé** (13/7/7/6) — c'est l'escalade `gareIndex` réactivée
   qui rééquilibre, pas le barème.
-- **CANON vs CODE (à retenir)** : le **« Vieux » (cheminot) et « l'enfant
-  trouvé »** du canon (table 14 gares plus bas) **n'existent PAS dans le code**
-  (supprimés). La **sœur est retrouvée GARE 5** (Tsukibashi), pas gare 7. La
-  table canon ci-dessous n'est PAS à jour sur ces points — le CODE fait foi.
+- **CANON (à jour)** : le **« Vieux » (cheminot) et « l'enfant trouvé »** sont
+  **SUPPRIMÉS DÉFINITIVEMENT** (décision user 2026-06-11) — ils n'ont jamais
+  existé dans le code, et la table canon + persos récurrents plus bas sont
+  alignés. La **sœur est retrouvée GARE 5** (Tsukibashi) et c'est ELLE le levier
+  émotionnel (l'« enfant » du canon). Le CODE fait foi.
 - **`outfitWarmth`** : 3e tenue **manteau d'hiver (warmth 8)** → le nord devient
   gérable (sprite dédié encore à faire, écharpe peinte en attendant).
 - **Reste connu (non bloquant)** : duel mono-type (lanceur, 5 vagues escaladées
@@ -534,11 +535,10 @@ confort seulement), une **idée de combat distincte par gare**, et rebrancher
 - **~10 fillers par segment** (123 au total, contre 71 avant) -> bien plus de
   variété entre runs. drawCount reste à 4 (balance simulée préservée).
 - **Arcs persos câblés via `requires`/flags** : **chien** (`aLeChien` : garde,
-  réconfort, trouvailles), **Le Vieux** (`leVieuxABord` → enseigne la loco,
-  raconte sa fille, puis descend au camp gare 6 = `vieuxParti`), **radio**
-  (`aLaRadio` trouvée gare 4 → chaîne `radio1`(g5)/`radio2`(g7)/`radio3`(g9),
-  la voix se révèle être maman), **sœur** (`aLaSoeur` : cabane, billes, fleur,
-  promesses).
+  réconfort, trouvailles), **radio** (`aLaRadio` trouvée gare 4 → chaîne
+  `radio1`(g5)/`radio2`(g7)/`radio3`(g9), la voix se révèle être maman),
+  **sœur** (`aLaSoeur` : cabane, billes, fleur, promesses). (« Le Vieux »
+  SUPPRIMÉ définitivement — n'a jamais existé dans le code.)
 - **Gares 5 et 11 branchées sur le combat** (comme gare 3) : `combatTierHigh`
   /`combatTierLow` changent l'état où on retrouve la sœur (g5) et l'issue du
   barrage (g11).
@@ -709,16 +709,16 @@ acceptation** (croire qu'ils sont vivants, ou apprendre à vivre sinon).
 
 | # | Gare | Beat |
 |---|------|------|
-| 1 | Gare natale en ruines | Tuto. Choix : retourner en ville (risque) ou fuir. **Trouve le chien**. |
-| 2 | Dépôt de fret | Apprend à nourrir la loco au bois. **Le Vieux** (cheminot) monte. |
+| 1 | Gare natale en ruines | Tuto + **1er combat = sauver le chiot** (gagner = `aLeChien`). |
+| 2 | Dépôt de fret | Apprend à nourrir la loco au bois. (⚠️ « Le Vieux » SUPPRIMÉ.) |
 | 3 | Halte 47 | Premiers **pillards** dans le brouillard. Choix moral. |
 | 4 | Village fantôme | **Trouve la radio à manivelle.** 1er fragment de message du nord. |
-| 5 | Pont sur le fleuve | Décision ressources : ralentir (eau/pêche) ou foncer (sécurité). |
-| 6 | Camp-refuge | Survivants, rumeur du Nord précisée. Le Vieux reste ou continue (flag). |
-| 7 | Halte 12 | Souvenir d'enfance jouable : la **petite sœur**. Enjeu émotionnel. |
-| 8 | Entrée zone froide | Le froid menace, loco boit plus. **Trouve un enfant seul**. |
-| 9 | Plaine enneigée / ruines | Tempête. Survie pure. L'enfant tombe malade. |
-| 10 | Oasis perdue (serre) | Répit cosy. Hydroponie, lien avec l'enfant. |
+| 5 | Pont sur le fleuve | **Retrouve la petite sœur** (`aLaSoeur`) + choix engagement parents (`capParents`). |
+| 6 | Camp-refuge | Survivants, rumeur du Nord précisée, on gagne le cellier (wagon 2). |
+| 7 | Halte 12 | Souvenir d'enfance avec la sœur (déjà à bord). |
+| 8 | Entrée zone froide | Le froid menace, loco boit plus. (⚠️ « enfant trouvé » SUPPRIMÉ.) |
+| 9 | Plaine enneigée / ruines | Tempête. **La SŒUR tombe malade** (fièvre). |
+| 10 | Oasis perdue (serre) | Répit cosy. Hydroponie, lien avec la sœur. |
 | 11 | Halte 31 | Climax inter : pillards rattrapent OU message radio clair (voix familière ?). |
 | 12 | Tour de guet | Vue sur le **refuge nord**. Espoir concret. Décision lourde. |
 | 13 | Col gelé / Halte 6 | Dernière épreuve, loco menace de lâcher. **Sacrifice**. |
@@ -733,13 +733,17 @@ Pool large, ~10 vues par segment, varié à chaque run. Rôle : ambiance
 (météo, paysage, ennui), tactique (ressources, soigner Shen), lore
 (souvenirs, objets trouvés).
 
-### Personnages récurrents (3-4 apparitions chacun)
+### Personnages récurrents (CANON À JOUR — Vieux + enfant SUPPRIMÉS)
 
-1. **Le chien** — gare 1. Témoin silencieux, ancre du moral.
-2. **Le Vieux** (cheminot) — gares 2→6. Mentor du train. Peut rester/mourir.
-3. **L'enfant** — gare 8. Miroir de la petite sœur. Plus gros levier émotionnel.
-4. **Les pillards** — antagoniste diffus (gares 3, 11, 13).
-5. **La voix radio** — fil d'espoir (gares 4→14). Refuge ? La sœur ? Réservé fin.
+1. **Le chien** — gagné au 1er combat (gare 1). Témoin silencieux, ancre du moral.
+2. **La petite sœur** — retrouvée gare 5, à bord ensuite (malade gare 9, climax fins).
+   C'est ELLE le levier émotionnel principal (l'« enfant » du canon = la sœur).
+3. **Les pillards** — antagoniste diffus (combat à chaque gare).
+4. **La voix radio** — fil d'espoir (gares 4→14), se révèle être maman (fin secrète).
+
+> ⚠️ Le **« Vieux » (cheminot)** et **« l'enfant trouvé »** du canon d'origine
+> ont été **SUPPRIMÉS DÉFINITIVEMENT** (décision 2026-06-11). Le code n'en a
+> jamais eu, et le canon est aligné dessus : pas de mentor, pas d'enfant tiers.
 
 ### Fins (3-5)
 
