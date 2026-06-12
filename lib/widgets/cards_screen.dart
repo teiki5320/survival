@@ -591,21 +591,31 @@ class _CardsScreenState extends State<CardsScreen>
             ],
           ),
         ),
-        // aperçu du changement pendant le drag
+        // aperçu du changement pendant le drag (+ alerte MORTEL si la jauge
+        // tomberait à 0 — les pertes sont amplifiées ×1.7 par le moteur).
         SizedBox(
           height: 16,
           child: preview == 0
               ? null
-              : Text(
-                  preview > 0 ? '+$preview' : '$preview',
-                  style: TextStyle(
-                    color: preview > 0
-                        ? const Color(0xFF8BD18B)
-                        : Colors.redAccent,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              : Builder(builder: (_) {
+                  final eff =
+                      preview < 0 ? (preview * 1.7).round() : preview;
+                  final fatal = value + eff <= 0;
+                  return Text(
+                    fatal
+                        ? '☠ $preview'
+                        : (preview > 0 ? '+$preview' : '$preview'),
+                    style: TextStyle(
+                      color: fatal
+                          ? const Color(0xFFFF4D4D)
+                          : (preview > 0
+                              ? const Color(0xFF8BD18B)
+                              : Colors.redAccent),
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  );
+                }),
         ),
       ],
     );

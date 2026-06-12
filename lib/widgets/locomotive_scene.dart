@@ -407,7 +407,21 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
           : GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: widget.onOpenMap,
-              child: turned,
+              // Halo doux permanent : signale que la carte est interactive
+              // (avant, rien ne disait qu'on pouvait la toucher pour ouvrir
+              // la carte du voyage).
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: const [
+                    BoxShadow(
+                        color: Color(0x66FFC04A),
+                        blurRadius: 18,
+                        spreadRadius: 1),
+                  ],
+                ),
+                child: turned,
+              ),
             ),
     );
   }
