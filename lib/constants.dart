@@ -8,7 +8,8 @@
 // une horloge : sa position = la gare courante de la run + progression dans
 // le segment. Ainsi la carte reflète l'histoire au lieu de tourner en boucle.
 const List<double> kGarePositions = [
-  0.7923, // 1  Kogarashi (ville natale, DÉPART) — échangé avec Miharashi
+  0.7923, // 1  Kogarashi (1re HALTE après la fuite — PAS la ville natale, qui
+          //    est le départ, montré dans la cinématique). Échangé avec Miharashi.
   0.0865, // 2  Karasuno
   0.1854, // 3  Kurogane (dépôt ferroviaire)
   0.2143, // 4  Hoshikage

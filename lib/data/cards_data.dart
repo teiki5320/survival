@@ -93,13 +93,13 @@ List<StoryCard> _gare1(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Kogarashi',
         text:
-            "La locomotive s'ébranle. Par la porte du wagon, ta ville natale s'embrase — le quai, la foule, les autres trains qui ne partiront jamais. Quelque part là-dedans, tes parents et ta petite sœur.",
-        left: _c("Regarder jusqu'au bout",
+            "Après une nuit de fuite à travers le noir, le train ralentit enfin dans une gare en ruines : ta première halte. Le quai est désert, jonché de débris. Loin derrière toi, ta ville natale n'est plus qu'une lueur rougeoyante sur l'horizon.",
+        left: _c("Regarder une dernière fois l'horizon en feu",
             fx: {Stat.moral: -6}, flags: ['asset_bed'],
-            result: "Tu fixes les flammes jusqu'à ce que la fumée avale tout. Tu n'oublieras pas. Jamais. Puis tu t'aménages un coin pour dormir dans le wagon."),
-        right: _c("Fermer la porte",
+            result: "Tu fixes la lueur jusqu'à ce que la distance l'avale. Tu n'oublieras pas. Jamais. Puis tu t'aménages un coin pour dormir dans le wagon."),
+        right: _c("Te détourner et t'installer",
             fx: {Stat.moral: 3}, flags: ['asset_bed'],
-            result: "Tu claques la porte sur le brasier. Survivre d'abord. Tu pousses une paillasse dans un coin : ton premier lit."),
+            result: "Assez regardé en arrière. Survivre d'abord. Tu pousses une paillasse dans un coin : ton premier lit."),
       ),
       // PREMIER COMBAT (tuto) : un chiot est coincé sur le quai par des
       // pillards. Bien défendre = le sauver (aLeChien). Le perdre = il
