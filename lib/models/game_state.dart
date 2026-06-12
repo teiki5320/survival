@@ -605,6 +605,10 @@ class GameState extends ChangeNotifier {
     cardFlags.add(s >= 50 ? 'combatTierHigh' : 'combatTierLow');
     cardFlags.add('combatDone_$gareIndex');
     if (s > (gareBestScore[gareIndex] ?? 0)) gareBestScore[gareIndex] = s;
+    // FERRAILLE selon le SCORE : mieux on défend la gare, plus on gagne
+    // (score 100 -> +50, 80 -> +40, 50 -> +25...). S'ajoute à la ferraille
+    // ramassée au sol pendant le combat. Donne un vrai intérêt à bien jouer.
+    scrap += (s / 100 * 50).round();
     notifyListeners();
     save();
   }

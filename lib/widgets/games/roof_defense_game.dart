@@ -852,8 +852,9 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
           // Recentre sur le pillard, il vise (télégraphe) avant de lancer.
           // ESCALADE PAR GARE : il vise de plus en plus vite (1.9 s -> ~1.1 s).
           _enemyAiming = true;
+          // Vise plus vite qu'avant (le 100 % se mérite) : 1.6 s -> ~1.0 s.
           _enemyAimT =
-              (1.9 - widget.gareIndex * 0.06).clamp(1.1, 1.9).toDouble();
+              (1.6 - widget.gareIndex * 0.05).clamp(1.0, 1.6).toDouble();
 
         }
       }
@@ -894,8 +895,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     const t = 4.8; // vol très lent (suivable à la caméra)
     // ESCALADE PAR GARE : le pillard vise de mieux en mieux au fil du voyage
     // (gare 1 : dispersion 0.14 ; gare 14 : ~0.06).
+    // Pillard plus précis qu'avant (perd des cœurs plus facilement -> score
+    // parfait plus dur) : 0.11 -> ~0.045 au fil des gares.
     final spread =
-        (0.14 - widget.gareIndex * 0.006).clamp(0.06, 0.14).toDouble();
+        (0.11 - widget.gareIndex * 0.005).clamp(0.045, 0.11).toDouble();
     final to = Offset(
       _muzX + _gauss() * spread, // un peu court / un peu long
       _muzY + _gauss() * spread * 0.8, // un peu haut / un peu bas

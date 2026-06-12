@@ -389,8 +389,9 @@ class _WagonScreenState extends State<WagonScreen>
     // dans le train (-1 toutes les 25 s, hors cartes/combat qui ont leur propre
     // économie). Manger (cuisinière/bac) et boire (filtre) deviennent
     // NÉCESSAIRES, pas décoratifs.
-    // SURVIE : besoins plus mordants (−1/18 s ≈ −3,3/min) hors cartes/combat.
-    _needsTimer = Timer.periodic(const Duration(seconds: 18), (_) {
+    // Besoins : faim/soif descendent doucement (−1 toutes les 24 s) hors
+    // cartes/combat. Ralenti pour limiter les allers-retours entre wagons.
+    _needsTimer = Timer.periodic(const Duration(seconds: 24), (_) {
       if (!mounted || _inCards || _inShootGame) return;
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
