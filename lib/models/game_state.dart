@@ -994,6 +994,11 @@ class GameState extends ChangeNotifier {
   /// Dépense 1 crédit pour tirer une carte. Retourne false si à sec (l'écran
   /// bloque alors le swipe et invite à attendre la recharge).
   bool spendCardCredit() {
+    // CRÉDITS DÉSACTIVÉS (proto) : un mur de 8 min en plein moment narratif
+    // est un anti-pattern pour un jeu solo. Le froid + faim/soif + le combat
+    // limitent déjà le rythme. (Système conservé si on veut le réactiver.)
+    return true;
+    // ignore: dead_code
     refreshCredits();
     if (cardCredits <= 0) return false;
     final wasFull = cardCredits >= cardCreditsMax;

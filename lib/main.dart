@@ -176,6 +176,21 @@ class _WagonScreenState extends State<WagonScreen>
   bool _w1Adjust = false;
   // Mode ajuster salon (debug) : carnet/secours/gamelle/carte déplaçables.
   bool _salonAdjust = false;
+  // Activation du debug par TRIPLE-TAP caché (plus de bouton visible en jeu).
+  int _debugTaps = 0;
+  Timer? _debugTapTimer;
+  void _debugCornerTap() {
+    _debugTaps++;
+    _debugTapTimer?.cancel();
+    _debugTapTimer = Timer(const Duration(milliseconds: 900), () {
+      _debugTaps = 0;
+    });
+    if (_debugTaps >= 3) {
+      _debugTaps = 0;
+      GameState.instance.toggleDebug();
+      setState(() {});
+    }
+  }
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
   // Cuisinière (cuisine + mange au sol) / poêle à bois (allumage) / bac (semer).
@@ -386,6 +401,7 @@ class _WagonScreenState extends State<WagonScreen>
     _coldTimer?.cancel();
     _needsTimer?.cancel();
     _poeleTimer?.cancel();
+    _debugTapTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _curtain.dispose();
@@ -975,6 +991,16 @@ class _WagonScreenState extends State<WagonScreen>
               animation: GameState.instance,
               builder: (_, __) {
                 final on = GameState.instance.debugMode;
+                // DEBUG OFF : zone INVISIBLE (triple-tap pour activer) -> plus
+                // de bouton qui piège les testeurs. DEBUG ON : pastille verte
+                // discrète (1 tap = sortir du debug).
+                if (!on) {
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _debugCornerTap,
+                    child: const SizedBox(width: 64, height: 64),
+                  );
+                }
                 return GestureDetector(
                   onTap: () {
                     GameState.instance.toggleDebug();
@@ -982,31 +1008,22 @@ class _WagonScreenState extends State<WagonScreen>
                   },
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: on
-                          ? const Color(0xFF3A8A3A)
-                          : Colors.black.withValues(alpha: 0.6),
+                      color: const Color(0xFF3A8A3A),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: on
-                              ? Colors.white
-                              : Colors.white.withValues(alpha: 0.5),
-                          width: 1.5),
+                      border: Border.all(color: Colors.white, width: 1.5),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.bug_report,
-                            size: 20, color: Colors.white),
-                        const SizedBox(width: 6),
-                        Text(
-                          on ? 'DEBUG ON' : 'debug',
-                          style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold),
-                        ),
+                        Icon(Icons.bug_report, size: 18, color: Colors.white),
+                        SizedBox(width: 5),
+                        Text('DEBUG ON · tap pour sortir',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),

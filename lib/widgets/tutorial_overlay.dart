@@ -9,9 +9,10 @@ class IntroTutorial extends StatefulWidget {
   static const List<String> messages = [
     'Te voilà. Seule, dans un wagon d\'un train qui file vers le nord.',
     'Le wagon est vide et abîmé. À toi d\'en refaire un foyer, gare après gare.',
-    'Il fait froid et tes forces sont au plus bas. Chaque geste compte, ici.',
-    'Pour voyager : prends la porte de GAUCHE → la locomotive → touche la carte murale.',
-    'Sur la carte, « Continuer le voyage » fait avancer ton histoire (les cartes).',
+    'En haut, tes 4 jauges vitales : 💧 soif · 🍖 faim · 🪵 bois · ❤️ moral. Si l\'une tombe à ZÉRO, le voyage s\'arrête.',
+    'Le 🌡️ thermomètre (à gauche) : quand il fait froid, ton moral ne remonte plus. Allume le poêle pour te réchauffer — mais ça brûle du bois.',
+    'Pour voyager : prends la porte de GAUCHE → la locomotive → ramasse des bûches → touche la carte murale.',
+    'Sur la carte, « Débuter le voyage » lance tes cartes : chaque choix coûte et rapporte des ressources.',
   ];
 
   @override
