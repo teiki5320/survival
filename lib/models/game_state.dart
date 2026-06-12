@@ -925,6 +925,23 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // File de déblocages d'objets à annoncer (toast dans le wagon). Non persisté.
+  final List<String> pendingUnlocks = [];
+  static const Map<String, String> unlockNames = {
+    'asset_bed': 'le lit',
+    'asset_bowl': 'la gamelle',
+    'asset_notebook': 'le carnet',
+    'asset_firstaid': 'la trousse de secours',
+    'asset_lamp': 'la lampe',
+    'asset_filter': 'le filtre à eau',
+    'asset_hydro': 'le bac de culture',
+    'asset_bath': 'la baignoire',
+    'asset_lantern': 'les lanternes',
+    'asset_commode': 'l\'armoire',
+    'asset_wagon2': 'le cellier (2e wagon)',
+  };
+  String? popUnlock() => pendingUnlocks.isEmpty ? null : pendingUnlocks.removeAt(0);
+
   // Progression de la run en cours (null = pas de run / terminée).
   int? cardGareIndex; // segment courant (0-based)
   final Set<String> cardFlags = {}; // flags narratifs de la run

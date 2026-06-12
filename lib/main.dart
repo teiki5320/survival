@@ -176,6 +176,21 @@ class _WagonScreenState extends State<WagonScreen>
   bool _w1Adjust = false;
   // Mode ajuster salon (debug) : carnet/secours/gamelle/carte déplaçables.
   bool _salonAdjust = false;
+  // Bannière « Nouvel objet débloqué ! » (file dans GameState.pendingUnlocks).
+  String? _unlockBanner;
+  Timer? _unlockTimer;
+  void _checkUnlocks() {
+    if (_unlockBanner != null) return;
+    if (_inCards || _inShootGame || _onMap || _inLocomotive) return;
+    final name = GameState.instance.popUnlock();
+    if (name == null) return;
+    setState(() => _unlockBanner = 'Nouvel objet : $name !');
+    _unlockTimer?.cancel();
+    _unlockTimer = Timer(const Duration(milliseconds: 3500), () {
+      if (mounted) setState(() => _unlockBanner = null);
+    });
+  }
+
   // Activation du debug par TRIPLE-TAP caché (plus de bouton visible en jeu).
   int _debugTaps = 0;
   Timer? _debugTapTimer;
@@ -402,6 +417,7 @@ class _WagonScreenState extends State<WagonScreen>
     _needsTimer?.cancel();
     _poeleTimer?.cancel();
     _debugTapTimer?.cancel();
+    _unlockTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
     _curtain.dispose();
@@ -523,6 +539,8 @@ class _WagonScreenState extends State<WagonScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Annonce des objets débloqués au retour dans le wagon.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkUnlocks());
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -656,6 +674,49 @@ class _WagonScreenState extends State<WagonScreen>
               ),
             ),
           ),
+          // Bannière « Nouvel objet débloqué ! » (haut de l'écran, auto-fade).
+          if (_unlockBanner != null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      margin: const EdgeInsets.only(top: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE6B85522),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                            color: const Color(0xFFFFD9A0), width: 1.4),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0x88000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 4)),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.auto_awesome,
+                              color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text(_unlockBanner!,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           // Bulles de TUTO d'intro : seulement sur la vue wagon 1, une fois.
           if (!_onMap &&
               !_inCards &&

@@ -237,6 +237,15 @@ class ReignsEngine {
     }
     // Compte les vrais gestes de protection (pour la fin "famille").
     if (choice.setFlags.contains('soeurProtegee')) _gs.cardSoin++;
+    // Déblocage d'objet -> file un toast (avant addAll, pour ne compter que
+    // les NOUVEAUX flags asset_*).
+    for (final f in choice.setFlags) {
+      if (f.startsWith('asset_') &&
+          !flags.contains(f) &&
+          GameState.unlockNames.containsKey(f)) {
+        _gs.pendingUnlocks.add(GameState.unlockNames[f]!);
+      }
+    }
     flags.addAll(choice.setFlags);
 
     // mort immédiate si une jauge touche 0
