@@ -23,45 +23,45 @@ class _OpeningCinematicState extends State<OpeningCinematic>
   // première personne (Shen), ton sentimental.
   static const List<_Beat> _beats = [
     // --- Le monde d'avant (prélude warm) ---
-    _Beat('assets/cinematic/cine_open_avant1.png', [
+    _Beat('assets/cinematic/cine_open_avant1.jpg', [
       'Avant, il y avait ma ville. Paisible, longtemps épargnée par la guerre.',
     ]),
-    _Beat('assets/cinematic/cine_open_avant2.png', [
+    _Beat('assets/cinematic/cine_open_avant2.jpg', [
       'Mes parents. Ma petite sœur.',
       'Le soir, on riait tous ensemble autour de la table.',
     ]),
-    _Beat('assets/cinematic/cine_open_avant3.png', [
+    _Beat('assets/cinematic/cine_open_avant3.jpg', [
       'Le matin, je coiffais ses cheveux. Elle riait pour un rien.',
     ]),
-    _Beat('assets/cinematic/cine_open_avant4.png', [
+    _Beat('assets/cinematic/cine_open_avant4.jpg', [
       'Ces petits moments-là… je les croyais éternels.',
     ]),
-    _Beat('assets/cinematic/cine_open_avant5.png', [
+    _Beat('assets/cinematic/cine_open_avant5.jpg', [
       'Mais un soir, je me suis endormie en paix…',
     ]),
     // --- La nuit de la fuite ---
-    _Beat('assets/cinematic/cine_open_1.png', [
+    _Beat('assets/cinematic/cine_open_1.jpg', [
       '…et je me suis réveillée dans le feu.',
       'Mes parents me secouaient, la voix tremblante.',
     ]),
-    _Beat('assets/cinematic/cine_open_fuite.png', [
+    _Beat('assets/cinematic/cine_open_fuite.jpg', [
       '« Cours, ma chérie, cours ! » Le couloir brûlait déjà.',
     ]),
-    _Beat('assets/cinematic/cine_open_separation.png', [
+    _Beat('assets/cinematic/cine_open_separation.jpg', [
       'Dehors, la foule nous a arrachés les uns aux autres.',
       'Je les ai perdus.',
     ]),
     _Beat('assets/cinematic/cine_open_3.jpg', [
       'Au bout du quai, une vieille locomotive à bois respirait encore.',
     ]),
-    _Beat('assets/cinematic/cine_open_saut.png', [
+    _Beat('assets/cinematic/cine_open_saut.jpg', [
       'Des explosions ont éclaté tout près du train.',
       'Fous de peur, les autres ont sauté et disparu dans la nuit.',
     ]),
     _Beat('assets/cinematic/cine_open_4.jpg', [
       'Moi, je suis restée. Cachée au fond du wagon, sans un bruit.',
     ]),
-    _Beat('assets/cinematic/cine_open_5.png', [
+    _Beat('assets/cinematic/cine_open_5.jpg', [
       'Le train s\'est arraché à la nuit. Derrière moi, ma ville n\'était plus que flammes.',
     ]),
     _Beat(null, [
