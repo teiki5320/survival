@@ -137,7 +137,9 @@ class _CardsScreenState extends State<CardsScreen>
     if (card != null && card.kind == CardKind.gare) {
       final idx = _engine.gareIndex;
       final done = GameState.instance.cardFlags.contains('combatDone_$idx');
-      if (idx >= 1 && !done) {
+      // Combat dès la gare 1 (idx 0) : c'est le combat-tuto du sauvetage du
+      // chiot. (Avant, idx 0 était sauté.)
+      if (!done) {
         _combatGare = idx;
         return; // l'annonce de gare se fera après le combat
       }

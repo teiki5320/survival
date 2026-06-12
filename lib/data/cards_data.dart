@@ -101,19 +101,26 @@ List<StoryCard> _gare1(Set<String> f) => [
             fx: {Stat.moral: 3}, flags: ['asset_bed'],
             result: "Tu claques la porte sur le brasier. Survivre d'abord. Tu pousses une paillasse dans un coin : ton premier lit."),
       ),
-      StoryCard(
-        id: 'G1b',
-        kind: CardKind.gare,
-        speaker: 'Kogarashi',
-        text:
-            "Le train n'a pas encore pris sa vitesse. Sous un banc renversé du wagon, deux yeux brillent : un chiot tremblant, oublié là, seul comme toi.",
-        left: _c("Le recueillir",
-            fx: {Stat.moral: 15}, flags: ['aLeChien', 'asset_bowl'],
-            result: "Il se glisse contre ta jambe et s'endort aussitôt. Le wagon paraît moins vide. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
-        right: _c("Tu ne pourras pas le nourrir",
-            fx: {Stat.moral: -5},
-            result: "Tu détournes les yeux. Une bouche de plus, c'est non. Le silence, après, est immense."),
-      ),
+      // PREMIER COMBAT (tuto) : un chiot est coincé sur le quai par des
+      // pillards. Bien défendre = le sauver (aLeChien). Le perdre = il
+      // disparaît dans le chaos. Le tuto de visée s'affiche ici (1re fois).
+      ..._combat(f, 'G1', 'Kogarashi',
+          winText:
+              "Sur le quai, un chiot tremblant, cerné par des pillards qui veulent monter à bord. Tu les tiens à distance, pierre après pierre — la voie est libre, et la petite boule de poils file se réfugier dans ton wagon.",
+          winL: _c("Le recueillir contre toi",
+              fx: {Stat.moral: 15}, flags: ['aLeChien', 'asset_bowl'],
+              result: "Il se glisse contre ta jambe et s'endort aussitôt. Le wagon paraît moins vide. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
+          winR: _c("Le laisser te suivre, libre",
+              fx: {Stat.moral: 12}, flags: ['aLeChien', 'asset_bowl'],
+              result: "Il trotte derrière toi et choisit un coin du wagon. Compagnon, pas prisonnier. Tu lui poses une gamelle, au cas où."),
+          loseText:
+              "Les pillards ont submergé le quai près du chiot. Quand la fumée retombe, il a disparu dans le chaos. Tu n'as pas pu le protéger.",
+          loseL: _c("Le chercher des yeux, en vain",
+              fx: {Stat.moral: -6},
+              result: "Tu scrutes le quai qui s'éloigne. Plus rien. Une bouée d'espoir, emportée."),
+          loseR: _c("Te forcer à regarder devant",
+              fx: {Stat.moral: -8},
+              result: "Tu fermes les yeux et serres les dents. Le wagon, après, est immense et vide.")),
       StoryCard(
         id: 'G1c',
         kind: CardKind.gare,
