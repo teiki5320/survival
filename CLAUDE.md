@@ -839,6 +839,12 @@ via « Continuer le voyage » ; anims de mort pillards ; stats de départ basses
 
 ## Communication avec l'utilisateur
 
+- **⚠️ TOUJOURS VÉRIFIER AVANT DE RÉPONDRE** (règle d'or, demande explicite
+  2026-06-11) : lire le **code**, les **images/assets**, le **CLAUDE.md** et la
+  **roadmap/docs** AVANT de donner une réponse — surtout pour les specs
+  techniques (formats, couches, géométrie, prompts d'images). Ne JAMAIS répondre
+  de mémoire : ça a déjà produit des specs fausses (image unique vs 3 couches
+  parallaxe, mauvais fichier pour un bug). On vérifie, puis on répond.
 - **Langue** : français, ton décontracté direct.
 - **Style** : cash, pas de blabla, pas de flatterie.
 - **TOUJOURS NUMÉROTER** les listes / propositions / options (1, 2, 3...).
