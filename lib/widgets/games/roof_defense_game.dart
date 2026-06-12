@@ -333,7 +333,18 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     _muzY = gs.shootMuzY;
     _groundY = gs.shootGroundY;
     // En mode gare : pas de menu, on attaque la campagne tout de suite.
-    if (_gareMode) _setupRun(_Mode.campaign);
+    if (_gareMode) {
+      _setupRun(_Mode.campaign);
+      // Tuto de visée la 1re fois seulement.
+      _showAimTuto = !GameState.instance.tipSeen('combat_aim');
+    }
+  }
+
+  // Overlay explicatif au tout premier combat (comment viser).
+  bool _showAimTuto = false;
+  void _dismissAimTuto() {
+    GameState.instance.markTipSeen('combat_aim');
+    setState(() => _showAimTuto = false);
   }
 
   @override
@@ -483,6 +494,7 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
     if (dt > 0.05) dt = 0.05;
     if (_phase != _Phase.playing) return;
     if (_adjust) return;
+    if (_showAimTuto) return; // gelé tant que le tuto de visée est affiché
 
     // Animations toujours actives (impacts, textes flottants).
     for (final im in _impacts) {
@@ -2160,12 +2172,63 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   ),
                 ),
               ),
+            if (_showAimTuto) _aimTutoOverlay(),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _aimTutoOverlay() => Positioned.fill(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _dismissAimTuto,
+          child: ColoredBox(
+            color: const Color(0xCC0A0E14),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 36),
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E2630),
+                  borderRadius: BorderRadius.circular(18),
+                  border:
+                      Border.all(color: const Color(0xFFE8B96B), width: 1.4),
+                ),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Défends le train',
+                        style: TextStyle(
+                            color: Color(0xFFFFD9A0),
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold)),
+                    SizedBox(height: 16),
+                    Text(
+                        '✋  Glisse depuis la GAUCHE de l\'écran pour viser :\n     un arc apparaît, relâche pour lancer ta pierre.',
+                        style: TextStyle(color: Colors.white, fontSize: 15, height: 1.5)),
+                    SizedBox(height: 12),
+                    Text(
+                        '👁️  Glisse depuis la DROITE pour regarder où\n     arrive le pillard.',
+                        style: TextStyle(color: Colors.white, fontSize: 15, height: 1.5)),
+                    SizedBox(height: 12),
+                    Text(
+                        '🔩  Touche la ferraille au sol (3 s) pour la ramasser.',
+                        style: TextStyle(color: Colors.white, fontSize: 15, height: 1.5)),
+                    SizedBox(height: 18),
+                    Text('Touche pour commencer',
+                        style: TextStyle(
+                            color: Color(0xFFE8B96B),
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
 
   Widget _bannerWidget() => Center(
         child: Container(
