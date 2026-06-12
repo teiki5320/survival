@@ -233,15 +233,29 @@ class _OpeningCinematicState extends State<OpeningCinematic>
                 ),
               ),
             ),
-            // Bouton passer (discret, bas-droite).
+            // Bouton « Passer l'intro » — visible dès le 1er plan (haut-droite).
             Positioned(
-              right: 18,
-              bottom: 14,
+              right: 14,
+              top: 10,
               child: SafeArea(
-                child: TextButton(
-                  onPressed: _skip,
-                  child: const Text('Passer ▸',
-                      style: TextStyle(color: Color(0xFFCDB892))),
+                child: GestureDetector(
+                  onTap: _skip,
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                          color: const Color(0x66FFD9A0), width: 1),
+                    ),
+                    child: const Text('Passer l\'intro ▸',
+                        style: TextStyle(
+                            color: Color(0xFFEAD8B6),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600)),
+                  ),
                 ),
               ),
             ),

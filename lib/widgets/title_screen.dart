@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ class _TitleScreenState extends State<TitleScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _fadeIn;
   bool _hasSave = false;
+  String? _resumeContext; // "Gare 4 · ❤️ 60"
   bool _checking = true;
 
   @override
@@ -36,10 +38,28 @@ class _TitleScreenState extends State<TitleScreen>
     try {
       final docs = Directory('${Platform.environment['HOME'] ?? ''}/Documents');
       final path = '${docs.path}/train_cosy_save.json';
-      final exists = await File(path).exists();
+      final file = File(path);
+      final exists = await file.exists();
+      String? ctx;
+      if (exists) {
+        // Contexte de reprise : gare + moral, lus dans le JSON de sauvegarde.
+        try {
+          final data = jsonDecode(await file.readAsString())
+              as Map<String, dynamic>;
+          final run = data['cardsRun'];
+          if (run is Map) {
+            final gi = (run['gareIndex'] as num?)?.toInt();
+            final moral = (run['moral'] as num?)?.toInt();
+            if (gi != null) {
+              ctx = 'Gare ${gi + 1}${moral != null ? ' · ❤️ $moral' : ''}';
+            }
+          }
+        } catch (_) {}
+      }
       if (!mounted) return;
       setState(() {
         _hasSave = exists;
+        _resumeContext = ctx;
         _checking = false;
       });
     } catch (_) {
@@ -173,6 +193,14 @@ class _TitleScreenState extends State<TitleScreen>
                                   onPressed: () =>
                                       widget.onStart(fromScratch: false),
                                 ),
+                              if (_hasSave && _resumeContext != null) ...[
+                                const SizedBox(height: 6),
+                                Text(_resumeContext!,
+                                    style: const TextStyle(
+                                        color: Color(0xFFB8945C),
+                                        fontSize: 13,
+                                        letterSpacing: 1)),
+                              ],
                               if (_hasSave) const SizedBox(height: 14),
                               // Toujours présent, couleur pleine distincte =
                               // impossible à manquer.

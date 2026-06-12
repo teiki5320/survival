@@ -558,10 +558,11 @@ List<StoryCard> _gare14(Set<String> f) => [
         speaker: 'Hokuto',
         text:
             "Le train entre en gare du refuge. Ta sœur écrase son visage contre la vitre. Sur le quai, la foule des familles qui cherchent les leurs. Tu descends, le cœur en feu.",
-        left: _c("Chercher vos parents dans la foule",
-            result: "Tu prends sa main et vous avancez dans la foule, scrutant chaque visage..."),
-        right: _c("Chercher vos parents dans la foule",
-            result: "Tu prends sa main et vous avancez dans la foule, scrutant chaque visage..."),
+        left: _c("Crier leurs noms dans la foule",
+            fx: {Stat.moral: 3},
+            result: "« PAPA ! MAMAN ! » Ta voix se brise et porte loin par-dessus le quai. Des têtes se tournent. Vous avancez, le cœur en feu..."),
+        right: _c("Avancer en silence, scruter chaque visage",
+            result: "Tu prends sa main, sans un mot. Vos deux regards fouillent la foule, un visage après l'autre..."),
       ),
     ];
 
