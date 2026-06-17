@@ -1100,9 +1100,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _bathFrame = 0;
                 _bathHeld = false;
                 _bathAccumMs = 0;
-                // Conversion EAU -> moral (le bain consomme de l'eau).
+                // Conversion EAU -> moral (le bain consomme de l'eau) + hygiène.
                 GameState.instance.nudgeCardStat('soif', -8);
                 GameState.instance.nudgeCardStat('moral', 12);
+                GameState.instance.restoreHygiene();
               } else if (_pendingShower) {
                 _pendingShower = false;
                 _showering = true;
@@ -1113,6 +1114,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _showerWaterTick = 0;
                 GameState.instance.nudgeCardStat('soif', -6);
                 GameState.instance.nudgeCardStat('moral', 10);
+                GameState.instance.restoreHygiene();
               }
               return;
             }
@@ -1223,6 +1225,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             // X et on enchaîne direct sur idle.
             if (_wakingPhase == 1 && _sleepOnBed) {
               _sleepOnBed = false;
+              GameState.instance.restoreSleep(); // nuit complète au lit
               final bedCenter = (_bedLeft + _bedWidth / 2)
                   .clamp(_heroXMin, _heroXMax);
               _heroX = bedCenter;

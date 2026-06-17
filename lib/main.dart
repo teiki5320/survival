@@ -399,6 +399,9 @@ class _WagonScreenState extends State<WagonScreen>
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
       gs.nudgeCardStat('soif', -1);
+      // Besoins de confort (sommeil/hygiène) : décroissance lente, érodent le
+      // moral si négligés. Remontés en dormant / en se lavant.
+      gs.decayComfortNeeds();
     });
     // POÊLE À BOIS : draine le bois GLOBALEMENT tant qu'il est allumé (avant,
     // le drain vivait dans l'atelier -> chaleur gratuite ailleurs). Le poêle

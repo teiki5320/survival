@@ -82,6 +82,8 @@ class GameState extends ChangeNotifier {
         'locoMapCx': locoMapCx, 'locoMapCy': locoMapCy, 'locoMapW': locoMapW,
         'locoMapTurnY': locoMapTurnY, 'locoMapLeanZ': locoMapLeanZ,
         'waterTankGlasses': waterTankGlasses,
+        'sleepNeed': sleepNeed,
+        'hygieneNeed': hygieneNeed,
         'cardsRun': _cardsRunToJson(),
         'layoutBaked': true, // coords d'objets validées appliquées
       });
@@ -178,6 +180,8 @@ class GameState extends ChangeNotifier {
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
+      sleepNeed = ((data['sleepNeed'] as num?)?.toInt() ?? 100).clamp(0, 100);
+      hygieneNeed = ((data['hygieneNeed'] as num?)?.toInt() ?? 100).clamp(0, 100);
       _loadCardsRun(data['cardsRun']);
       // MIGRATION : les anciennes sauvegardes ont des coords d'objets périmées
       // (jamais re-sauvées car l'autosave est récent) -> on applique une fois
@@ -244,6 +248,43 @@ class GameState extends ChangeNotifier {
   // Le HUD du wagon lit les VRAIES jauges (cardFaim/Soif) normalisées 0..1.
   double get hunger => cardFaim / 100.0;
   double get thirst => cardSoif / 100.0;
+
+  // --- Besoins de CONFORT (Tamagotchi) : sommeil + hygiène ---
+  // NON létaux (seules soif/faim/bois/moral tuent). Ils décroissent doucement
+  // dans le train et remontent en dormant (lit) / en se lavant (bain/douche).
+  // Négligés trop longtemps, ils grignotent le moral (Shen épuisée / mal). 0-100.
+  int sleepNeed = 100; // 100 = reposée
+  int hygieneNeed = 100; // 100 = propre
+  int _comfortDecayTick = 0;
+
+  /// Décroissance des besoins de confort, appelée par le timer des besoins du
+  /// wagon (~24 s). Sommeil tous les ~48 s, hygiène tous les ~72 s (plus lente).
+  /// Très bas (<20), ils érodent le moral d'un cran (geste de soin = remède).
+  void decayComfortNeeds() {
+    _comfortDecayTick++;
+    // Le lit existe dès la gare 1 -> le sommeil décroît tout de suite.
+    if (_comfortDecayTick % 2 == 0 && sleepNeed > 0) sleepNeed--;
+    // L'hygiène ne décroît QUE si on peut se laver (bain/douche débloqués,
+    // gare 10) : sinon on punirait le moral sans aucun remède possible.
+    final canWash = propUnlocked('bath') || propUnlocked('shower');
+    if (canWash && _comfortDecayTick % 3 == 0 && hygieneNeed > 0) hygieneNeed--;
+    if (sleepNeed < 20 || (canWash && hygieneNeed < 20)) {
+      nudgeCardStat('moral', -1); // épuisement / inconfort
+    }
+    notifyListeners();
+  }
+
+  /// Dormir dans le lit : nuit complète -> remise à neuf du sommeil.
+  void restoreSleep() {
+    sleepNeed = 100;
+    notifyListeners();
+  }
+
+  /// Bain / douche : se laver -> hygiène au max.
+  void restoreHygiene() {
+    hygieneNeed = 100;
+    notifyListeners();
+  }
 
   // --- Wagon state ---
   bool _lampOn = true;
@@ -587,6 +628,8 @@ class GameState extends ChangeNotifier {
   String get contextualThought {
     if (hunger < 0.2) return '🍖';
     if (thirst < 0.2) return '💧';
+    if (sleepNeed < 20) return '💤'; // épuisée -> dormir
+    if (hygieneNeed < 20) return '🛁'; // sale -> se laver
     if (cardMoral < 15) return '😔'; // moral au plus bas
     if (inColdZone) return '❄️';
     const neutral = ['☕', '💭', '🌿', '📖', '🎵'];
@@ -806,6 +849,9 @@ class GameState extends ChangeNotifier {
   /// présents. Le mode debug, lui, est conservé (préférence de dev).
   void resetForNewGame() {
     waterTankGlasses = 0;
+    sleepNeed = 100;
+    hygieneNeed = 100;
+    _comfortDecayTick = 0;
     wagonStage = 0;
     wagon2Stage = 0;
     _items.clear();
