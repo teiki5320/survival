@@ -235,9 +235,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // bornes élargies (sinon Shen s'arrête avant la porte gauche).
   double get _moveMin =>
       widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.08 : _heroXMin);
-  // Cellier : bornes resserrées (ne plus monter sur les portes G/D).
+  // Cellier : bornes resserrées (ne plus monter sur les portes G/D). On ouvre
+  // l'accès dès que le cellier est aménagé (stage>=1) OU qu'un prop du fond
+  // (bain/douche) est débloqué — sinon, débloqués avant l'aménagement (ou en
+  // debug), bain (0.48) et douche (0.77) resteraient hors d'atteinte.
   double get _moveMax => widget.secondWagon
-      ? (widget.wagonStage >= 1 ? 0.82 : 0.30)
+      ? ((widget.wagonStage >= 1 ||
+              _propUnlocked('bath') ||
+              _propUnlocked('shower'))
+          ? 0.82
+          : 0.30)
       : (widget.isAtelier ? 0.92 : _heroXMax);
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
@@ -721,7 +728,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   double _glassesToFrame(int glasses) {
-    // 0 verres → frame 0, 5 verres → frame 11 (12 frames - 1)
+    // 0 verres → frame 0, 5 verres → frame 5 (waterTankFrames - 1 = 5)
     final maxFrame = (GameState.waterTankFrames - 1).toDouble();
     return (glasses / GameState.waterTankMax) * maxFrame;
   }
@@ -781,7 +788,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // Bowl a 2 états statiques.
     precacheImage(const AssetImage('assets/objects/bowl_full.png'), context);
     precacheImage(const AssetImage('assets/objects/bowl_empty.png'), context);
-    // Filtre/tank: 12 frames pour niveau d'eau.
+    // Filtre/tank: waterTankFrames (6) pour le niveau d'eau (vide → plein).
     for (int i = 0; i < GameState.waterTankFrames; i++) {
       precacheImage(AssetImage('assets/objects/tank_$i.png'), context);
     }

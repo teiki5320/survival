@@ -188,23 +188,37 @@ class ReignsEngine {
     _queue.addAll(_drawFillers(seg));
     _segmentTotal = _queue.isEmpty ? 1 : _queue.length;
     _gs.cardSegmentProgress = 0.0;
+    _skipDeadHead();
   }
 
   /// Cartes de remplissage du segment, en ORDRE FIXE (plus de tirage
-  /// aléatoire) : on joue TOUTES les cartes éligibles du paquet, dans l'ordre
-  /// déclaré. Les cartes conditionnelles (`requires`) n'apparaissent que si
-  /// leurs flags sont là (ex. cartes du chien si `aLeChien`).
+  /// aléatoire) : on met TOUTES les cartes du paquet (hors oneshots déjà vus)
+  /// dans la file. La condition `requires` est (re)évaluée À L'ÉMISSION (via
+  /// [_skipDeadHead]), PAS ici : ainsi une carte conditionnée par un flag posé
+  /// plus tôt dans LE MÊME segment (ex. `aLaSoeur` posé par la carte de gare 5)
+  /// reste jouable au lieu d'être filtrée définitivement au chargement.
   List<StoryCard> _drawFillers(Segment seg) {
-    final pool = seg.fillerPool
-        .where((c) => c.requires == null || c.requires!(flags))
+    return seg.fillerPool
         .where((c) =>
             c.kind != CardKind.fillerOneshot ||
             !_gs.cardSeenOneshot.contains(c.id))
         .toList();
-    for (final c in pool) {
+  }
+
+  /// Saute en tête de file les cartes dont la condition `requires` n'est PAS
+  /// remplie au moment présent (flags courants). Marque les oneshots comme vus
+  /// quand ils deviennent réellement la carte affichée. Garantit que la carte
+  /// en tête de `_queue` est toujours jouable.
+  void _skipDeadHead() {
+    while (_queue.isNotEmpty) {
+      final c = _queue.first;
+      if (c.requires != null && !c.requires!(flags)) {
+        _queue.removeAt(0); // condition pas remplie -> carte abandonnée
+        continue;
+      }
       if (c.kind == CardKind.fillerOneshot) _gs.cardSeenOneshot.add(c.id);
+      break;
     }
-    return pool;
   }
 
   /// Applique un choix et renvoie l'état suivant (carte suivante ou fin).
@@ -269,6 +283,7 @@ class ReignsEngine {
     }
 
     if (_queue.isNotEmpty) _queue.removeAt(0);
+    _skipDeadHead(); // saute les fillers dont la condition n'est plus remplie
 
     // Avance le train sur la carte : fraction du segment déjà parcourue.
     _gs.cardSegmentProgress =
@@ -309,6 +324,7 @@ class ReignsEngine {
   /// fini ; reboucle à la 1re gare après la dernière.
   EngineState debugSkipCard() {
     if (_queue.isNotEmpty) _queue.removeAt(0);
+    _skipDeadHead();
     _gs.cardSegmentProgress =
         ((_segmentTotal - _queue.length) / _segmentTotal).clamp(0.0, 1.0);
     if (_queue.isEmpty) {

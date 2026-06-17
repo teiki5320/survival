@@ -240,37 +240,10 @@ class GameState extends ChangeNotifier {
   bool get sisterShown => debugMode || cardFlags.contains('aLaSoeur');
 
   // --- Energy (RETIRÉ) ---
-  // L'énergie était décorative (jamais dépensée). Shims neutres conservés
-  // pour ne rien casser ; ne fait plus rien.
-  @Deprecated('Système d\'énergie retiré ; shim conservé pour compat sauvegarde')
-  int get energy => 5;
-  @Deprecated('Le train ne se quitte plus ; toujours true')
-  bool get canLeaveTrain => true;
-  @Deprecated('No-op ; énergie retirée')
-  void spendEnergy([int amount = 1]) {}
-  @Deprecated('No-op ; énergie retirée')
-  void grantEnergy(int amount) {}
-
   // --- Jauges de survie : FUSIONNÉES avec les 4 stats du mode cartes ---
-  // hunger/thirst/fatigue n'existent plus comme système temps réel séparé.
-  // Le HUD du wagon lit désormais les VRAIES jauges (cardFaim/Soif/Moral)
-  // normalisées 0..1. fatigue est mappée sur le moral (faute de mieux), en
-  // attendant un éventuel 5e axe. Les restoreX nudgent les vraies jauges.
+  // Le HUD du wagon lit les VRAIES jauges (cardFaim/Soif) normalisées 0..1.
   double get hunger => cardFaim / 100.0;
   double get thirst => cardSoif / 100.0;
-  double get fatigue => cardMoral / 100.0;
-
-  void restoreHunger(double amount) {
-    nudgeCardStat('faim', (amount * 100).round());
-  }
-
-  void restoreThirst(double amount) {
-    nudgeCardStat('soif', (amount * 100).round());
-  }
-
-  void restoreFatigue(double amount) {
-    nudgeCardStat('moral', (amount * 100).round());
-  }
 
   // --- Wagon state ---
   bool _lampOn = true;
@@ -614,7 +587,7 @@ class GameState extends ChangeNotifier {
   String get contextualThought {
     if (hunger < 0.2) return '🍖';
     if (thirst < 0.2) return '💧';
-    if (fatigue < 0.15) return '💤';
+    if (cardMoral < 15) return '😔'; // moral au plus bas
     if (inColdZone) return '❄️';
     const neutral = ['☕', '💭', '🌿', '📖', '🎵'];
     return neutral[DateTime.now().second % neutral.length];
@@ -715,6 +688,10 @@ class GameState extends ChangeNotifier {
   final Set<String> cardFlags = {}; // flags narratifs de la run
   final Set<String> cardSeenOneshot = {}; // fillers oneshot déjà vus
   int cardSoin = 0; // nb de fois où Shen a vraiment protégé sa sœur
+
+  // Cooldown partagé du moral « confort » (lire/chien/sœur), porté ici pour
+  // survivre au remontage de l'écran wagon. Transitoire (non sauvegardé).
+  int lastComfortMs = 0;
 
   bool get hasCardRun => cardGareIndex != null;
 

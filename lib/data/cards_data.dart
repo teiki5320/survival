@@ -99,7 +99,7 @@ List<StoryCard> _gare2(Set<String> f) => [
       StoryCard(
         id: 'G2',
         kind: CardKind.gare,
-        speaker: 'Kurogane',
+        speaker: 'Karasuno',
         text:
             "Au dépôt de fret, le foyer de la loco agonise. Tu ne sais pas la nourrir — trop de bois l'étouffe, trop peu l'éteint. Un manuel graisseux traîne dans la cabine.",
         left: _c("Déchiffrer le manuel, page à page",
@@ -111,7 +111,7 @@ List<StoryCard> _gare2(Set<String> f) => [
             flags: ['asset_lamp'],
             result: "Tu charges au jugé. Le feu crachote, capricieux. Tu apprendras dans la fumée et les jurons. Tu emportes quand même une lampe et une table trouvées au dépôt."),
       ),
-      _epreuve('G2ev', 'Kurogane',
+      _epreuve('G2ev', 'Karasuno',
           "Au dépôt, des charognards rôdent entre les wagons éventrés. Le bois et les vivres sont là, à portée — mais gardés.",
           _c("Les chasser et rafler le bois",
               fx: {Stat.bois: 12, Stat.faim: -3},
@@ -125,9 +125,9 @@ List<StoryCard> _gare3(Set<String> f) => [
       StoryCard(
         id: 'G3',
         kind: CardKind.gare,
-        speaker: 'Karasuno',
+        speaker: 'Kurogane',
         text:
-            "Karasuno, noyée dans un brouillard épais. Des formes bougent entre les wagons rouillés — des pillards, qui fouillent les morts. Ils n'ont pas encore vu ta loco.",
+            "Kurogane, noyée dans un brouillard épais. Des formes bougent entre les wagons rouillés — des pillards, qui fouillent les morts. Ils n'ont pas encore vu ta loco.",
         left: _c("Couper les feux, passer en fantôme",
             fx: {Stat.bois: -6, Stat.moral: -4},
             flags: ['asset_notebook'],
@@ -140,7 +140,7 @@ List<StoryCard> _gare3(Set<String> f) => [
       StoryCard(
         id: 'G3b',
         kind: CardKind.gare,
-        speaker: 'Karasuno',
+        speaker: 'Kurogane',
         text:
             "Sur le quai défilant, un foulard d'enfant accroché à un clou claque au vent. Rouge à pois blancs. Le même que celui de ta petite sœur. À s'y méprendre.",
         left: _c("Risquer tout pour l'attraper",
@@ -151,8 +151,8 @@ List<StoryCard> _gare3(Set<String> f) => [
             result: "Tu restes à bord. Mais le doute te ronge : et si c'était elle qui l'avait laissé là — un signe, pour toi ?"),
       ),
       // Épreuve de gare : face aux pillards dans le brouillard, ton choix.
-      _epreuve('G3ev', 'Karasuno',
-          "Dans le brouillard de Karasuno, des silhouettes encerclent le wagon. Des pillards, à peine visibles dans la brume.",
+      _epreuve('G3ev', 'Kurogane',
+          "Dans le brouillard de Kurogane, des silhouettes encerclent le wagon. Des pillards, à peine visibles dans la brume.",
           _c("Les tenir à distance, pierre après pierre",
               fx: {Stat.moral: 8, Stat.faim: 6},
               result: "Ils détalent dans la brume. Pas une éraflure sur le wagon — et dans leurs sacs abandonnés, un peu de bois et deux conserves. Le butin des vaincus."),
@@ -165,7 +165,7 @@ List<StoryCard> _gare4(Set<String> f) => [
       StoryCard(
         id: 'G4',
         kind: CardKind.gare,
-        speaker: 'Mayoidani',
+        speaker: 'Hoshikage',
         text:
             "Un mur couvert de messages de disparus. Au milieu, une écriture maladroite d'enfant : « JE VAIS AU NORD. JE T'ATTENDS. » Pas de nom.",
         left: _c("Y croire, foncer au nord",
@@ -176,7 +176,7 @@ List<StoryCard> _gare4(Set<String> f) => [
             fx: {Stat.moral: -4}, flags: ['asset_filter'],
             result: "Des milliers d'enfants ont écrit ça. Tu n'oses pas y croire. Pas encore. Tu fouilles le village et en ramènes au moins un filtre à eau."),
       ),
-      _epreuve('G4ev', 'Mayoidani',
+      _epreuve('G4ev', 'Hoshikage',
           "Au village fantôme, une embuscade parmi les ruines : des rôdeurs veulent t'empêcher de fouiller les maisons.",
           _c("Les repousser et fouiller à loisir",
               fx: {Stat.faim: 8, Stat.soif: 6},
@@ -190,7 +190,7 @@ List<StoryCard> _gare5(Set<String> f) => [
       StoryCard(
         id: 'G5',
         kind: CardKind.gare,
-        speaker: 'Tsukibashi',
+        speaker: 'Mayoidani',
         text:
             "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
         left: _c("Courir la serrer dans tes bras",
@@ -214,7 +214,7 @@ List<StoryCard> _gare5(Set<String> f) => [
       ),
       // Épreuve de gare : comment tu défends le pont décide de l'état dans
       // lequel tu retrouves ta sœur.
-      _epreuve('G5ev', 'Tsukibashi',
+      _epreuve('G5ev', 'Mayoidani',
           "Au milieu du pont, des pillards rôdent autour de ta petite sœur recroquevillée. Chaque seconde compte.",
           _c("Te jeter entre eux et elle",
               fx: {Stat.moral: 10}, flags: ['soeurProtegee'],
@@ -228,7 +228,7 @@ List<StoryCard> _gare6(Set<String> f) => [
       StoryCard(
         id: 'G6',
         kind: CardKind.gare,
-        speaker: 'Yasuragi',
+        speaker: 'Shizuhara',
         text:
             "Un camp de survivants. On peut troquer, mais ils regardent ta sœur avec trop d'intérêt — ici, un enfant en bonne santé, ça se monnaie.",
         left: _c("Troquer vite et partir",
@@ -238,7 +238,7 @@ List<StoryCard> _gare6(Set<String> f) => [
             fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_commode', 'asset_wagon2'],
             result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. En partant, tu accroches un 2e wagon (cellier) laissé là, et tu emportes une commode."),
       ),
-      _epreuve('G6ev', 'Yasuragi',
+      _epreuve('G6ev', 'Shizuhara',
           "Au camp-refuge, des rôdeurs testent le train sous les yeux des survivants. Ta réaction décidera comment on te traite ici.",
           _c("Les repousser net, imposer le respect",
               fx: {Stat.faim: 10, Stat.soif: 6, Stat.moral: 4},
@@ -252,7 +252,7 @@ List<StoryCard> _gare7(Set<String> f) => [
       StoryCard(
         id: 'G7',
         kind: CardKind.gare,
-        speaker: 'Hoshikage',
+        speaker: 'Yasuragi',
         text:
             "Cette halte, vous y veniez enfant, toutes les deux, regarder les trains. Ta sœur la reconnaît et sourit pour la première fois depuis la fuite.",
         left: _c("Lui raconter ce souvenir",
@@ -260,7 +260,7 @@ List<StoryCard> _gare7(Set<String> f) => [
         right: _c("Garder le cap, ne pas t'arrêter",
             fx: {Stat.moral: 4}, result: "Tu serres les dents et tu avances. Le nord d'abord. Les souvenirs, après."),
       ),
-      _epreuve('G7ev', 'Hoshikage',
+      _epreuve('G7ev', 'Yasuragi',
           "À la halte de votre enfance, des pillards surgissent en plein souvenir. Le charme menace de se rompre.",
           _c("Les écarter pour préserver l'instant",
               fx: {Stat.moral: 12},
@@ -274,7 +274,7 @@ List<StoryCard> _gare8(Set<String> f) => [
       StoryCard(
         id: 'G8',
         kind: CardKind.gare,
-        speaker: 'Kiribe',
+        speaker: 'Tsukibashi',
         text:
             "Le froid mord pour de bon. Ta sœur grelotte, ses lèvres bleuissent. Elle n'a pas de vrai manteau.",
         left: _c("Lui donner le tien",
@@ -282,7 +282,7 @@ List<StoryCard> _gare8(Set<String> f) => [
         right: _c("Pousser le feu à fond",
             fx: {Stat.bois: -16, Stat.moral: 6}, flags: ['asset_stove', 'asset_firstaid'], result: "Tu sacrifies ta réserve de bois pour la réchauffer. Le wagon est un four, pour l'instant. Tu finis par installer un vrai poêle et dénicher une trousse de secours."),
       ),
-      _epreuve('G8ev', 'Kiribe',
+      _epreuve('G8ev', 'Tsukibashi',
           "À l'entrée du froid, des rôdeurs du gel tournent autour d'un wagon mal calfeutré. Et ta sœur grelotte déjà.",
           _c("Veiller ta sœur d'abord",
               fx: {Stat.moral: 8}, flags: ['soeurProtegee'],
@@ -296,7 +296,7 @@ List<StoryCard> _gare9(Set<String> f) => [
       StoryCard(
         id: 'G9',
         kind: CardKind.gare,
-        speaker: 'Shizuhara',
+        speaker: 'Kiribe',
         text:
             "Le blizzard enferme le train. Ta sœur brûle de fièvre, délire, t'appelle dans son sommeil agité. Tu n'as presque plus rien.",
         left: _c("La veiller toute la nuit",
@@ -304,7 +304,7 @@ List<StoryCard> _gare9(Set<String> f) => [
         right: _c("Braver la tempête pour des remèdes",
             fx: {Stat.soif: -12, Stat.moral: 8}, flags: ['soeurProtegee'], result: "Tu sors dans le blizzard, tu reviens gelée avec des cachets périmés. Ça suffit. De justesse."),
       ),
-      _epreuve('G9ev', 'Shizuhara',
+      _epreuve('G9ev', 'Kiribe',
           "En pleine tempête, ta sœur brûle de fièvre et délire — et des rôdeurs veulent profiter de ta détresse.",
           _c("La soigner sans relâche, les ignorer",
               fx: {Stat.moral: 10, Stat.faim: -6}, flags: ['soeurProtegee'],
@@ -371,9 +371,9 @@ List<StoryCard> _gare12(Set<String> f) => [
         text:
             "Du haut d'une tour, vous le voyez enfin : le refuge du nord, ses cheminées qui fument. Et, plantée devant, une pancarte : « FAMILLES — REGROUPEMENT SECTEUR EST ». Ta sœur te serre la main à la broyer.",
         left: _c("Lui jurer qu'ils sont là",
-            fx: {Stat.moral: 18}, result: "« Ils nous attendent. Je le sais. » Elle hoche la tête, les yeux pleins de larmes et d'espoir."),
-        right: _c("Tempérer son espoir",
-            fx: {Stat.moral: 6}, result: "« On verra, ma puce. On verra. » Tu ne veux pas qu'elle s'effondre si... non. N'y pense pas."),
+            fx: {Stat.moral: 16}, result: "« Ils nous attendent. Je le sais. » Elle hoche la tête, les yeux pleins de larmes et d'espoir."),
+        right: _c("Tempérer, la protéger d'abord",
+            fx: {Stat.moral: 8}, flags: ['soeurProtegee'], result: "« On verra, ma puce. On verra. » Tu ne promets rien que le monde pourrait briser — mais tu la serres fort. Elle, ici, maintenant : c'est sûr."),
       ),
       _epreuve('G12ev', 'Miharashi',
           "Au pied de la tour de guet, une dernière bande de rôdeurs garde la seule vue dégagée sur le refuge.",
@@ -496,8 +496,8 @@ final List<StoryCard> _fill2 = [
       oneshot: true),
   _filler('F2_aiguillage',
       "Un aiguillage. La voie connue, sûre et longue. Ou un raccourci inconnu vers le nord.",
-      _c("Le raccourci", fx: {Stat.bois: 12, Stat.moral: -5}, result: "Tu gagnes des heures de bois — mais la voie se dégrade, inquiétante."),
-      _c("La voie sûre", fx: {Stat.moral: 4, Stat.faim: -4}, result: "Plus long, plus de bouches à serrer. Mais tu sais où tu vas.")),
+      _c("Le raccourci", fx: {Stat.bois: 12, Stat.moral: -7}, result: "Tu gagnes des heures de bois — mais la voie se dégrade, des rails tordus passent sous toi, le cœur au bord des lèvres."),
+      _c("La voie sûre", fx: {Stat.moral: 5, Stat.bois: -6}, result: "Plus long, plus de bois à brûler. Mais tu sais où tu vas, et ça apaise.")),
   _filler('F2_silhouettes',
       "Des silhouettes immobiles entre les rails dans le brouillard. Pillards ? Morts ? Affamés ?",
       _c("Ralentir, voir si on peut troquer", fx: {Stat.faim: 10, Stat.moral: -4}, result: "Des survivants. Tu troques, le cœur battant. Ils auraient pu être autre chose."),
@@ -567,11 +567,6 @@ final List<StoryCard> _fill3 = [
 ];
 
 final List<StoryCard> _fill4 = [
-  _filler('F4_chanson',
-      "La radio capte une vieille chanson d'amour intacte. L'écouter use la manivelle et ravive la douleur.",
-      _c("Écouter jusqu'au bout", fx: {Stat.moral: 10, Stat.faim: -4}, result: "Tu danses seule, en larmes. Tu en oublies de manger."),
-      _c("Couper, garder l'énergie", fx: {Stat.moral: -5}, result: "Cette chanson, c'était la leur. Tu coupes net."),
-      oneshot: true, requires: (f) => f.contains('aLaRadio')),
   _filler('F4_maria',
       "Un mur couvert de messages : des gens cherchent des gens. Tu pourrais y ajouter ton nom.",
       _c("Écrire ton nom et ta voie", fx: {Stat.moral: 8, Stat.soif: -4}, result: "Si les tiens passent ici... Tu y crois assez pour t'attarder."),
@@ -615,6 +610,14 @@ final List<StoryCard> _fill4 = [
 ];
 
 final List<StoryCard> _fill5 = [
+  // La chanson de la radio (trouvée gare 4) : jouée sur la route vers la gare 5.
+  // (Déplacée depuis _fill4 où elle était morte : son `requires aLaRadio` était
+  // évalué avant que la radio ne soit trouvée dans le même segment.)
+  _filler('F5_chanson',
+      "La radio capte une vieille chanson d'amour intacte. L'écouter use la manivelle et ravive la douleur.",
+      _c("Écouter jusqu'au bout", fx: {Stat.moral: 10, Stat.faim: -4}, result: "Tu danses seule, en larmes. Tu en oublies de manger."),
+      _c("Couper, garder l'énergie", fx: {Stat.moral: -5}, result: "Cette chanson, c'était la leur. Tu coupes net."),
+      oneshot: true, requires: (f) => f.contains('aLaRadio')),
   // Payoff des indices (foulard G3, dessin/mur G4) : ils ont entretenu
   // l'espoir jusqu'aux retrouvailles. Sans ce câblage, indiceSoeur était mort.
   _filler('F5_indices_payoff',

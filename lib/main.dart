@@ -185,13 +185,15 @@ class _WagonScreenState extends State<WagonScreen>
 
   // Anti-spam du moral « confort » (lire/chien/sœur) : ces gestes ne coûtent
   // rien (cosy), mais sans frein le moral montait à 100 d'un tap. Cooldown
-  // partagé : un seul gain de moral confort toutes les 45 s.
-  int _lastComfortMs = 0;
+  // partagé : un seul gain de moral confort toutes les 45 s. Le timestamp vit
+  // dans GameState (singleton) pour SURVIVRE au remontage de l'écran (un
+  // aller-retour loco/map ne doit pas réarmer le cooldown = exploit).
   void _comfortMoral(int amount) {
+    final gs = GameState.instance;
     final now = DateTime.now().millisecondsSinceEpoch;
-    if (now - _lastComfortMs < 45000) return;
-    _lastComfortMs = now;
-    GameState.instance.nudgeCardStat('moral', amount);
+    if (now - gs.lastComfortMs < 45000) return;
+    gs.lastComfortMs = now;
+    gs.nudgeCardStat('moral', amount);
   }
 
   // Activation du debug par TRIPLE-TAP caché (plus de bouton visible en jeu).
@@ -378,10 +380,10 @@ class _WagonScreenState extends State<WagonScreen>
     // du froid : drain = max(1, coldness / 5) (coldness = seuil − température).
     //   léger (coldness ~5) → −1   |  mordant (~10) → −2   |  glacial (~20) → −4
     _coldTimer = Timer.periodic(const Duration(seconds: 14), (_) {
-      // Pas de drain pendant les cartes (qui ont leur propre économie) : sinon
-      // on pouvait perdre la run sur un timer non actionnable en plein voyage.
-      // Cohérent avec le timer des besoins.
-      if (!mounted || _inCards) return;
+      // Pas de drain pendant les cartes NI sur la map (écrans où le joueur ne
+      // peut ni manger, ni boire, ni se réchauffer) : sinon on perdait la run
+      // sur un timer non actionnable. Cohérent avec le timer des besoins.
+      if (!mounted || _inCards || _onMap) return;
       final gs = GameState.instance;
       if (gs.feltCold) {
         final d = (gs.coldness / 5).round();
@@ -393,7 +395,7 @@ class _WagonScreenState extends State<WagonScreen>
     // économie). Manger (cuisinière/bac) et boire (filtre) deviennent
     // NÉCESSAIRES, pas décoratifs. Ralenti pour limiter les allers-retours.
     _needsTimer = Timer.periodic(const Duration(seconds: 24), (_) {
-      if (!mounted || _inCards) return;
+      if (!mounted || _inCards || _onMap) return;
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
       gs.nudgeCardStat('soif', -1);
@@ -402,7 +404,7 @@ class _WagonScreenState extends State<WagonScreen>
     // le drain vivait dans l'atelier -> chaleur gratuite ailleurs). Le poêle
     // s'éteint tout seul à 0 bois (nudgeCardStat).
     _poeleTimer = Timer.periodic(const Duration(seconds: 9), (_) {
-      if (!mounted || _inCards) return;
+      if (!mounted || _inCards || _onMap) return;
       final gs = GameState.instance;
       if (gs.poeleOn) gs.nudgeCardStat('bois', -1);
     });
