@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Génère un organigramme Graphviz de toute l'histoire (gares, cartes, choix,
-# branches combat, pools de fillers, fins).
+# branches, pools de fillers, fins).
 
 def esc(s):
     return (s.replace('\\','\\\\').replace('|','/').replace('{','(').replace('}',')')
@@ -42,9 +42,6 @@ def pool(nid, seg, n, gains):
         txt += "\\n" + "\\n".join("• "+g for g in gains)
     w(f'  {nid} [shape=note, style=filled, fillcolor="#EDE3CF", color="#9A8A6E", fontsize=10, label="{esc(txt)}"];')
 
-def diamond(nid, gare):
-    w(f'  {nid} [shape=diamond, style=filled, fillcolor="#E25A46", fontcolor=white, label="{esc("COMBAT gare %d"%gare)}\\nselon le score"];')
-
 def arrow(a, b, lbl=None, color=None, style=None):
     attrs=[]
     if lbl: attrs.append(f'label="{esc(lbl)}"')
@@ -67,16 +64,12 @@ arrow("P1","G2")
 pool("P2","2→3",10,[])
 arrow("G2","P2")
 
-# ============ GARE 3 (combat) ============
+# ============ GARE 3 ============
 card("G3",3,"G3","Pillards dans le brouillard","Passer en fantôme","B-6 M-4","Accélérer pour les semer","B-10 M+3")
 card("G3b",3,"G3b","Foulard d'enfant (= la sœur ?)","Risquer pour l'attraper","F-8 M+12 · indice","Ne pas risquer","M-8")
-diamond("C3",3)
-card("G3win",3,"G3win","si BON combat : wagon intact","Souffler","M+8","Fouiller leur butin","F+6 B+4")
-card("G3lose",3,"G3lose","si combat RATÉ : wagon abîmé","Colmater","B-6 M-3","Repartir","F-5")
-arrow("P2","G3"); arrow("G3","G3b"); arrow("G3b","C3")
-arrow("C3","G3win","bon score","#3C8C3C"); arrow("C3","G3lose","raté","#C25A4A")
+arrow("P2","G3"); arrow("G3","G3b")
 pool("P3","3→4",10,["F3_chien_garde (si CHIEN)"])
-arrow("G3win","P3"); arrow("G3lose","P3")
+arrow("G3b","P3")
 
 # ============ GARE 4 ============
 card("G4",4,"G4","Mur des disparus + mot d'enfant 'JE VAIS AU NORD'","Y croire, foncer","M+14 B-8 · indice","Rester méfiante","M-4",gain="FILTRE EAU")
@@ -84,16 +77,12 @@ arrow("P3","G4")
 pool("P4","4→5",11,["F4_radio_trouvee → +RADIO (objet)","F4_dessin_soeur"])
 arrow("G4","P4")
 
-# ============ GARE 5 (combat + RETROUVAILLES) ============
+# ============ GARE 5 (RETROUVAILLES) ============
 card("G5",5,"G5","La petite sœur, vivante, barre la route","Courir la serrer","M+40 · +SŒUR","(idem)","M+40 · +SŒUR",gain="SŒUR")
 card("G5b",5,"G5b","Elle révèle : parents au nord","Lui promettre","M+12 · cap","Rester prudente","M+4 · cap")
-diamond("C5",5)
-card("G5win",5,"G5win","si BON combat : sœur indemne","La serrer encore","M+10","Filer vite","B+4 M+5")
-card("G5lose",5,"G5lose","si combat RATÉ : elle a vu l'horreur","La consoler","M-3 F-4 · SOIN","L'endurcir","M+4")
-arrow("P4","G5"); arrow("G5","G5b"); arrow("G5b","C5")
-arrow("C5","G5win","bon score","#3C8C3C"); arrow("C5","G5lose","raté","#C25A4A")
+arrow("P4","G5"); arrow("G5","G5b")
 pool("P5","5→6",10,["F5_radio_premier → R1 (si RADIO)","fillers sœur (billes, cabane)"])
-arrow("G5win","P5"); arrow("G5lose","P5")
+arrow("G5b","P5")
 
 # ============ GARE 6 ============
 card("G6",6,"G6","Camp louche, on lorgne la sœur","Troquer vite et partir","F+12 S+8 M-6","Ne pas s'attarder","M+6 F-5")
@@ -125,15 +114,11 @@ arrow("P9","G10")
 pool("P10","10→11",10,["fillers sœur (fleur)"])
 arrow("G10","P10")
 
-# ============ GARE 11 (combat) ============
+# ============ GARE 11 ============
 card("G11",11,"G11","Barrage de pillards sur la voie","Foncer dans le barrage","B-18 M-6","Négocier (vivres)","F-16 S-10 M+4")
-diamond("C11",11)
-card("G11win",11,"G11win","si BON combat : pillards en déroute","Rafler leur butin","F+10 B+8","Passer vite","M+8")
-card("G11lose",11,"G11lose","si combat RATÉ : assaut au prix fort","Panser les dégâts","F-8 M-4","Fuir","B-8 M+3")
-arrow("P10","G11"); arrow("G11","C11")
-arrow("C11","G11win","bon score","#3C8C3C"); arrow("C11","G11lose","raté","#C25A4A")
+arrow("P10","G11")
 pool("P11","11→12",10,["fillers sœur (promesse)"])
-arrow("G11win","P11"); arrow("G11lose","P11")
+arrow("G11","P11")
 
 # ============ GARE 12 ============
 card("G12",12,"G12","Vue sur le refuge nord","Lui jurer qu'ils sont là","M+18","Tempérer son espoir","M+6")

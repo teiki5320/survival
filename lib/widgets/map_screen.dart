@@ -178,20 +178,12 @@ class MapScreen extends StatefulWidget {
   const MapScreen({
     super.key,
     required this.onClose,
-    this.onGareSelected,
-    this.onOpenWorkshop,
     this.onOpenCards,
   });
   final VoidCallback onClose;
 
-  /// Tap sur une gare -> lance le combat de cette gare (la map = le menu).
-  final void Function(int gareIndex)? onGareSelected;
-
-  /// Ouvre l'atelier & quotidien (méta-progression hors-combat).
-  final VoidCallback? onOpenWorkshop;
-
-  /// Ouvre les CARTES narratives (le voyage Reigns). En jeu normal c'est LE
-  /// point d'entrée des cartes (les FAB du wagon sont en debug).
+  /// Ouvre les CARTES narratives (le voyage). C'est LE point d'entrée du
+  /// voyage depuis la map ("Débuter/Continuer le voyage").
   final VoidCallback? onOpenCards;
 
   @override
@@ -263,12 +255,6 @@ class _MapScreenState extends State<MapScreen>
                       tooltip: 'Retour au train',
                       onTap: widget.onClose,
                     ),
-                    // Atelier & quotidien : réservé au MODE DEBUG pour l'instant.
-                    if (widget.onOpenWorkshop != null &&
-                        GameState.instance.debugMode) ...[
-                      const SizedBox(height: 10),
-                      _WorkshopFab(onPressed: widget.onOpenWorkshop!),
-                    ],
                     // Placement des gares = outil de réglage : MODE DEBUG only.
                     if (GameState.instance.debugMode) ...[
                       const SizedBox(height: 10),
@@ -292,9 +278,9 @@ class _MapScreenState extends State<MapScreen>
             Center(
               child: _ContinueJourneyButton(
                 onTap: widget.onOpenCards!,
-                // « Débuter » tant que rien n'a commencé, sinon « Continuer ».
-                label: ((GameState.instance.cardGareIndex ?? 0) > 0 ||
-                        GameState.instance.gareBestScore.isNotEmpty)
+                // « Débuter » tant que le voyage n'a pas commencé, sinon
+                // « Continuer ».
+                label: (GameState.instance.cardGareIndex ?? 0) > 0
                     ? 'Continuer le voyage'
                     : 'Débuter le voyage',
               ),
@@ -355,27 +341,6 @@ class _MapScreenState extends State<MapScreen>
                 ),
               ),
             ),
-            // Gares cliquables (hors mode placement) : tap -> combat de la gare.
-            // La map sert de menu : on choisit la gare où se battre.
-            if (!_stationAdjust && widget.onGareSelected != null)
-              for (int i = 0; i < _stations.length; i++)
-                Builder(builder: (_) {
-                  final s = _stations[i];
-                  final pos = path.at(s.t);
-                  final px = pos.dx * mapW;
-                  final py = pos.dy * mapH;
-                  return Positioned(
-                    left: px - 24,
-                    top: py - 24,
-                    width: 48,
-                    height: 48,
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => widget.onGareSelected!(i),
-                      child: const SizedBox.expand(),
-                    ),
-                  );
-                }),
             if (_stationAdjust) ...[
               for (int i = 0; i < _stations.length; i++)
                 Builder(builder: (_) {
@@ -791,39 +756,6 @@ class _ContinueJourneyButton extends StatelessWidget {
 }
 
 /// Bouton libellé « Nouvelle partie » — bien visible (pas une icône cryptique).
-class _WorkshopFab extends StatelessWidget {
-  const _WorkshopFab({required this.onPressed});
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final gs = GameState.instance;
-    final hasReward = gs.dailyChestAvailable ||
-        GameState.dailyMissions.keys.any(gs.dailyReady);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        _MapIconButton(
-            icon: Icons.build, tooltip: 'Atelier & quotidien', onTap: onPressed),
-        if (hasReward)
-          Positioned(
-            right: -1,
-            top: -1,
-            child: Container(
-              width: 13,
-              height: 13,
-              decoration: BoxDecoration(
-                color: const Color(0xFF5BD16A),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF1A1410), width: 2),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
 /// Mini-carte du parcours : réutilise le décor de la vraie map + son tracé
 /// en BOUCLE (ronde) + les gares, à afficher en petit (ex. carte accrochée au
 /// mur du wagon). Si [aged], applique un filtre sépia + vignette "vieilli".

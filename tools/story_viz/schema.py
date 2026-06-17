@@ -21,7 +21,7 @@ def tw(s, font): return d.textlength(s, font=font)
 
 # ---- Titre ----
 ctext(W//2, 46, "TRAIN COSY — Carte de l'histoire", F(46, True), INK)
-ctext(W//2, 88, "14 gares (combat à chacune) · ~10 cartes d'ambiance FIXES entre chaque gare (toutes jouées) · objets & persos débloqués au fil de l'histoire",
+ctext(W//2, 88, "14 gares (carte d'épreuve à chacune) · ~10 cartes d'ambiance FIXES entre chaque gare (toutes jouées) · objets & persos débloqués au fil de l'histoire",
       F(20), INK2)
 
 # ---- Géométrie ----
@@ -36,7 +36,7 @@ names = ["Kogarashi","Kurogane","Karasuno","Mayoidani","Tsukibashi",
 beats = ["ville natale en flammes","nourrir la loco","pillards/brouillard","mur des disparus / radio","RETROUVAILLES sœur",
          "camp louche","souvenir d'enfance","la sœur grelotte","sœur fiévreuse","répit cosy (serre)",
          "barrage pillards","refuge en vue","sacrifice loco","CLIMAX / fins"]
-combat_reactive = set(range(1,14))  # TOUTES les gares (sauf gare 1 tuto) ont une conséquence combat
+epreuve_gares = set(range(0,14))  # TOUTES les gares ont une carte d'épreuve (menace résolue par un choix)
 
 # ---- Bandes de zones ----
 def band(x0, x1, color, label):
@@ -61,7 +61,7 @@ for i in range(N-1):
 # ---- Gares ----
 for i,x in enumerate(xs):
     r = 26
-    fill = (226,90,70) if i in combat_reactive else (232,185,107)
+    fill = (226,90,70) if i in epreuve_gares else (232,185,107)
     d.ellipse([x-r, track_y-r, x+r, track_y+r], fill=fill, outline=INK, width=3)
     ctext(x, track_y, str(i+1), F(24, True), (40,30,20))
     # nom au-dessus / situation en-dessous, EN ALTERNANCE (2 hauteurs) pour
@@ -73,7 +73,7 @@ for i,x in enumerate(xs):
     ctext(x, ny, names[i], F(16, True), INK)
     ctext(x, by, beats[i], F(13), INK2)
 
-ctext((xs[2]), 200, "● chaque gare : le combat a une CONSÉQUENCE (carte verte si réussi / rouge si raté)", F(15, True), (200,70,55))
+ctext((xs[2]), 200, "● chaque gare : une CARTE D'ÉPREUVE résout la menace (pillards, barrage…) par un choix", F(15, True), (200,70,55))
 
 # ---- Objets débloqués, PAR GARE (empilés au-dessus de la station) ----
 OBJ_COL={'LIT':(201,155,106),'GAMELLE':(176,122,74),'LAMPE':(228,180,90),
@@ -150,7 +150,7 @@ ly = H-120
 ctext(110, ly, "✓ SANS le mode debug, le jeu suit EXACTEMENT ce plan : wagon vide au départ, tout apparaît à sa gare.", F(16, True), (90,120,70), anchor="lm")
 ctext(110, ly+30, "LIT = débloqué dès la GARE 1 (carte G1, les 2 choix). ARMOIRE = dans le 2e wagon (cellier), débloqué gare 6. TABLE retirée.", F(15), INK, anchor="lm")
 ctext(110, ly+58, "Le mode debug (🐞) affiche tout d'un coup + permet de jouer les cartes librement (Passer / sauter de gare).", F(14), INK2, anchor="lm")
-ctext(W-110, ly+58, "Le Vieux : SUPPRIMÉ ✓", F(16, True), (123,140,90), anchor="rm")
+ctext(W-110, ly+58, "Le Vieux + l'enfant : SUPPRIMÉS ✓", F(16, True), (123,140,90), anchor="rm")
 
 img.save("/home/user/survival/docs/histoire_schema.png")
 print("OK", img.size)

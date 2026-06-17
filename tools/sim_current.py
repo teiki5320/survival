@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""Simulation Train Cosy ACTUEL : depart 25 (kStartStat) + recompense combat
-(~score 70) injectee a chaque gare. Reflete le jeu reel (cartes + combat),
-contrairement a sim_game.py (depart 70, sans combat).
+"""Simulation Train Cosy ACTUEL (PUR CARTES, plus de combat) : depart 25
+(kStartStat) + ravitaillement d'arrivee par gare (grantGareSupply). Reflete
+le jeu reel : voyage 100% narratif, survie geree aux cartes + au wagon.
 Lancer: python3 tools/sim_current.py
 
 Parse les vraies cartes de lib/data/cards_data.dart (paires de choix +
 effets + flags), puis rejoue des milliers de runs sous les regles reelles :
-  - 14 segments, fillers drawCount=4 (sauf 12,13 = 0)
-  - pertes x1.5, gains de moral x0.6
+  - 14 segments, fillers drawCount=4 (sauf 13,14 = 0)
+  - pertes x1.7, gains de moral x0.6
+  - ravitaillement d'arrivee par gare : +9 bois/+6 soif/+6 faim/+5 moral
+  - recharges wagon liees a l'engagement (careless 1 ... smart 2) : un joueur
+    negligent neglige aussi le wagon, ce qui cree le spread de difficulte
   - mecanique soeur : apres flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
-  - budget wagon : 2 ravitaillements de +10 par segment
+  - zone froide (gare 8+) : surconso bois
   - mort si une jauge <= 0 ; fin selon resolveTrainCosyEnding
+Cible calibree : careless ~11% / casual ~62% / smart 100% / caring 100%.
 Stats depart 25/25/25/25 (kStartStat).
 """
 import re, random, sys, collections
@@ -105,8 +109,11 @@ def pick(card, stats, strategy):
     if strategy == 'smart':
         return best
     if strategy == 'caring':
-        # joueuse qui VEUT la fin famille : protège la sœur dès qu'on lui
-        # propose, sinon joue stat-optimal.
+        # joueuse qui VEUT la fin famille : s'engage à retrouver les parents
+        # (capParents, gare 5) en priorité, protège la sœur ensuite, sinon
+        # joue stat-optimal. Valide que la route 'famille' est atteignable.
+        if 'capParents' in lfl: return 0
+        if 'capParents' in rfl: return 1
         if 'soeurProtegee' in lfl: return 0
         if 'soeurProtegee' in rfl: return 1
         return best
@@ -118,20 +125,22 @@ COLD_BOIS = 2        # surconso bois/carte dans le froid
 WOOD_START = 4       # réserve de bois de départ
 WOOD_SUPPLY = {2:5,6:6,9:4}  # bûches offertes à l'arrivée de gares
 
-def run(strategy, refuels_per_seg):
+# Recharges "wagon" liees a l'engagement : un joueur negligent neglige aussi
+# le wagon (cuisine/eau/bois/reconfort), un attentif l'entretient. C'est ce qui
+# cree le spread careless/casual (sinon le ravitaillement auto sature tout).
+REFUELS_BY_STRAT = {'careless':1, 'casual':1, 'smart':2, 'caring':2}
+
+def run(strategy, refuels_per_seg=None):
+    refuels_per_seg = REFUELS_BY_STRAT[strategy]
     stats = {'soif':25,'faim':25,'bois':25,'moral':25}
     flags = set(); soin = 0
     wood = WOOD_START
     for si, (gare, fill, draw) in enumerate(segments):
         wood += WOOD_SUPPLY.get(si, 0)
-        # Recompense COMBAT realiste : le score baisse avec l'escalade par gare
-        # (gareIndex transmis -> hp/visee/dispersion montent). Formule reelle
-        # 13/7/7/6 x score/100 (applyCombatRewards). skill 85, -3/gare.
-        score = max(0, min(100, 85 - si*3))
-        stats['bois']=min(100,stats['bois']+round(score/100*13))
-        stats['soif']=min(100,stats['soif']+round(score/100*7))
-        stats['faim']=min(100,stats['faim']+round(score/100*7))
-        stats['moral']=min(100,stats['moral']+round(score/100*6))
+        # COMBAT SUPPRIME. RAVITAILLEMENT D'ARRIVEE par gare (grantGareSupply,
+        # calibre par simu) : remplace les ressources de l'ancien combat.
+        stats['bois']=min(100,stats['bois']+9); stats['soif']=min(100,stats['soif']+6)
+        stats['faim']=min(100,stats['faim']+6); stats['moral']=min(100,stats['moral']+5)
         # budget wagon : recharge les N stats les plus basses. Recharger BOIS
         # exige de brûler 1 bûche ; sans bois en réserve, on recharge la stat
         # non-bois la plus basse à la place.

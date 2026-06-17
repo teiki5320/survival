@@ -7,8 +7,7 @@
 // Flags utilisés : aLeChien (chien recueilli),
 // aLaSoeur (sœur retrouvée gare 5), soeurProtegee (gestes de soin,
 // compte cardSoin), capParents, indiceSoeur, aLaRadio + chaîne radio1/2/3
-// (arc radio -> fin secrète), asset_bed/filter/hydro (déblocage d'objets),
-// combatTierHigh/Mid/Low + combatGood_N (résultat du combat de gare).
+// (arc radio -> fin secrète), asset_bed/filter/hydro (déblocage d'objets).
 
 import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
@@ -39,45 +38,14 @@ StoryCard _filler(
       requires: requires,
     );
 
-/// Conséquence du COMBAT de gare, insérée après les beats narratifs de chaque
-/// gare. GARANTIT une conséquence à CHAQUE combat : variante "réussi" (tier
-/// High OU Mid) ou "raté" (tier Low). Si aucun tier n'est posé (ex. gare tuto
-/// sans combat), ne renvoie rien.
-List<StoryCard> _combat(
-  Set<String> f,
-  String gare,
-  String speaker, {
-  required String winText,
-  required CardChoice winL,
-  required CardChoice winR,
-  required String loseText,
-  required CardChoice loseL,
-  required CardChoice loseR,
-}) {
-  if (f.contains('combatTierLow')) {
-    return [
-      StoryCard(
-          id: '${gare}lose',
-          kind: CardKind.gare,
-          speaker: speaker,
-          text: loseText,
-          left: loseL,
-          right: loseR),
-    ];
-  }
-  if (f.contains('combatTierHigh')) {
-    return [
-      StoryCard(
-          id: '${gare}win',
-          kind: CardKind.gare,
-          speaker: speaker,
-          text: winText,
-          left: winL,
-          right: winR),
-    ];
-  }
-  return const [];
-}
+/// Épreuve de gare (choix pur, pas de mini-jeu) : la menace de la gare devient
+/// une carte à 2 choix, chacun menant DIRECTEMENT à sa conséquence (pas de
+/// stat-check caché). C'est ainsi que se résolvent les beats de danger.
+StoryCard _epreuve(String id, String speaker, String text,
+        CardChoice left, CardChoice right) =>
+    StoryCard(
+        id: id, kind: CardKind.gare, speaker: speaker,
+        text: text, left: left, right: right);
 
 // ============================================================
 // LES 14 GARES (piliers narratifs) — ARC PETITE SŒUR
@@ -101,26 +69,17 @@ List<StoryCard> _gare1(Set<String> f) => [
             fx: {Stat.moral: 3}, flags: ['asset_bed'],
             result: "Assez regardé en arrière. Survivre d'abord. Tu pousses une paillasse dans un coin : ton premier lit."),
       ),
-      // PREMIER COMBAT (tuto) : un chiot est coincé sur le quai par des
-      // pillards. Bien défendre = le sauver (aLeChien). Le perdre = il
-      // disparaît dans le chaos. Le tuto de visée s'affiche ici (1re fois).
-      ..._combat(f, 'G1', 'Kogarashi',
-          winText:
-              "Sur le quai, un chiot tremblant, cerné par des pillards qui veulent monter à bord. Tu les tiens à distance, pierre après pierre — la voie est libre, et la petite boule de poils file se réfugier dans ton wagon.",
-          winL: _c("Le recueillir contre toi",
-              fx: {Stat.moral: 15}, flags: ['aLeChien', 'asset_bowl'],
-              result: "Il se glisse contre ta jambe et s'endort aussitôt. Le wagon paraît moins vide. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
-          winR: _c("Le laisser te suivre, libre",
+      // PREMIÈRE ÉPREUVE (carte à choix) : un chiot est coincé sur le quai par
+      // des pillards. Le défendre = le sauver (aLeChien). Barricader = il
+      // disparaît dans le chaos. La menace se résout en un choix direct.
+      _epreuve('G1ev', 'Kogarashi',
+          "Sur le quai, un chiot tremblant, cerné par des pillards qui veulent forcer ton wagon. Tu n'as que ton lance-pierre.",
+          _c("Le défendre coûte que coûte",
               fx: {Stat.moral: 12}, flags: ['aLeChien', 'asset_bowl'],
-              result: "Il trotte derrière toi et choisit un coin du wagon. Compagnon, pas prisonnier. Tu lui poses une gamelle, au cas où."),
-          loseText:
-              "Les pillards ont submergé le quai près du chiot. Quand la fumée retombe, il a disparu dans le chaos. Tu n'as pas pu le protéger.",
-          loseL: _c("Le chercher des yeux, en vain",
-              fx: {Stat.moral: -6},
-              result: "Tu scrutes le quai qui s'éloigne. Plus rien. Une bouée d'espoir, emportée."),
-          loseR: _c("Te forcer à regarder devant",
-              fx: {Stat.moral: -8},
-              result: "Tu fermes les yeux et serres les dents. Le wagon, après, est immense et vide.")),
+              result: "Pierre après pierre, tu tiens le quai. La petite boule de poils file se réfugier contre ta jambe et s'endort. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
+          _c("Barricader la porte, te protéger",
+              fx: {Stat.moral: -4},
+              result: "Tu claques la porte sur le chaos. En sécurité — mais quand le calme revient et que le quai s'éloigne, le chiot a disparu. Le wagon, après, est immense et vide.")),
       StoryCard(
         id: 'G1c',
         kind: CardKind.gare,
@@ -152,23 +111,14 @@ List<StoryCard> _gare2(Set<String> f) => [
             flags: ['asset_lamp'],
             result: "Tu charges au jugé. Le feu crachote, capricieux. Tu apprendras dans la fumée et les jurons. Tu emportes quand même une lampe et une table trouvées au dépôt."),
       ),
-      ..._combat(f, 'G2', 'Kurogane',
-          winText:
-              "Des charognards rôdaient dans le dépôt ; tu les as tenus en respect. Les hangars sont à toi.",
-          winL: _c("Faire le plein de bois",
-              fx: {Stat.bois: 12},
-              result: "Des traverses, des palettes, du charbon : la soute déborde. La loco ronronnera longtemps."),
-          winR: _c("Chercher des vivres",
+      _epreuve('G2ev', 'Kurogane',
+          "Au dépôt, des charognards rôdent entre les wagons éventrés. Le bois et les vivres sont là, à portée — mais gardés.",
+          _c("Les chasser et rafler le bois",
+              fx: {Stat.bois: 12, Stat.faim: -3},
+              result: "Tu les fais déguerpir à coups de pierres. Traverses, palettes, charbon : la soute déborde. La loco ronronnera longtemps."),
+          _c("Te faufiler en douce pour des vivres",
               fx: {Stat.faim: 8, Stat.soif: 5},
-              result: "Une réserve de cheminots oubliée : conserves et bidons d'eau. Belle prise."),
-          loseText:
-              "Les charognards ont forcé un wagon de réserve avant que tu les chasses. Ils ont emporté une partie du stock.",
-          loseL: _c("Sauver ce qui reste",
-              fx: {Stat.bois: -6},
-              result: "Tu récupères trois bûches sous les décombres. Mieux que rien."),
-          loseR: _c("Repartir, furieuse",
-              fx: {Stat.moral: -4, Stat.faim: -3},
-              result: "Tu claques la porte du dépôt. Leçon retenue : ne plus jamais baisser la garde.")),
+              result: "Tu évites l'affrontement et glisses jusqu'à une réserve de cheminots oubliée : conserves et bidons d'eau. Belle prise, sans une égratignure.")),
     ];
 
 List<StoryCard> _gare3(Set<String> f) => [
@@ -200,24 +150,15 @@ List<StoryCard> _gare3(Set<String> f) => [
             fx: {Stat.moral: -8},
             result: "Tu restes à bord. Mais le doute te ronge : et si c'était elle qui l'avait laissé là — un signe, pour toi ?"),
       ),
-      // Conséquence du COMBAT de gare (réussi / raté).
-      ..._combat(f, 'G3', 'Karasuno',
-          winText:
-              "Les derniers pillards détalent dans la brume. Le wagon n'a pas une éraflure — tu les as tenus à distance, pierre après pierre.",
-          winL: _c("Souffler un instant",
-              fx: {Stat.moral: 8},
-              result: "Tu reposes le lance-pierre, les mains tremblantes. Vivante. Intacte."),
-          winR: _c("Fouiller ce qu'ils ont lâché",
-              fx: {Stat.faim: 6, Stat.bois: 4},
-              result: "Dans leurs sacs abandonnés : un peu de bois, deux conserves. Le butin des vaincus."),
-          loseText:
-              "Ils ont cogné le wagon avant de fuir. Des planches arrachées, une réserve éventrée. Tu as tenu — de justesse.",
-          loseL: _c("Colmater les dégâts",
+      // Épreuve de gare : face aux pillards dans le brouillard, ton choix.
+      _epreuve('G3ev', 'Karasuno',
+          "Dans le brouillard de Karasuno, des silhouettes encerclent le wagon. Des pillards, à peine visibles dans la brume.",
+          _c("Les tenir à distance, pierre après pierre",
+              fx: {Stat.moral: 8, Stat.faim: 6},
+              result: "Ils détalent dans la brume. Pas une éraflure sur le wagon — et dans leurs sacs abandonnés, un peu de bois et deux conserves. Le butin des vaincus."),
+          _c("Foncer dans la brume sans t'arrêter",
               fx: {Stat.bois: -6, Stat.moral: -3},
-              result: "Tu cloues ce que tu peux. Le froid passera par les fentes, désormais."),
-          loseR: _c("Repartir sans regarder",
-              fx: {Stat.faim: -5},
-              result: "Tu pousses la loco, les dégâts dans le dos. Pas le temps de pleurer sur des planches.")),
+              result: "Tu pousses la loco à l'aveugle. Ils cognent le wagon au passage — des planches arrachées, le froid passera par là — mais tu passes.")),
     ];
 
 List<StoryCard> _gare4(Set<String> f) => [
@@ -235,23 +176,14 @@ List<StoryCard> _gare4(Set<String> f) => [
             fx: {Stat.moral: -4}, flags: ['asset_filter'],
             result: "Des milliers d'enfants ont écrit ça. Tu n'oses pas y croire. Pas encore. Tu fouilles le village et en ramènes au moins un filtre à eau."),
       ),
-      ..._combat(f, 'G4', 'Mayoidani',
-          winText:
-              "Les rôdeurs du village ont fui devant ta défense. Tu peux fouiller les ruines tranquillement.",
-          winL: _c("Fouiller les maisons",
+      _epreuve('G4ev', 'Mayoidani',
+          "Au village fantôme, une embuscade parmi les ruines : des rôdeurs veulent t'empêcher de fouiller les maisons.",
+          _c("Les repousser et fouiller à loisir",
               fx: {Stat.faim: 8, Stat.soif: 6},
-              result: "Conserves oubliées, eau de pluie dans une citerne. Le village mort te nourrit."),
-          winR: _c("Chercher des messages",
-              fx: {Stat.moral: 8},
-              result: "Sur les murs, d'autres mots d'espoir. Tu n'es pas la seule à monter vers le nord."),
-          loseText:
-              "Une embuscade au milieu des ruines. Tu repousses les pillards mais tu dois fuir le village avant d'avoir tout fouillé.",
-          loseL: _c("Décrocher en vitesse",
-              fx: {Stat.faim: -6, Stat.moral: -3},
-              result: "Tu remontes à bord les mains presque vides. Le village garde ses secrets."),
-          loseR: _c("Récupérer ce que tu peux",
-              fx: {Stat.soif: -5, Stat.bois: -4},
-              result: "Tu rafles deux-trois choses sous les jets de pierres. Maigre, mais vivante.")),
+              result: "Tu les écartes net. Conserves oubliées, eau de pluie dans une citerne : le village mort te nourrit."),
+          _c("Décrocher vite, viser les murs de messages",
+              fx: {Stat.moral: 8, Stat.faim: -4},
+              result: "Tu files sans tout fouiller, mais tu lis d'autres mots d'espoir griffonnés sur les murs. Tu n'es pas la seule à monter vers le nord.")),
     ];
 
 List<StoryCard> _gare5(Set<String> f) => [
@@ -280,17 +212,16 @@ List<StoryCard> _gare5(Set<String> f) => [
         right: _c("Te concentrer sur elle, ici, maintenant",
             fx: {Stat.moral: 6, Stat.faim: 5, Stat.soif: 5}, flags: ['soeurProtegee'], result: "« L'important, c'est toi. Le reste viendra. » Tu la nourris, tu la réchauffes. Tu ne promets rien que le monde pourrait briser."),
       ),
-      // Conséquence du COMBAT : comment tu as tenu le pont décide de l'état
-      // dans lequel tu retrouves ta sœur.
-      ..._combat(f, 'G5', 'Tsukibashi',
-          winText:
-              "Les pillards qui rôdaient autour d'elle ont fui devant ta défense acharnée. Pas une égratignure sur ta petite sœur.",
-          winL: _c("La serrer encore", fx: {Stat.moral: 10}, result: "Elle est sauve, entière, à toi. Tu as tenu le pont pour elle, et tu le referais mille fois."),
-          winR: _c("Filer vite vers le nord", fx: {Stat.bois: 4, Stat.moral: 5}, result: "Vous repartez soudées, le danger déjà loin derrière."),
-          loseText:
-              "Tu l'as rejointe de justesse, les pillards plein le pont. Elle a vu des choses qu'un enfant ne devrait jamais voir.",
-          loseL: _c("La consoler longuement", fx: {Stat.moral: -3, Stat.faim: -4}, flags: ['soeurProtegee'], result: "Tu la berces jusqu'à ce que ses tremblements cessent. Ça coûte des heures, mais elle est là, et c'est tout."),
-          loseR: _c("Lui apprendre à être forte", fx: {Stat.moral: 4}, result: "« Regarde devant, jamais derrière. » Elle ravale ses larmes. Trop tôt, beaucoup trop tôt.")),
+      // Épreuve de gare : comment tu défends le pont décide de l'état dans
+      // lequel tu retrouves ta sœur.
+      _epreuve('G5ev', 'Tsukibashi',
+          "Au milieu du pont, des pillards rôdent autour de ta petite sœur recroquevillée. Chaque seconde compte.",
+          _c("Te jeter entre eux et elle",
+              fx: {Stat.moral: 10}, flags: ['soeurProtegee'],
+              result: "Tu tiens le pont avec rage, pierre après pierre. Pas une égratignure sur elle. Tu l'as protégée, et tu le referais mille fois."),
+          _c("La saisir et filer sous les pierres",
+              fx: {Stat.moral: 4, Stat.faim: -4},
+              result: "Tu l'arraches au danger en courant. Elle est sauve — mais elle a vu des choses qu'un enfant ne devrait jamais voir.")),
     ];
 
 List<StoryCard> _gare6(Set<String> f) => [
@@ -307,23 +238,14 @@ List<StoryCard> _gare6(Set<String> f) => [
             fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_commode', 'asset_wagon2'],
             result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. En partant, tu accroches un 2e wagon (cellier) laissé là, et tu emportes une commode."),
       ),
-      ..._combat(f, 'G6', 'Yasuragi',
-          winText:
-              "Quand des rôdeurs ont voulu tester le train, tu les as repoussés net. Le camp t'a vue faire — on te respecte, désormais.",
-          winL: _c("Négocier d'égale à égale",
+      _epreuve('G6ev', 'Yasuragi',
+          "Au camp-refuge, des rôdeurs testent le train sous les yeux des survivants. Ta réaction décidera comment on te traite ici.",
+          _c("Les repousser net, imposer le respect",
               fx: {Stat.faim: 10, Stat.soif: 6, Stat.moral: 4},
-              result: "On te traite en partenaire, plus en proie. Bon troc, têtes hautes."),
-          winR: _c("Monter la garde pour eux, payée en vivres",
+              result: "Le camp t'a vue faire. On te traite en partenaire, plus en proie. Bon troc, têtes hautes."),
+          _c("Monter la garde pour eux contre des vivres",
               fx: {Stat.faim: 12, Stat.bois: 4},
-              result: "Une nuit de veille contre un plein de provisions. Marché honnête."),
-          loseText:
-              "Le train a encaissé l'assaut sous les yeux du camp. Ils flairent ta faiblesse et durcissent leurs prix.",
-          loseL: _c("Payer le prix fort",
-              fx: {Stat.faim: -8, Stat.moral: -4},
-              result: "Tu lâches trop pour trop peu. Mais tu repars avec ta sœur, c'est l'essentiel."),
-          loseR: _c("Partir sans rien",
-              fx: {Stat.moral: -5},
-              result: "Tu refuses de te faire dépouiller. Le ventre creux, la fierté intacte.")),
+              result: "Une nuit de veille à leur place, contre un plein de provisions. Marché honnête.")),
     ];
 
 List<StoryCard> _gare7(Set<String> f) => [
@@ -338,23 +260,14 @@ List<StoryCard> _gare7(Set<String> f) => [
         right: _c("Garder le cap, ne pas t'arrêter",
             fx: {Stat.moral: 4}, result: "Tu serres les dents et tu avances. Le nord d'abord. Les souvenirs, après."),
       ),
-      ..._combat(f, 'G7', 'Hoshikage',
-          winText:
-              "Tu as écarté la menace avant qu'elle ne gâche l'instant. La halte de votre enfance reste un refuge.",
-          winL: _c("Offrir un vrai moment à ta sœur",
+      _epreuve('G7ev', 'Hoshikage',
+          "À la halte de votre enfance, des pillards surgissent en plein souvenir. Le charme menace de se rompre.",
+          _c("Les écarter pour préserver l'instant",
               fx: {Stat.moral: 12},
-              result: "Vous regardez les rails comme avant, en paix. Elle rit. Ça vaut tout l'or du monde."),
-          winR: _c("Fouiller la halte en sûreté",
-              fx: {Stat.faim: 6, Stat.bois: 4},
-              result: "Le vieux kiosque cache des provisions et du bois sec. Le passé pourvoit."),
-          loseText:
-              "Des pillards ont surgi en plein souvenir. Tu les repousses, mais le charme est rompu et ta sœur a eu peur.",
-          loseL: _c("La rassurer",
-              fx: {Stat.moral: -3},
-              result: "« C'est fini, c'est fini. » Le lieu sacré de l'enfance a un goût de cendre, maintenant."),
-          loseR: _c("Repartir aussitôt",
-              fx: {Stat.bois: -5},
-              result: "Tu n'attends pas une deuxième vague. La loco s'arrache de la halte profanée.")),
+              result: "Tu règles ça vite et net. Vous regardez les rails comme avant, en paix. Elle rit. Ça vaut tout l'or du monde."),
+          _c("Repartir aussitôt, fouiller en chemin",
+              fx: {Stat.faim: 6, Stat.bois: 4, Stat.moral: -3},
+              result: "Tu n'attends pas une 2e vague. Le vieux kiosque cache provisions et bois sec — mais la halte sacrée de l'enfance a un goût de cendre, maintenant.")),
     ];
 
 List<StoryCard> _gare8(Set<String> f) => [
@@ -369,23 +282,14 @@ List<StoryCard> _gare8(Set<String> f) => [
         right: _c("Pousser le feu à fond",
             fx: {Stat.bois: -16, Stat.moral: 6}, flags: ['asset_stove', 'asset_firstaid'], result: "Tu sacrifies ta réserve de bois pour la réchauffer. Le wagon est un four, pour l'instant. Tu finis par installer un vrai poêle et dénicher une trousse de secours."),
       ),
-      ..._combat(f, 'G8', 'Kiribe',
-          winText:
-              "Les rôdeurs du froid n'ont pas approché : ta défense les a dissuadés. Le wagon reste hermétique au gel.",
-          winL: _c("Calfeutrer pendant le calme",
-              fx: {Stat.bois: 6, Stat.moral: 4},
-              result: "Tu colmates chaque fente au chaud. La chaleur tiendra, cette nuit."),
-          winR: _c("Veiller ta sœur",
+      _epreuve('G8ev', 'Kiribe',
+          "À l'entrée du froid, des rôdeurs du gel tournent autour d'un wagon mal calfeutré. Et ta sœur grelotte déjà.",
+          _c("Veiller ta sœur d'abord",
               fx: {Stat.moral: 8}, flags: ['soeurProtegee'],
-              result: "Tu peux enfin t'occuper d'elle, sans une oreille sur le danger. Elle s'endort apaisée."),
-          loseText:
-              "Pendant l'assaut, une porte a cédé. Le froid s'est engouffré, et ta sœur claque des dents de plus belle.",
-          loseL: _c("Tout brûler pour la réchauffer",
-              fx: {Stat.bois: -10}, flags: ['soeurProtegee'],
-              result: "Le feu rugit, dévore tes réserves. Mais ses lèvres reprennent des couleurs."),
-          loseR: _c("Serrer les dents jusqu'au matin",
-              fx: {Stat.soif: -6, Stat.moral: -4},
-              result: "Vous grelottez collées l'une à l'autre. L'aube vous trouve gelées, mais vivantes.")),
+              result: "Tu choisis de t'occuper d'elle. Elle s'endort apaisée contre toi. Les rôdeurs, eux, renoncent au froid mordant."),
+          _c("Calfeutrer et tenir la porte",
+              fx: {Stat.bois: 6, Stat.moral: 4},
+              result: "Tu colmates chaque fente pendant le calme. La chaleur tiendra cette nuit — mais elle s'est endormie seule, en frissonnant.")),
     ];
 
 List<StoryCard> _gare9(Set<String> f) => [
@@ -400,23 +304,14 @@ List<StoryCard> _gare9(Set<String> f) => [
         right: _c("Braver la tempête pour des remèdes",
             fx: {Stat.soif: -12, Stat.moral: 8}, flags: ['soeurProtegee'], result: "Tu sors dans le blizzard, tu reviens gelée avec des cachets périmés. Ça suffit. De justesse."),
       ),
-      ..._combat(f, 'G9', 'Shizuhara',
-          winText:
-              "Malgré le blizzard, tu as repoussé ceux qui voulaient profiter de ta détresse. La sœur a pu se reposer au chaud.",
-          winL: _c("La soigner sans relâche",
-              fx: {Stat.moral: 10}, flags: ['soeurProtegee'],
-              result: "Tu veilles sans être dérangée. La fièvre baisse plus vite. Elle s'en sortira."),
-          winR: _c("Récupérer le matériel des assaillants",
-              fx: {Stat.faim: 8, Stat.bois: 6},
-              result: "Vivres et bois pris à ceux qui voulaient les tiens. Le froid pourvoit, parfois."),
-          loseText:
-              "L'attaque en pleine tempête a tout aggravé : tu repousses l'ennemi mais la sœur a pris froid, sa fièvre remonte.",
-          loseL: _c("Tout donner pour la sauver",
-              fx: {Stat.faim: -10, Stat.moral: 6}, flags: ['soeurProtegee'],
-              result: "Tu y passes tes dernières forces et tes vivres. Elle respire encore. C'est tout ce qui compte."),
-          loseR: _c("Foncer vers un abri",
-              fx: {Stat.bois: -8, Stat.moral: -4},
-              result: "Tu brûles le reste du bois pour fuir la plaine maudite. La fièvre, elle, voyage avec vous.")),
+      _epreuve('G9ev', 'Shizuhara',
+          "En pleine tempête, ta sœur brûle de fièvre et délire — et des rôdeurs veulent profiter de ta détresse.",
+          _c("La soigner sans relâche, les ignorer",
+              fx: {Stat.moral: 10, Stat.faim: -6}, flags: ['soeurProtegee'],
+              result: "Tu veilles sans répit, tu éponges son front. La fièvre baisse plus vite. Elle s'en sortira. Le reste attendra."),
+          _c("Les repousser pour leur matériel",
+              fx: {Stat.faim: 8, Stat.bois: 6, Stat.moral: -3},
+              result: "Tu chasses les rôdeurs et rafles vivres et bois. Mais ta sœur a traversé l'assaut seule, fiévreuse et tremblante.")),
     ];
 
 List<StoryCard> _gare10(Set<String> f) => [
@@ -435,23 +330,14 @@ List<StoryCard> _gare10(Set<String> f) => [
             flags: ['asset_hydro', 'asset_bath', 'asset_shower', 'asset_lantern'],
             result: "« Papa et maman attendent. » Elle comprend. Vous emportez des plants, le matériel hydroponique, de quoi installer un bain, une douche et des lanternes dans le cellier, et repartez le ventre plein, le cœur lourd."),
       ),
-      ..._combat(f, 'G10', 'Hidamari',
-          winText:
-              "Des maraudeurs convoitaient la serre ; tu l'as défendue. Toute cette abondance est à vous.",
-          winL: _c("Récolte massive",
+      _epreuve('G10ev', 'Hidamari',
+          "Des maraudeurs approchent de la serre verdoyante. Tu peux la défendre, ou simplement profiter de l'instant avant qu'ils n'arrivent.",
+          _c("La défendre pour tout récolter",
               fx: {Stat.faim: 14, Stat.soif: 10},
-              result: "Vous repartez chargées de fruits et d'eau claire. La serre vous a comblées."),
-          winR: _c("Profiter, juste profiter",
-              fx: {Stat.moral: 12},
-              result: "Une vraie journée de paix dans la chaleur verte. Vos âmes se réparent."),
-          loseText:
-              "Les maraudeurs ont saccagé une partie de la serre avant que tu les chasses. Le répit a un goût amer.",
-          loseL: _c("Sauver les derniers plants",
-              fx: {Stat.faim: 6, Stat.moral: -3},
-              result: "Tu récupères ce qui n'a pas été piétiné. L'oasis blessée nourrit encore un peu."),
-          loseR: _c("Repartir, dégoûtée",
-              fx: {Stat.moral: -5},
-              result: "Même ici, ils ont tout gâché. Tu remontes à bord, la gorge serrée.")),
+              result: "Tu les tiens à distance. Vous repartez chargées de fruits et d'eau claire. La serre vous a comblées."),
+          _c("Profiter de l'instant, tant pis pour eux",
+              fx: {Stat.moral: 12, Stat.faim: -4},
+              result: "Une vraie journée de paix dans la chaleur verte. Vos âmes se réparent — vous laissez le reste aux pillards.")),
     ];
 
 List<StoryCard> _gare11(Set<String> f) => [
@@ -466,16 +352,15 @@ List<StoryCard> _gare11(Set<String> f) => [
         right: _c("Négocier, donner des vivres",
             fx: {Stat.faim: -16, Stat.soif: -10, Stat.moral: 4}, result: "Tu sacrifies la moitié de vos réserves pour qu'ils vous laissent passer. Affamées, mais entières."),
       ),
-      // Conséquence du COMBAT : l'assaut du barrage tourne selon ta défense.
-      ..._combat(f, 'G11', 'Yukihara',
-          winText:
-              "Ta riposte a brisé leur élan : les pillards refluent, abandonnant le barrage et leurs réserves dans la panique.",
-          winL: _c("Rafler leur butin", fx: {Stat.faim: 10, Stat.bois: 8}, result: "Vivres et bois pris à l'ennemi en déroute. Le train repart, ravitaillé sur leur dos."),
-          winR: _c("Passer sans t'attarder", fx: {Stat.moral: 8}, result: "Tu ne traînes pas sur un champ de bataille. Mais tu repars la tête haute, intouchable."),
-          loseText:
-              "Ils ont failli prendre le wagon. Tu as repoussé l'assaut au prix fort — des vivres éventrés, une peur qui colle à la peau.",
-          loseL: _c("Panser les dégâts", fx: {Stat.faim: -8, Stat.moral: -4}, result: "Tu recolmates ce qui peut l'être. Ta sœur n'a pas dit un mot depuis l'attaque."),
-          loseR: _c("Fuir sans regarder derrière", fx: {Stat.bois: -8, Stat.moral: 3}, result: "Tu pousses la loco à sa limite pour t'arracher d'ici. Le bois brûle, mais vous êtes vivantes.")),
+      // Épreuve de gare : l'assaut du barrage tourne selon ton choix.
+      _epreuve('G11ev', 'Yukihara',
+          "Des pillards ont dressé un barrage sur la voie. Ils veulent le train, les vivres — et ils ont vu ta sœur.",
+          _c("Enfoncer le barrage à pleine vapeur",
+              fx: {Stat.bois: -10, Stat.faim: 10},
+              result: "La loco brise l'obstacle dans un fracas. Dans la panique, ils lâchent leurs réserves : tu rafles vivres et bois au passage."),
+          _c("Négocier, céder une part des vivres",
+              fx: {Stat.faim: -8, Stat.soif: -6, Stat.moral: 4},
+              result: "Tu sacrifies une part de vos réserves pour passer sans casse. Affamées, mais entières et sereines.")),
     ];
 
 List<StoryCard> _gare12(Set<String> f) => [
@@ -490,23 +375,14 @@ List<StoryCard> _gare12(Set<String> f) => [
         right: _c("Tempérer son espoir",
             fx: {Stat.moral: 6}, result: "« On verra, ma puce. On verra. » Tu ne veux pas qu'elle s'effondre si... non. N'y pense pas."),
       ),
-      ..._combat(f, 'G12', 'Miharashi',
-          winText:
-              "Tu as tenu le poste contre une dernière bande de rôdeurs. Du haut de la tour, la voie vers le refuge est dégagée.",
-          winL: _c("Repérer le meilleur chemin",
+      _epreuve('G12ev', 'Miharashi',
+          "Au pied de la tour de guet, une dernière bande de rôdeurs garde la seule vue dégagée sur le refuge.",
+          _c("Tenir le poste, dégager la voie",
               fx: {Stat.moral: 10, Stat.bois: 4},
-              result: "Tu traces la route la plus sûre jusqu'au refuge. Plus de détours, plus de pièges."),
-          winR: _c("Récupérer les vivres du poste",
-              fx: {Stat.faim: 8, Stat.soif: 6},
-              result: "Le poste de guet planquait des rations. De quoi finir le voyage."),
-          loseText:
-              "Tu as dû déloger sous le feu. Vous quittez la tour à la hâte, l'espoir un peu écorné.",
-          loseL: _c("Rassurer ta sœur",
-              fx: {Stat.moral: -3},
-              result: "« On y est presque, je te jure. » Tu y crois encore. Un peu moins fort."),
-          loseR: _c("Pousser droit vers le nord",
-              fx: {Stat.bois: -6},
-              result: "Tu brûles ce qu'il faut pour distancer la menace. Le refuge, maintenant, vite.")),
+              result: "Tu les déloges. Du haut de la tour, tu traces la route la plus sûre jusqu'au refuge. Plus de détours, plus de pièges."),
+          _c("Les contourner, piller le poste",
+              fx: {Stat.faim: 8, Stat.soif: 6, Stat.bois: -4},
+              result: "Tu évites le combat et rafles les rations planquées du poste de guet. De quoi finir le voyage — mais sans avoir repéré la route.")),
     ];
 
 List<StoryCard> _gare13(Set<String> f) => [
@@ -521,44 +397,26 @@ List<StoryCard> _gare13(Set<String> f) => [
         right: _c("Descendre pousser ensemble",
             fx: {Stat.faim: -14, Stat.soif: -10, Stat.moral: 10}, result: "Vous poussez à deux, à mains nues dans la neige, en hurlant. La loco bascule de l'autre côté. Vous l'avez fait. Ensemble."),
       ),
-      ..._combat(f, 'G13', 'Fubuki',
-          winText:
-              "Des charognards guettaient les trains en perdition dans le col. Tu les as tenus à distance — la loco aura sa chance.",
-          winL: _c("Récupérer leur bois",
+      _epreuve('G13ev', 'Fubuki',
+          "Dans le col gelé, des charognards guettent les trains à l'agonie. Et la loco, elle, manque cruellement de bois.",
+          _c("Les tenir à distance et rafler leur bois",
               fx: {Stat.bois: 12},
-              result: "Ils avaient une réserve pour l'hiver. Elle franchira le col à ta place."),
-          winR: _c("Reprendre ton souffle",
-              fx: {Stat.moral: 8},
-              result: "Personne ne vous achèvera ici. Vous repartez à l'assaut du sommet, soudées."),
-          loseText:
-              "L'attaque dans le col a coûté cher : du bois perdu juste quand la loco en manquait le plus.",
-          loseL: _c("Tout sacrifier pour avancer",
-              fx: {Stat.faim: -10, Stat.moral: -4},
-              result: "Vous donnez vos dernières forces pour franchir. Le sommet, enfin, mais à genoux."),
-          loseR: _c("Brûler l'impossible",
-              fx: {Stat.bois: -8, Stat.moral: 4},
-              result: "Tu jettes au feu tout ce qui brûle. La loco hoquette, puis bascule. Vivantes.")),
+              result: "Ils avaient une réserve pour l'hiver. Tu la prends. Elle franchira le col à ta place."),
+          _c("Tout brûler pour distancer la menace",
+              fx: {Stat.bois: -8, Stat.faim: -6, Stat.moral: 4},
+              result: "Tu jettes au feu tout ce qui brûle pour les semer. La loco hoquette, puis bascule de l'autre côté. Vivantes, à genoux.")),
     ];
 
 List<StoryCard> _gare14(Set<String> f) => [
-      // Conséquence du DERNIER combat, AVANT la résolution finale.
-      ..._combat(f, 'G14', 'Hokuto',
-          winText:
-              "Des pillards voulaient une dernière proie aux portes du refuge. Tu les as balayés. Le train entre en gare, triomphant.",
-          winL: _c("Entrer la tête haute",
+      // Dernière épreuve, AVANT la résolution finale.
+      _epreuve('G14ev', 'Hokuto',
+          "Aux portes du refuge, une dernière bande veut une ultime proie. La toute dernière du voyage.",
+          _c("Les balayer, entrer la tête haute",
               fx: {Stat.moral: 12},
-              result: "Les gardes du refuge t'ouvrent grand les portes. Vous êtes arrivées, et entières."),
-          winR: _c("Offrir ton butin au refuge",
-              fx: {Stat.moral: 8, Stat.faim: 4},
-              result: "Tu partages les vivres pris à l'ennemi. On vous accueille en amies."),
-          loseText:
-              "Tu as franchi les derniers mètres sous les coups. Le train entre cabossé, mais il entre.",
-          loseL: _c("T'effondrer de soulagement",
-              fx: {Stat.moral: 4},
-              result: "Vous êtes là. Meurtries, vidées, mais là. Le voyage est fini."),
-          loseR: _c("Tenir debout pour elle",
-              fx: {Stat.moral: -3},
-              result: "Tu caches tes blessures pour ne pas l'inquiéter. Encore quelques pas.")),
+              result: "Tu les écartes net. Les gardes du refuge t'ouvrent grand les portes. Vous êtes arrivées, et entières."),
+          _c("Forcer le passage en encaissant",
+              fx: {Stat.moral: 4, Stat.faim: -4},
+              result: "Tu franchis les derniers mètres sous les coups. Le train entre cabossé, mais il entre. Vous y êtes.")),
       StoryCard(
         id: 'G14',
         kind: CardKind.gare,

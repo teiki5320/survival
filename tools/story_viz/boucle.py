@@ -18,7 +18,7 @@ def wrap(x,y,s,f,fill,maxw,a="mm",lh=22):
     for i,l in enumerate(lines): ct(x,y+i*lh,l,f,fill,a)
 
 ct(W//2,46,"TRAIN COSY — La boucle de jeu",F(40,True),INK)
-ct(W//2,86,"Structure cible : ouverture → train vide + tuto → [ cartes → cinématique → gare/combat → s'occuper de Shen ] × 14 gares",F(17),INK2)
+ct(W//2,86,"Structure cible : ouverture → train vide + tuto → [ cartes → cinématique → carte d'épreuve à la gare → s'occuper de Shen ] × 14 gares",F(17),INK2)
 
 # ---- Démarrage (linéaire, en haut) ----
 def box(x,y,w,h,title,sub,col):
@@ -39,7 +39,7 @@ cx,cy=W//2,640; R=230
 phases=[
  ("1 · ~10 CARTES","Reigns : choix qui font avancer l'histoire et DÉBLOQUENT des objets (filtre, hydro…). On comprend parfois mieux le passé.",(232,185,107),-90),
  ("2 · CINÉMATIQUE","Le train entre en gare et s'arrête. Mise en scène de l'évènement à venir.",(150,110,170),0),
- ("3 · GARE = COMBAT","Un évènement qui fait avancer l'histoire OU fait gagner un élément clé, joué pendant un COMBAT (ex. sauver le chiot).",(226,90,70),90),
+ ("3 · CARTE D'ÉPREUVE","Une carte à choix qui résout la menace de la gare (pillards, barrage…) et fait avancer l'histoire OU gagner un élément clé.",(226,90,70),90),
  ("4 · S'OCCUPER DE SHEN","Entre les phases : comme les Sims / un Tamagotchi — manger, boire, dormir, se laver, jouer avec le chien…",(123,174,107),180),
 ]
 import math
@@ -68,7 +68,7 @@ ct(cx,cy+44,"↻",F(40,True),(200,140,30))
 ey=1010
 d.rounded_rectangle([60,ey,W-60,H-30],radius=12,fill=(255,255,255,160),outline=(150,125,95),width=2)
 ct(80,ey+26,"EXEMPLE — Gare 1 :",F(17,True),INK,"lm")
-wrap(80,ey+58,"Le train est entre la VILLE NATALE (départ, où le jeu se terminera) et la 1re gare. Les ~10 cartes font gagner le FILTRE À EAU + la TOUR HYDRO. À ce stade : train abîmé, filtre+hydro acquis, il fait froid, stats quasi à zéro. → Cinématique : entrée en gare, un CHIOT sur le quai, on sort, on se fait attaquer → si on joue bien, on SAUVE le chiot.",F(13),INK2,W-180,a="lm",lh=19)
+wrap(80,ey+58,"Le train est entre la VILLE NATALE (départ, où le jeu se terminera) et la 1re gare. Les ~10 cartes font gagner le FILTRE À EAU + la TOUR HYDRO. À ce stade : train abîmé, filtre+hydro acquis, il fait froid, stats quasi à zéro. → Cinématique : entrée en gare, un CHIOT sur le quai → carte d'épreuve : on le recueille pour gagner le CHIEN.",F(13),INK2,W-180,a="lm",lh=19)
 
 img.save("/home/user/survival/docs/boucle_jeu.png")
 print("OK",img.size)

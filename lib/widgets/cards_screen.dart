@@ -18,7 +18,6 @@ import 'package:flutter/material.dart';
 import '../data/cards_data.dart';
 import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
-import 'games/roof_defense_game.dart';
 
 class CardsScreen extends StatefulWidget {
   const CardsScreen({super.key, required this.onClose});
@@ -56,11 +55,6 @@ class _CardsScreenState extends State<CardsScreen>
   late final AnimationController _gareCtrl;
   int _announcedGare = -1;
   String _gareLabel = '';
-
-  // Combat de gare en cours (index de gare) : superpose le mini-jeu plein
-  // écran. null = pas de combat. Déclenché à l'arrivée à une gare non encore
-  // défendue (sauf la gare tuto 0).
-  int? _combatGare;
 
   // Tic 1s : régénère les crédits en temps réel + rafraîchit le compte à
   // rebours affiché. Flash quand on tente un swipe sans crédit.
@@ -111,7 +105,7 @@ class _CardsScreenState extends State<CardsScreen>
       GameState.instance.refreshCredits();
       setState(() {});
     });
-    // Présente la première carte (combat de gare si besoin, sinon annonce).
+    // Présente la première carte (annonce de gare le cas échéant).
     _presentCurrentCard();
   }
 
@@ -127,41 +121,9 @@ class _CardsScreenState extends State<CardsScreen>
     super.dispose();
   }
 
-  /// Présente la carte courante : si c'est une gare pas encore défendue (hors
-  /// gare tuto 0), lance le COMBAT plein écran d'abord ; sinon enchaîne sur
-  /// l'annonce de gare classique.
+  /// Présente la carte courante : annonce de gare le cas échéant. Les gares se
+  /// jouent entièrement en cartes/choix (pas de mini-jeu).
   void _presentCurrentCard() {
-    // NB : appelé depuis initState (avant le 1er build) et depuis
-    // _revealPending (déjà dans un setState) -> on assigne sans setState.
-    final card = _state.card;
-    if (card != null && card.kind == CardKind.gare) {
-      final idx = _engine.gareIndex;
-      final done = GameState.instance.cardFlags.contains('combatDone_$idx');
-      // Combat dès la gare 1 (idx 0) : c'est le combat-tuto du sauvetage du
-      // chiot. (Avant, idx 0 était sauté.)
-      if (!done) {
-        _combatGare = idx;
-        return; // l'annonce de gare se fera après le combat
-      }
-    }
-    _maybeAnnounceGare();
-  }
-
-  /// Fin du combat de gare : applique les récompenses (ressources + flags de
-  /// tier), reconstruit la variante de gare selon le score, puis révèle la
-  /// carte de gare.
-  void _onCombatResult(int idx, int score) {
-    GameState.instance.applyCombatRewards(idx, score);
-    _engine.rebuildGareCards();
-    // Pulse les jauges qui viennent d'être ravitaillées.
-    for (final st in Stat.values) {
-      _pulseSign[st] = 1;
-      _pulse[st]?.forward(from: 0);
-    }
-    setState(() {
-      _combatGare = null;
-      _state = _engine.current;
-    });
     _maybeAnnounceGare();
   }
 
@@ -275,15 +237,6 @@ class _CardsScreenState extends State<CardsScreen>
                     ),
             ),
             _gareAnnounce(),
-            if (_combatGare != null)
-              Positioned.fill(
-                child: RoofDefenseGame(
-                  key: ValueKey('gareCombat_$_combatGare'),
-                  gareIndex: _combatGare!,
-                  onExit: () {},
-                  onResult: (score) => _onCombatResult(_combatGare!, score),
-                ),
-              ),
           ],
         ),
       ),
@@ -388,7 +341,7 @@ class _CardsScreenState extends State<CardsScreen>
 
   // --- barre DEBUG (mode debug uniquement) : navigation libre dans les
   // cartes pour tester le contenu. Passer une carte = avance sans effet ;
-  // ◀/▶ Gare = saute au segment d'une autre gare (combat zappé).
+  // ◀/▶ Gare = saute au segment d'une autre gare.
   Widget _debugBar() {
     if (!GameState.instance.debugMode) return const SizedBox.shrink();
     Widget btn(String label, VoidCallback onTap) => GestureDetector(
@@ -432,7 +385,6 @@ class _CardsScreenState extends State<CardsScreen>
     _announcedGare = -1; // force la ré-annonce de la nouvelle gare
     setState(() {
       _state = next;
-      _combatGare = null; // pas de combat forcé en navigation debug
       _resultText = null;
       _pending = null;
     });

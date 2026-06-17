@@ -29,7 +29,6 @@ def rec(nid, title, situ, lL, lfx, rL, rfx, fill, gain=False, cond=None, dashed=
     bord=GOLD if gain else "#7A5C3A"; pw=3 if gain else 1
     w(f'  {nid} [shape=record, style="{style}", fillcolor="{fill}", color="{bord}", penwidth={pw}, label="{lab}"];')
 
-def diamond(nid,g): w(f'  {nid} [shape=diamond,style=filled,fillcolor="#E25A46",fontcolor=white,fontsize=11,label="COMBAT gare {g}\\nselon le score"];')
 def arrow(a,b,lbl=None,color=None,style=None):
     at=[]
     if lbl: at.append(f'label="{esc(lbl)}"')
@@ -77,12 +76,9 @@ last=filler_chain(["G2"],2,2)
 
 gare_card("G3",3,"G3","Pillards dans le brouillard","Passer en fantôme","B-6 M-4","Accélérer","B-10 M+3")
 gare_card("G3b",3,"G3b","Foulard d'enfant (sœur ?)","Risquer pour l'attraper","F-8 M+12 indice","Ne pas risquer","M-8")
-diamond("C3",3)
-gare_card("G3win",3,"G3win (bon combat)","Wagon intact","Souffler","M+8","Fouiller le butin","F+6 B+4")
-gare_card("G3lose",3,"G3lose (combat raté)","Wagon abîmé","Colmater","B-6 M-3","Repartir","F-5")
 for p in last: arrow(p,"G3")
-arrow("G3","G3b"); arrow("G3b","C3"); arrow("C3","G3win","bon","#3C8C3C"); arrow("C3","G3lose","raté","#C25A4A")
-last=filler_chain(["G3win","G3lose"],3,3)
+arrow("G3","G3b")
+last=filler_chain(["G3b"],3,3)
 
 gare_card("G4",4,"G4","Mur des disparus + mot d'enfant","Y croire, foncer","M+14 B-8 indice","Rester méfiante","M-4",gain=True)
 for p in last: arrow(p,"G4")
@@ -90,12 +86,9 @@ last=filler_chain(["G4"],4,4)
 
 gare_card("G5",5,"G5","La petite sœur, vivante !","Courir la serrer","M+40 SŒUR","(idem)","M+40 SŒUR",gain=True)
 gare_card("G5b",5,"G5b","Parents partis au nord","Lui promettre","M+12 cap","Rester prudente","M+4 cap")
-diamond("C5",5)
-gare_card("G5win",5,"G5win (bon combat)","Sœur indemne","La serrer encore","M+10","Filer vite","B+4 M+5")
-gare_card("G5lose",5,"G5lose (combat raté)","Elle a vu l'horreur","La consoler","M-3 F-4 SOIN","L'endurcir","M+4")
 for p in last: arrow(p,"G5")
-arrow("G5","G5b"); arrow("G5b","C5"); arrow("C5","G5win","bon","#3C8C3C"); arrow("C5","G5lose","raté","#C25A4A")
-last=filler_chain(["G5win","G5lose"],5,6)
+arrow("G5","G5b")
+last=filler_chain(["G5b"],5,6)
 
 gare_card("G6",6,"G6","Camp louche","Troquer et partir","F+12 S+8 M-6","Ne pas s'attarder","M+6 F-5")
 for p in last: arrow(p,"G6")
@@ -118,12 +111,8 @@ for p in last: arrow(p,"G10")
 last=filler_chain(["G10"],10,10)
 
 gare_card("G11",11,"G11","Barrage de pillards","Foncer","B-18 M-6","Négocier","F-16 S-10 M+4")
-diamond("C11",11)
-gare_card("G11win",11,"G11win (bon combat)","Pillards en déroute","Rafler le butin","F+10 B+8","Passer vite","M+8")
-gare_card("G11lose",11,"G11lose (combat raté)","Assaut au prix fort","Panser","F-8 M-4","Fuir","B-8 M+3")
 for p in last: arrow(p,"G11")
-arrow("G11","C11"); arrow("C11","G11win","bon","#3C8C3C"); arrow("C11","G11lose","raté","#C25A4A")
-last=filler_chain(["G11win","G11lose"],11,11)
+last=filler_chain(["G11"],11,11)
 
 gare_card("G12",12,"G12","Vue sur le refuge nord","Jurer qu'ils sont là","M+18","Tempérer l'espoir","M+6")
 for p in last: arrow(p,"G12")

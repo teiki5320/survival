@@ -10,13 +10,11 @@ import 'widgets/map_screen.dart';
 import 'widgets/side_scroll_scene.dart';
 import 'widgets/cards_screen.dart';
 import 'widgets/stat_rings.dart';
-import 'widgets/games/roof_defense_game.dart';
 import 'widgets/title_screen.dart';
 import 'widgets/loading_screen.dart';
 import 'widgets/opening_cinematic.dart';
 import 'widgets/tutorial_overlay.dart';
 import 'widgets/wardrobe_screen.dart';
-import 'widgets/workshop_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -149,12 +147,6 @@ class _WagonScreenState extends State<WagonScreen>
   bool _inWardrobe = false;
   bool _inCards = false;
   bool _cardsFromLoco = false; // cartes ouvertes via le voyage (loco->map) : y revenir
-  bool _inShootGame = false; // mini-jeu défense du toit (gares)
-  bool _inWorkshop = false; // atelier + quotidien + collection (depuis la map)
-  // Combat lancé depuis une gare de la map (la map = le menu). On mémorise
-  // l'index de gare pour appliquer le score (récompenses + flags) au retour.
-  bool _shootFromGare = false;
-  int _shootGareIndex = 0;
   // Vrai si la map a été ouverte depuis la loco (pour y revenir en quittant).
   bool _mapFromLoco = false;
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
@@ -181,7 +173,7 @@ class _WagonScreenState extends State<WagonScreen>
   Timer? _unlockTimer;
   void _checkUnlocks() {
     if (_unlockBanner != null) return;
-    if (_inCards || _inShootGame || _onMap || _inLocomotive) return;
+    if (_inCards || _onMap || _inLocomotive) return;
     final name = GameState.instance.popUnlock();
     if (name == null) return;
     setState(() => _unlockBanner = 'Nouvel objet : $name !');
@@ -386,10 +378,10 @@ class _WagonScreenState extends State<WagonScreen>
     // du froid : drain = max(1, coldness / 5) (coldness = seuil − température).
     //   léger (coldness ~5) → −1   |  mordant (~10) → −2   |  glacial (~20) → −4
     _coldTimer = Timer.periodic(const Duration(seconds: 14), (_) {
-      // Pas de drain pendant cartes/combat (qui ont leur propre économie) :
-      // sinon on pouvait perdre la run sur un timer non actionnable en plein
-      // combat. Cohérent avec le timer des besoins.
-      if (!mounted || _inCards || _inShootGame) return;
+      // Pas de drain pendant les cartes (qui ont leur propre économie) : sinon
+      // on pouvait perdre la run sur un timer non actionnable en plein voyage.
+      // Cohérent avec le timer des besoins.
+      if (!mounted || _inCards) return;
       final gs = GameState.instance;
       if (gs.feltCold) {
         final d = (gs.coldness / 5).round();
@@ -397,13 +389,11 @@ class _WagonScreenState extends State<WagonScreen>
       }
     });
     // TAMAGOTCHI LÉGER : faim et soif descendent doucement avec le temps passé
-    // dans le train (-1 toutes les 25 s, hors cartes/combat qui ont leur propre
+    // dans le train (−1 toutes les 24 s, hors cartes qui ont leur propre
     // économie). Manger (cuisinière/bac) et boire (filtre) deviennent
-    // NÉCESSAIRES, pas décoratifs.
-    // Besoins : faim/soif descendent doucement (−1 toutes les 24 s) hors
-    // cartes/combat. Ralenti pour limiter les allers-retours entre wagons.
+    // NÉCESSAIRES, pas décoratifs. Ralenti pour limiter les allers-retours.
     _needsTimer = Timer.periodic(const Duration(seconds: 24), (_) {
-      if (!mounted || _inCards || _inShootGame) return;
+      if (!mounted || _inCards) return;
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
       gs.nudgeCardStat('soif', -1);
@@ -412,7 +402,7 @@ class _WagonScreenState extends State<WagonScreen>
     // le drain vivait dans l'atelier -> chaleur gratuite ailleurs). Le poêle
     // s'éteint tout seul à 0 bois (nudgeCardStat).
     _poeleTimer = Timer.periodic(const Duration(seconds: 9), (_) {
-      if (!mounted || _inCards || _inShootGame) return;
+      if (!mounted || _inCards) return;
       final gs = GameState.instance;
       if (gs.poeleOn) gs.nudgeCardStat('bois', -1);
     });
@@ -546,7 +536,7 @@ class _WagonScreenState extends State<WagonScreen>
   }
 
   /// Mode debug actif ? (révèle les outils de test : nettoyage, jour/nuit,
-  /// température, danse, ajustement des props, et le duel du combat).
+  /// température, danse, ajustement des props).
   bool get _debug => GameState.instance.debugMode;
 
   @override
@@ -568,32 +558,7 @@ class _WagonScreenState extends State<WagonScreen>
         // de deux persos de tailles différentes.
         layoutBuilder: (currentChild, previousChildren) =>
             currentChild ?? const SizedBox.shrink(),
-        child: _inShootGame
-            ? RoofDefenseGame(
-                key: const ValueKey('shoot_game'),
-                gareIndex: _shootGareIndex,
-                onExit: () => setState(() {
-                  _inShootGame = false;
-                  if (_shootFromGare) {
-                    _shootFromGare = false;
-                    _onMap = true; // retour à la map (le menu)
-                  }
-                }),
-                // Lancé depuis une gare -> mode gare (score /100). Le score est
-                // appliqué (ressources + flags) puis on revient à la map.
-                onResult: _shootFromGare
-                    ? (score) {
-                        GameState.instance
-                            .applyCombatRewards(_shootGareIndex, score);
-                        setState(() {
-                          _inShootGame = false;
-                          _shootFromGare = false;
-                          _onMap = true;
-                        });
-                      }
-                    : null,
-              )
-            : _inCards
+        child: _inCards
             ? CardsScreen(
                 key: const ValueKey('cards'),
                 onClose: () => setState(() {
@@ -611,30 +576,11 @@ class _WagonScreenState extends State<WagonScreen>
                 key: const ValueKey('wardrobe'),
                 onClose: () => setState(() => _inWardrobe = false),
               )
-            : _inWorkshop
-            ? WorkshopScreen(
-                key: const ValueKey('workshop'),
-                onClose: () => setState(() {
-                  _inWorkshop = false;
-                  _onMap = true; // retour à la map (le menu)
-                }),
-              )
             : _onMap
             ? MapScreen(
                 key: const ValueKey('map'),
                 onClose: _exitMap,
-                // La map est le menu : taper une gare lance son combat.
-                onGareSelected: (i) => setState(() {
-                  _shootGareIndex = i;
-                  _shootFromGare = true;
-                  _onMap = false;
-                  _inShootGame = true;
-                }),
-                onOpenWorkshop: () => setState(() {
-                  _onMap = false;
-                  _inWorkshop = true;
-                }),
-                // Entrée des cartes narratives depuis la map (jeu normal).
+                // Entrée des cartes narratives depuis la map (le voyage).
                 onOpenCards: () => setState(() {
                   _onMap = false;
                   _inCards = true;
@@ -733,8 +679,7 @@ class _WagonScreenState extends State<WagonScreen>
           if (!_onMap &&
               !_inCards &&
               !_inWardrobe &&
-              !_inWorkshop &&
-              !_inShootGame &&
+              
               !_inLocomotive &&
               _inLiving &&
               !_doorPushing &&

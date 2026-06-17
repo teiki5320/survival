@@ -39,3 +39,4 @@ web/
 *.log
 pubspec.lock
 frames_backup_49/
+__pycache__/

@@ -8,14 +8,14 @@ digraph TrameTrainCosy {
   // --- Gares (spine) ---
   node [shape=box, fillcolor="#5a4634"];
   G1  [label="G1 Gare natale\n(tuto · trouve le chien)"];
-  G2  [label="G2 Dépôt de fret\n(loco à bois · Le Vieux monte)"];
+  G2  [label="G2 Dépôt de fret\n(nourrir la loco au bois)"];
   G3  [label="G3 Halte 47\n(pillards dans le brouillard)"];
   G4  [label="G4 Village fantôme\n(trouve la radio)"];
-  G5  [label="G5 Pont sur le fleuve\n(ressources)"];
+  G5  [label="G5 Pont sur le fleuve\n(RETROUVAILLES sœur)"];
   G6  [label="G6 Camp-refuge\n(rumeur du Nord)"];
-  G7  [label="G7 Halte 12\n(souvenir de la sœur)"];
-  G8  [label="G8 Entrée zone froide\n(trouve l'enfant)"];
-  G9  [label="G9 Plaine enneigée\n(tempête · enfant malade)"];
+  G7  [label="G7 Halte 12\n(souvenir d'enfance)"];
+  G8  [label="G8 Entrée zone froide\n(la sœur grelotte)"];
+  G9  [label="G9 Plaine enneigée\n(tempête · sœur malade)"];
   G10 [label="G10 Oasis / serre\n(répit cosy)"];
   G11 [label="G11 Halte 31\n(climax intermédiaire)"];
   G12 [label="G12 Tour de guet\n(voit le refuge nord)"];
@@ -24,37 +24,37 @@ digraph TrameTrainCosy {
 
   // --- Noeuds de choix (branches) ---
   node [shape=diamond, fillcolor="#735a3c", fontcolor="#fff7e6"];
-  C3  [label="aider le fuyard ?"];
-  C6  [label="Le Vieux\nreste ou suit ?"];
-  C11 [label="pillards\nou radio claire ?"];
+  C3  [label="risquer pour\nle foulard ?"];
+  C5  [label="promettre les\nparents ?"];
+  C11 [label="barrage pillards\nou radio claire ?"];
   C13 [label="quoi sacrifier ?"];
 
   // --- Fins ---
   node [shape=ellipse];
-  F_RETROUV [label="FIN · Retrouvailles", fillcolor="#3c6e47"];
-  F_DEUIL   [label="FIN · Le deuil et la vie", fillcolor="#4a5a7a"];
+  F_RETROUV [label="FIN · Réunis (famille)", fillcolor="#3c6e47"];
+  F_ENSEMBLE [label="FIN · Toutes les deux", fillcolor="#4a5a7a"];
   F_MORT    [label="FIN · Mort (stat à 0)", fillcolor="#7a3030"];
   F_ABANDON [label="FIN · Abandon (moral 0)", fillcolor="#6a5a3a"];
-  F_SECRETE [label="FIN secrète · la voix\nétait sa sœur", fillcolor="#7a5a8a"];
+  F_SECRETE [label="FIN secrète · la voix\nétait maman", fillcolor="#7a5a8a"];
 
   // --- Spine principale ---
   G1 -> G2 -> G3;
   G3 -> C3;
-  C3 -> G4 [label="aide (flag+)"];
-  C3 -> G4 [label="ignore (flag-)", style=dashed];
-  G4 -> G5 -> G6 -> C6;
-  C6 -> G7 [label="reste au camp", style=dashed];
-  C6 -> G7 [label="suit Shen (flag Vieux)"];
-  G7 -> G8 -> G9 -> G10 -> G11;
+  C3 -> G4 [label="risque (indice sœur)"];
+  C3 -> G4 [label="renonce", style=dashed];
+  G4 -> G5 -> C5;
+  C5 -> G6 [label="promettre"];
+  C5 -> G6 [label="rester prudente", style=dashed];
+  G6 -> G7 -> G8 -> G9 -> G10 -> G11;
   G11 -> C11;
-  C11 -> G12 [label="pillards (si fuyard ignoré)", style=dashed];
-  C11 -> G12 [label="voix radio (si radio suivie)"];
+  C11 -> G12 [label="barrage pillards"];
+  C11 -> G12 [label="voix radio (si radio suivie)", style=dashed];
   G12 -> G13 -> C13;
-  C13 -> G14 [label="bois / détour / compagnon"];
+  C13 -> G14 [label="bois / pousser ensemble"];
 
   // --- Fins depuis le climax + sorties anticipées ---
-  G14 -> F_RETROUV [label="flags positifs"];
-  G14 -> F_DEUIL   [label="flags mitigés"];
+  G14 -> F_RETROUV [label="sœur soignée + moral haut"];
+  G14 -> F_ENSEMBLE [label="sœur, moral moyen"];
   G14 -> F_SECRETE [label="radio suivie + tout positif", color="#c79bdc"];
 
   // Fins possibles à tout moment (game over)

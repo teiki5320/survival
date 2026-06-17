@@ -60,21 +60,6 @@ class GameState extends ChangeNotifier {
         'wagonStage': wagonStage,
         'cabinTemp': cabinTemp,
         'outfitWarmth': outfitWarmth,
-        'shootWeaponLevel': shootWeaponLevel,
-        'shootBestStars': shootBestStars,
-        'shootBestScore': shootBestScore,
-        'scrap': scrap,
-        'shootUpgrades': shootUpgrades,
-        'shootMuzX': shootMuzX, 'shootMuzY': shootMuzY,
-        'shootGroundY': shootGroundY,
-        'gareBestScore':
-            gareBestScore.map((k, v) => MapEntry(k.toString(), v)),
-        'dailyDay': _dailyDay,
-        'dailyChestDay': dailyChestDay,
-        'dailyKills': dailyKills,
-        'dailyScrap': dailyScrap,
-        'dailyGaresWon': dailyGaresWon,
-        'dailyClaimed': dailyClaimed.toList(),
         'wagon2Stage': wagon2Stage,
         'atelierStage': atelierStage,
         'wagon2LampAx': wagon2LampAx,
@@ -97,9 +82,6 @@ class GameState extends ChangeNotifier {
         'locoMapCx': locoMapCx, 'locoMapCy': locoMapCy, 'locoMapW': locoMapW,
         'locoMapTurnY': locoMapTurnY, 'locoMapLeanZ': locoMapLeanZ,
         'waterTankGlasses': waterTankGlasses,
-        'filterTier': filterTier,
-        'hydroTier': hydroTier,
-        'woodTier': woodTier,
         'cardsRun': _cardsRunToJson(),
         'layoutBaked': true, // coords d'objets validées appliquées
       });
@@ -147,39 +129,6 @@ class GameState extends ChangeNotifier {
       wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       cabinTemp = (data['cabinTemp'] as num?)?.toDouble() ?? cabinTemp;
       outfitWarmth = (data['outfitWarmth'] as num?)?.toInt() ?? outfitWarmth;
-      shootWeaponLevel =
-          (data['shootWeaponLevel'] as num?)?.toInt() ?? shootWeaponLevel;
-      shootBestStars =
-          (data['shootBestStars'] as num?)?.toInt() ?? shootBestStars;
-      shootBestScore =
-          (data['shootBestScore'] as num?)?.toInt() ?? shootBestScore;
-      scrap = (data['scrap'] as num?)?.toInt() ?? scrap;
-      if (data['shootUpgrades'] is Map) {
-        shootUpgrades = (data['shootUpgrades'] as Map).map(
-            (k, v) => MapEntry(k as String, (v as num).toInt()));
-      }
-      shootMuzX = (data['shootMuzX'] as num?)?.toDouble() ?? shootMuzX;
-      shootMuzY = (data['shootMuzY'] as num?)?.toDouble() ?? shootMuzY;
-      shootGroundY = (data['shootGroundY'] as num?)?.toDouble() ?? shootGroundY;
-      // Migration : anciennes valeurs (décor "vue de loin" 0.865, ou 1er jet du
-      // décor en couches 0.80) -> calage actuel.
-      if (shootGroundY > 0.84 || (shootGroundY - 0.80).abs() < 0.005) {
-        shootMuzX = 0.11;
-        shootMuzY = 0.83;
-        shootGroundY = 0.83;
-      }
-      if (data['gareBestScore'] is Map) {
-        gareBestScore = (data['gareBestScore'] as Map).map(
-            (k, v) => MapEntry(int.parse(k as String), (v as num).toInt()));
-      }
-      _dailyDay = (data['dailyDay'] as num?)?.toInt() ?? 0;
-      dailyChestDay = (data['dailyChestDay'] as num?)?.toInt() ?? -1;
-      dailyKills = (data['dailyKills'] as num?)?.toInt() ?? 0;
-      dailyScrap = (data['dailyScrap'] as num?)?.toInt() ?? 0;
-      dailyGaresWon = (data['dailyGaresWon'] as num?)?.toInt() ?? 0;
-      if (data['dailyClaimed'] is List) {
-        dailyClaimed = (data['dailyClaimed'] as List).cast<String>().toSet();
-      }
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       atelierStage = ((data['atelierStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
@@ -229,9 +178,6 @@ class GameState extends ChangeNotifier {
       waterTankGlasses =
           ((data['waterTankGlasses'] as num?)?.toInt() ?? 0)
               .clamp(0, waterTankMax);
-      filterTier = (data['filterTier'] as num?)?.toInt() ?? 1;
-      hydroTier = (data['hydroTier'] as num?)?.toInt() ?? 1;
-      woodTier = (data['woodTier'] as num?)?.toInt() ?? 1;
       _loadCardsRun(data['cardsRun']);
       // MIGRATION : les anciennes sauvegardes ont des coords d'objets périmées
       // (jamais re-sauvées car l'autosave est récent) -> on applique une fois
@@ -251,9 +197,8 @@ class GameState extends ChangeNotifier {
 
   // --- Mode debug (outils de test cachés du vrai jeu) ---
   // Un seul interrupteur révèle tous les outils de dev (thermomètre test,
-  // FAB d'ajustement des props, affichage de TOUS les objets du wagon, et le
-  // mode "duel" du combat). Debug OFF = le vrai jeu (objets progressifs,
-  // température auto, campagne de combat complète). Persisté.
+  // FAB d'ajustement des props, affichage de TOUS les objets du wagon).
+  // Debug OFF = le vrai jeu (objets progressifs, température auto). Persisté.
   bool debugMode = false;
   void setDebugMode(bool v) {
     if (debugMode == v) return;
@@ -434,184 +379,6 @@ class GameState extends ChangeNotifier {
     isNight = n;
     _recomputeAutoTemp();
   }
-  // Mini-jeu de défense de gare : niveau d'arme débloqué (0=fronde, 1=arc,
-  // 2=arbalète, 3=cocktail) + meilleur score d'étoiles obtenu.
-  int shootWeaponLevel = 0;
-  int shootBestStars = 0;
-  int shootBestScore = 0; // record en mode survie
-  int scrap = 0; // ferraille (monnaie du mini-jeu)
-  Map<String, int> shootUpgrades = {}; // niveaux des améliorations d'atelier
-  // Position du canon (trappe/fenêtre du train) + ligne de sol, en unités de
-  // scène du combat. Réglables via le mode ajuster du combat, persistées.
-  // Calé sur le décor en couches (train en bas-gauche, quai ~0.83).
-  double shootMuzX = 0.11, shootMuzY = 0.83, shootGroundY = 0.83;
-  void setShootMuzzle(double mx, double my, double groundY) {
-    shootMuzX = mx.clamp(0.0, 2.5);
-    shootMuzY = my.clamp(0.0, 1.0);
-    shootGroundY = groundY.clamp(0.4, 1.0);
-    notifyListeners();
-    save();
-  }
-
-  // Définitions de l'atelier (clé -> (libellé, desc, coûts par niveau)).
-  // Partagé entre le combat et l'écran Atelier ouvert depuis la map.
-  static const Map<String, (String, String, List<int>)> shootShopDefs = {
-    'dmg': ('Cailloux plus durs', 'Dégâts de base +1', [40, 80, 140, 220]),
-    'hearts': ('Blindage du train', 'Cœur de départ +1', [50, 100, 170, 260]),
-    'range': ('Meilleure fronde', 'Portée/vitesse +8%', [35, 70, 120]),
-    'stones': ('Double charge', 'Démarre avec +1 pierre', [120, 260]),
-    'choices': ('Plus de choix', '4 cartes de renfort', [150]),
-    'magnet': ('Aimant à ferraille', 'Ramasse le butin tout seul', [120]),
-    'shield': ('Bouclier de wagon', 'Encaisse 1 coup gratuit/vague', [160, 300]),
-    'bomb': ('Bombe de secours', 'Frappe TOUT l\'écran (1/vague)', [200]),
-  };
-
-  /// Achète une amélioration d'atelier (paie en ferraille). Renvoie true si OK.
-  bool buyShootUpgrade(String key) {
-    final def = shootShopDefs[key];
-    if (def == null) return false;
-    final lvl = shootUpgrades[key] ?? 0;
-    if (lvl >= def.$3.length) return false; // déjà au max
-    final cost = def.$3[lvl];
-    if (scrap < cost) return false;
-    scrap -= cost;
-    shootUpgrades[key] = lvl + 1;
-    notifyListeners();
-    save();
-    return true;
-  }
-  // Meilleur score de combat (/100) par gare (index 0-based) : méta-progression
-  // "atteindre 100% sur chaque gare en ~20 parties".
-  Map<int, int> gareBestScore = {};
-
-  /// Conversion score /100 -> étoiles (0..3) pour la collection des gares.
-  static int starsForScore(int s) =>
-      s >= 90 ? 3 : (s >= 70 ? 2 : (s >= 50 ? 1 : 0));
-
-  /// Étoiles obtenues sur une gare (depuis le meilleur score enregistré).
-  int gareStars(int gareIndex) => starsForScore(gareBestScore[gareIndex] ?? 0);
-
-  /// Total d'étoiles récoltées sur les 14 gares (sur 14×3 = 42).
-  int get totalGareStars =>
-      gareBestScore.values.fold(0, (a, s) => a + starsForScore(s));
-
-  // --- Rendez-vous quotidiens (rétention "reviens demain") ---
-  // Coffre gratuit 1×/jour + 3 missions journalières qui rapportent de la
-  // ferraille. Tout se réinitialise au changement de jour calendaire.
-  int _dailyDay = 0; // numéro de jour (epoch days) du jour en cours
-  int dailyChestDay = -1; // jour où le coffre a été ouvert (-1 = jamais)
-  int dailyKills = 0; // pillards tués aujourd'hui
-  int dailyScrap = 0; // ferraille récoltée en combat aujourd'hui
-  int dailyGaresWon = 0; // gares défendues sans perdre de cœur aujourd'hui
-  Set<String> dailyClaimed = {}; // missions déjà réclamées aujourd'hui
-
-  static int get _todayNum =>
-      DateTime.now().millisecondsSinceEpoch ~/ 86400000;
-
-  /// Missions du jour : id -> (libellé, cible, récompense ferraille).
-  static const Map<String, (String, int, int)> dailyMissions = {
-    'kills': ('Abattre 60 pillards', 60, 40),
-    'perfect': ('Défendre 1 gare sans perte', 1, 60),
-    'scrap': ('Récolter 100 ferraille', 100, 30),
-  };
-
-  void _ensureDailyDay() {
-    final t = _todayNum;
-    if (_dailyDay != t) {
-      _dailyDay = t;
-      dailyKills = 0;
-      dailyScrap = 0;
-      dailyGaresWon = 0;
-      dailyClaimed = {};
-    }
-  }
-
-  bool get dailyChestAvailable {
-    _ensureDailyDay();
-    return dailyChestDay != _dailyDay;
-  }
-
-  /// Ouvre le coffre quotidien (si dispo) et renvoie la ferraille gagnée.
-  int claimDailyChest() {
-    if (!dailyChestAvailable) return 0;
-    final reward = 25 + (totalGareStars * 2); // récompense qui grandit
-    scrap += reward;
-    dailyChestDay = _dailyDay;
-    notifyListeners();
-    save();
-    return reward;
-  }
-
-  int dailyProgress(String id) {
-    _ensureDailyDay();
-    switch (id) {
-      case 'kills':
-        return dailyKills;
-      case 'perfect':
-        return dailyGaresWon;
-      case 'scrap':
-        return dailyScrap;
-    }
-    return 0;
-  }
-
-  bool dailyDone(String id) =>
-      dailyProgress(id) >= (dailyMissions[id]?.$2 ?? 1 << 30);
-  bool dailyReady(String id) =>
-      dailyDone(id) && !dailyClaimed.contains(id);
-
-  /// Réclame la récompense d'une mission accomplie. Renvoie la ferraille.
-  int claimDailyMission(String id) {
-    if (!dailyReady(id)) return 0;
-    final reward = dailyMissions[id]?.$3 ?? 0;
-    scrap += reward;
-    dailyClaimed.add(id);
-    notifyListeners();
-    save();
-    return reward;
-  }
-
-  /// Bilan d'un combat (appelé à la fin d'une run) : alimente les compteurs
-  /// des missions du jour.
-  void reportCombat(
-      {required int kills, required int scrapCollected, required bool perfect}) {
-    _ensureDailyDay();
-    dailyKills += kills;
-    dailyScrap += scrapCollected;
-    if (perfect) dailyGaresWon += 1;
-    notifyListeners();
-    save();
-  }
-
-  /// Récompenses du combat de gare : convertit le score /100 en ressources
-  /// (bois/eau/nourriture/moral) injectées dans les jauges Reigns, et pose des
-  /// flags de "tier" + de réussite que les cartes de gare lisent pour brancher
-  /// l'histoire. Garde le meilleur score de la gare.
-  void applyCombatRewards(int gareIndex, int score100) {
-    final s = score100.clamp(0, 100);
-    // Ravitaillement CALIBRÉ PAR SIMULATION (tools/sim_current.py, départ 25) :
-    // à ces valeurs, un joueur correct survit ~63%, négligent ~11%, expert ~99%.
-    // (Les anciennes valeurs 20/12/12/10 rendaient le jeu trivial : casual 97%.)
-    applyCardDeltas({
-      'bois': (s / 100 * 13).round(),
-      'soif': (s / 100 * 7).round(),
-      'faim': (s / 100 * 7).round(),
-      'moral': (s / 100 * 6).round(),
-    });
-    // Tier de combat = win/lose honnête (seuil 50). 'combatTierMid' supprimé
-    // (il était traité comme High -> flag redondant). High = victoire (le
-    // beat winText/winL/winR), Low = défaite (loseText...).
-    cardFlags.removeWhere((f) => f.startsWith('combatTier'));
-    cardFlags.add(s >= 50 ? 'combatTierHigh' : 'combatTierLow');
-    cardFlags.add('combatDone_$gareIndex');
-    if (s > (gareBestScore[gareIndex] ?? 0)) gareBestScore[gareIndex] = s;
-    // FERRAILLE selon le SCORE : mieux on défend la gare, plus on gagne
-    // (score 100 -> +50, 80 -> +40, 50 -> +25...). S'ajoute à la ferraille
-    // ramassée au sol pendant le combat. Donne un vrai intérêt à bien jouer.
-    scrap += (s / 100 * 50).round();
-    notifyListeners();
-    save();
-  }
   double get coldThreshold => 12.0 - wagonStage * 2 - outfitWarmth;
   // Vrai si Shen (et la sœur) ont froid -> frissons + blocage gain moral.
   bool get feltCold => cabinTemp < coldThreshold;
@@ -765,23 +532,6 @@ class GameState extends ChangeNotifier {
     save();
   }
 
-  // --- Equipment tiers (1-4) ---
-  int filterTier = 1;
-  int hydroTier = 1;
-  int woodTier = 1;
-
-  void upgradeTier(String which) {
-    switch (which) {
-      case 'filter':
-        if (filterTier < 4) filterTier++;
-      case 'hydro':
-        if (hydroTier < 4) hydroTier++;
-      case 'wood':
-        if (woodTier < 4) woodTier++;
-    }
-    notifyListeners();
-    save();
-  }
 
   // --- Météo (liée à la zone) ---
   Weather _weather = Weather.clear;
@@ -918,6 +668,18 @@ class GameState extends ChangeNotifier {
   int cardBois = 70;
   int cardMoral = 70;
 
+  /// Ravitaillement à l'arrivée d'une gare (fouille/troc), appliqué une fois
+  /// par gare par le moteur. Calibré par simulation (careless ~11% / casual
+  /// ~62% / smart 100%). Appliqué en direct (pas de blocage froid : ce sont
+  /// des vivres trouvés, pas du réconfort).
+  void grantGareSupply() {
+    cardBois = (cardBois + 9).clamp(0, statMax);
+    cardSoif = (cardSoif + 6).clamp(0, statMax);
+    cardFaim = (cardFaim + 6).clamp(0, statMax);
+    cardMoral = (cardMoral + 5).clamp(0, statMax);
+    notifyListeners();
+  }
+
   /// Bois fusionné : `cardBois` est LA jauge de bois (mort à 0). `gareWoodLeft`
   /// = combien de bûches il reste à ramasser à la loco pour CETTE gare (chaque
   /// bûche jetée au foyer = +10 cardBois). Remplace l'ancienne réserve
@@ -1018,8 +780,8 @@ class GameState extends ChangeNotifier {
   /// bloque alors le swipe et invite à attendre la recharge).
   bool spendCardCredit() {
     // CRÉDITS DÉSACTIVÉS (proto) : un mur de 8 min en plein moment narratif
-    // est un anti-pattern pour un jeu solo. Le froid + faim/soif + le combat
-    // limitent déjà le rythme. (Système conservé si on veut le réactiver.)
+    // est un anti-pattern pour un jeu solo. Le froid + faim/soif limitent
+    // déjà le rythme. (Système conservé si on veut le réactiver.)
     return true;
     // ignore: dead_code
     refreshCredits();
@@ -1069,9 +831,6 @@ class GameState extends ChangeNotifier {
     waterTankGlasses = 0;
     wagonStage = 0;
     wagon2Stage = 0;
-    filterTier = 1;
-    hydroTier = 1;
-    woodTier = 1;
     _items.clear();
     _flags.clear(); // anciens flags d'histoire (sécurité)
     seenTips.clear(); // le tuto rejoue

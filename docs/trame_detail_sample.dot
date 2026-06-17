@@ -13,10 +13,10 @@ digraph TrameDetail {
 
   K1 [label="G1 · GARE NATALE\n«Le quai brûle derrière toi.\nUn chiot tremble sous un banc.»"];
   K1b [label="G1b\n«La ville flambe. Tes parents\nsont peut-être encore là-bas.»"];
-  K2 [label="G2 · DÉPÔT DE FRET\n«Un vieux cheminot tape sur la\nchaudière : ''Tu sais nourrir\nça, petite ?''»"];
+  K2 [label="G2 · DÉPÔT DE FRET\n«Un manuel de cheminot traîne\nprès de la chaudière froide.\nLe nord boit du bois.»"];
   F_renard [label="REMPLISSAGE\n«Un renard maigre te fixe\ndepuis les ruines.»"];
   F_neige [label="REMPLISSAGE\n«La neige tombe. Le wagon\nse refroidit.»"];
-  K3 [label="G3 · HALTE 47\n«Une silhouette sort du\nbrouillard, mains levées :\n''Pitié, laissez-moi monter.''»"];
+  K3 [label="G3 · HALTE 47\n«Des phares crèvent le brouillard :\ndes pillards rôdent le long\nde la voie.»"];
 
   // ===== EFFETS / RÉSULTATS =====
   node [shape=note, style="filled", fillcolor="#2e2620", fontcolor="#cdbfa8", width=1.8, fontsize=9];
@@ -24,14 +24,14 @@ digraph TrameDetail {
   E1R [label="Moral -5\n→ menе à G1b"];
   E1bL [label="Soif -10, Faim -10\nrisque pillards\nflag: tenté_retour"];
   E1bR [label="Moral -10\n(culpabilité)"];
-  E2L [label="Bois +20\nflag: le_vieux_a_bord\n→ Le Vieux monte"];
-  E2R [label="Bois +5\nflag: seule"];
+  E2L [label="Bois +18, Faim -4\n(déchiffrer le manuel)"];
+  E2R [label="Bois +6, Moral -3\n(charger à l'instinct)"];
   EfrenL [label="Moral +5"];
   EfrenR [label="Faim -1, Moral +10"];
   EneigeL [label="Bois -10 (chauffe)"];
   EneigeR [label="Soif +10 (neige fondue)\nFatigue -5"];
-  E3L [label="Faim -10, Soif -10\nMoral +10\nflag: a_aidé_fuyard\n(revient en G11)"];
-  E3R [label="Moral -15\nflag: a_refusé\n(pillards en G11)"];
+  E3L [label="Bois -6, Moral -4\n(passer en fantôme)"];
+  E3R [label="Bois -10, Moral +3\n(accélérer, les semer)"];
 
   // ===== ARÊTES : carte -> (réponse) -> effet =====
   K1 -> E1L [label="← Le recueillir", color="#8fb98f"];
@@ -59,14 +59,14 @@ digraph TrameDetail {
   EneigeL -> K3;
   EneigeR -> K3;
 
-  K3 -> E3L [label="← Le laisser monter", color="#8fb98f"];
-  K3 -> E3R [label="→ Verrouiller la porte", color="#c46b6b"];
+  K3 -> E3L [label="← Passer en fantôme", color="#8fb98f"];
+  K3 -> E3R [label="→ Accélérer", color="#c9a37a"];
 
   // Légende
   subgraph cluster_leg {
     label="Comment lire";
     fontcolor="#d8c7af"; color="#3a2f28";
     node [shape=plaintext, fillcolor="#1b1714", fontcolor="#d8c7af", fontsize=9];
-    leg [label="▭ carte (question)        ▱ effet d'une réponse\n← = swipe gauche    → = swipe droite\nun effet = gains/pertes de stats + flags posés\nles flags rouvrent ou ferment des branches plus loin (ex: a_aidé_fuyard → G11)"];
+    leg [label="▭ carte (question)        ▱ effet d'une réponse\n← = swipe gauche    → = swipe droite\nun effet = gains/pertes de stats + flags posés\nles flags rouvrent ou ferment des branches plus loin (ex: indice sœur, aLaRadio → R1/R2/R3)"];
   }
 }

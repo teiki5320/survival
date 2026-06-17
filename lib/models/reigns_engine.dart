@@ -177,6 +177,10 @@ class ReignsEngine {
     // (base 4 + bonus aux gares de ravitaillement). Set une seule fois par gare.
     if (flags.add('woodpile_$idx')) {
       _gs.setGareWoodLeft(4 + (kWoodSupplyByGare[idx] ?? 0));
+      // RAVITAILLEMENT D'ARRIVÉE à la gare (on fouille/troque) : calibré par
+      // simu (careless ~11% / casual ~62% / smart 100%). La corvée de bûches à
+      // la loco reste un bonus optionnel par-dessus.
+      _gs.grantGareSupply();
     }
     _queue
       ..clear()
@@ -295,26 +299,8 @@ class ReignsEngine {
   }
 
   /// État courant (re-émission de la carte en tête de file), sans rien
-  /// consommer. Sert à rafraîchir l'UI après un combat de gare qui a posé
-  /// des flags de tier.
+  /// consommer. Sert à rafraîchir l'UI sans avancer.
   EngineState get current => _emit();
-
-  /// Reconstruit les cartes de GARE en tête de file avec les flags actuels.
-  /// Appelé après le combat de gare (qui pose combatTier*/combatGood_*) pour
-  /// que la variante de gare affichée reflète le score obtenu.
-  void rebuildGareCards() {
-    final seg = segments[_gs.cardGareIndex ?? 0];
-    var removed = 0;
-    while (_queue.isNotEmpty && _queue.first.kind == CardKind.gare) {
-      _queue.removeAt(0);
-      removed++;
-    }
-    final fresh = seg.gareCards(flags);
-    _queue.insertAll(0, fresh);
-    // Ajuste le total du segment si le nombre de beats de gare a changé.
-    _segmentTotal += fresh.length - removed;
-    if (_segmentTotal < 1) _segmentTotal = 1;
-  }
 
   // --- Outils DEBUG (navigation libre dans les cartes, mode debug uniquement).
 

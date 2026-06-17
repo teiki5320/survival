@@ -5,13 +5,16 @@
 > les beats de GARE (jamais aléatoires) + un paquet de FILLERS piochés
 > (`drawCount = 4`, 0 pour les gares 13 et 14).
 >
-> ⚠️ **Le Vieux a été SUPPRIMÉ** (perso non validé). Ignorer les lignes F2_vieux_feu / F3_vieux_fille / F4_vieux_carte / F6_vieux_reste / G2b si encore présentes.
+> ⚠️ Jeu **100 % narratif** (cartes Reigns) : pas de mini-jeu de combat. Les
+> menaces (pillards, barrage…) se résolvent en **cartes à choix**.
+> **Le Vieux et l'enfant trouvé ont été SUPPRIMÉS** (la sœur, retrouvée gare 5,
+> est le levier émotionnel). Ignorer les lignes F2_vieux_feu / F3_vieux_fille /
+> F4_vieux_carte / F6_vieux_reste / G2b si encore présentes.
 
 ## Légende
 
-- **Persos / objets** : 🐕 chien · 👧 petite sœur · 👴 Le Vieux · 📻 radio · 🛏️ lit · 💧 filtre à eau · 🌱 hydroponie (serre)
+- **Persos / objets** : 🐕 chien · 👧 petite sœur · 📻 radio · 🛏️ lit · 💧 filtre à eau · 🌱 hydroponie (serre)
 - **Stats** : **S** soif · **F** faim · **B** bois · **M** moral. Notation compacte : `M+15`, `B-8, F-4`.
-- **Combat** : `combatTierHigh/Mid/Low` posés par le combat de gare (score). `combatGood_N` si bon score à la gare N.
 - **Mécaniques de fond appliquées à CHAQUE carte** (moteur, pas dans les tableaux) :
   - Effets : pertes ×1.7, **gains de moral ×0.6** (pertes de moral pleines).
   - 👧 à bord (`aLaSoeur`) : `F-1, S-1, M+1` par carte (2e bouche).
@@ -45,8 +48,6 @@
 |---|---|---|---|---|
 | G3 | Pillards dans le brouillard, loco pas encore vue | "Passer en fantôme" : B-6, M-4 | "Accélérer pour les semer" : B-10, M+3 | — |
 | G3b | Foulard d'enfant (= celui de la sœur ?) | "Risquer pour l'attraper" : F-8, M+12, +`indiceSoeur` | "Ne pas risquer" : M-8 | `indiceSoeur` si gauche |
-| G3win | **si bon combat** (`combatTierHigh`) — wagon intact | "Souffler" : M+8 | "Fouiller leur butin" : F+6, B+4 | — |
-| G3lose | **si combat raté** (`combatTierLow`) — wagon endommagé | "Colmater" : B-6, M-3 | "Repartir" : F-5 | — |
 
 ### Gare 4 — Village fantôme
 
@@ -60,8 +61,6 @@
 |---|---|---|---|---|
 | G5 | La petite sœur, vivante, barre la route | "Courir la serrer" : M+40, +`aLaSoeur` | (idem) : M+40, +`aLaSoeur` | 👧 sœur (`aLaSoeur`) — quel que soit le choix |
 | G5b | La sœur révèle le cap : parents partis au nord | "Lui promettre" : M+12, +`capParents` | "Rester prudente" : M+4, +`capParents` | `capParents` — quel que soit le choix |
-| G5win | **si bon combat** — sœur indemne | "La serrer encore" : M+10 | "Filer vite" : B+4, M+5 | — |
-| G5lose | **si combat raté** — la sœur a vu l'horreur | "La consoler" : M-3, F-4, +`soeurProtegee` | "Lui apprendre à être forte" : M+4 | `soeurProtegee` (cardSoin++) si gauche |
 
 ### Gare 6 — Camp-refuge
 
@@ -98,8 +97,6 @@
 | Carte (id) | Situation | Choix GAUCHE | Choix DROITE | 🎁 GAINS |
 |---|---|---|---|---|
 | G11 | Barrage de pillards sur la voie | "Foncer dans le barrage" : B-18, M-6 | "Négocier (vivres)" : F-16, S-10, M+4 | — |
-| G11win | **si bon combat** — pillards en déroute | "Rafler leur butin" : F+10, B+8 | "Passer sans t'attarder" : M+8 | — |
-| G11lose | **si combat raté** — assaut repoussé au prix fort | "Panser les dégâts" : F-8, M-4 | "Fuir" : B-8, M+3 | — |
 
 ### Gare 12 — Tour de guet
 
@@ -151,7 +148,6 @@
 | F2_silhouettes | — | Silhouettes dans le brouillard | F+10, M-4 | B-8, M+3 | — |
 | F2_tunnel | — | Tunnel noir, lampe = huile | B-4, M+5 | M-7 | — |
 | F2_sifflet | — | Siffler = se faire repérer | F+10, M+4 | M-3 | — |
-| F2_vieux_feu | `leVieuxABord` | Le Vieux apprend à écouter la chaudière | B+12 | M-3, B+3 | — |
 | F2_huile | — | Bidon d'huile (graisser vs brûler) | B+8 | B+6, M-2 | — |
 | F2_famille_quai (oneshot) | — | Famille qui supplie d'emporter leur fille | M-9 (refuser) | F-8, M+9 | — |
 | F2_citerne | — | Wagon-citerne d'eau | S+14, F-4 | M+2 | — |
@@ -166,7 +162,6 @@
 | F3_arcenciel | — | Arc-en-ciel pâle | M+9, B-7 | M-2 | — |
 | F3_pont | — | Vieux pont qui craque | F-4, M-3 | B-10, M+5 | — |
 | F3_potager | — | Potager sauvage | F+12, M-4 | F+5, M+3 | — |
-| F3_vieux_fille | `leVieuxABord` | Le Vieux parle de sa fille | M+8, F-3 | M-2 | — |
 | F3_chien_garde | `aLeChien` | Le chien flaire un danger | B-5, M+6 (éboulis évité) | M-6 | — |
 | F3_blesses | — | Deux pillards blessés (piège ?) | F-6, M+7 | M-3 | — |
 | F3_fumee | — | Colonne de fumée droit devant | B-8, M+3 | F-5, M-2 | — |
@@ -182,12 +177,11 @@
 | F4_reflet | — | Reflet maigre, méconnaissable | M+7, F-3 | M-5 | — |
 | F4_puits | — | Château d'eau, échelle rouillée | S+18, M-4 | M+2, S-5 | — |
 | **F4_radio_trouvee (oneshot)** | — | Radio à manivelle dans une poste | M+8, F-3, **+`aLaRadio`** | M-4 | 📻 radio (`aLaRadio`) si gauche |
-| F4_vieux_carte | `leVieuxABord` | Le Vieux trace une route vers le col | B+10 | M-3 | — |
 | F4_dessin_soeur (oneshot) | — | Dessin "MA GRANDE SŒUR VIENDRA" | M+10, F-4 | M-5 | — |
 | F4_chien_cache | `aLeChien` | Le chien déterre une réserve | F+12, M+5 (récompenser) | F+14, M-2 | — |
 | F4_fonts | — | Fonts baptismaux d'eau de pluie | S+16 | M+5, S-3 | — |
 
-> Note : `_fill4` contient **11 fillers** (F4_chanson, F4_maria, F4_cerfs, F4_ville, F4_reflet, F4_puits, F4_radio_trouvee, F4_vieux_carte, F4_dessin_soeur, F4_chien_cache, F4_fonts).
+> Note : `_fill4` contient **10 fillers** (F4_chanson, F4_maria, F4_cerfs, F4_ville, F4_reflet, F4_puits, F4_radio_trouvee, F4_dessin_soeur, F4_chien_cache, F4_fonts).
 
 ### Segment 5→6 (`_fill5`, 10 fillers)
 
@@ -214,7 +208,6 @@
 | F6_manteau | — | Manteau de laine moisi | M+7, F-4 | B+5, M-3 | — |
 | F6_eboulement | — | Éboulement à moitié sur la voie | F-8, M+4 (déblayer) | B-10, M-2 | — |
 | F6_givre | — | Premières fougères de givre | B-8, M+5 | M-5, F-3 | — |
-| **F6_vieux_reste (oneshot)** | `leVieuxABord` & !`vieuxParti` | Le Vieux descend au camp (donne ses gants) | M+6, B+6, **+`vieuxParti`** | M-6, **+`vieuxParti`** | 👴 départ du Vieux (`vieuxParti`) — quel que soit le choix |
 | F6_poupee | `aLaSoeur` | Poupée de chiffon pour la sœur | F-8, M+12 | M-3 | — |
 | F6_rumeurs | — | Rumeurs contradictoires sur le refuge | B+6, M-4 | M+5 | — |
 | F6_guerisseur | — | "Guérisseur" contre du bois | B-8, M+8 | M-2 | — |
@@ -322,7 +315,7 @@
 | 👧 Petite sœur | Gare 5, carte G5 (les deux choix) | `aLaSoeur` |
 | 👧 Indice sœur (foulard/message) | Gare 3 G3b (gauche) et Gare 4 G4 (gauche) | `indiceSoeur` |
 | Cap parents fixé | Gare 5, carte G5b (les deux choix) | `capParents` |
-| Soin de la sœur (compteur fin) | G5lose-g, G8-g, G9 (les 2), F8_soeur_cache-g, F9_soeur_doute-d | `soeurProtegee` → `cardSoin++` |
+| Soin de la sœur (compteur fin) | G8-g, G9 (les 2), F8_soeur_cache-g, F9_soeur_doute-d | `soeurProtegee` → `cardSoin++` |
 | 📻 Radio (objet) | Segment 4→5, filler F4_radio_trouvee (oneshot, gauche) | `aLaRadio` |
 | 📻 Radio chaîne 1 | Segment 5→6, F5_radio_premier (oneshot, requires `aLaRadio`) | `radio1` |
 | 📻 Radio chaîne 2 | Segment 7→8, F7_radio_voix (oneshot, requires `radio1`) | `radio2` |
@@ -330,7 +323,6 @@
 | 🛏️ Lit | Gare 1, carte G1 (les deux choix) | `asset_bed` |
 | 💧 Filtre à eau | Gare 4, carte G4 (les deux choix) | `asset_filter` |
 | 🌱 Hydroponie (serre) | Gare 10, carte G10 (les deux choix) | `asset_hydro` |
-| Tier de combat (par gare) | Posé par le combat de gare avant les beats G3/G5/G11 | `combatTierHigh/Mid/Low`, `combatGood_N` |
 
 ---
 
