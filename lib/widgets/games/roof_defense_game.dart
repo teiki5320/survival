@@ -1659,6 +1659,10 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   if (_phase == _Phase.playing) _hudBar(),
                   if (_phase == _Phase.playing && _banner > 0) _bannerWidget(),
                   if (_adjust) _coordHud(),
+                  // Tuto de visée (1re fois) AU NIVEAU DU STACK PRINCIPAL
+                  // (avant il était imbriqué dans _bossBar -> jamais affiché en
+                  // duel + tap avalé -> soft-lock au 1er combat).
+                  if (_showAimTuto) _aimTutoOverlay(),
 
                   if (_phase == _Phase.menu) _menu(),
                   if (_phase == _Phase.progress) _progressOverlay(),
@@ -2175,7 +2179,6 @@ class _RoofDefenseGameState extends State<RoofDefenseGame>
                   ),
                 ),
               ),
-            if (_showAimTuto) _aimTutoOverlay(),
             ],
           ),
         ),
