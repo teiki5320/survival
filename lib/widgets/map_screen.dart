@@ -43,15 +43,17 @@ class _Station {
 // Le locationId reste une clé interne stable (sauvegarde / déblocage) : on ne
 // change QUE le nom affiché.
 final List<_Station> _stations = [
+  // Ordre THÉMATIQUE : chaque nom colle à sa scène narrative (synchro avec les
+  // speakers de cards_data._gareN). Le locationId suit son nom.
   _Station('Kogarashi', kGarePositions[0], big: true, locationId: 'station_abandonnee'),
-  _Station('Karasuno', kGarePositions[1]),
-  _Station('Kurogane', kGarePositions[2], big: true, locationId: 'depot_ferroviaire'),
-  _Station('Hoshikage', kGarePositions[3]),
-  _Station('Mayoidani', kGarePositions[4], big: true, locationId: 'village_fantome'),
-  _Station('Shizuhara', kGarePositions[5]),
-  _Station('Yasuragi', kGarePositions[6], locationId: 'camp_refuge'),
-  _Station('Tsukibashi', kGarePositions[7], locationId: 'pont_suspendu'),
-  _Station('Kiribe', kGarePositions[8]),
+  _Station('Kurogane', kGarePositions[1], big: true, locationId: 'depot_ferroviaire'),
+  _Station('Karasuno', kGarePositions[2]),
+  _Station('Mayoidani', kGarePositions[3], big: true, locationId: 'village_fantome'),
+  _Station('Tsukibashi', kGarePositions[4], locationId: 'pont_suspendu'),
+  _Station('Yasuragi', kGarePositions[5], locationId: 'camp_refuge'),
+  _Station('Hoshikage', kGarePositions[6]),
+  _Station('Kiribe', kGarePositions[7]),
+  _Station('Shizuhara', kGarePositions[8]),
   _Station('Hidamari', kGarePositions[9], locationId: 'oasis_perdue'),
   _Station('Yukihara', kGarePositions[10]),
   _Station('Miharashi', kGarePositions[11], locationId: 'tour_de_guet'),

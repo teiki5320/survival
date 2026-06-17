@@ -9,19 +9,19 @@
 // le segment. Ainsi la carte reflète l'histoire au lieu de tourner en boucle.
 const List<double> kGarePositions = [
   0.7923, // 1  Kogarashi (1re HALTE après la fuite — PAS la ville natale, qui
-          //    est le départ, montré dans la cinématique). Échangé avec Miharashi.
-  0.0865, // 2  Karasuno
-  0.1854, // 3  Kurogane (dépôt ferroviaire)
-  0.2143, // 4  Hoshikage
-  0.9887, // 5  Mayoidani (ex-village fantôme, radio)
-  0.3467, // 6  Shizuhara
-  0.4024, // 7  Yasuragi (camp-refuge)
-  0.4631, // 8  Tsukibashi (pont) — ENTRÉE ZONE FROIDE
-  0.5714, // 9  Kiribe
-  0.6409, // 10 Hidamari (oasis / serre)
-  0.6771, // 11 Yukihara
-  0.2857, // 12 Miharashi (tour de guet) — échangé avec le départ Kogarashi
-  0.8571, // 13 Fubuki (col gelé)
+          //    est le départ, montré dans la cinématique).
+  0.0865, // 2  Kurogane (dépôt ferroviaire — nourrir la loco)
+  0.1854, // 3  Karasuno (brouillard, premiers pillards)
+  0.2143, // 4  Mayoidani (village fantôme, radio à manivelle)
+  0.9887, // 5  Tsukibashi (pont — RETROUVAILLES petite sœur)
+  0.3467, // 6  Yasuragi (camp-refuge — cellier)
+  0.4024, // 7  Hoshikage (souvenir d'enfance avec la sœur)
+  0.4631, // 8  Kiribe (brume) — ENTRÉE ZONE FROIDE
+  0.5714, // 9  Shizuhara (blizzard, la sœur tombe malade)
+  0.6409, // 10 Hidamari (oasis / serre — répit)
+  0.6771, // 11 Yukihara (barrage de pillards)
+  0.2857, // 12 Miharashi (tour de guet — vue sur le refuge)
+  0.8571, // 13 Fubuki (col gelé — sacrifice)
   0.9286, // 14 Hokuto (tunnel nord / refuge)
 ];
 
@@ -39,11 +39,11 @@ const int kColdBoisDrainPerCard = 2;
 // camp, oasis). Le poêle, la gazinière et le froid puisent tous dans cardBois.
 const int kWoodStartReserve = 4;
 // Bûches offertes à l'arrivée de certaines gares (index 0-based de la gare).
-// idx 2 = Kurogane (dépôt), idx 6 = Yasuragi (camp, juste avant le froid),
+// idx 1 = Kurogane (dépôt), idx 5 = Yasuragi (camp, avant le froid),
 // idx 9 = Hidamari (oasis, répit en plein froid). Calé par simulation : le bois
-// devient une cause de mort réelle (~16% des morts d'un joueur attentif, 68%
-// d'un joueur négligent) sans empêcher un joueur soigneux de survivre.
-const Map<int, int> kWoodSupplyByGare = {2: 5, 6: 6, 9: 4};
+// reste une cause de mort réelle (rareté volontaire) sans empêcher un joueur
+// soigneux de survivre.
+const Map<int, int> kWoodSupplyByGare = {1: 5, 5: 6, 9: 4};
 
 // --- Weather ---
 const Duration kWeatherPeriod = Duration(minutes: 5);

@@ -123,7 +123,7 @@ def pick(card, stats, strategy):
 COLD_GARE = 7        # gare 8 (0-based) = entrée zone froide
 COLD_BOIS = 2        # surconso bois/carte dans le froid
 WOOD_START = 4       # réserve de bois de départ
-WOOD_SUPPLY = {2:5,6:6,9:4}  # bûches offertes à l'arrivée de gares
+WOOD_SUPPLY = {1:5,5:6,9:4}  # bûches offertes à l'arrivée de gares
 
 # Recharges "wagon" liees a l'engagement : un joueur negligent neglige aussi
 # le wagon (cuisine/eau/bois/reconfort), un attentif l'entretient. C'est ce qui
@@ -154,7 +154,18 @@ def run(strategy, refuels_per_seg=None):
                     continue
                 wood -= 1
             stats[low] = min(100, stats[low] + REFUEL)
-        deck = list(gare) + random.sample(fill, min(draw, len(fill)))
+        # Comme le moteur : les fillers qui POSENT un flag (progression : radio,
+        # soeurProtegee...) sont TOUJOURS joues ; le reste (ambiance) est tire au
+        # hasard (drawCount). -> variete sans casser les arcs.
+        def _sets_flag(c):
+            (lfx, lfl), (rfx, rfl) = c
+            return bool(lfl or rfl)
+        pinned = [c for c in fill if _sets_flag(c)]
+        ambiance = [c for c in fill if not _sets_flag(c)]
+        slots = max(0, draw - len(pinned))  # pinned comptent dans le budget
+        fillers = pinned + random.sample(ambiance, min(slots, len(ambiance)))
+        random.shuffle(fillers)
+        deck = list(gare) + fillers
         for card in deck:
             idx = pick(card, stats, strategy)
             fx, fl = card[idx]

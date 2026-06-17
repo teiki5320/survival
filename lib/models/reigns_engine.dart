@@ -12,6 +12,8 @@
 // stockés ici, indépendants de la sauvegarde survie.
 
 
+import 'dart:math';
+
 import '../constants.dart';
 import 'game_state.dart';
 
@@ -139,6 +141,9 @@ class ReignsEngine {
   // File des cartes du segment courant : beats de gare puis fillers piochés.
   final List<StoryCard> _queue = [];
 
+  // Tirage aléatoire des cartes d'ambiance (variété d'un run à l'autre).
+  final Random _rng = Random();
+
   int get gareIndex => _gs.cardGareIndex ?? 0;
 
   static const Map<Stat, String> _statKey = {
@@ -191,18 +196,37 @@ class ReignsEngine {
     _skipDeadHead();
   }
 
-  /// Cartes de remplissage du segment, en ORDRE FIXE (plus de tirage
-  /// aléatoire) : on met TOUTES les cartes du paquet (hors oneshots déjà vus)
-  /// dans la file. La condition `requires` est (re)évaluée À L'ÉMISSION (via
-  /// [_skipDeadHead]), PAS ici : ainsi une carte conditionnée par un flag posé
-  /// plus tôt dans LE MÊME segment (ex. `aLaSoeur` posé par la carte de gare 5)
-  /// reste jouable au lieu d'être filtrée définitivement au chargement.
+  /// Cartes de remplissage du segment. Deux familles :
+  ///  - ÉPINGLÉES (progression) : toute carte qui a un `requires` OU qui pose un
+  ///    flag narratif (chaîne radio, beats sœur/chien, payoffs, `aLaRadio`...).
+  ///    Elles sont TOUJOURS jouées si éligibles — jamais droppées au hasard,
+  ///    sinon l'arc se casserait d'un run à l'autre.
+  ///  - AMBIANCE (stats only, pas de flag, pas de `requires`) : on en tire un
+  ///    sous-ensemble ALÉATOIRE (`drawCount`) -> variété d'un run à l'autre.
+  /// La condition `requires` est (re)évaluée À L'ÉMISSION (via [_skipDeadHead]),
+  /// pas ici : une carte conditionnée par un flag posé par la carte de gare du
+  /// même segment (ex. `aLaSoeur` en gare 5) reste jouable.
   List<StoryCard> _drawFillers(Segment seg) {
-    return seg.fillerPool
+    final pool = seg.fillerPool
         .where((c) =>
             c.kind != CardKind.fillerOneshot ||
             !_gs.cardSeenOneshot.contains(c.id))
         .toList();
+    bool pinned(StoryCard c) =>
+        c.requires != null ||
+        c.left.setFlags.isNotEmpty ||
+        c.right.setFlags.isNotEmpty;
+    final out = pool.where(pinned).toList();
+    // Les pinned comptent DANS le budget drawCount (on ne gonfle pas le nombre
+    // de cartes par segment -> difficulté préservée). L'ambiance complète ce
+    // qu'il reste de place.
+    final slots = seg.drawCount - out.length;
+    if (slots > 0) {
+      final ambiance = pool.where((c) => !pinned(c)).toList()..shuffle(_rng);
+      out.addAll(ambiance.take(slots));
+    }
+    out.shuffle(_rng); // ordre varié (aucune dépendance intra-segment)
+    return out;
   }
 
   /// Saute en tête de file les cartes dont la condition `requires` n'est PAS
