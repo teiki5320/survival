@@ -124,10 +124,23 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   (compte `cardSoin`), `capParents`, `indiceSoeur`, `aLaRadio`/`radio1/2/3`,
   `asset_*` (déblocage d'objets).
 - `lib/widgets/cards_screen.dart` — UI swipe, présente la carte, applique le
-  choix, annonce les gares. Cartes inter-gares **FIXES** (`_drawFillers` joue
-  toutes les cartes éligibles dans l'ordre, plus de tirage aléatoire).
+  choix, annonce les gares. Cartes inter-gares **SEMI-ALÉATOIRES**
+  (`_drawFillers`) : les cartes de PROGRESSION (avec `requires` OU qui posent un
+  flag : chaîne radio, beats sœur/chien) sont TOUJOURS jouées si éligibles ;
+  l'AMBIANCE pure (stats only) est tirée au hasard, dans la limite de
+  `drawCount` (les pinned comptent dedans → nb de cartes/segment stable). Variété
+  inter-run sans casser les arcs. `requires` évalué À L'ÉMISSION (`_skipDeadHead`,
+  pas au chargement) → une carte conditionnée par la carte de gare du même
+  segment reste jouable.
+- **Arc radio délibéré** : seul le choix « y croire » fait avancer
+  `radio1→2→3` ; le côté sceptique ne pose pas le flag. La **fin secrète** (la
+  voix = maman) récompense ceux qui gardent la foi jusqu'au bout.
+- **Noms de gares** : `cards_data._gareN` (speaker) et `map_screen._stations`
+  DOIVENT rester synchro (ordre thématique : chaque nom colle à sa scène). Idem
+  `constants.kGarePositions`/`kWoodSupplyByGare` (bonus bois dépôt idx1 / camp
+  idx5 / oasis idx9).
 - **Système de crédits** : présent mais **DÉSACTIVÉ** (`spendCardCredit` renvoie
-  `true`). Conservé si on veut réactiver un rythme. Décision en attente.
+  `true`). Conservé si on veut réactiver un rythme.
 
 ### Équilibrage (`tools/sim_current.py`)
 Parse les vraies cartes (regex) et rejoue 4000 runs/profil. **Cible atteinte** :
@@ -150,6 +163,11 @@ cartes via « **Débuter / Continuer le voyage** » sur la map.
 
 - **Shen est IDLE** : aucune autonomie, tout est déclenché par le joueur (anim
   `idle_right` au repos, frissonne si `feltCold`).
+- **Besoins (Tamagotchi)** : faim/soif (jauges cartes) décroissent −1/24 s dans
+  le wagon (PAS en cartes ni sur la map). + 2 besoins de **CONFORT non létaux** :
+  `sleepNeed` (décroît dès g1, remonté en dormant au lit) et `hygieneNeed` (ne
+  décroît qu'une fois bain/douche débloqués g10, remonté en se lavant). <20 →
+  grignotent le moral. Bulle de pensée 💤/🛁 (`contextualThought`).
 - **Objets atelier interactifs** : cuisinière (tap → se tourne → feu animé →
   **se retourne → mange** au sol ; **déplacement bloqué pendant la cuisson**
   `_cooking`) ; poêle à bois (ON/OFF, chauffe la cabine, bois -1/9 s, s'éteint à
@@ -314,12 +332,14 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 - **Géo de départ** (décision user en attente) : nommer la ville de départ
   (= fin), décider s'il faut un nœud « ville natale » AVANT la gare 1 sur la map.
 - **Cinématiques d'entrée en gare** (version texte comme l'ouverture).
-- **Tamagotchi** : décroissance temporelle des besoins (faim/soif/sommeil/
-  hygiène/jeu), remontés par les objets (actions déjà là, reste le drain).
+- **Tamagotchi** : ✅ décroissance faim/soif + besoins confort sommeil/hygiène
+  (faite). Reste éventuellement un axe « jeu » (s'occuper du chien/sœur) si on
+  veut pousser. Pas de jauge HUD dédiée pour le confort (bulle de pensée only) —
+  à décider si on veut les rendre plus visibles.
 - **Boutique IAP** — confort only, ne JAMAIS bloquer l'histoire.
 
 ### Priorité moyenne
-- Crédits de cartes : décider garder désactivé / réactiver / retirer.
+- Crédits de cartes : **garder désactivé** (décision user) — conservé tel quel.
 - Refaire les musiques si besoin. Brancher les 3 autres plantes hydro.
 - Vraie tenue d'hiver (sprites). Poêle interactif à installer.
 
