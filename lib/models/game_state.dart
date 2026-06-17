@@ -940,6 +940,8 @@ class GameState extends ChangeNotifier {
     'asset_filter': 'le filtre à eau',
     'asset_hydro': 'le bac de culture',
     'asset_bath': 'la baignoire',
+    'asset_shower': 'la douche',
+    'asset_stove': 'le poêle',
     'asset_lantern': 'les lanternes',
     'asset_commode': 'l\'armoire',
     'asset_wagon2': 'le cellier (2e wagon)',

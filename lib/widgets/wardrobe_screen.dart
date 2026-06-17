@@ -39,7 +39,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     _Outfit(
       name: 'Manteau d\'hiver',
       frontAsset: 'assets/objects/outfit_robe.png',
-      warmth: 8,
+      warmth: 6,
     ),
   ];
 

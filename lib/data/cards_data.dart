@@ -145,11 +145,11 @@ List<StoryCard> _gare2(Set<String> f) => [
             "Au dépôt de fret, le foyer de la loco agonise. Tu ne sais pas la nourrir — trop de bois l'étouffe, trop peu l'éteint. Un manuel graisseux traîne dans la cabine.",
         left: _c("Déchiffrer le manuel, page à page",
             fx: {Stat.bois: 18, Stat.faim: -4},
-            flags: ['asset_lamp', 'asset_table'],
+            flags: ['asset_lamp'],
             result: "Des heures penchée sur les schémas, l'estomac vide. Mais le feu reprend, franc et vif. Tu sauras faire, maintenant. Tu récupères au dépôt une lampe et une petite table."),
         right: _c("Y aller à l'instinct",
             fx: {Stat.bois: 6, Stat.moral: -3},
-            flags: ['asset_lamp', 'asset_table'],
+            flags: ['asset_lamp'],
             result: "Tu charges au jugé. Le feu crachote, capricieux. Tu apprendras dans la fumée et les jurons. Tu emportes quand même une lampe et une table trouvées au dépôt."),
       ),
       ..._combat(f, 'G2', 'Kurogane',
@@ -1162,6 +1162,15 @@ final List<StoryCard> _fill13 = [
       "Et soudain, la pente s'inverse. Le sommet. De l'autre côté, une vallée — et tout au fond, une lueur qui n'est pas le soleil.",
       _c("T'autoriser à espérer", fx: {Stat.moral: 16, Stat.faim: -3}, result: "Le refuge. C'est forcément le refuge. Tu ris et tu pleures en même temps."),
       _c("Rester prudente jusqu'au bout", fx: {Stat.moral: 6}, result: "Tu as trop vu pour crier victoire. Mais ton cœur, lui, s'est déjà mis à courir.")),
+  _filler('F13_verglas',
+      "La descente est pire que la montée : du verglas plein les rails, le wagon qui chasse à chaque courbe. Un faux mouvement et tout déraille.",
+      _c("Freiner par à-coups, millimètre par millimètre", fx: {Stat.soif: -6, Stat.moral: 6}, result: "Les mains crispées sur le frein des heures durant. Mais vous tenez la voie. Vivantes."),
+      _c("Lester l'arrière avec ce qui reste", fx: {Stat.bois: -6}, result: "Tu cales du poids sur les essieux arrière. Le wagon mord mieux les rails. Ça passe.")),
+  _filler('F13_main_gelee',
+      "Ta sœur a une main bleuie par le froid, à force de s'agripper à la rambarde. Elle ne se plaint pas — c'est ça qui te serre le cœur.",
+      _c("Réchauffer ses doigts dans les tiennes", fx: {Stat.moral: 10}, flags: ['soeurProtegee'], result: "Tu souffles sur ses petits doigts, tu les frottes. Elle sourit faiblement. La couleur revient."),
+      _c("Lui céder ta place près du poêle", fx: {Stat.moral: 8, Stat.soif: -4}, flags: ['soeurProtegee'], result: "Tu prends le froid à sa place, sans un mot. Elle s'endort enfin au chaud."),
+      requires: (f) => f.contains('aLaSoeur')),
 ];
 
 // Gare 14 — Hokuto, le refuge : l'arrivée, le quai, les visages. Le moment
@@ -1180,6 +1189,19 @@ final List<StoryCard> _fill14 = [
       _c("« Alors on les cherchera. Ensemble. »", fx: {Stat.moral: 12}, flags: ['soeurProtegee'], result: "Elle hoche la tête. Tant que vous êtes deux, rien n'est tout à fait perdu."),
       _c("La serrer sans un mot", fx: {Stat.moral: 8}, flags: ['soeurProtegee'], result: "Pas besoin de mots. Vos deux peurs, à parts égales, et vos deux courages."),
       requires: (f) => f.contains('aLaSoeur')),
+  _filler('F14_dernieres_braises',
+      "Le foyer de la loco n'a plus qu'une poignée de braises. Juste assez pour les derniers kilomètres — ou pour s'arrêter net à la vue du but.",
+      _c("Tout donner dans la dernière ligne", fx: {Stat.bois: -10, Stat.moral: 10}, result: "Tu jettes les ultimes bûches. La loco bondit vers les fumées. Advienne que pourra."),
+      _c("Économiser, glisser en roue libre", fx: {Stat.moral: 4}, result: "Tu coupes la vapeur et laisses la pente vous porter. Lentement, sûrement, vers le quai.")),
+  _filler('F14_quai_visages',
+      "Le quai défile au ralenti. Des dizaines de visages se tournent vers le train. Aucun, pour l'instant, n'est celui que tu cherches.",
+      _c("Scruter chaque visage, le cœur battant", fx: {Stat.moral: 6, Stat.soif: -3}, result: "Tu dévisages la foule, le souffle court. Pas encore. Pas encore. Mais le quai est long."),
+      _c("Garder les yeux sur la sortie", fx: {Stat.moral: 3}, result: "Tu fixes les portes du refuge. Si quelqu'un t'attend, c'est là qu'il sera. Tu avances.")),
+  _filler('F14_chien_flaire',
+      "Le chien dresse soudain les oreilles, le museau au vent, et se met à gémir vers la foule du quai, queue battante.",
+      _c("Le suivre, il a peut-être senti quelqu'un", fx: {Stat.moral: 12}, result: "Tu te laisses tirer par la laisse improvisée. Un animal n'oublie jamais une odeur aimée..."),
+      _c("Le calmer, ne pas trop espérer", fx: {Stat.moral: 4}, result: "« Doucement, mon grand. » Tu retiens ton propre élan, de peur d'avoir trop mal."),
+      requires: (f) => f.contains('aLeChien')),
 ];
 
 
@@ -1226,7 +1248,12 @@ String resolveTrainCosyEnding(Map<Stat, int> stats, Set<String> flags) {
     return 'secret';
   }
   if (aSoeur && capParents && soin >= 2 && moral >= 65) return 'famille';
-  if (aSoeur && moral >= 30) return 'ensemble';
+  // Arriver AVEC la sœur = au moins 'ensemble' (vous y êtes, ensemble), quel
+  // que soit le moral final. L'ancien seuil moral>=30 renvoyait 'abandon' pour
+  // une joueuse arrivée vivante avec sa sœur -> incohérent (l'abandon, c'est
+  // descendre en route). L'abandon ne vient plus QUE du moteur (moral -> 0 en
+  // cours de voyage). Le cas !aSoeur est injoignable en jeu normal (G5 obligatoire).
+  if (aSoeur) return 'ensemble';
   return 'abandon';
 }
 

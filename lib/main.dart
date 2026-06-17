@@ -191,6 +191,17 @@ class _WagonScreenState extends State<WagonScreen>
     });
   }
 
+  // Anti-spam du moral « confort » (lire/chien/sœur) : ces gestes ne coûtent
+  // rien (cosy), mais sans frein le moral montait à 100 d'un tap. Cooldown
+  // partagé : un seul gain de moral confort toutes les 45 s.
+  int _lastComfortMs = 0;
+  void _comfortMoral(int amount) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastComfortMs < 45000) return;
+    _lastComfortMs = now;
+    GameState.instance.nudgeCardStat('moral', amount);
+  }
+
   // Activation du debug par TRIPLE-TAP caché (plus de bouton visible en jeu).
   int _debugTaps = 0;
   Timer? _debugTapTimer;
@@ -1260,7 +1271,7 @@ class _WagonScreenState extends State<WagonScreen>
             _duoAnimToPlay =
                 _duoAnimToPlay == 'readduo' ? 'sister_hug' : 'readduo';
             _duoToken++;
-            GameState.instance.nudgeCardStat('moral', 8);
+            _comfortMoral(8);
           });
     } else if (_inLiving && _atBed) {
       icon = Icons.bed;
@@ -1270,7 +1281,7 @@ class _WagonScreenState extends State<WagonScreen>
       action = () {
         _triggerSpecial('read', frames: 25);
         // Lire réconforte : +moral.
-        GameState.instance.nudgeCardStat('moral', 10);
+        _comfortMoral(10);
       };
     } else if (_inAtelier && _atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
@@ -1303,7 +1314,7 @@ class _WagonScreenState extends State<WagonScreen>
       action = () {
         // Sprite Shen + husky (caresse -> câlin), bon chien.
         setState(() => _petDogToken++);
-        GameState.instance.nudgeCardStat('moral', 10);
+        _comfortMoral(10);
         _audio.playSfx('dog_bark');
       };
     } else if (_inAtelier && _atHydro) {

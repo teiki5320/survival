@@ -632,9 +632,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final gs = GameState.instance;
     if (gs.bacGrowth >= 1.0) {
       // Récolte : +12 faim (bouffe SANS bois, mais il a fallu de l'eau).
-      gs.nudgeCardStat('faim', 12);
+      // On vide le bac AVANT de créditer -> pas de double-récolte si 2 taps
+      // arrivent avant le rebuild.
       gs.setBacGrowth(0.0);
       gs.setBacSown(false);
+      gs.nudgeCardStat('faim', 12);
       _bacGrowing = false;
       _bacTimer?.cancel();
       _showBacFloat('+12');

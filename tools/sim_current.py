@@ -166,7 +166,7 @@ def run(strategy, refuels_per_seg):
     moral = stats['moral']; aSoeur = 'aLaSoeur' in flags; cap = 'capParents' in flags
     if aSoeur and cap and soin>=SOIN_REQ and moral>=MORAL_REQ and 'radio3' in flags: end='secret'
     elif aSoeur and cap and soin>=SOIN_REQ and moral>=MORAL_REQ: end='famille'
-    elif aSoeur and moral>=30: end='ensemble'
+    elif aSoeur: end='ensemble'  # arriver avec la soeur = au moins ensemble
     else: end='abandon'
     return end, stats, flags, None
 
