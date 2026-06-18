@@ -701,9 +701,9 @@ class GameState extends ChangeNotifier {
   /// ~62% / smart 100%). Appliqué en direct (pas de blocage froid : ce sont
   /// des vivres trouvés, pas du réconfort).
   void grantGareSupply() {
-    cardBois = (cardBois + 12).clamp(0, statMax);
+    cardBois = (cardBois + 11).clamp(0, statMax);
     cardSoif = (cardSoif + 6).clamp(0, statMax);
-    cardFaim = (cardFaim + 7).clamp(0, statMax);
+    cardFaim = (cardFaim + 8).clamp(0, statMax);
     cardMoral = (cardMoral + 5).clamp(0, statMax);
     notifyListeners();
   }

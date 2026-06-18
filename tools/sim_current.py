@@ -12,7 +12,7 @@ effets + flags), puis rejoue des milliers de runs sous les regles reelles :
     flags requis sont presents ; les pinned non-eligibles ne reservent pas de
     slot. -> le taux de fin 'secret' (croire a la radio 3x) est realiste, rare.
   - pertes x1.7, gains de moral x0.6
-  - ravitaillement d'arrivee par gare : +12 bois/+6 soif/+7 faim/+5 moral
+  - ravitaillement d'arrivee par gare : +11 bois/+6 soif/+8 faim/+5 moral
   - recharges wagon liees a l'engagement (careless 1 ... smart 2) : un joueur
     negligent neglige aussi le wagon, ce qui cree le spread de difficulte
   - mecanique soeur : apres flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
@@ -168,8 +168,8 @@ def run(strategy, refuels_per_seg=None):
         wood += WOOD_SUPPLY.get(si, 0)
         # COMBAT SUPPRIME. RAVITAILLEMENT D'ARRIVEE par gare (grantGareSupply,
         # calibre par simu) : remplace les ressources de l'ancien combat.
-        stats['bois']=min(100,stats['bois']+12); stats['soif']=min(100,stats['soif']+6)
-        stats['faim']=min(100,stats['faim']+7); stats['moral']=min(100,stats['moral']+5)
+        stats['bois']=min(100,stats['bois']+11); stats['soif']=min(100,stats['soif']+6)
+        stats['faim']=min(100,stats['faim']+8); stats['moral']=min(100,stats['moral']+5)
         # budget wagon : recharge les N stats les plus basses. Recharger BOIS
         # exige de brûler 1 bûche ; sans bois en réserve, on recharge la stat
         # non-bois la plus basse à la place.

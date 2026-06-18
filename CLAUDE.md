@@ -152,11 +152,13 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   `true`). Conservé si on veut réactiver un rythme.
 
 ### Équilibrage (`tools/sim_current.py`)
-Parse les vraies cartes (regex) et rejoue 4000 runs/profil. **Cible atteinte** :
-**careless ~11% / casual ~62% / smart 100% / caring 100%** (famille route
-validée). Stats de départ **25** (`kStartStat`). Ravitaillement d'arrivée
-calibré : **+9 bois / +6 soif / +6 faim / +5 moral** par gare. Le **bois est la
-cause de mort dominante** (rareté volontaire). Les recharges « wagon » du sim
+Parse les vraies cartes (regex, `requires` modélisé) et rejoue 4000 runs/profil.
+**Cible atteinte** : **careless ~11% / casual ~62-65% / smart 100% / caring
+100%** (famille route validée ; `secret` rare ~5% = il faut croire à la radio
+3×). Stats de départ **25** (`kStartStat`). Ravitaillement d'arrivée calibré :
+**+11 bois / +6 soif / +8 faim / +5 moral** par gare. Causes de mort = **mix
+bois / faim / moral** (depuis l'ajout des dilemmes food/moral des « cartes
+vivantes » ; avant, le bois dominait seul). Les recharges « wagon » du sim
 sont liées à l'engagement (un joueur négligent néglige aussi le wagon) → c'est
 ce qui crée le spread de difficulté. Lancer : `python3 tools/sim_current.py`
 (option `--wood` = sweep réserve de bois).
