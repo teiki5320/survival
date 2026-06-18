@@ -390,7 +390,7 @@ class _WagonScreenState extends State<WagonScreen>
       // Pas de drain pendant les cartes NI sur la map (écrans où le joueur ne
       // peut ni manger, ni boire, ni se réchauffer) : sinon on perdait la run
       // sur un timer non actionnable. Cohérent avec le timer des besoins.
-      if (!mounted || _inCards || _onMap) return;
+      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe) return;
       final gs = GameState.instance;
       if (gs.feltCold) {
         final d = (gs.coldness / 5).round();
@@ -402,7 +402,7 @@ class _WagonScreenState extends State<WagonScreen>
     // économie). Manger (cuisinière/bac) et boire (filtre) deviennent
     // NÉCESSAIRES, pas décoratifs. Ralenti pour limiter les allers-retours.
     _needsTimer = Timer.periodic(const Duration(seconds: 24), (_) {
-      if (!mounted || _inCards || _onMap) return;
+      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe) return;
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
       gs.nudgeCardStat('soif', -1);
@@ -414,7 +414,7 @@ class _WagonScreenState extends State<WagonScreen>
     // le drain vivait dans l'atelier -> chaleur gratuite ailleurs). Le poêle
     // s'éteint tout seul à 0 bois (nudgeCardStat).
     _poeleTimer = Timer.periodic(const Duration(seconds: 9), (_) {
-      if (!mounted || _inCards || _onMap) return;
+      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe) return;
       final gs = GameState.instance;
       if (gs.poeleOn) gs.nudgeCardStat('bois', -1);
     });

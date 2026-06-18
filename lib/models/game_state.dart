@@ -263,17 +263,32 @@ class GameState extends ChangeNotifier {
   /// Très bas (<20), ils érodent le moral d'un cran (geste de soin = remède).
   void decayComfortNeeds() {
     _comfortDecayTick++;
-    // Le lit existe dès la gare 1 -> le sommeil décroît tout de suite.
-    if (_comfortDecayTick % 2 == 0 && sleepNeed > 0) sleepNeed--;
+    // Le sommeil ne décroît (et ne pénalise) QUE si le lit est débloqué (gare 1) :
+    // sinon on punirait le moral avant que le joueur ait un moyen de dormir.
+    final canSleep = propUnlocked('bed');
+    if (canSleep && _comfortDecayTick % 2 == 0 && sleepNeed > 0) sleepNeed--;
     // L'hygiène ne décroît (et ne pénalise) QUE si on peut RÉELLEMENT se laver :
     // bain/douche débloqués (gare 10) ET pas en plein froid (le bain est refusé
     // si feltCold). Sinon on punirait le moral sans aucun remède possible.
     final canWash =
         (propUnlocked('bath') || propUnlocked('shower')) && !feltCold;
     if (canWash && _comfortDecayTick % 3 == 0 && hygieneNeed > 0) hygieneNeed--;
-    if (sleepNeed < 20 || (canWash && hygieneNeed < 20)) {
+    // PÉNALITÉ MORALE seulement HORS FROID : en plein froid le _coldTimer draine
+    // déjà le moral ET les gains sont bloqués (feltCold) -> empiler le drain
+    // confort = double/triple peine non remontable. Le froid prime.
+    if (!feltCold &&
+        ((canSleep && sleepNeed < 20) || (canWash && hygieneNeed < 20))) {
       nudgeCardStat('moral', -1); // épuisement / inconfort
     }
+    notifyListeners();
+  }
+
+  /// Boost de moral « confort » qui IGNORE le blocage froid (le froid empêche
+  /// les gains de moral via nudgeCardStat). Réservé aux gestes qui réchauffent
+  /// vraiment (achat boutique : colis de réconfort) -> un IAP payant doit
+  /// toujours produire son effet, même en zone froide.
+  void boostMoralComfort(int amount) {
+    cardMoral = (cardMoral + amount).clamp(0, statMax);
     notifyListeners();
   }
 
@@ -764,7 +779,7 @@ class GameState extends ChangeNotifier {
     'asset_shower': 'la douche',
     'asset_stove': 'le poêle',
     'asset_lantern': 'les lanternes',
-    'asset_commode': 'l\'armoire',
+    'asset_commode': 'la commode',
     'asset_wagon2': 'le cellier (2e wagon)',
   };
   String? popUnlock() => pendingUnlocks.isEmpty ? null : pendingUnlocks.removeAt(0);

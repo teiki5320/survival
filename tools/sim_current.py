@@ -8,6 +8,9 @@ Parse les vraies cartes de lib/data/cards_data.dart (paires de choix +
 effets + flags), puis rejoue des milliers de runs sous les regles reelles :
   - 14 segments, fillers drawCount=4 PARTOUT (la derniere ligne droite glacee
     compte : ne pas l'ignorer, sinon on sous-estime la difficulte reelle)
+  - `requires` MODELISE (comme le moteur) : une carte n'est jouee que si ses
+    flags requis sont presents ; les pinned non-eligibles ne reservent pas de
+    slot. -> le taux de fin 'secret' (croire a la radio 3x) est realiste, rare.
   - pertes x1.7, gains de moral x0.6
   - ravitaillement d'arrivee par gare : +12 bois/+6 soif/+7 faim/+5 moral
   - recharges wagon liees a l'engagement (careless 1 ... smart 2) : un joueur
@@ -71,15 +74,40 @@ def get_func_body(name):
         i += 1
     return SRC[lb:i+1]
 
-# Construit les paires de cartes (left,right) par segment.
+# Une carte = (left, right, required_flags) ; required_flags = frozenset des
+# flags exigés (les f.contains('X') POSITIFS de `requires`). Les cartes de gare
+# n'ont jamais de requires -> frozenset vide (toujours éligibles).
 def card_pairs(name):
     choices = extract_choices(get_func_body(name))
-    return [(choices[i], choices[i+1]) for i in range(0, len(choices)-1, 2)]
+    return [(choices[i], choices[i+1], frozenset())
+            for i in range(0, len(choices)-1, 2)]
+
+def parse_requires(block):
+    """frozenset des flags POSITIFS exigés (ignore les !f.contains anti-rejeu)."""
+    req = set()
+    for mm in re.finditer(r"(!?)f\.contains\('([^']+)'\)", block):
+        if mm.group(1) != '!':
+            req.add(mm.group(2))
+    return frozenset(req)
+
+def filler_cards(name):
+    """Liste de (left, right, required_flags) pour chaque _filler(...) du paquet."""
+    body = get_func_body(name)
+    out = []
+    for m in re.finditer(r'_filler\(', body):
+        start = m.end() - 1
+        end = match_paren(body, start)
+        block = body[start:end+1]
+        ch = extract_choices(block)
+        if len(ch) < 2:
+            continue
+        out.append((ch[0], ch[1], parse_requires(block)))
+    return out
 
 segments = []
 for i in range(1, 15):
     gare = card_pairs(f'_gare{i}')
-    fill = card_pairs(f'_fill{i}')   # les 14 segments ont des fillers (moteur)
+    fill = filler_cards(f'_fill{i}')  # avec flags requis (modélise `requires`)
     draw = 4                          # drawCount=4 partout (cf. cards_data)
     segments.append((gare, fill, draw))
 
@@ -155,20 +183,34 @@ def run(strategy, refuels_per_seg=None):
                     continue
                 wood -= 1
             stats[low] = min(100, stats[low] + REFUEL)
-        # Comme le moteur : les fillers qui POSENT un flag (progression : radio,
-        # soeurProtegee...) sont TOUJOURS joues ; le reste (ambiance) est tire au
-        # hasard (drawCount). -> variete sans casser les arcs.
-        def _sets_flag(c):
-            (lfx, lfl), (rfx, rfl) = c
+        # Comme le moteur (_drawFillers) : flags POTENTIELS = flags + tout flag
+        # que les cartes de gare de CE segment peuvent poser (aLaSoeur/capParents
+        # se posent a la carte de gare). Une carte ÉPINGLÉE (requires != null OU
+        # pose un flag) ET éligible (ses flags requis subset des potentiels) est
+        # toujours jouée ; l'ambiance éligible complète le budget drawCount.
+        potential = set(flags)
+        for (l, r, _q) in gare:
+            potential |= l[1]; potential |= r[1]
+        def sets_flag(c):
+            (lfx, lfl), (rfx, rfl), _q = c
             return bool(lfl or rfl)
-        pinned = [c for c in fill if _sets_flag(c)]
-        ambiance = [c for c in fill if not _sets_flag(c)]
+        def eligible(c, against):
+            return c[2] <= against
+        def is_pinned(c):
+            return (bool(c[2]) or sets_flag(c)) and eligible(c, potential)
+        pinned = [c for c in fill if is_pinned(c)]
+        ambiance = [c for c in fill if not is_pinned(c) and eligible(c, potential)]
         slots = max(0, draw - len(pinned))  # pinned comptent dans le budget
         fillers = pinned + random.sample(ambiance, min(slots, len(ambiance)))
         random.shuffle(fillers)
         deck = list(gare) + fillers
         for card in deck:
-            idx = pick(card, stats, strategy)
+            # éligibilité à l'émission (les cartes de gare passent toujours,
+            # frozenset vide ; les fillers dont le flag requis manque sont skippés
+            # -> comme _skipDeadHead du moteur).
+            if not (card[2] <= flags):
+                continue
+            idx = pick((card[0], card[1]), stats, strategy)
             fx, fl = card[idx]
             apply(stats, fx, flags, 'aLaSoeur' in flags)
             if 'soeurProtegee' in fl: soin += 1

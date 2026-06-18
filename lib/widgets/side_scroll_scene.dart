@@ -925,9 +925,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _showHeroFloat(widget.heroFloatText);
     }
     if (oldWidget.bathToken != widget.bathToken) {
-      // Refus à cause du froid : feedback explicite (hors setState imbriqué).
-      if (!_bathing && GameState.instance.feltCold) {
-        _showHeroFloat('Trop froid pour se laver 🥶');
+      // Refus : feedback explicite (hors setState imbriqué).
+      if (!_bathing) {
+        if (GameState.instance.feltCold) {
+          _showHeroFloat('Trop froid pour se laver 🥶');
+        } else if (GameState.instance.cardSoif < 8) {
+          _showHeroFloat('Pas assez d\'eau 💧');
+        }
       }
       setState(() {
         if (_bathing) {
@@ -963,8 +967,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
       });
     }
     if (oldWidget.showerToken != widget.showerToken) {
-      if (!_showering && GameState.instance.feltCold) {
-        _showHeroFloat('Trop froid pour se laver 🥶');
+      if (!_showering) {
+        if (GameState.instance.feltCold) {
+          _showHeroFloat('Trop froid pour se laver 🥶');
+        } else if (GameState.instance.cardSoif < 6) {
+          _showHeroFloat('Pas assez d\'eau 💧');
+        }
       }
       setState(() {
         if (_showering) {

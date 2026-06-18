@@ -56,7 +56,7 @@ class _ShopScreenState extends State<ShopScreen> {
       apply: (gs) {
         gs.restoreSleep();
         gs.restoreHygiene();
-        gs.nudgeCardStat('moral', 10);
+        gs.boostMoralComfort(10); // ignore le blocage froid (article payant)
       },
     ),
     _ShopItem(

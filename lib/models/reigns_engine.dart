@@ -212,17 +212,33 @@ class ReignsEngine {
             c.kind != CardKind.fillerOneshot ||
             !_gs.cardSeenOneshot.contains(c.id))
         .toList();
-    bool pinned(StoryCard c) =>
-        c.requires != null ||
-        c.left.setFlags.isNotEmpty ||
-        c.right.setFlags.isNotEmpty;
+    // Flags POTENTIELS = flags actuels + tout flag que les cartes de gare de CE
+    // segment peuvent poser (aLaSoeur/capParents se posent à la carte de gare,
+    // donc pas encore dans `flags` au chargement). Une carte conditionnée par un
+    // flag inatteignable (ex. `aLaRadio` jamais trouvée) ne doit PAS réserver de
+    // slot pour finir droppée à l'émission (segment amputé). Une carte
+    // conditionnée par un flag que la gare va poser reste, elle, éligible.
+    final potential = {...flags};
+    for (final gc in seg.gareCards(flags)) {
+      potential
+        ..addAll(gc.left.setFlags)
+        ..addAll(gc.right.setFlags);
+    }
+    bool eligible(StoryCard c) => c.requires == null || c.requires!(potential);
+    bool setsFlag(StoryCard c) =>
+        c.left.setFlags.isNotEmpty || c.right.setFlags.isNotEmpty;
+    // ÉPINGLÉE (progression) ET éligible : toujours jouée.
+    bool pinned(StoryCard c) => (c.requires != null || setsFlag(c)) && eligible(c);
     final out = pool.where(pinned).toList();
     // Les pinned comptent DANS le budget drawCount (on ne gonfle pas le nombre
-    // de cartes par segment -> difficulté préservée). L'ambiance complète ce
-    // qu'il reste de place.
+    // de cartes par segment -> difficulté préservée). L'ambiance ÉLIGIBLE
+    // complète ce qu'il reste de place.
     final slots = seg.drawCount - out.length;
     if (slots > 0) {
-      final ambiance = pool.where((c) => !pinned(c)).toList()..shuffle(_rng);
+      final ambiance = pool
+          .where((c) => !pinned(c) && eligible(c))
+          .toList()
+        ..shuffle(_rng);
       out.addAll(ambiance.take(slots));
     }
     out.shuffle(_rng); // ordre varié (aucune dépendance intra-segment)

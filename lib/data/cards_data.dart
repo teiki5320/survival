@@ -607,7 +607,7 @@ final List<StoryCard> _fill4 = [
       _c("Grimper remplir les jarres", fx: {Stat.soif: 18, Stat.moral: -4}, result: "De l'eau pour longtemps. Tes mains tremblent encore de la hauteur."),
       _c("Renoncer, trop risqué", fx: {Stat.moral: 2, Stat.soif: -5}, result: "Mieux vaut soif que chute mortelle. Tu repars sèche.")),
   _filler('F4_radio_trouvee',
-      "Dans les décombres d'un bureau de poste, une radio à manivelle, intacte. Un fil vers le monde — s'il reste un monde au bout.",
+      "Dans les décombres du village, sous un mur couvert de messages de disparus, une radio à manivelle, intacte. Un fil vers le monde — s'il reste un monde au bout.",
       _c("L'emporter précieusement", fx: {Stat.moral: 8, Stat.faim: -3}, flags: ['aLaRadio'], result: "Tu la serres contre toi comme un trésor. Ce soir, tu tourneras la manivelle."),
       _c("L'emporter, mais sans trop d'espoir", fx: {Stat.moral: -2, Stat.faim: -3}, flags: ['aLaRadio'], result: "Tu la glisses dans ton sac, le cœur lourd. Écouter le silence du monde te fait peur — mais tu la gardes, on ne sait jamais."),
       oneshot: true),
@@ -770,7 +770,7 @@ final List<StoryCard> _fill7 = [
       oneshot: true,
       requires: (f) => f.contains('radio1') && !f.contains('radio2')),
   _filler('F7_soeur_billes',
-      "Ta sœur t'entraîne vers une cachette d'enfant sous le quai de la halte 12, où vous planquiez des billes, dans une autre vie.",
+      "Ta sœur t'entraîne vers une cachette d'enfant sous un vieux quai, où vous planquiez des billes, dans une autre vie.",
       _c("Fouiller la cachette", fx: {Stat.moral: 12, Stat.faim: -3}, result: "Les billes sont là, intactes sous la poussière. Vous pleurez de rire. Le passé existe encore."),
       _c("Ne pas réveiller le passé", fx: {Stat.moral: -3}, result: "Tu n'oses pas. Trop de douceur fait trop mal, maintenant."),
       requires: (f) => f.contains('aLaSoeur')),
@@ -912,7 +912,7 @@ final List<StoryCard> _fill10 = [
       _c("Fouiller (tu en as besoin)", fx: {Stat.faim: 8, Stat.soif: 6, Stat.moral: -5}, result: "Médocs et conserves. Mais tu te sens voleuse de sa vie suspendue."),
       _c("Ne rien toucher", fx: {Stat.moral: 7}, result: "Tu laisses son sanctuaire intact. Une trace d'humanité préservée.")),
   _filler('F10_etoiles',
-      "Dernière nuit calme avant la halte 31. Veiller sous les étoiles, ou dormir pour être prête ?",
+      "Dernière nuit calme avant le grand froid. Veiller sous les étoiles, ou dormir pour être prête ?",
       _c("Compter les étoiles comme avant", fx: {Stat.moral: 9, Stat.faim: -3}, result: "La Grande Ourse, qui ramène à la maison, disait ta sœur. Tu veilles tard."),
       _c("Dormir pour récupérer", fx: {Stat.moral: 4, Stat.faim: 4}, result: "Un sommeil profond. Demain sera rude, tu seras prête.")),
   _filler('F10_soeur_fleur',
@@ -1180,7 +1180,7 @@ const Map<String, ({String title, String body})> endings = {
 /// affichée sous le bandeau "GARE N — Nom" à l'arrivée. Donne à chaque gare une
 /// identité immédiate avant les cartes. Index 0-based (= gare N-1).
 const List<String> kGareIntros = [
-  "Une gare en ruines. Loin derrière, ta ville natale rougeoie encore.", // 1 Kogarashi
+  "Kogarashi, ta ville. Ou ce qu'il en reste : un quai en ruines, des flammes au loin.", // 1 Kogarashi (ville natale)
   "Un dépôt de fret mort. Le fer rouille, la loco agonise.", //           2 Kurogane
   "Un brouillard épais avale les rails. Des ombres y fouillent les morts.", // 3 Karasuno
   "Un village fantôme. Des messages d'absents couvrent les murs.", //     4 Mayoidani
