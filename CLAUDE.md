@@ -232,6 +232,12 @@ g8, hydro+bain+douche+lanternes g10. Chien=`aLeChien` (g1), sœur=`aLaSoeur` (g5
   props (hydro/lamp/stove/filter/notebook/firstaid/bowl). `secondWagon: true` =
   cellier. `_showAllProps = GameState.debugMode`. `_SteamPainter`, FireGlow.
 - `lib/widgets/cards_screen.dart` + `lib/data/cards_data.dart` — moteur de cartes.
+  `cards_data` expose aussi `kGareIntros` (mini-cinématique texte par gare,
+  affichée sous le bandeau d'annonce) et `endingText(id)` (fins ENRICHIES
+  dynamiquement : chien/soin/sœur selon les flags).
+- `lib/widgets/shop_screen.dart` — Boutique IAP **confort-only** (jamais bloquer
+  l'histoire). Le vrai paiement (`in_app_purchase` + produits App Store) reste à
+  brancher dans `_purchase` ; en debug, achat accordé gratuitement pour tester.
 - `lib/widgets/locomotive_scene.dart` — cabine loco, ramassage bûches,
   `MiniRouteMap` encadrée (tap → map ; ajustable en debug).
 - `lib/widgets/map_screen.dart` — carte 14 gares (spline Catmull-Rom, train

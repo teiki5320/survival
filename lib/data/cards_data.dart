@@ -1176,6 +1176,26 @@ const Map<String, ({String title, String body})> endings = {
   ),
 };
 
+/// Mini-cinématique d'entrée en gare (version texte) : une ligne d'ambiance
+/// affichée sous le bandeau "GARE N — Nom" à l'arrivée. Donne à chaque gare une
+/// identité immédiate avant les cartes. Index 0-based (= gare N-1).
+const List<String> kGareIntros = [
+  "Une gare en ruines. Loin derrière, ta ville natale rougeoie encore.", // 1 Kogarashi
+  "Un dépôt de fret mort. Le fer rouille, la loco agonise.", //           2 Kurogane
+  "Un brouillard épais avale les rails. Des ombres y fouillent les morts.", // 3 Karasuno
+  "Un village fantôme. Des messages d'absents couvrent les murs.", //     4 Mayoidani
+  "Un pont enjambe un fleuve noir. Une petite silhouette, dessus, t'attend.", // 5 Tsukibashi
+  "Un camp de survivants : une frêle lueur de chaleur humaine.", //       6 Yasuragi
+  "La halte de votre enfance. Les souvenirs remontent comme une marée.", // 7 Hoshikage
+  "La brume se glace. Ici, le froid devient une bête vivante.", //        8 Kiribe
+  "Un blizzard noie la plaine. Le monde se réduit à un wagon.", //        9 Shizuhara
+  "Une oasis impossible : une serre tiède au cœur de la neige.", //       10 Hidamari
+  "Un champ de neige barré. Des silhouettes attendent sur la voie.", //   11 Yukihara
+  "Une tour de guet. De là-haut, on voit enfin le nord.", //             12 Miharashi
+  "Le col gelé. La loco râle. C'est le dernier mur avant le refuge.", //  13 Fubuki
+  "Le refuge du nord. Des toits, des fumées, des visages. Vivants.", //   14 Hokuto
+];
+
 /// Texte de fin ENRICHI dynamiquement selon les flags/le soin de la run :
 ///  - le chien (s'il est là) descend avec elles sur le quai (fins d'arrivée) ;
 ///  - le niveau de soin (`cardSoin`) colore les fins « famille »/« secret » ;

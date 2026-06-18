@@ -15,6 +15,7 @@ import 'widgets/loading_screen.dart';
 import 'widgets/opening_cinematic.dart';
 import 'widgets/tutorial_overlay.dart';
 import 'widgets/wardrobe_screen.dart';
+import 'widgets/shop_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -145,6 +146,7 @@ class _WagonScreenState extends State<WagonScreen>
   bool _onMap = false;
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
+  bool _inShop = false;
   bool _inCards = false;
   bool _cardsFromLoco = false; // cartes ouvertes via le voyage (loco->map) : y revenir
   // Vrai si la map a été ouverte depuis la loco (pour y revenir en quittant).
@@ -190,6 +192,14 @@ class _WagonScreenState extends State<WagonScreen>
   // aller-retour loco/map ne doit pas réarmer le cooldown = exploit).
   void _comfortMoral(int amount) => GameState.instance.tryComfortMoral(amount);
 
+  // Déclenche un float ancré sur Shen dans la scène (retour d'action / refus).
+  void _heroFloat(String text) {
+    setState(() {
+      _heroFloatText = text;
+      _heroFloatToken++;
+    });
+  }
+
   // Activation du debug par TRIPLE-TAP caché (plus de bouton visible en jeu).
   int _debugTaps = 0;
   Timer? _debugTapTimer;
@@ -211,6 +221,9 @@ class _WagonScreenState extends State<WagonScreen>
   int _cuisiniereToken = 0;
   int _poeleToken = 0;
   int _bacToken = 0;
+  // Float ancré sur Shen, piloté depuis main (boire au filtre / refus bois).
+  int _heroFloatToken = 0;
+  String _heroFloatText = '';
   // Interaction sœur (test manuel) : alterne lecture / câlin à chaque tap.
   int _duoToken = 0;
   String _duoAnimToPlay = 'readduo';
@@ -575,6 +588,11 @@ class _WagonScreenState extends State<WagonScreen>
                 key: const ValueKey('wardrobe'),
                 onClose: () => setState(() => _inWardrobe = false),
               )
+            : _inShop
+            ? ShopScreen(
+                key: const ValueKey('shop'),
+                onClose: () => setState(() => _inShop = false),
+              )
             : _onMap
             ? MapScreen(
                 key: const ValueKey('map'),
@@ -678,7 +696,7 @@ class _WagonScreenState extends State<WagonScreen>
           if (!_onMap &&
               !_inCards &&
               !_inWardrobe &&
-              
+              !_inShop &&
               !_inLocomotive &&
               _inLiving &&
               !_doorPushing &&
@@ -711,6 +729,8 @@ class _WagonScreenState extends State<WagonScreen>
             cuisiniereToken: _cuisiniereToken,
             poeleToken: _poeleToken,
             bacToken: _bacToken,
+            heroFloatToken: _heroFloatToken,
+            heroFloatText: _heroFloatText,
             showerToken: _showerToken,
             petDogToken: _petDogToken,
             duoToken: _duoToken,
@@ -970,6 +990,14 @@ class _WagonScreenState extends State<WagonScreen>
                   ),
                   const SizedBox(height: 12),
                 ],
+                // ===== BOUTON BOUTIQUE (toujours visible, confort only) =====
+                FloatingActionButton.small(
+                  heroTag: 'open_shop',
+                  tooltip: 'Boutique confort',
+                  onPressed: () => setState(() => _inShop = true),
+                  child: const Icon(Icons.shopping_bag_outlined),
+                ),
+                const SizedBox(height: 12),
                 // ===== BOUTON DE JEU (toujours visible) =====
                 // Seul le bouton d'ACTION contextuel reste en jeu normal.
                 // Bouton ACTION contextuel + bulle de hint « 1re utilisation ».
@@ -1236,7 +1264,10 @@ class _WagonScreenState extends State<WagonScreen>
         action = () {
           // Purifier/bouillir EXIGE du feu : pas de bois -> pas d'eau potable.
           // Coût relevé (l'eau était ~5x moins chère que les autres ressources).
-          if (GameState.instance.cardBois < 10) return;
+          if (GameState.instance.cardBois < 10) {
+            _heroFloat('Pas assez de bois 🪵');
+            return;
+          }
           GameState.instance.nudgeCardStat('bois', -10);
           GameState.instance
               .setWaterTankGlasses(GameState.waterTankMax);
@@ -1251,6 +1282,7 @@ class _WagonScreenState extends State<WagonScreen>
               next: 'drink', nextFrames: 25);
           _audio.playSfx('drink');
           GameState.instance.setWaterTankGlasses(glasses - 1);
+          _heroFloat('+soif 💧');
         };
       }
     } else if (_inLiving && _atDog) {

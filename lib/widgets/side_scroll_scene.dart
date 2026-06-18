@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../constants.dart' as consts;
 import '../data/anim_metrics.dart';
 import '../models/game_state.dart';
 import 'atmosphere.dart';
@@ -61,7 +62,15 @@ class SideScrollScene extends StatefulWidget {
     this.salonAdjust = false,
     this.onSisterX,
     this.onDogX,
+    this.heroFloatToken = 0,
+    this.heroFloatText = '',
   });
+
+  /// Float ancré sur Shen, piloté depuis le parent (ex. boire au filtre depuis
+  /// main.dart) : à chaque incrément de [heroFloatToken], le texte
+  /// [heroFloatText] monte et s'efface au-dessus de sa tête.
+  final int heroFloatToken;
+  final String heroFloatText;
 
   /// Tap cuisinière : Shen se tourne, la cuisinière s'allume 5 s, puis elle
   /// mange au sol. Tap poêle : Shen se tourne, le poêle s'allume (bois qui
@@ -185,13 +194,13 @@ class SideScrollScene extends StatefulWidget {
 
   /// Left bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the door (= porte
-  /// gauche du wagon vers la locomotive).
-  static const double heroXMin = 0.22;
+  /// gauche du wagon vers la locomotive). Source unique : constants.kHeroXMin.
+  static const double heroXMin = consts.kHeroXMin;
 
   /// Right bound for the heroine in normalised X. Exposed so the parent
   /// can compare against it to know when she's at the right door
-  /// (= ouverture sur la map du monde).
-  static const double heroXMax = 0.86;
+  /// (= ouverture sur la map du monde). Source unique : constants.kHeroXMax.
+  static const double heroXMax = consts.kHeroXMax;
 
   /// Centres X normalisés des props interactifs. Le parent compare
   /// _heroX à ces valeurs pour décider quoi afficher sur l'action FAB.
@@ -224,8 +233,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // keep her on the wagon's parquet floor — left of 0.25 is the
   // locomotive / coupling, right of 0.82 is the closed back-door area.
   static const int _heroFrameCount = 25;
-  static const double _heroXMin = SideScrollScene.heroXMin;
-  static const double _heroXMax = SideScrollScene.heroXMax;
+  // Bornes héroïne : source unique = constants.dart (plus de valeur dupliquée).
+  static const double _heroXMin = consts.kHeroXMin;
+  static const double _heroXMax = consts.kHeroXMax;
 
   // Bornes de déplacement effectives. Dans le cellier (2e wagon) elle peut
   // s'approcher de la porte (gauche), et tant qu'il est EN DÉSORDRE
@@ -384,24 +394,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _heroLyingDown = false;
   int _lieDownFrame = _heroFrameCount - 1; // counts down toward 0
   int _walkFrame = 0;
-  // Step counter — bumped each time a foot plants; consumed by the
-  // FootstepDust widget to render a puff burst.
-  int _stepToken = 0;
   // Occasional thought-bubble emoji shown above the heroine. Picked at
   // random every ~60 s while idle, cleared after a couple of seconds.
   String? _thoughtEmoji;
   Timer? _thoughtTimer;
   Timer? _thoughtClearTimer;
   int _idleFrame = 0;
-  // Random idle break: after ~15 s standing still the heroine plays a
-  // yawn or look-window sheet once, then returns to idle. Breaks the
-  // monotony without needing any input.
-  // ignore: unused_field
-  int _idleStillMs = 0; // (pauses d'inactivité désactivées)
-  String? _idleBreak; // 'yawn' / 'look_window' while playing
-  int _idleBreakFrame = 0;
-  int _idleBreakAccumMs = 0;
-  static const int _idleBreakFrameMs = 65;
+  // (Autonomie idle DÉSACTIVÉE : plus de pause yawn/look_window. Les champs
+  // _idleBreak*/_idleStillMs ont été retirés — code mort.)
 
   // Bain (cellier) : après s'être tournée (use_back), Shen entre dans le bain.
   // L'anim bath_1..8 (qui contient sa propre cuve) remplace l'héroïne + la
@@ -450,7 +450,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _duoAccumMs = 0;
       _duoElapsedMs = 0;
       _heroTarget = null;
-      _idleBreak = null;
     });
   }
 
@@ -495,13 +494,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _cooking = false;
   AnimationController? _fireLoop;
   Timer? _cookT1, _cookT2, _cookT3, _cookT4;
-  // Poêle à bois : timer qui fait descendre le bois doucement tant qu'il brûle.
-  Timer? _poeleDrainTimer;
   // Bac de culture : pousse (0..1) en 20 s une fois semé, puis récolte.
   bool _bacGrowing = false;
   Timer? _bacTimer;
   String? _bacFloat; // texte flottant ("Semé 🌱" / "+10")
   double _bacFloatT = 0; // 1 -> 0 (fondu/montée)
+  // Float ANCRÉ SUR LA HÉROÏNE : retour d'effet d'action (manger/boire/laver…)
+  // ou refus explicite (pas de bois/eau, trop froid). Monte + s'efface.
+  String? _heroFloat;
+  double _heroFloatT = 0; // 1 -> 0
+  Timer? _heroFloatTimer;
 
   // Door-push: short one-shot animation played when entering the
   // locomotive. Fires onDoorPushDone when complete.
@@ -537,7 +539,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _fireLoop = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 650))
       ..repeat(reverse: true);
-    if (GameState.instance.poeleOn) _startPoeleDrain();
     _ensureBacGrowing(); // reprend la pousse si déjà semé
     _lastZone = GameState.instance.trainZone;
     _horizonRotateTimer = Timer.periodic(_horizonRotatePeriod, (_) {
@@ -586,7 +587,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _heroDancing = false;
       _heroLyingDown = false;
       _heroTarget = null;
-      _idleBreak = null;
     });
   }
 
@@ -596,7 +596,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final gs = GameState.instance;
     // SURVIE : pas de feu sans bois -> on ne peut pas cuisiner (sinon repas
     // gratuit quand le bois est vide). Le manque de bois EST le frein.
-    if (gs.cardBois < 8) return;
+    if (gs.cardBois < 8) {
+      _showHeroFloat('Pas assez de bois 🪵');
+      return;
+    }
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
     _cooking = true; // bloque le déplacement pendant toute la séquence
     _heroTarget = null; // si elle marchait, on l'arrête
@@ -620,6 +623,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       // CONVERSION (rien de gratuit) : la gazinière BRÛLE DU BOIS pour cuire.
       gs.nudgeCardStat('bois', -8);
       gs.nudgeCardStat('faim', 12);
+      _showHeroFloat('+faim 🍖');
     });
     // Fin du repas : Shen peut de nouveau se déplacer.
     _cookT4 = Timer(const Duration(milliseconds: 9700), () {
@@ -650,7 +654,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _showBacFloat('+12');
     } else if (!gs.bacSown) {
       // Semer = ARROSER : coûte de l'eau. Pas d'eau -> pas de semis.
-      if (gs.cardSoif < 6) return;
+      if (gs.cardSoif < 6) {
+        _showHeroFloat('Pas assez d\'eau 💧');
+        return;
+      }
       gs.nudgeCardStat('soif', -6);
       gs.setBacSown(true);
       _showBacFloat('Semé 🌱 (−6 eau)');
@@ -691,24 +698,26 @@ class _SideScrollSceneState extends State<SideScrollScene>
     });
   }
 
-  /// Poêle à bois : Shen se tourne, le poêle s'allume (ou s'éteint), et tant
-  /// qu'il brûle le bois descend doucement.
+  /// Float ancré sur la tête de Shen (même mécanique fondu/montée que le bac).
+  void _showHeroFloat(String text) {
+    _heroFloatTimer?.cancel();
+    setState(() { _heroFloat = text; _heroFloatT = 1.0; });
+    int i = 0;
+    _heroFloatTimer = Timer.periodic(const Duration(milliseconds: 100), (t) {
+      if (!mounted) { t.cancel(); return; }
+      i++;
+      setState(() => _heroFloatT = (1.0 - i / 14.0).clamp(0.0, 1.0));
+      if (i >= 14) { t.cancel(); if (mounted) setState(() => _heroFloat = null); }
+    });
+  }
+
+  /// Poêle à bois : Shen se tourne, le poêle s'allume (ou s'éteint). Le drain
+  /// du bois est GLOBAL (géré dans main.dart, actif où que soit Shen).
   void _togglePoele() {
     final gs = GameState.instance;
     _heroFacingRight = gs.w1x('poele') > _heroX;
     _startAutoSpecial('use_back', frames: 24);
     gs.setPoeleOn(!gs.poeleOn);
-    if (gs.poeleOn) {
-      _startPoeleDrain();
-    } else {
-      _poeleDrainTimer?.cancel();
-    }
-  }
-
-  // Le drain du poêle est désormais GLOBAL (géré dans main.dart, actif où que
-  // soit Shen). Cette méthode ne fait plus que (re)dessiner l'état du feu.
-  void _startPoeleDrain() {
-    _poeleDrainTimer?.cancel();
   }
 
   /// Comportement autonome de Shen, dicté par ses besoins (cosmétique : la
@@ -911,7 +920,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (oldWidget.bacToken != widget.bacToken) {
       _bacAction();
     }
+    if (oldWidget.heroFloatToken != widget.heroFloatToken &&
+        widget.heroFloatText.isNotEmpty) {
+      _showHeroFloat(widget.heroFloatText);
+    }
     if (oldWidget.bathToken != widget.bathToken) {
+      // Refus à cause du froid : feedback explicite (hors setState imbriqué).
+      if (!_bathing && GameState.instance.feltCold) {
+        _showHeroFloat('Trop froid pour se laver 🥶');
+      }
       setState(() {
         if (_bathing) {
           // Déjà dans le bain -> sortir.
@@ -933,7 +950,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _heroSleeping = false;
           _heroLyingDown = false;
           _heroTarget = null;
-          _idleBreak = null;
           _activeSpecial = 'use_back';
           _activeSpecialFrames = 10;
           _activeSpecialLoops = false;
@@ -947,6 +963,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
       });
     }
     if (oldWidget.showerToken != widget.showerToken) {
+      if (!_showering && GameState.instance.feltCold) {
+        _showHeroFloat('Trop froid pour se laver 🥶');
+      }
       setState(() {
         if (_showering) {
           _showering = false;
@@ -961,7 +980,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _heroSleeping = false;
           _heroLyingDown = false;
           _heroTarget = null;
-          _idleBreak = null;
           _activeSpecial = 'use_back';
           _activeSpecialFrames = 10;
           _activeSpecialLoops = false;
@@ -985,7 +1003,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
         _heroSleeping = false;
         _heroLyingDown = false;
         _heroTarget = null;
-        _idleBreak = null;
         _activeSpecial = null;
       });
     }
@@ -1033,8 +1050,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT2?.cancel();
     _cookT3?.cancel();
     _cookT4?.cancel();
-    _poeleDrainTimer?.cancel();
     _bacTimer?.cancel();
+    _heroFloatTimer?.cancel();
     _sky.dispose();
     _horizon.dispose();
     _mid.dispose();
@@ -1105,7 +1122,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 // par le cooldown confort partagé (anti-farm).
                 GameState.instance.nudgeCardStat('soif', -8);
                 GameState.instance.restoreHygiene();
-                GameState.instance.tryComfortMoral(12);
+                final gotMoral = GameState.instance.tryComfortMoral(12);
+                _showHeroFloat(gotMoral ? '+moral ❤️ 🛁' : 'Propre 🛁');
               } else if (_pendingShower) {
                 _pendingShower = false;
                 _showering = true;
@@ -1116,7 +1134,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _showerWaterTick = 0;
                 GameState.instance.nudgeCardStat('soif', -6);
                 GameState.instance.restoreHygiene();
-                GameState.instance.tryComfortMoral(10);
+                final gotMoral = GameState.instance.tryComfortMoral(10);
+                _showHeroFloat(gotMoral ? '+moral ❤️ 🚿' : 'Propre 🚿');
               }
               return;
             }
@@ -1288,37 +1307,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     final target = _heroTarget;
     if (target == null) {
-      // Idle break currently playing — advance its frames, snap back
-      // to idle when done.
-      if (_idleBreak != null) {
-        _animSet(() {
-          _idleBreakAccumMs += dtMs;
-          while (_idleBreakAccumMs >= _idleBreakFrameMs) {
-            _idleBreakAccumMs -= _idleBreakFrameMs;
-            _idleBreakFrame++;
-            if (_idleBreakFrame >= _heroFrameCount) {
-              _idleBreak = null;
-              _idleBreakFrame = 0;
-              _idleStillMs = 0;
-              return;
-            }
-          }
-        });
-        return;
-      }
+      // Idle pur (l'autonomie yawn/look_window a été retirée).
       _animSet(() {
         _idleAccumMs += dtMs;
         while (_idleAccumMs >= _idleFrameMs) {
           _idleAccumMs -= _idleFrameMs;
           _idleFrame = (_idleFrame + 1) % _heroFrameCount;
         }
-        // Pauses d'inactivité (yawn) DÉSACTIVÉES : Shen reste en idle pur.
-        _idleStillMs = 0;
       });
       return;
     }
-    // Walking — reset the still timer so we don't yawn mid-step.
-    _idleStillMs = 0;
 
     final delta = target - _heroX;
     final step = _heroSpeed * dt;
@@ -1349,11 +1347,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       while (_walkAccumMs >= _walkFrameMs) {
         _walkAccumMs -= _walkFrameMs;
         _walkFrame = (_walkFrame + 1) % _heroFrameCount;
-        // Roughly every 6 walk frames a foot is planted — kick a dust
-        // puff at the heroine's feet. (Son de pas retiré : pas apprécié.)
-        if (_walkFrame % 6 == 0) {
-          _stepToken++;
-        }
       }
     });
     widget.onHeroXChanged?.call(_heroX);
@@ -1368,10 +1361,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _heroDancing = false;
       _heroLyingDown = false;
       _walkingToBed = false;
-      _idleBreak = null;
-      _idleBreakFrame = 0;
-      _idleBreakAccumMs = 0;
-      _idleStillMs = 0;
       _heroTarget = clamped;
       if (wasSleeping) {
         if (_sleepOnBed) {
@@ -1763,16 +1752,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                         (widget.night ? 1.0 : 0.6),
                                   ),
                                 ),
-                                Positioned.fill(
-                                  child: FootstepDust(
-                                    heroX: _heroX,
-                                    feetY: 0.92,
-                                    stepToken: _stepToken,
-                                    // plancher propre désormais (dirty/swept
-                                    // retirés) -> plus de poussière au sol.
-                                    enabled: false,
-                                  ),
-                                ),
                                 if (_thoughtEmoji != null)
                                   Positioned.fill(
                                     child: ThoughtBubble(
@@ -1781,6 +1760,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                       emoji: _thoughtEmoji!,
                                     ),
                                   ),
+                                if (_heroFloat != null)
+                                  _heroFloatWidget(w, h),
                               ],
                             ),
                           ),
@@ -2153,6 +2134,37 @@ class _SideScrollSceneState extends State<SideScrollScene>
               fontSize: 22,
               fontWeight: FontWeight.w800,
               shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Float ambré ancré au-dessus de la tête de Shen (retour d'effet d'action /
+  /// refus). Position calée comme la ThoughtBubble : X = position courante de
+  /// Shen, Y au-dessus de sa tête, avec une montée douce pendant le fondu.
+  Widget _heroFloatWidget(double w, double h) {
+    final cx = _heroX * w;
+    final topY = (0.40 - (1 - _heroFloatT) * 0.06) * h;
+    return Positioned(
+      left: cx - 80,
+      top: topY,
+      width: 160,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: _heroFloatT.clamp(0.0, 1.0),
+          child: Text(
+            _heroFloat!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFFE8B96B), // ambré
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              shadows: [
+                Shadow(color: Colors.black, blurRadius: 4),
+                Shadow(color: Colors.black, blurRadius: 2),
+              ],
             ),
           ),
         ),
@@ -2798,9 +2810,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     } else if (_heroDancing) {
       prefix = 'dance';
       frame = _danceFrame;
-    } else if (_idleBreak != null) {
-      prefix = _idleBreak!;
-      frame = _idleBreakFrame;
     } else if (_heroTarget != null) {
       prefix = 'walk_right';
       frame = _walkFrame;

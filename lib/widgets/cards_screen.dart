@@ -95,8 +95,10 @@ class _CardsScreenState extends State<CardsScreen>
           vsync: this, duration: const Duration(milliseconds: 520));
       _pulseSign[st] = 0;
     }
+    // Plus longue (~3,4 s) qu'avant : laisse le temps de lire la ligne
+    // d'ambiance de la gare (mini-cinématique texte) sous le titre.
     _gareCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1700));
+        vsync: this, duration: const Duration(milliseconds: 3400));
     // Régen des crédits + tic 1s pour animer le compte à rebours. Crédits
     // DÉSACTIVÉS pour l'instant -> on n'arme PAS le timer (évite un rebuild
     // complet de l'écran à 1 Hz pour rien). À réarmer si on réactive le rythme.
@@ -322,6 +324,24 @@ class _CardsScreenState extends State<CardsScreen>
                           height: 2,
                           color: gold.withValues(alpha: 0.7),
                         ),
+                        const SizedBox(height: 16),
+                        // Mini-cinématique texte : une ligne d'ambiance par gare.
+                        if (_announcedGare >= 0 &&
+                            _announcedGare < kGareIntros.length)
+                          Padding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 44),
+                            child: Text(
+                              kGareIntros[_announcedGare],
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.78),
+                                fontSize: 15,
+                                fontStyle: FontStyle.italic,
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
