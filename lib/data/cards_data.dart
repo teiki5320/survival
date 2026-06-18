@@ -97,6 +97,7 @@ List<StoryCard> _gare1(Set<String> f) => [
         id: 'G1c',
         kind: CardKind.gare,
         speaker: 'Kogarashi',
+        art: CardArt.memory,
         text:
             "La nuit tombe sur un monde noir. Tu revois la cohue : tes parents qui te poussaient en avant, la main de ta sœur arrachée à la tienne. Tu n'as vu personne tomber — mais personne s'en sortir non plus.",
         left: _c("Te jurer de les retrouver",
@@ -113,6 +114,7 @@ List<StoryCard> _gare2(Set<String> f) => [
         id: 'G2',
         kind: CardKind.gare,
         speaker: 'Kurogane',
+        art: CardArt.fire,
         text:
             "Au dépôt de fret, le foyer de la loco agonise. Tu ne sais pas la nourrir — trop de bois l'étouffe, trop peu l'éteint. Un manuel graisseux traîne dans la cabine.",
         left: _c("Déchiffrer le manuel, page à page",
@@ -131,7 +133,8 @@ List<StoryCard> _gare2(Set<String> f) => [
               result: "Tu les fais déguerpir à coups de pierres. Traverses, palettes, charbon : la soute déborde. Mais leurs regards affamés te suivent longtemps. La loco ronronnera ; ta conscience, moins."),
           _c("Te faufiler en douce, sans les déranger",
               fx: {Stat.faim: 8, Stat.soif: 5},
-              result: "Tu évites l'affrontement et glisses jusqu'à une réserve de cheminots oubliée : conserves et bidons d'eau. Belle prise, sans une égratignure ni un remords.")),
+              result: "Tu évites l'affrontement et glisses jusqu'à une réserve de cheminots oubliée : conserves et bidons d'eau. Belle prise, sans une égratignure ni un remords."),
+          art: CardArt.food),
     ];
 
 List<StoryCard> _gare3(Set<String> f) => [
@@ -139,6 +142,7 @@ List<StoryCard> _gare3(Set<String> f) => [
         id: 'G3',
         kind: CardKind.gare,
         speaker: 'Karasuno',
+        art: CardArt.pillards,
         text:
             "Karasuno, noyée dans un brouillard épais. Des formes bougent entre les wagons rouillés — des pillards, qui fouillent les morts. Ils n'ont pas encore vu ta loco.",
         left: _c("Couper les feux, passer en fantôme",
@@ -154,6 +158,7 @@ List<StoryCard> _gare3(Set<String> f) => [
         id: 'G3b',
         kind: CardKind.gare,
         speaker: 'Karasuno',
+        art: CardArt.sister,
         text:
             "Sur le quai défilant, un foulard d'enfant accroché à un clou claque au vent. Rouge à pois blancs. Le même que celui de ta petite sœur. À s'y méprendre.",
         left: _c("Risquer tout pour l'attraper",
@@ -171,7 +176,8 @@ List<StoryCard> _gare3(Set<String> f) => [
               result: "Ils détalent dans la brume. Pas une éraflure sur le wagon — et dans leurs sacs abandonnés, un peu de bois et deux conserves. Le butin des vaincus."),
           _c("Foncer dans la brume sans t'arrêter",
               fx: {Stat.bois: -6, Stat.moral: -3},
-              result: "Tu pousses la loco à l'aveugle. Ils cognent le wagon au passage — des planches arrachées, le froid passera par là — mais tu passes.")),
+              result: "Tu pousses la loco à l'aveugle. Ils cognent le wagon au passage — des planches arrachées, le froid passera par là — mais tu passes."),
+          art: CardArt.pillards),
     ];
 
 List<StoryCard> _gare4(Set<String> f) => [
@@ -179,6 +185,7 @@ List<StoryCard> _gare4(Set<String> f) => [
         id: 'G4',
         kind: CardKind.gare,
         speaker: 'Mayoidani',
+        art: CardArt.hope,
         text:
             "Un mur couvert de messages de disparus. Au milieu, une écriture maladroite d'enfant : « JE VAIS AU NORD. JE T'ATTENDS. » Pas de nom.",
         left: _c("Y croire, foncer au nord",
@@ -197,7 +204,8 @@ List<StoryCard> _gare4(Set<String> f) => [
               result: "Tu remplis ton sac de conserves et d'eau de pluie — mais chaque pièce te raconte une famille qui n'est plus. Tu repars lestée, et plus lourde encore au-dedans."),
           _c("Prendre l'essentiel et fuir ce tombeau",
               fx: {Stat.faim: 4, Stat.moral: 5},
-              result: "Tu attrapes ce qui traîne et tu files. Sur un mur, des mots d'espoir griffonnés : tu n'es pas la seule à monter vers le nord. Ça suffit à te tenir debout.")),
+              result: "Tu attrapes ce qui traîne et tu files. Sur un mur, des mots d'espoir griffonnés : tu n'es pas la seule à monter vers le nord. Ça suffit à te tenir debout."),
+          art: CardArt.memory),
     ];
 
 List<StoryCard> _gare5(Set<String> f) => [
@@ -241,7 +249,8 @@ List<StoryCard> _gare5(Set<String> f) => [
               result: "Tu tiens le pont avec rage, pierre après pierre. Pas une égratignure sur elle. Tu l'as protégée, et tu le referais mille fois."),
           _c("La saisir et filer sous les pierres",
               fx: {Stat.moral: 4, Stat.faim: -4},
-              result: "Tu l'arraches au danger en courant. Elle est sauve — mais elle a vu des choses qu'un enfant ne devrait jamais voir.")),
+              result: "Tu l'arraches au danger en courant. Elle est sauve — mais elle a vu des choses qu'un enfant ne devrait jamais voir."),
+          art: CardArt.sister),
     ];
 
 List<StoryCard> _gare6(Set<String> f) => [
@@ -249,6 +258,7 @@ List<StoryCard> _gare6(Set<String> f) => [
         id: 'G6',
         kind: CardKind.gare,
         speaker: 'Yasuragi',
+        art: CardArt.refuge,
         text:
             "Un camp de survivants. On peut troquer, mais ils regardent ta sœur avec trop d'intérêt — ici, un enfant en bonne santé, ça se monnaie.",
         left: _c("Troquer vite et partir",
@@ -266,7 +276,8 @@ List<StoryCard> _gare6(Set<String> f) => [
               result: "Tu reprends tout, durement. On ne te volera plus — mais on te craint, et toi, tu te dégoûtes un peu. Le ventre plein, le cœur lourd."),
           _c("Partager le peu que tu as",
               fx: {Stat.faim: -6, Stat.moral: 12},
-              result: "Tu donnes une conserve au gamin. Le camp t'adopte : on t'offre le gîte, des nouvelles du nord, un peu de chaleur humaine. Affamée, mais grandie.")),
+              result: "Tu donnes une conserve au gamin. Le camp t'adopte : on t'offre le gîte, des nouvelles du nord, un peu de chaleur humaine. Affamée, mais grandie."),
+          art: CardArt.food),
     ];
 
 List<StoryCard> _gare7(Set<String> f) => [
@@ -274,6 +285,7 @@ List<StoryCard> _gare7(Set<String> f) => [
         id: 'G7',
         kind: CardKind.gare,
         speaker: 'Hoshikage',
+        art: CardArt.memory,
         text:
             "Cette halte, vous y veniez enfant, toutes les deux, regarder les trains. Ta sœur la reconnaît et sourit pour la première fois depuis la fuite.",
         left: _c("Lui raconter ce souvenir",
@@ -288,7 +300,8 @@ List<StoryCard> _gare7(Set<String> f) => [
               result: "Tu règles ça vite et net. Vous regardez les rails comme avant, en paix. Elle rit. Ça vaut tout l'or du monde."),
           _c("Repartir aussitôt, fouiller en chemin",
               fx: {Stat.faim: 6, Stat.bois: 4, Stat.moral: -3},
-              result: "Tu n'attends pas une 2e vague. Le vieux kiosque cache provisions et bois sec — mais la halte sacrée de l'enfance a un goût de cendre, maintenant.")),
+              result: "Tu n'attends pas une 2e vague. Le vieux kiosque cache provisions et bois sec — mais la halte sacrée de l'enfance a un goût de cendre, maintenant."),
+          art: CardArt.pillards),
     ];
 
 List<StoryCard> _gare8(Set<String> f) => [
@@ -296,6 +309,7 @@ List<StoryCard> _gare8(Set<String> f) => [
         id: 'G8',
         kind: CardKind.gare,
         speaker: 'Kiribe',
+        art: CardArt.cold,
         text:
             "Le froid mord pour de bon. Ta sœur grelotte, ses lèvres bleuissent. Elle n'a pas de vrai manteau.",
         left: _c("Lui donner le tien",
@@ -310,7 +324,8 @@ List<StoryCard> _gare8(Set<String> f) => [
               result: "Tu choisis de t'occuper d'elle. Elle s'endort apaisée contre toi. Les rôdeurs, eux, renoncent au froid mordant."),
           _c("Calfeutrer et tenir la porte",
               fx: {Stat.bois: 6, Stat.moral: 4},
-              result: "Tu colmates chaque fente pendant le calme. La chaleur tiendra cette nuit — mais elle s'est endormie seule, en frissonnant.")),
+              result: "Tu colmates chaque fente pendant le calme. La chaleur tiendra cette nuit — mais elle s'est endormie seule, en frissonnant."),
+          art: CardArt.cold),
     ];
 
 List<StoryCard> _gare9(Set<String> f) => [
@@ -318,6 +333,7 @@ List<StoryCard> _gare9(Set<String> f) => [
         id: 'G9',
         kind: CardKind.gare,
         speaker: 'Shizuhara',
+        art: CardArt.sister,
         text:
             "Le blizzard enferme le train. Ta sœur brûle de fièvre, délire, t'appelle dans son sommeil agité. Tu n'as presque plus rien.",
         left: _c("La veiller toute la nuit",
@@ -332,7 +348,8 @@ List<StoryCard> _gare9(Set<String> f) => [
               result: "Tu veilles sans répit, tu éponges son front. La fièvre baisse plus vite. Elle s'en sortira. Le reste attendra."),
           _c("Les repousser pour leur matériel",
               fx: {Stat.faim: 8, Stat.bois: 6, Stat.moral: -3},
-              result: "Tu chasses les rôdeurs et rafles vivres et bois. Mais ta sœur a traversé l'assaut seule, fiévreuse et tremblante.")),
+              result: "Tu chasses les rôdeurs et rafles vivres et bois. Mais ta sœur a traversé l'assaut seule, fiévreuse et tremblante."),
+          art: CardArt.sister),
     ];
 
 List<StoryCard> _gare10(Set<String> f) => [
@@ -340,6 +357,7 @@ List<StoryCard> _gare10(Set<String> f) => [
         id: 'G10',
         kind: CardKind.gare,
         speaker: 'Hidamari',
+        art: CardArt.hope,
         text:
             "Une serre intacte, chaude, verdoyante. Ta sœur court entre les plants en riant. Un répit irréel. On pourrait... rester ici ?",
         left: _c("S'accorder un vrai repos",
@@ -358,7 +376,8 @@ List<StoryCard> _gare10(Set<String> f) => [
               result: "Tu les tiens à distance. Vous repartez chargées de fruits et d'eau claire. La serre vous a comblées."),
           _c("Profiter de l'instant, tant pis pour eux",
               fx: {Stat.moral: 12, Stat.faim: -4},
-              result: "Une vraie journée de paix dans la chaleur verte. Vos âmes se réparent — vous laissez le reste aux pillards.")),
+              result: "Une vraie journée de paix dans la chaleur verte. Vos âmes se réparent — vous laissez le reste aux pillards."),
+          art: CardArt.food),
     ];
 
 List<StoryCard> _gare11(Set<String> f) => [
@@ -366,6 +385,7 @@ List<StoryCard> _gare11(Set<String> f) => [
         id: 'G11',
         kind: CardKind.gare,
         speaker: 'Yukihara',
+        art: CardArt.pillards,
         text:
             "Des pillards ont dressé un barrage sur la voie. Ils veulent le train, les vivres — et ils ont vu ta sœur.",
         left: _c("Foncer dans le barrage",
@@ -382,7 +402,8 @@ List<StoryCard> _gare11(Set<String> f) => [
               result: "Tu jettes tout ce qui brûle dans le foyer. La loco rugit, distance la draisine, et leurs silhouettes rapetissent. Vous êtes libres — à sec, mais libres."),
           _c("Te poster, viser leur draisine",
               fx: {Stat.moral: 6}, flags: ['soeurProtegee'],
-              result: "Tu mets ta sœur à l'abri, tu attends, tu vises l'attelage. Une pierre bien placée, la draisine déraille dans un fracas de tôle. Le silence revient. Tu l'as protégée.")),
+              result: "Tu mets ta sœur à l'abri, tu attends, tu vises l'attelage. Une pierre bien placée, la draisine déraille dans un fracas de tôle. Le silence revient. Tu l'as protégée."),
+          art: CardArt.pillards),
     ];
 
 List<StoryCard> _gare12(Set<String> f) => [
@@ -390,6 +411,7 @@ List<StoryCard> _gare12(Set<String> f) => [
         id: 'G12',
         kind: CardKind.gare,
         speaker: 'Miharashi',
+        art: CardArt.refuge,
         text:
             "Du haut d'une tour, vous le voyez enfin : le refuge du nord, ses cheminées qui fument. Et, plantée devant, une pancarte : « FAMILLES — REGROUPEMENT SECTEUR EST ». Ta sœur te serre la main à la broyer.",
         left: _c("Lui jurer qu'ils sont là",
@@ -404,7 +426,8 @@ List<StoryCard> _gare12(Set<String> f) => [
               result: "Les mains en sang sur les barreaux gelés, tu atteins le sommet. De là-haut, la route la plus sûre s'offre à toi : plus de détours, plus de pièges. Épuisée, mais tu sais où aller."),
           _c("Rester en bas, fouiller le poste",
               fx: {Stat.faim: 8, Stat.soif: 6, Stat.bois: -4},
-              result: "Tu renonces à la vue et tu rafles les rations planquées du poste de guet. De quoi finir le voyage — mais tu avanceras à l'aveugle.")),
+              result: "Tu renonces à la vue et tu rafles les rations planquées du poste de guet. De quoi finir le voyage — mais tu avanceras à l'aveugle."),
+          art: CardArt.cold),
     ];
 
 List<StoryCard> _gare13(Set<String> f) => [
@@ -412,6 +435,7 @@ List<StoryCard> _gare13(Set<String> f) => [
         id: 'G13',
         kind: CardKind.gare,
         speaker: 'Fubuki',
+        art: CardArt.fire,
         text:
             "La loco rend l'âme dans la dernière montée, à un souffle du sommet. Plus de bois. Il faut sacrifier quelque chose, vite, avant que le froid ne vous prenne.",
         left: _c("Brûler tout le mobilier du wagon",
@@ -426,13 +450,15 @@ List<StoryCard> _gare13(Set<String> f) => [
               result: "Ils avaient une réserve pour l'hiver. Tu la prends. Elle franchira le col à ta place."),
           _c("Tout brûler pour distancer la menace",
               fx: {Stat.bois: -8, Stat.faim: -6, Stat.moral: 4},
-              result: "Tu jettes au feu tout ce qui brûle pour les semer. La loco hoquette, puis bascule de l'autre côté. Vivantes, à genoux.")),
+              result: "Tu jettes au feu tout ce qui brûle pour les semer. La loco hoquette, puis bascule de l'autre côté. Vivantes, à genoux."),
+          art: CardArt.cold),
       // RÉVÉLATION DU SOMMET : beat émotionnel GARANTI (promu depuis un filler
       // aléatoire). Le payoff de tout le col gelé : on aperçoit le refuge.
       StoryCard(
         id: 'G13c',
         kind: CardKind.gare,
         speaker: 'Fubuki',
+        art: CardArt.hope,
         text:
             "Et soudain, la pente s'inverse. Le sommet. De l'autre côté, une vallée — et tout au fond, une lueur qui n'est pas le soleil.",
         left: _c("T'autoriser à espérer",
@@ -451,11 +477,13 @@ List<StoryCard> _gare14(Set<String> f) => [
               result: "Tu les écartes net. Les gardes du refuge t'ouvrent grand les portes. Vous êtes arrivées, et entières."),
           _c("Forcer le passage en encaissant",
               fx: {Stat.moral: 4, Stat.faim: -4},
-              result: "Tu franchis les derniers mètres sous les coups. Le train entre cabossé, mais il entre. Vous y êtes.")),
+              result: "Tu franchis les derniers mètres sous les coups. Le train entre cabossé, mais il entre. Vous y êtes."),
+          art: CardArt.pillards),
       StoryCard(
         id: 'G14',
         kind: CardKind.gare,
         speaker: 'Hokuto',
+        art: CardArt.refuge,
         text:
             "Le train entre en gare du refuge. Ta sœur écrase son visage contre la vitre. Sur le quai, la foule des familles qui cherchent les leurs. Tu descends, le cœur en feu.",
         left: _c("Crier leurs noms dans la foule",
@@ -501,7 +529,7 @@ final List<StoryCard> _fill1 = [
       "Le chiot tremble contre toi dans le noir du wagon. Il a peur — mais sa petite chaleur te tient éveillée et vivante.",
       _c("Le serrer contre toi", fx: {Stat.moral: 8}, result: "Vous vous réchauffez l'un l'autre. Tu n'es plus tout à fait seule au monde."),
       _c("Le laisser dans son coin", fx: {Stat.moral: -3}, result: "Tu gardes tes distances. Il gémit doucement jusqu'au matin."),
-      requires: (f) => f.contains('aLeChien')),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F1_marchand',
       "À un passage à niveau, un vieux marchand agite un fanion. Il propose un troc rapide, sans que personne descende.",
       _c("Troquer des vivres", fx: {Stat.faim: 10, Stat.bois: -4}, result: "Un sac de conserves contre quelques bûches. Marché honnête, pour une fois."),
@@ -596,7 +624,7 @@ final List<StoryCard> _fill3 = [
       "Le chien se dresse soudain, grondant vers l'avant, poils hérissés. Il a flairé quelque chose dans le brouillard.",
       _c("Ralentir, te fier à lui", fx: {Stat.bois: -5, Stat.moral: 6}, result: "Tu freines juste à temps : un éboulis barre la voie. Il t'a sauvée."),
       _c("Le faire taire et avancer", fx: {Stat.moral: -6}, result: "Tu passes en force. Un choc sourd sous le wagon. Tu n'as pas voulu savoir."),
-      requires: (f) => f.contains('aLeChien')),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F3_blesses',
       "Deux pillards blessés lèvent les mains au bord de la voie. Piège tendu, ou vrais désespérés ?",
       _c("Leur jeter des vivres au passage", fx: {Stat.faim: -6, Stat.moral: 7}, result: "Tu balances un sac sans ralentir. Des humains, peut-être, malgré tout."),
@@ -633,7 +661,7 @@ final List<StoryCard> _fill4 = [
       "Dans les décombres du village, sous un mur couvert de messages de disparus, une radio à manivelle, intacte. Un fil vers le monde — s'il reste un monde au bout.",
       _c("L'emporter précieusement", fx: {Stat.moral: 8, Stat.faim: -3}, flags: ['aLaRadio'], result: "Tu la serres contre toi comme un trésor. Ce soir, tu tourneras la manivelle."),
       _c("L'emporter, mais sans trop d'espoir", fx: {Stat.moral: -2, Stat.faim: -3}, flags: ['aLaRadio'], result: "Tu la glisses dans ton sac, le cœur lourd. Écouter le silence du monde te fait peur — mais tu la gardes, on ne sait jamais."),
-      oneshot: true),
+      oneshot: true, art: CardArt.radio),
   _filler('F4_dessin_soeur',
       "Parmi les messages du mur, un dessin d'enfant : deux bonshommes-bâtons main dans la main, un grand, un petit. « MA GRANDE SŒUR VIENDRA. »",
       _c("Le prendre comme un signe", fx: {Stat.moral: 10, Stat.faim: -4}, result: "Ton cœur bondit. Et si... Tu n'oses pas finir la pensée. Mais tu y crois un peu plus."),
@@ -643,7 +671,7 @@ final List<StoryCard> _fill4 = [
       "Le chien gratte la terre près d'une maison et déterre une réserve enfouie : conserves, et même un sac de croquettes.",
       _c("Le récompenser", fx: {Stat.faim: 12, Stat.moral: 5}, result: "Vous festoyez tous les deux. Bon chien. Le meilleur de ce monde mort."),
       _c("Tout rationner", fx: {Stat.faim: 14, Stat.moral: -2}, result: "Tu ranges tout. Il te fixe, déçu. Mais l'hiver vient, et il dévore."),
-      requires: (f) => f.contains('aLeChien')),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F4_fonts',
       "Une église éventrée, des fonts baptismaux pleins d'une eau de pluie limpide.",
       _c("Remplir tes jarres", fx: {Stat.soif: 16}, result: "Eau claire, presque douce. Tu murmures un merci à personne."),
@@ -658,7 +686,7 @@ final List<StoryCard> _fill5 = [
       "La radio capte une vieille chanson d'amour intacte. L'écouter use la manivelle et ravive la douleur.",
       _c("Écouter jusqu'au bout", fx: {Stat.moral: 10, Stat.faim: -4}, result: "Tu danses seule, en larmes. Tu en oublies de manger."),
       _c("Couper, garder l'énergie", fx: {Stat.moral: -5}, result: "Cette chanson, c'était la leur. Tu coupes net."),
-      oneshot: true, requires: (f) => f.contains('aLaRadio')),
+      oneshot: true, requires: (f) => f.contains('aLaRadio'), art: CardArt.radio),
   // Payoff des indices (foulard G3, dessin/mur G4) : ils ont entretenu
   // l'espoir jusqu'aux retrouvailles. Sans ce câblage, indiceSoeur était mort.
   _filler('F5_indices_payoff',
@@ -697,7 +725,7 @@ final List<StoryCard> _fill5 = [
       _c("Noter chaque bribe", fx: {Stat.moral: 9, Stat.faim: -3}, flags: ['radio1'], result: "Tu griffonnes les mots. Quelqu'un, là-haut, parle encore. Tu n'es pas seule sur cette Terre."),
       _c("Ne pas trop espérer", fx: {Stat.moral: 2}, result: "Un vieux message en boucle, sûrement. Tu coupes la manivelle. À quoi bon s'accrocher à une friture ?"),
       oneshot: true,
-      requires: (f) => f.contains('aLaRadio') && !f.contains('radio1')),
+      requires: (f) => f.contains('aLaRadio') && !f.contains('radio1'), art: CardArt.radio),
   _filler('F5_soeur_cabane',
       "Ta sœur a transformé le wagon en cabane : couvertures tendues, cailloux alignés en chemin. « C'est notre maison, maintenant. »",
       _c("Jouer le jeu avec elle", fx: {Stat.moral: 11, Stat.faim: -4}, result: "Tu rampes sous les couvertures. Vous riez. La maison tient tout entière dans un wagon."),
@@ -791,7 +819,7 @@ final List<StoryCard> _fill7 = [
       _c("T'accrocher à cette voix", fx: {Stat.moral: 10}, flags: ['radio2'], result: "Tu connais cette voix. Tu en jurerais. Mais d'où ? Le doute, délicieux et déchirant, te tient éveillée."),
       _c("Te raisonner", fx: {Stat.moral: 3}, result: "L'esprit joue des tours aux affamées. Tu éteins la radio. Mieux vaut ne pas se bercer d'une voix qui n'existe peut-être pas."),
       oneshot: true,
-      requires: (f) => f.contains('radio1') && !f.contains('radio2')),
+      requires: (f) => f.contains('radio1') && !f.contains('radio2'), art: CardArt.radio),
   _filler('F7_soeur_billes',
       "Ta sœur t'entraîne vers une cachette d'enfant sous un vieux quai, où vous planquiez des billes, dans une autre vie.",
       _c("Fouiller la cachette", fx: {Stat.moral: 12, Stat.faim: -3}, result: "Les billes sont là, intactes sous la poussière. Vous pleurez de rire. Le passé existe encore."),
@@ -848,7 +876,7 @@ final List<StoryCard> _fill8 = [
       "Le chien claque des dents, le museau givré. Le froid le prend plus vite que toi.",
       _c("Le glisser sous ta couverture", fx: {Stat.moral: 9, Stat.soif: -4}, result: "Il se love contre ton ventre. Vous tremblez moins, à deux."),
       _c("Le coucher près du foyer", fx: {Stat.bois: -6}, result: "Tu pousses le feu rien que pour lui. La réserve baisse, mais il dort enfin."),
-      requires: (f) => f.contains('aLeChien')),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F8_soeur_cache',
       "Ta sœur ne se plaint jamais, mais ses doigts sont blancs. Elle te cache qu'elle a froid, pour ne pas t'inquiéter.",
       _c("Lui frictionner les mains", fx: {Stat.moral: 10, Stat.faim: -3}, flags: ['soeurProtegee'], result: "Tu souffles sur ses doigts jusqu'à ce qu'ils rosissent. Elle sourit, coupable et heureuse."),
@@ -895,7 +923,7 @@ final List<StoryCard> _fill9 = [
       _c("Hurler de joie et de larmes", fx: {Stat.moral: 14, Stat.faim: -4}, flags: ['radio3'], result: "Maman. C'est maman ! Vivante, là-haut, et elle t'appelle par ton surnom. Plus rien ne pourra t'arrêter."),
       _c("Ne pas y croire, par peur", fx: {Stat.moral: 4}, result: "Et si c'était un vieux message en boucle ? Tu n'oses pas espérer si fort — tu éteins avant que ça te brise. Tu avanceras quand même, mais sans cette certitude au cœur."),
       oneshot: true,
-      requires: (f) => f.contains('radio2') && !f.contains('radio3')),
+      requires: (f) => f.contains('radio2') && !f.contains('radio3'), art: CardArt.radio),
   _filler('F9_soeur_doute',
       "En pleine tempête, ta sœur murmure : « Et si on n'y arrive pas ? » Pour la première fois, elle doute tout haut.",
       _c("Lui mentir avec douceur", fx: {Stat.moral: 8, Stat.faim: -3}, result: "« On y arrivera. Promis. » Elle te croit. Tu te forces à te croire aussi."),
@@ -947,7 +975,7 @@ final List<StoryCard> _fill10 = [
       "Le chien se roule dans l'herbe tiède de la serre, fou de joie, comme un chiot redevenu chiot.",
       _c("Jouer avec lui", fx: {Stat.moral: 10, Stat.faim: -3}, result: "Vous courez entre les plants. Son bonheur est contagieux, guérisseur."),
       _c("Le regarder, attendrie", fx: {Stat.moral: 6}, result: "Tu t'assois et tu le regardes vivre. Ça suffit, parfois, au bonheur."),
-      requires: (f) => f.contains('aLeChien')),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F10_graines_rares',
       "Des semences rares, étiquetées à la main : tomates, courges, herbes. Un trésor pour qui voudrait recommencer à vivre.",
       _c("Tout emporter pour plus tard", fx: {Stat.faim: 6, Stat.moral: 6}, result: "De quoi faire pousser un avenir, si avenir il y a."),
@@ -988,7 +1016,7 @@ final List<StoryCard> _fill11 = [
       "Tu tournes la manivelle, encore et encore. Mais la fréquence de maman est muette, désormais. Juste le souffle du vide.",
       _c("Continuer d'appeler", fx: {Stat.moral: -4, Stat.soif: -3}, result: "« Maman ? Maman ?! » Rien. Mais tu sais qu'elle est là. Tu le sais."),
       _c("Économiser, garder espoir", fx: {Stat.moral: 5}, result: "Tu ranges la radio. Le silence ne veut pas dire l'absence. Tu y crois dur."),
-      requires: (f) => f.contains('radio3')),
+      requires: (f) => f.contains('radio3'), art: CardArt.radio),
   _filler('F11_soeur_pierre',
       "Ta sœur, qui tremblait il y a peu, te tend une pierre : « Apprends-moi. Si les méchants reviennent, je veux t'aider. »",
       _c("Lui apprendre à viser", fx: {Stat.moral: 9, Stat.faim: -3}, result: "Vous vous entraînez sur des boîtes. Elle a la rage de vivre. Ça fait peur, et fierté."),
@@ -1047,7 +1075,7 @@ final List<StoryCard> _fill12 = [
       "Tout près du but, la radio renaît une seconde : « ...je les vois... mon Dieu, c'est elle... » puis le grésillement avale tout. Quelqu'un, là-haut, vous a peut-être aperçues.",
       _c("Répondre dans le micro", fx: {Stat.moral: 13, Stat.bois: -3}, result: "« On arrive ! Tenez bon ! » Tu ne sais pas si ça émet. Mais tu l'as crié, et ça compte."),
       _c("Foncer sans répondre", fx: {Stat.moral: 8, Stat.bois: -5}, result: "Pas le temps des mots. Tu pousses la loco vers les fumées. Les actes, maintenant."),
-      requires: (f) => f.contains('radio3')),
+      requires: (f) => f.contains('radio3'), art: CardArt.radio),
   _filler('F12_soeur_promesse',
       "Du haut de la tour, ta sœur fixe les fumées du refuge. « Quand on les aura retrouvés... on arrête de courir, hein ? On reste. »",
       _c("Le lui promettre", fx: {Stat.moral: 12}, result: "« On reste. Pour toujours. » Tu scelles la promesse d'un crachat dans la paume, comme avant."),
@@ -1114,7 +1142,7 @@ final List<StoryCard> _fill14 = [
       "Le chien dresse soudain les oreilles, le museau au vent, et se met à gémir vers la foule du quai, queue battante.",
       _c("Le suivre, il a peut-être senti quelqu'un", fx: {Stat.moral: 12}, result: "Tu te laisses tirer par la laisse improvisée. Un animal n'oublie jamais une odeur aimée..."),
       _c("Le calmer, ne pas trop espérer", fx: {Stat.moral: 4}, result: "« Doucement, mon grand. » Tu retiens ton propre élan, de peur d'avoir trop mal."),
-      requires: (f) => f.contains('aLeChien')),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
 ];
 
 
