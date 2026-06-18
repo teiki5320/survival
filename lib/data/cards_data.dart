@@ -176,14 +176,15 @@ List<StoryCard> _gare4(Set<String> f) => [
             fx: {Stat.moral: -4}, flags: ['asset_filter'],
             result: "Des milliers d'enfants ont écrit ça. Tu n'oses pas y croire. Pas encore. Tu fouilles le village et en ramènes au moins un filtre à eau."),
       ),
+      // Menace = le village lui-même (silence, deuil), pas des pillards.
       _epreuve('G4ev', 'Mayoidani',
-          "Au village fantôme, une embuscade parmi les ruines : des rôdeurs veulent t'empêcher de fouiller les maisons.",
-          _c("Les repousser et fouiller à loisir",
-              fx: {Stat.faim: 8, Stat.soif: 6},
-              result: "Tu les écartes net. Conserves oubliées, eau de pluie dans une citerne : le village mort te nourrit."),
-          _c("Décrocher vite, viser les murs de messages",
-              fx: {Stat.moral: 8, Stat.faim: -4},
-              result: "Tu files sans tout fouiller, mais tu lis d'autres mots d'espoir griffonnés sur les murs. Tu n'es pas la seule à monter vers le nord.")),
+          "Le village fantôme t'aspire : maisons éventrées pleines de vivres, mais aussi de photos, de berceaux vides, d'un silence qui pèse sur l'âme. Fouiller, c'est s'y attarder.",
+          _c("Fouiller maison par maison",
+              fx: {Stat.faim: 10, Stat.soif: 6, Stat.moral: -7},
+              result: "Tu remplis ton sac de conserves et d'eau de pluie — mais chaque pièce te raconte une famille qui n'est plus. Tu repars lestée, et plus lourde encore au-dedans."),
+          _c("Prendre l'essentiel et fuir ce tombeau",
+              fx: {Stat.faim: 4, Stat.moral: 5},
+              result: "Tu attrapes ce qui traîne et tu files. Sur un mur, des mots d'espoir griffonnés : tu n'es pas la seule à monter vers le nord. Ça suffit à te tenir debout.")),
     ];
 
 List<StoryCard> _gare5(Set<String> f) => [
@@ -191,8 +192,10 @@ List<StoryCard> _gare5(Set<String> f) => [
         id: 'G5',
         kind: CardKind.gare,
         speaker: 'Tsukibashi',
-        text:
-            "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
+        text: f.contains('indiceSoeur')
+            // Payoff des indices (foulard G3, dessin G4) suivis tout du long.
+            ? "Une silhouette menue, recroquevillée au milieu du pont. À son cou, un foulard rouge à pois — le jumeau de celui que tu as serré de gare en gare, ton fil d'Ariane vers elle. Tu cesses de respirer. Tu savais. Tu as toujours su. C'est elle. C'est ta petite sœur."
+            : "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
         left: _c("Courir la serrer dans tes bras",
             fx: {Stat.moral: 40}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi."),
         right: _c("La couvrir et vérifier qu'elle va bien",
@@ -238,14 +241,15 @@ List<StoryCard> _gare6(Set<String> f) => [
             fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_commode', 'asset_wagon2'],
             result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. En partant, tu accroches un 2e wagon (cellier) laissé là, et tu emportes une commode."),
       ),
+      // Menace = dilemme SOCIAL (le camp jauge ton humanité), pas un combat.
       _epreuve('G6ev', 'Yasuragi',
-          "Au camp-refuge, des rôdeurs testent le train sous les yeux des survivants. Ta réaction décidera comment on te traite ici.",
-          _c("Les repousser net, imposer le respect",
-              fx: {Stat.faim: 10, Stat.soif: 6, Stat.moral: 4},
-              result: "Le camp t'a vue faire. On te traite en partenaire, plus en proie. Bon troc, têtes hautes."),
-          _c("Monter la garde pour eux contre des vivres",
-              fx: {Stat.faim: 12, Stat.bois: 4},
-              result: "Une nuit de veille à leur place, contre un plein de provisions. Marché honnête.")),
+          "Au camp, on surprend un gosse affamé la main dans tes réserves. Tout le monde s'arrête et te regarde : ce que tu vas faire décidera comment on te traite ici.",
+          _c("Faire un exemple, récupérer ton bien",
+              fx: {Stat.faim: 10, Stat.soif: 6, Stat.moral: -8},
+              result: "Tu reprends tout, durement. On ne te volera plus — mais on te craint, et toi, tu te dégoûtes un peu. Le ventre plein, le cœur lourd."),
+          _c("Partager le peu que tu as",
+              fx: {Stat.faim: -6, Stat.moral: 12},
+              result: "Tu donnes une conserve au gamin. Le camp t'adopte : on t'offre le gîte, des nouvelles du nord, un peu de chaleur humaine. Affamée, mais grandie.")),
     ];
 
 List<StoryCard> _gare7(Set<String> f) => [
@@ -377,13 +381,13 @@ List<StoryCard> _gare12(Set<String> f) => [
             fx: {Stat.moral: 8}, flags: ['soeurProtegee'], result: "« On verra, ma puce. On verra. » Tu ne promets rien que le monde pourrait briser — mais tu la serres fort. Elle, ici, maintenant : c'est sûr."),
       ),
       _epreuve('G12ev', 'Miharashi',
-          "Au pied de la tour de guet, une dernière bande de rôdeurs garde la seule vue dégagée sur le refuge.",
-          _c("Tenir le poste, dégager la voie",
-              fx: {Stat.moral: 10, Stat.bois: 4},
-              result: "Tu les déloges. Du haut de la tour, tu traces la route la plus sûre jusqu'au refuge. Plus de détours, plus de pièges."),
-          _c("Les contourner, piller le poste",
+          "Au pied de la tour, le brouillard givrant masque la seule vue dégagée sur le refuge. Grimper la tour gelée pour repérer la route est aussi épuisant que risqué.",
+          _c("Grimper malgré le gel, repérer la route",
+              fx: {Stat.moral: 12, Stat.faim: -6, Stat.soif: -5},
+              result: "Les mains en sang sur les barreaux gelés, tu atteins le sommet. De là-haut, la route la plus sûre s'offre à toi : plus de détours, plus de pièges. Épuisée, mais tu sais où aller."),
+          _c("Rester en bas, fouiller le poste",
               fx: {Stat.faim: 8, Stat.soif: 6, Stat.bois: -4},
-              result: "Tu évites le combat et rafles les rations planquées du poste de guet. De quoi finir le voyage — mais sans avoir repéré la route.")),
+              result: "Tu renonces à la vue et tu rafles les rations planquées du poste de guet. De quoi finir le voyage — mais tu avanceras à l'aveugle.")),
     ];
 
 List<StoryCard> _gare13(Set<String> f) => [
@@ -406,6 +410,19 @@ List<StoryCard> _gare13(Set<String> f) => [
           _c("Tout brûler pour distancer la menace",
               fx: {Stat.bois: -8, Stat.faim: -6, Stat.moral: 4},
               result: "Tu jettes au feu tout ce qui brûle pour les semer. La loco hoquette, puis bascule de l'autre côté. Vivantes, à genoux.")),
+      // RÉVÉLATION DU SOMMET : beat émotionnel GARANTI (promu depuis un filler
+      // aléatoire). Le payoff de tout le col gelé : on aperçoit le refuge.
+      StoryCard(
+        id: 'G13c',
+        kind: CardKind.gare,
+        speaker: 'Fubuki',
+        text:
+            "Et soudain, la pente s'inverse. Le sommet. De l'autre côté, une vallée — et tout au fond, une lueur qui n'est pas le soleil.",
+        left: _c("T'autoriser à espérer",
+            fx: {Stat.moral: 16, Stat.faim: -3}, result: "Le refuge. C'est forcément le refuge. Tu ris et tu pleures en même temps. Vous y êtes presque."),
+        right: _c("Rester prudente jusqu'au bout",
+            fx: {Stat.moral: 6}, result: "Tu as trop vu pour crier victoire. Mais ton cœur, lui, s'est déjà mis à courir."),
+      ),
     ];
 
 List<StoryCard> _gare14(Set<String> f) => [
@@ -687,18 +704,10 @@ final List<StoryCard> _fill6 = [
       "Une meute de loups suit le train. Ils s'approchent du wagon la nuit.",
       _c("Tirer une bûche enflammée", fx: {Stat.bois: -8, Stat.moral: 4}, result: "Le feu les disperse. Tu gardes ton petit monde intact."),
       _c("Te terrer en silence", fx: {Stat.moral: -6}, result: "Tu retiens ton souffle toute la nuit. Au matin, des griffures sur la porte.")),
-  _filler('F6_manteau',
-      "Un manteau de laine épais dans une malle. Le froid arrive — mais il sent le moisi, peut-être la maladie.",
-      _c("L'enfiler quand même", fx: {Stat.moral: 7, Stat.faim: -4}, result: "Au chaud, mais une toux s'installe. Le corps lutte."),
-      _c("Le brûler par prudence", fx: {Stat.bois: 5, Stat.moral: -3}, result: "Une flambée, et tant pis pour la chaleur durable.")),
   _filler('F6_eboulement',
       "Un éboulement bloque à moitié la voie. Déblayer épuise ; forcer abîme la loco.",
       _c("Déblayer à la main", fx: {Stat.faim: -8, Stat.moral: 4}, result: "Des heures de pelle. Épuisée mais la voie est nette."),
       _c("Forcer le passage", fx: {Stat.bois: -10, Stat.moral: -2}, result: "La loco racle, crache, passe. Elle s'en souviendra.")),
-  _filler('F6_givre',
-      "Les premières fougères de givre couvrent les vitres. Le froid devient une menace réelle.",
-      _c("Pousser le foyer pour devancer le froid", fx: {Stat.bois: -8, Stat.moral: 5}, result: "Un cocon de chaleur. Tu entames sérieusement la réserve."),
-      _c("Rationner le bois", fx: {Stat.moral: -5, Stat.faim: -3}, result: "Tu claques des dents pour garder du combustible. Long.")),
   _filler('F6_poupee',
       "Une marchande propose une poupée de chiffon contre trois conserves. Inutile — sauf pour un cœur d'enfant.",
       _c("L'acheter pour ta sœur", fx: {Stat.faim: -8, Stat.moral: 12}, result: "Le visage de ta sœur s'illumine. Douze conserves n'auraient pas valu ce sourire."),
@@ -715,6 +724,19 @@ final List<StoryCard> _fill6 = [
 ];
 
 final List<StoryCard> _fill7 = [
+  // Écho du choix de la gare 5 : la voie de l'ESPOIR (cap parents). Donne du
+  // poids et de la lisibilité au flag capParents entre G5 et la fin.
+  _filler('F7_cap_parents',
+      "« Tu crois qu'ils sont là-haut ? » te demande ta sœur, le menton sur tes genoux. Tu repenses à ta promesse : les retrouver. Tous.",
+      _c("« J'en suis sûre. On les ramènera. »", fx: {Stat.moral: 9}, result: "Tu y crois assez pour qu'elle y croie aussi. Cette certitude vous tient chaudes toutes les deux."),
+      _c("« On verra. Avance. »", fx: {Stat.moral: 4, Stat.faim: 3}, result: "Tu ne veux pas trop promettre. Mais au fond, tu scrutes déjà chaque horizon pour deux visages."),
+      oneshot: true, requires: (f) => f.contains('capParents')),
+  // Écho de l'AUTRE voie : l'acceptation (cap sœur seule).
+  _filler('F7_cap_soeur',
+      "« Et si on ne retrouvait personne ? » murmure ta sœur. Tu n'as pas promis de les chercher. Tu as promis de la garder, ELLE.",
+      _c("« Alors on se suffira à deux. »", fx: {Stat.moral: 8}, result: "Pas de fausse promesse, juste elle et toi. C'est déjà beaucoup. C'est peut-être tout."),
+      _c("La serrer sans répondre", fx: {Stat.moral: 5}, result: "Tu n'as pas de mots. Juste tes bras autour d'elle, et le train qui roule vers on ne sait quoi."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur') && !f.contains('capParents')),
   _filler('F7_corps',
       "Un corps gelé serre une photo contre lui. Il porte aussi un bon manteau et un sac plein.",
       _c("Prendre ses affaires", fx: {Stat.faim: 10, Stat.moral: -8}, result: "Vivres et chaleur. Mais tu lui as pris jusqu'à sa dignité."),
@@ -767,6 +789,16 @@ final List<StoryCard> _fill7 = [
 ];
 
 final List<StoryCard> _fill8 = [
+  // Cartes du FROID (déplacées depuis _fill6 : elles parlaient de givre/grand
+  // froid alors qu'on était encore en zone tempérée). Ici = entrée zone froide.
+  _filler('F8_givre',
+      "Les premières fougères de givre couvrent les vitres. Le froid devient une menace réelle.",
+      _c("Pousser le foyer pour devancer le froid", fx: {Stat.bois: -8, Stat.moral: 5}, result: "Un cocon de chaleur. Tu entames sérieusement la réserve."),
+      _c("Rationner le bois", fx: {Stat.moral: -5, Stat.faim: -3}, result: "Tu claques des dents pour garder du combustible. Long.")),
+  _filler('F8_manteau',
+      "Un manteau de laine épais dans une malle. Le froid mord pour de bon — mais il sent le moisi, peut-être la maladie.",
+      _c("L'enfiler quand même", fx: {Stat.moral: 7, Stat.faim: -4}, result: "Au chaud, mais une toux s'installe. Le corps lutte."),
+      _c("Le brûler par prudence", fx: {Stat.bois: 5, Stat.moral: -3}, result: "Une flambée, et tant pis pour la chaleur durable.")),
   _filler('F8_dirigeable',
       "Une carcasse de dirigeable abattu émerge de la neige. La nacelle peut cacher un trésor — ou un piège.",
       _c("Fouiller la nacelle", fx: {Stat.faim: 12, Stat.bois: 8, Stat.moral: -5}, result: "Rations militaires, charbon ! Mais des ossements récents te pressent de partir."),
@@ -1020,10 +1052,6 @@ final List<StoryCard> _fill13 = [
       "Plus assez de bois pour le sommet. Il reste le mobilier du wagon, et le vieux carnet où tu notes tout depuis le départ.",
       _c("Brûler les meubles", fx: {Stat.bois: 14, Stat.moral: -6}, result: "Le wagon se vide, nu et froid, mais la loco repart. Le confort contre l'avenir."),
       _c("Brûler le carnet", fx: {Stat.bois: 8, Stat.moral: -12}, result: "Tu regardes tes mots noircir : les morts, les gares, les espoirs. Tout part en fumée, et la loco grimpe.")),
-  _filler('F13_sommet',
-      "Et soudain, la pente s'inverse. Le sommet. De l'autre côté, une vallée — et tout au fond, une lueur qui n'est pas le soleil.",
-      _c("T'autoriser à espérer", fx: {Stat.moral: 16, Stat.faim: -3}, result: "Le refuge. C'est forcément le refuge. Tu ris et tu pleures en même temps."),
-      _c("Rester prudente jusqu'au bout", fx: {Stat.moral: 6}, result: "Tu as trop vu pour crier victoire. Mais ton cœur, lui, s'est déjà mis à courir.")),
   _filler('F13_verglas',
       "La descente est pire que la montée : du verglas plein les rails, le wagon qui chasse à chaque courbe. Un faux mouvement et tout déraille.",
       _c("Freiner par à-coups, millimètre par millimètre", fx: {Stat.soif: -6, Stat.moral: 6}, result: "Les mains crispées sur le frein des heures durant. Mais vous tenez la voie. Vivantes."),
@@ -1147,3 +1175,45 @@ const Map<String, ({String title, String body})> endings = {
         "À quoi bon. Tu n'y crois plus. À une gare sans nom, tu descends. Le train repart sans toi, et le blanc t'avale.",
   ),
 };
+
+/// Texte de fin ENRICHI dynamiquement selon les flags/le soin de la run :
+///  - le chien (s'il est là) descend avec elles sur le quai (fins d'arrivée) ;
+///  - le niveau de soin (`cardSoin`) colore les fins « famille »/« secret » ;
+///  - les fins « mort »/« abandon » évoquent la sœur / le chien présents.
+/// Garde la map `endings` comme base et n'AJOUTE que des lignes variantes.
+({String title, String body}) endingText(String id) {
+  final base = endings[id] ?? endings['ensemble']!;
+  final gs = GameState.instance;
+  final flags = gs.cardFlags;
+  final soin = gs.cardSoin;
+  final hasDog = flags.contains('aLeChien');
+  final hasSister = flags.contains('aLaSoeur');
+  var body = base.body;
+
+  if (id == 'famille' || id == 'secret' || id == 'ensemble') {
+    // Arrivée : le chien a traversé tout le voyage, lui aussi.
+    if (hasDog) {
+      body +=
+          "\n\nÀ vos pieds, le chien tourne en rond en jappant, fou de joie. Lui aussi est arrivé. Il n'a jamais lâché.";
+    }
+    // Granularité du soin : une protection sans faille se voit.
+    if ((id == 'famille' || id == 'secret') && soin >= 6) {
+      body +=
+          "\n\nTu l'as protégée mille fois, à chaque gare, à chaque nuit. Elle le sait. Elle le saura toujours.";
+    }
+  } else if (id == 'mort') {
+    if (hasSister) {
+      body +=
+          "\n\nTa sœur serre ta main glacée et refuse de la lâcher. « Réveille-toi. S'il te plaît, réveille-toi. »";
+    } else if (hasDog) {
+      body +=
+          "\n\nLe chien se couche contre toi et gémit doucement, longtemps, dans le silence blanc.";
+    }
+  } else if (id == 'abandon') {
+    if (hasSister) {
+      body +=
+          "\n\nDerrière la vitre, ta sœur te regarde t'éloigner sans comprendre. Tu détournes les yeux. C'est plus facile.";
+    }
+  }
+  return (title: base.title, body: body);
+}

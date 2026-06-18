@@ -989,7 +989,7 @@ class _CardsScreenState extends State<CardsScreen>
   // --- écran de fin ---
   Widget _buildEnding() {
     final id = _state.endingId ?? 'ensemble';
-    final e = endings[id] ?? endings['ensemble']!;
+    final e = endingText(id);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(28),
