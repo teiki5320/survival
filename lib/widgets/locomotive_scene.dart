@@ -9,6 +9,7 @@ import '../models/game_state.dart';
 import '../services/audio_service.dart';
 import 'atmosphere.dart';
 import 'map_screen.dart';
+import 'side_scroll_scene.dart' show kHeroDecodeWidth;
 import 'stat_rings.dart';
 import 'train_rocking.dart';
 
@@ -64,6 +65,11 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   static const int _idleFrameMs = 80;
 
   late final Ticker _heroTicker;
+  // Pilote les frames de l'héroïne SANS reconstruire toute la cabine. Seul le
+  // cluster héroïne (sprite + halo) écoute ce notifier ; _onHeroTick le bump à
+  // chaque frame au lieu d'un setState global (qui reconstruisait sky + horizon
+  // + cab + oiseaux + braises + fumée + HUD 60×/s).
+  final ValueNotifier<int> _heroAnim = ValueNotifier<int>(0);
   double _heroX = 0.55;
   double? _heroTarget;
   bool _heroFacingRight = true;
@@ -89,6 +95,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   // Brief shake offset applied to the whole scene right after a log
   // thuds into the firebox. Decays to zero over ~400 ms.
   double _shake = 0;
+  // Le shake décale TOUTE la scène : on l'isole dans un ValueNotifier pour ne
+  // ré-appliquer que le Transform (le sous-arbre est hissé via le param child),
+  // sans reconstruire la scène à chaque frame du tremblement.
+  final ValueNotifier<double> _shakeNotifier = ValueNotifier<double>(0);
 
   // Carte murale de la cabine : mode ajuster (déplacer + pincer) + largeur de
   // départ d'un pinch. La carte ouvre la map au tap hors mode ajuster.
@@ -129,9 +139,19 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   void dispose() {
     _horizonTimer?.cancel();
     _heroTicker.dispose();
+    _heroAnim.dispose();
+    _shakeNotifier.dispose();
     _sky.dispose();
     _horizon.dispose();
     super.dispose();
+  }
+
+  /// Comme setState mais ne rebuild QUE le cluster héroïne (via _heroAnim),
+  /// pas toute la cabine. Conserve la sémantique des closures de setState
+  /// (un `return` interne sort de fn).
+  void _animSet(void Function() fn) {
+    fn();
+    _heroAnim.value++;
   }
 
   void _onHeroTick(Duration elapsed) {
@@ -143,13 +163,15 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
 
     if (_shake > 0) {
       _shake = (_shake - dt * 2.5).clamp(0.0, 1.0);
+      // Le shake ne touche que le Transform de scène -> notifier dédié.
+      _shakeNotifier.value = _shake;
     }
 
     // Drive the scripted log-loading sequence first; falls through to
     // free-walk + idle below when _action is idle.
     if (_action == _LocoAction.pickingUp || _action == _LocoAction.throwing) {
       const actionMaxFrames = 14;
-      setState(() {
+      _animSet(() {
         _actionAccumMs += dtMs;
         while (_actionAccumMs >= _actionFrameMs) {
           _actionAccumMs -= _actionFrameMs;
@@ -166,7 +188,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     final target = _heroTarget;
     if (target == null) {
       // Action complete or never started — idle anim.
-      setState(() {
+      _animSet(() {
         _idleAccumMs += dtMs;
         while (_idleAccumMs >= _idleFrameMs) {
           _idleAccumMs -= _idleFrameMs;
@@ -179,7 +201,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     final delta = target - _heroX;
     final step = _heroSpeed * dt;
     if (delta.abs() <= step) {
-      setState(() {
+      _animSet(() {
         _heroX = target;
         _heroTarget = null;
         _walkFrame = 0;
@@ -189,7 +211,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
       return;
     }
     final dir = delta > 0 ? 1.0 : -1.0;
-    setState(() {
+    _animSet(() {
       _heroX += step * dir;
       _heroFacingRight = dir > 0;
       _walkAccumMs += dtMs;
@@ -238,6 +260,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         _actionFrame = 0;
         widget.onThrowLog();
         _shake = 1.0;
+        _shakeNotifier.value = _shake; // démarre le tremblement (Transform seul)
         AudioService().playSfx('log_throw');
         break;
       default:
@@ -350,7 +373,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         child: Transform(
           alignment: Alignment.center,
           transform: Matrix4.identity()..scaleByDouble(shouldMirror ? -1.0 : 1.0, 1.0, 1.0, 1.0),
-          child: _nightTint(Image.asset(asset, fit: BoxFit.contain)),
+          // cacheWidth = source (512) : full quality + clé partagée avec le
+          // précache (main._warmLocoAnims) et le rendu wagon.
+          child: _nightTint(Image.asset(asset,
+              fit: BoxFit.contain, cacheWidth: kHeroDecodeWidth)),
         ),
       ),
     );
@@ -506,13 +532,11 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (d) => _walkTo(d.localPosition.dx / w),
-                child: Transform.translate(
-                  offset: _shake > 0
-                      ? Offset(
-                          (math.sin(_shake * 30) * 6) * _shake,
-                          (math.cos(_shake * 26) * 4) * _shake,
-                        )
-                      : Offset.zero,
+                // Le tremblement ne ré-applique QUE le Transform : le sous-arbre
+                // (TrainRocking + Stack) est hissé via `child` et n'est PAS
+                // reconstruit à chaque frame du shake.
+                child: ValueListenableBuilder<double>(
+                  valueListenable: _shakeNotifier,
                   child: TrainRocking(
                   child: Stack(
                     fit: StackFit.expand,

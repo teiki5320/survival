@@ -112,13 +112,13 @@ List<StoryCard> _gare2(Set<String> f) => [
             result: "Tu charges au jugé. Le feu crachote, capricieux. Tu apprendras dans la fumée et les jurons. Tu emportes quand même une lampe et une table trouvées au dépôt."),
       ),
       _epreuve('G2ev', 'Kurogane',
-          "Au dépôt, des charognards rôdent entre les wagons éventrés. Le bois et les vivres sont là, à portée — mais gardés.",
-          _c("Les chasser et rafler le bois",
-              fx: {Stat.bois: 12, Stat.faim: -3},
-              result: "Tu les fais déguerpir à coups de pierres. Traverses, palettes, charbon : la soute déborde. La loco ronronnera longtemps."),
-          _c("Te faufiler en douce pour des vivres",
+          "Au dépôt, des charognards faméliques rôdent entre les wagons éventrés. Le bois et les vivres sont là, à portée — mais gardés par des gens aussi désespérés que toi.",
+          _c("Les chasser de force et rafler le bois",
+              fx: {Stat.bois: 14, Stat.moral: -6},
+              result: "Tu les fais déguerpir à coups de pierres. Traverses, palettes, charbon : la soute déborde. Mais leurs regards affamés te suivent longtemps. La loco ronronnera ; ta conscience, moins."),
+          _c("Te faufiler en douce, sans les déranger",
               fx: {Stat.faim: 8, Stat.soif: 5},
-              result: "Tu évites l'affrontement et glisses jusqu'à une réserve de cheminots oubliée : conserves et bidons d'eau. Belle prise, sans une égratignure.")),
+              result: "Tu évites l'affrontement et glisses jusqu'à une réserve de cheminots oubliée : conserves et bidons d'eau. Belle prise, sans une égratignure ni un remords.")),
     ];
 
 List<StoryCard> _gare3(Set<String> f) => [
@@ -797,7 +797,7 @@ final List<StoryCard> _fill8 = [
       _c("Rationner le bois", fx: {Stat.moral: -5, Stat.faim: -3}, result: "Tu claques des dents pour garder du combustible. Long.")),
   _filler('F8_manteau',
       "Un manteau de laine épais dans une malle. Le froid mord pour de bon — mais il sent le moisi, peut-être la maladie.",
-      _c("L'enfiler quand même", fx: {Stat.moral: 7, Stat.faim: -4}, result: "Au chaud, mais une toux s'installe. Le corps lutte."),
+      _c("L'enfiler quand même", fx: {Stat.moral: 7, Stat.faim: -4}, flags: ['gotWarmCoat'], result: "Au chaud — une toux s'installe, mais la cabine te semble moins hostile désormais. Tu tiens le froid à distance."),
       _c("Le brûler par prudence", fx: {Stat.bois: 5, Stat.moral: -3}, result: "Une flambée, et tant pis pour la chaleur durable.")),
   _filler('F8_dirigeable',
       "Une carcasse de dirigeable abattu émerge de la neige. La nacelle peut cacher un trésor — ou un piège.",
@@ -886,10 +886,10 @@ final List<StoryCard> _fill9 = [
       "Tu te réveilles : le foyer s'est éteint dans la nuit. Le froid s'est glissé partout. Il faut tout relancer, vite.",
       _c("Brûler du mobilier pour repartir", fx: {Stat.bois: 14, Stat.moral: -5}, result: "Tu casses une étagère, tu rallumes. Le wagon revit, plus nu."),
       _c("Souffler les braises mourantes", fx: {Stat.faim: -8, Stat.moral: 3}, result: "À genoux, tu ranimes une braise à bout de souffle. Ça repart, de justesse.")),
-  _filler('F9_repere',
-      "Le blizzard a tout effacé. Plus un repère. Avancer dans le blanc, ou attendre qu'un détail émerge ?",
-      _c("Avancer dans l'inconnu", fx: {Stat.moral: -4, Stat.bois: -5}, result: "Tu roules dans une page vierge, le doute au ventre. Un détour involontaire, peut-être."),
-      _c("Attendre un repère", fx: {Stat.faim: -6}, result: "Tu attends qu'un poteau, un toit, quelque chose perce le blanc. Le temps gèle avec toi.")),
+  _filler('F9_lanterne',
+      "Une lanterne brûle encore, accrochée à un poteau noyé dans la tempête. Quelqu'un l'a allumée. Récemment.",
+      _c("La récupérer pour la cabine", fx: {Stat.moral: 6, Stat.soif: -4}, result: "Tu sors dans le vent qui mord et tu décroches la flamme. Une petite chaleur volée au blizzard. Quelqu'un, quelque part, tient encore."),
+      _c("Ne pas t'arrêter dans la tempête", fx: {Stat.moral: -3}, result: "Trop dangereux de sortir. Tu la regardes s'éloigner, ce point d'or dans le blanc, et tu te demandes qui l'a allumée.")),
 ];
 
 final List<StoryCard> _fill10 = [

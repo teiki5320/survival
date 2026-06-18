@@ -83,6 +83,7 @@ class GameState extends ChangeNotifier {
         'waterTankGlasses': waterTankGlasses,
         'sleepNeed': sleepNeed,
         'hygieneNeed': hygieneNeed,
+        'lastComfortMs': lastComfortMs,
         'cardsRun': _cardsRunToJson(),
         'layoutBaked': true, // coords d'objets validées appliquées
       });
@@ -171,6 +172,7 @@ class GameState extends ChangeNotifier {
               .clamp(0, waterTankMax);
       sleepNeed = ((data['sleepNeed'] as num?)?.toInt() ?? 100).clamp(0, 100);
       hygieneNeed = ((data['hygieneNeed'] as num?)?.toInt() ?? 100).clamp(0, 100);
+      lastComfortMs = (data['lastComfortMs'] as num?)?.toInt() ?? 0;
       _loadCardsRun(data['cardsRun']);
       // MIGRATION : les anciennes sauvegardes ont des coords d'objets périmées
       // (jamais re-sauvées car l'autosave est récent) -> on applique une fois
@@ -742,8 +744,9 @@ class GameState extends ChangeNotifier {
   final Set<String> cardSeenOneshot = {}; // fillers oneshot déjà vus
   int cardSoin = 0; // nb de fois où Shen a vraiment protégé sa sœur
 
-  // Cooldown partagé du moral « confort » (lire/chien/sœur), porté ici pour
-  // survivre au remontage de l'écran wagon. Transitoire (non sauvegardé).
+  // Cooldown partagé du moral « confort » (lire/chien/sœur/bain), porté ici pour
+  // survivre au remontage de l'écran wagon ET persisté (relancer l'app ne doit
+  // pas réarmer le cooldown = micro-exploit).
   int lastComfortMs = 0;
 
   bool get hasCardRun => cardGareIndex != null;

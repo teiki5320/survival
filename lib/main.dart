@@ -454,7 +454,12 @@ class _WagonScreenState extends State<WagonScreen>
     if (!mounted) return;
     _locoAnims.forEach((p, n) {
       for (int i = 1; i <= n; i++) {
-        precacheImage(AssetImage('assets/characters/${p}_$i.png'), context)
+        // MÊME clé de cache que le rendu (kHeroDecodeWidth) : sinon le sprite
+        // serait décodé une 2e fois à l'affichage dans la cabine.
+        precacheImage(
+                ResizeImage(AssetImage('assets/characters/${p}_$i.png'),
+                    width: kHeroDecodeWidth),
+                context)
             .catchError((_) {});
       }
     });

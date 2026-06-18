@@ -11,6 +11,18 @@ import 'atmosphere.dart';
 import 'map_screen.dart';
 import 'train_rocking.dart';
 
+/// Largeur de décodage des sprites de PERSONNAGE (héroïne / sœur). Égale à la
+/// résolution source des plus grands sprites (512 px) : pas de perte de qualité
+/// (la fille est affichée grande, parfois upscalée), mais ça borne dur le
+/// décodage et garantit une CLÉ DE CACHE COMMUNE entre le rendu et le précache
+/// (loading_screen, main._warmLocoAnims). Sans clé commune, un sprite à la fois
+/// préchargé et rendu serait décodé DEUX fois -> double empreinte mémoire (OOM).
+const int kHeroDecodeWidth = 512;
+
+/// Idem pour les sprites du CHIEN (512 px source, affiché petit) -> 256 suffit
+/// largement et divise par 4 la RAM par frame. Doit matcher le précache du chien.
+const int kDogDecodeWidth = 256;
+
 /// Side-scroller wagon scene.
 ///
 /// Composition (back to front):
@@ -2773,7 +2785,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
             Transform(
               alignment: Alignment.center,
               transform: Matrix4.identity()..scaleByDouble(-1.0, 1.0, 1.0, 1.0),
-              child: Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true),
+              child: Image.asset(asset,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+                cacheWidth: kHeroDecodeWidth),
             ),
           ),
         ),
@@ -2792,8 +2807,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
         width: heroWidth,
         height: heroHeight,
         child: IgnorePointer(
-          child: _nightTint(
-              Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true)),
+          child: _nightTint(Image.asset(asset,
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+              cacheWidth: kHeroDecodeWidth)),
         ),
       );
     }
@@ -2855,8 +2872,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // perso (m.cx, miroité si besoin) sur anchorX. Évite le "saut" au passage
     // entre anims à boîtes de largeurs différentes (ex. idle -> open_door).
     final effCx = shouldMirror ? (1 - m.cx) : m.cx;
-    Widget sprite =
-        Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
+    // cacheWidth = résolution source des plus grands sprites (512 px) -> aucune
+    // perte de qualité, mais borne dur le décodage. La MÊME clé est utilisée au
+    // précache (loading_screen + main._warmLocoAnims) pour partager le cache et
+    // ne pas doubler l'empreinte mémoire.
+    Widget sprite = Image.asset(asset,
+        fit: BoxFit.contain, gaplessPlayback: true, cacheWidth: kHeroDecodeWidth);
     if (shouldMirror) {
       sprite = Transform(
         alignment: Alignment.center,
@@ -3234,8 +3255,12 @@ class _SisterCharacterState extends State<_SisterCharacter>
                 final f = (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
                 asset = 'assets/characters/sister_${_anim}_${f + 1}.png';
               }
+              // Même cap que l'héroïne (512 = source, full quality) + clé de
+              // cache alignée avec le précache (loading_screen).
               return Image.asset(asset,
-                  fit: BoxFit.contain, gaplessPlayback: true);
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                  cacheWidth: kHeroDecodeWidth);
             },
           );
           // Profil orienté à DROITE par défaut -> miroir si elle va à gauche.
@@ -3277,7 +3302,9 @@ class _SisterCharacterState extends State<_SisterCharacter>
       builder: (_, __) {
         final f = (_ctrl.value * _sleepFrames).floor().clamp(0, _sleepFrames - 1);
         return Image.asset('assets/characters/sister_sleep_${f + 1}.png',
-            fit: BoxFit.contain, gaplessPlayback: true);
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+            cacheWidth: kHeroDecodeWidth);
       },
     );
     img = Transform(
@@ -3459,8 +3486,13 @@ class _DogCharacterState extends State<_DogCharacter>
                 final f = (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
                 asset = 'assets/objects/dog_${_anim}_${f + 1}.png';
               }
+              // cacheWidth 256 = MÊME clé que le précache du chien (ResizeImage
+              // width:256) -> pas de double décodage, et 4× moins de RAM/frame
+              // (source 512 px affichée petite).
               Widget img = Image.asset(asset,
-                  fit: BoxFit.contain, gaplessPlayback: true);
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                  cacheWidth: kDogDecodeWidth);
               // Respiration douce au repos, pattes ancrées au sol.
               if (_anim == null) {
                 img = Transform.scale(

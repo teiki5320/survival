@@ -295,6 +295,13 @@ class ReignsEngine {
     }
     // Compte les vrais gestes de protection (pour la fin "famille").
     if (choice.setFlags.contains('soeurProtegee')) _gs.cardSoin++;
+    // Manteau trouvé en jeu (carte) : réchauffe la cabine (lien carte<->wagon).
+    // Un manteau de fortune = warmth 4 (moins que le plaid boutique = 8).
+    if (choice.setFlags.contains('gotWarmCoat') &&
+        !flags.contains('gotWarmCoat') &&
+        _gs.outfitWarmth < 4) {
+      _gs.outfitWarmth = 4;
+    }
     // Déblocage d'objet -> file un toast (avant addAll, pour ne compter que
     // les NOUVEAUX flags asset_*).
     for (final f in choice.setFlags) {

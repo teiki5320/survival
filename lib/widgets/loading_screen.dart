@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'side_scroll_scene.dart' show kHeroDecodeWidth, kDogDecodeWidth;
+
 /// Écran de chargement affiché AVANT le jeu. Décode (precache) tous les
 /// sprites du jeu et ATTEND la fin avant de céder la main au wagon. Sans ça,
 /// le décodage des PNG se faisait en tâche de fond pendant qu'on jouait, et
@@ -40,6 +42,23 @@ class _LoadingScreenState extends State<LoadingScreen> {
       return keep.any(f.startsWith);
     }
     return false;
+  }
+
+  /// Choisit le provider (et sa largeur de décodage) en fonction de l'asset, de
+  /// façon à PARTAGER LA CLÉ DE CACHE avec le rendu (sinon double décodage).
+  ///  - personnages (Shen / sœur) : `kHeroDecodeWidth` (512 = source, full HD) ;
+  ///  - chien + lampe animée (objets affichés petits, source 512) : 256 ;
+  ///  - le reste (fonds, props statiques, tank…) : décodage brut (rendu brut).
+  static ImageProvider _provider(String a) {
+    if (a.startsWith('assets/characters/')) {
+      return ResizeImage(AssetImage(a), width: kHeroDecodeWidth);
+    }
+    final f = a.split('/').last;
+    if (a.startsWith('assets/objects/') &&
+        (f.startsWith('dog_') || f.startsWith('lamp_'))) {
+      return ResizeImage(AssetImage(a), width: kDogDecodeWidth);
+    }
+    return AssetImage(a);
   }
 
   @override
@@ -89,7 +108,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
       final slice = assets.skip(i).take(batch);
       await Future.wait(slice.map((a) async {
         try {
-          await precacheImage(AssetImage(a), context);
+          await precacheImage(_provider(a), context);
         } catch (_) {/* asset illisible : on ignore */}
       }));
       done += slice.length;
@@ -199,7 +218,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const SizedBox(height: 8),
             // Numéro de build (pour vérifier qu'on teste la bonne version).
             const Text(
-              'build 0.99.81',
+              'build 0.99.82',
               style: TextStyle(color: Color(0xFF6B5E4E), fontSize: 11),
             ),
           ],
