@@ -39,6 +39,7 @@ class _CardsScreenState extends State<CardsScreen>
   // Quand on a choisi : on affiche la conséquence et on attend un tap.
   String? _resultText;
   Map<Stat, int> _resultDeltas = const {};
+  String? _resultReaction; // réplique perso à afficher sous la conséquence
   EngineState? _pending; // état à révéler au tap
 
   late final AnimationController _flyCtrl; // sortie de carte
@@ -186,6 +187,7 @@ class _CardsScreenState extends State<CardsScreen>
         } else {
           _resultText = choice.resultText;
           _resultDeltas = choice.effects;
+          _resultReaction = choice.reaction;
         }
       });
       _flyCtrl.value = 0;
@@ -197,6 +199,7 @@ class _CardsScreenState extends State<CardsScreen>
     _pending = null;
     _resultText = null;
     _resultDeltas = const {};
+    _resultReaction = null;
     _enterCtrl.forward(from: 0);
     _presentCurrentCard();
   }
@@ -498,9 +501,13 @@ class _CardsScreenState extends State<CardsScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: Stat.values.map((st) {
-          // surligne la jauge qui va changer pendant un drag
+          // surligne la jauge qui va changer pendant un drag (sauf carte à
+          // ENJEU CACHÉ : on parie sans voir).
           int preview = 0;
-          if (!_showingResult && _state.card != null && _drag.abs() > 30) {
+          if (!_showingResult &&
+              _state.card != null &&
+              !_state.card!.hiddenStakes &&
+              _drag.abs() > 30) {
             final ch = _drag > 0 ? _state.card!.right : _state.card!.left;
             preview = ch.effects[st] ?? 0;
           }
@@ -663,8 +670,8 @@ class _CardsScreenState extends State<CardsScreen>
             child: Stack(
               alignment: Alignment.center,
               children: [
-                _choiceTag(card.left, false, leftActive),
-                _choiceTag(card.right, true, rightActive),
+                _choiceTag(card.left, false, leftActive, card.hiddenStakes),
+                _choiceTag(card.right, true, rightActive, card.hiddenStakes),
                 Transform.translate(
                   offset: Offset(dx, dy),
                   child: Transform.rotate(
@@ -684,7 +691,8 @@ class _CardsScreenState extends State<CardsScreen>
   }
 
   // étiquette de choix révélée pendant le drag (avec deltas)
-  Widget _choiceTag(CardChoice choice, bool right, bool active) {
+  Widget _choiceTag(CardChoice choice, bool right, bool active,
+      [bool hidden = false]) {
     return Align(
       alignment: right ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
@@ -712,7 +720,15 @@ class _CardsScreenState extends State<CardsScreen>
                     fontSize: 13,
                   ),
                 ),
-                if (choice.effects.isNotEmpty) ...[
+                if (hidden) ...[
+                  const SizedBox(height: 6),
+                  const Text('? ? ?',
+                      style: TextStyle(
+                          color: Color(0xFF2A2018),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 2)),
+                ] else if (choice.effects.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   _deltaChips(choice.effects, dark: true),
                 ],
@@ -752,6 +768,67 @@ class _CardsScreenState extends State<CardsScreen>
         : _fillerFace(card);
   }
 
+  /// Visuel de carte (illustration MINIMALE) : portrait réutilisant les sprites
+  /// existants (Shen/sœur/chien), sinon un emblème d'ambiance dessiné. Retourne
+  /// null pour `CardArt.none` (carte texte classique).
+  Widget? _cardArt(CardArt art) {
+    String? sprite;
+    switch (art) {
+      case CardArt.shen:
+        sprite = 'assets/characters/heroine_front.png';
+      case CardArt.sister:
+        sprite = 'assets/characters/sister_idle_1.png';
+      case CardArt.dog:
+        sprite = 'assets/objects/dog_bark_1.png';
+      default:
+        break;
+    }
+    if (sprite != null) {
+      return SizedBox(
+        height: 72,
+        child: Image.asset(sprite,
+            fit: BoxFit.contain, cacheWidth: 160, gaplessPlayback: true),
+      );
+    }
+    final emblem = _emblemFor(art);
+    if (emblem == null) return null;
+    return Container(
+      width: 50,
+      height: 50,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: emblem.$2.withValues(alpha: 0.16),
+        border: Border.all(color: emblem.$2.withValues(alpha: 0.55), width: 1.5),
+      ),
+      child: Icon(emblem.$1, color: emblem.$2, size: 26),
+    );
+  }
+
+  (IconData, Color)? _emblemFor(CardArt art) {
+    switch (art) {
+      case CardArt.radio:
+        return (Icons.radio, const Color(0xFF9BC4E2));
+      case CardArt.pillards:
+        return (Icons.dangerous, const Color(0xFFCF6B6B));
+      case CardArt.refuge:
+        return (Icons.cabin, const Color(0xFFE8B96B));
+      case CardArt.cold:
+        return (Icons.ac_unit, const Color(0xFF9BC4E2));
+      case CardArt.fire:
+        return (Icons.local_fire_department, const Color(0xFFE89B5C));
+      case CardArt.water:
+        return (Icons.water_drop, const Color(0xFF6FAEDF));
+      case CardArt.food:
+        return (Icons.restaurant, const Color(0xFFD9A05B));
+      case CardArt.memory:
+        return (Icons.auto_stories, const Color(0xFFCBB68F));
+      case CardArt.hope:
+        return (Icons.wb_twilight, const Color(0xFFE8C98B));
+      default:
+        return null;
+    }
+  }
+
   // --- carte de REMPLISSAGE : parchemin clair, léger ---
   Widget _fillerFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
@@ -782,15 +859,24 @@ class _CardsScreenState extends State<CardsScreen>
         padding: const EdgeInsets.all(18),
         child: Center(
           child: SingleChildScrollView(
-            child: Text(
-              card.text,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF3A2A18),
-                fontSize: 16,
-                height: 1.4,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_cardArt(card.art) case final a?) ...[
+                  a,
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  card.text,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF3A2A18),
+                    fontSize: 16,
+                    height: 1.4,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -866,18 +952,27 @@ class _CardsScreenState extends State<CardsScreen>
           ),
           Flexible(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
               child: Center(
                 child: SingleChildScrollView(
-                  child: Text(
-                    card.text,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFFF3E6CF),
-                      fontSize: 17,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_cardArt(card.art) case final a?) ...[
+                        a,
+                        const SizedBox(height: 12),
+                      ],
+                      Text(
+                        card.text,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFFF3E6CF),
+                          fontSize: 17,
+                          height: 1.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -936,6 +1031,34 @@ class _CardsScreenState extends State<CardsScreen>
                 if (_resultDeltas.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   _deltaChips(_resultDeltas),
+                ],
+                // RÉACTION d'un personnage à ton choix : rend la décision « vue ».
+                if (_resultReaction != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8B96B).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border(
+                        left: BorderSide(
+                            color: const Color(0xFFE8B96B)
+                                .withValues(alpha: 0.7),
+                            width: 3),
+                      ),
+                    ),
+                    child: Text(
+                      _resultReaction!,
+                      textAlign: TextAlign.left,
+                      style: const TextStyle(
+                        color: Color(0xFFE8C98B),
+                        fontSize: 14,
+                        height: 1.4,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
                 ],
                 const SizedBox(height: 18),
                 const Row(

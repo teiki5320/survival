@@ -34,6 +34,7 @@ class CardChoice {
     this.effects = const {},
     this.setFlags = const [],
     this.resultText,
+    this.reaction,
   });
 
   /// Texte du bouton / de l'indice de swipe.
@@ -47,7 +48,17 @@ class CardChoice {
 
   /// Courte conséquence affichée après le swipe (style Reigns).
   final String? resultText;
+
+  /// RÉACTION d'un personnage à ce choix (sœur, chien, voix radio…), affichée
+  /// sous la conséquence — rend le choix « vu », commenté. Inclut qui parle
+  /// (ex. "Ta sœur : « Pourquoi ? »"). Null = pas de réaction.
+  final String? reaction;
 }
+
+/// Illustration / portrait associé à une carte. Minimal : on réutilise les
+/// sprites existants (Shen/sœur/chien) comme portrait, et un emblème dessiné
+/// pour les ambiances. `none` = carte texte classique.
+enum CardArt { none, shen, sister, dog, radio, pillards, refuge, cold, fire, water, food, memory, hope }
 
 /// Une carte : un texte + deux choix. Pour les gares à variantes, [text],
 /// [left] et [right] peuvent être calculés depuis les flags via [resolve].
@@ -60,6 +71,8 @@ class StoryCard {
     required this.right,
     this.speaker,
     this.requires,
+    this.art = CardArt.none,
+    this.hiddenStakes = false,
   });
 
   final String id;
@@ -71,6 +84,13 @@ class StoryCard {
 
   /// Condition d'apparition (pour les fillers conditionnels). Null = toujours.
   final bool Function(Set<String> flags)? requires;
+
+  /// Visuel de la carte (portrait perso réutilisé / emblème d'ambiance).
+  final CardArt art;
+
+  /// ENJEU CACHÉ : si vrai, le preview des deltas est masqué pendant le swipe
+  /// (« ? ») -> on parie sans savoir. Pour les cartes de pari/risque.
+  final bool hiddenStakes;
 }
 
 /// Un segment = les cartes de gare(s) + le paquet de remplissage entre la

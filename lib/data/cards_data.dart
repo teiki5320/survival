@@ -18,8 +18,15 @@ CardChoice _c(
   Map<Stat, int> fx = const {},
   List<String> flags = const [],
   String? result,
+  String? reaction, // réplique d'un perso à ce choix (sœur/chien/radio)
 }) =>
-    CardChoice(label: label, effects: fx, setFlags: flags, resultText: result);
+    CardChoice(
+      label: label,
+      effects: fx,
+      setFlags: flags,
+      resultText: result,
+      reaction: reaction,
+    );
 
 StoryCard _filler(
   String id,
@@ -28,6 +35,8 @@ StoryCard _filler(
   CardChoice right, {
   bool oneshot = false,
   bool Function(Set<String>)? requires,
+  CardArt art = CardArt.none,
+  bool hidden = false, // enjeu caché (pari)
 }) =>
     StoryCard(
       id: id,
@@ -36,16 +45,19 @@ StoryCard _filler(
       left: left,
       right: right,
       requires: requires,
+      art: art,
+      hiddenStakes: hidden,
     );
 
 /// Épreuve de gare (choix pur, pas de mini-jeu) : la menace de la gare devient
 /// une carte à 2 choix, chacun menant DIRECTEMENT à sa conséquence (pas de
 /// stat-check caché). C'est ainsi que se résolvent les beats de danger.
 StoryCard _epreuve(String id, String speaker, String text,
-        CardChoice left, CardChoice right) =>
+        CardChoice left, CardChoice right,
+        {CardArt art = CardArt.none}) =>
     StoryCard(
         id: id, kind: CardKind.gare, speaker: speaker,
-        text: text, left: left, right: right);
+        text: text, left: left, right: right, art: art);
 
 // ============================================================
 // LES 14 GARES (piliers narratifs) — ARC PETITE SŒUR
@@ -79,7 +91,8 @@ List<StoryCard> _gare1(Set<String> f) => [
               result: "Pierre après pierre, tu tiens le quai. La petite boule de poils file se réfugier contre ta jambe et s'endort. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
           _c("Barricader la porte, te protéger",
               fx: {Stat.moral: -4},
-              result: "Tu claques la porte sur le chaos. En sécurité — mais quand le calme revient et que le quai s'éloigne, le chiot a disparu. Le wagon, après, est immense et vide.")),
+              result: "Tu claques la porte sur le chaos. En sécurité — mais quand le calme revient et que le quai s'éloigne, le chiot a disparu. Le wagon, après, est immense et vide."),
+          art: CardArt.dog),
       StoryCard(
         id: 'G1c',
         kind: CardKind.gare,
@@ -197,14 +210,18 @@ List<StoryCard> _gare5(Set<String> f) => [
             ? "Une silhouette menue, recroquevillée au milieu du pont. À son cou, un foulard rouge à pois — le jumeau de celui que tu as serré de gare en gare, ton fil d'Ariane vers elle. Tu cesses de respirer. Tu savais. Tu as toujours su. C'est elle. C'est ta petite sœur."
             : "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
         left: _c("Courir la serrer dans tes bras",
-            fx: {Stat.moral: 40}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi."),
+            fx: {Stat.moral: 40}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi.",
+            reaction: "Ta sœur, le visage enfoui dans ton cou : « Je savais que tu viendrais. Je l'ai dit à tout le monde. »"),
         right: _c("La couvrir et vérifier qu'elle va bien",
-            fx: {Stat.moral: 34, Stat.faim: 4}, flags: ['aLaSoeur', 'soeurProtegee'], result: "Avant les larmes, tu l'enveloppes, tu palpes ses bras gelés, tu la fais manger. Elle est entière. ELLE EST LÀ. Puis seulement tu t'effondres de soulagement."),
+            fx: {Stat.moral: 34, Stat.faim: 4}, flags: ['aLaSoeur', 'soeurProtegee'], result: "Avant les larmes, tu l'enveloppes, tu palpes ses bras gelés, tu la fais manger. Elle est entière. ELLE EST LÀ. Puis seulement tu t'effondres de soulagement.",
+            reaction: "Ta sœur, à mi-voix : « Tu as les mains qui tremblent. C'est toi qu'il faut réchauffer, maintenant. »"),
+        art: CardArt.sister,
       ),
       StoryCard(
         id: 'G5b',
         kind: CardKind.gare,
         speaker: 'Ta sœur',
+        art: CardArt.sister,
         text:
             "« Papa et maman... ils sont partis devant. Vers le nord, un refuge. Ils m'ont dit de les attendre, que quelqu'un viendrait. » Ses yeux brillent. « Je savais que ce serait toi. »",
         // CHOIX STRUCTURANT (décide famille vs ensemble) : t'engager à
@@ -544,6 +561,12 @@ final List<StoryCard> _fill2 = [
 ];
 
 final List<StoryCard> _fill3 = [
+  // PARI à enjeu CACHÉ : on ouvre sans savoir (preview masqué côté UI).
+  _filler('F3_caisse',
+      "Une caisse de fret scellée, sans étiquette, oubliée sur un wagon plat. Lourde. Peut-être des vivres, peut-être un nid de rats, peut-être pire. L'ouvrir, c'est jouer à pile ou face avec le sort.",
+      _c("Forcer la serrure", fx: {Stat.faim: 16, Stat.moral: -6}, result: "Des conserves militaires, intactes ! Mais sous elles, une combinaison de protection trouée et des badges de dosimètre virés au rouge. Tu refermes vite, le cœur cognant."),
+      _c("Ne pas tenter le diable", fx: {Stat.moral: 3}, result: "Tu la laisses scellée. Certains cadeaux du monde mort se paient trop cher. Tu passes ton chemin, intacte."),
+      oneshot: true, hidden: true, art: CardArt.none),
   _filler('F3_piano',
       "Un piano à queue abandonné sur un quai. En jouer t'apaiserait — mais le son porte loin dans le silence.",
       _c("Jouer quelques notes", fx: {Stat.moral: 10, Stat.bois: -6}, result: "La musique te lave l'âme. Tu repars vite, au cas où on t'aurait entendue."),
