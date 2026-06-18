@@ -22,6 +22,7 @@ class ShopScreen extends StatefulWidget {
 class _ShopItem {
   const _ShopItem({
     required this.id,
+    required this.storeId,
     required this.emoji,
     required this.title,
     required this.desc,
@@ -29,18 +30,24 @@ class _ShopItem {
     required this.apply,
   });
   final String id;
+
+  /// Identifiant produit App Store Connect (à créer côté store). C'est la SEULE
+  /// chose à renseigner pour brancher le vrai paiement (voir [_purchase]).
+  final String storeId;
   final String emoji;
   final String title;
   final String desc;
-  final String price; // libellé prix (le vrai prix vient du store)
+  final String price; // libellé prix (le vrai prix viendra du store)
   final void Function(GameState gs) apply;
 }
 
 class _ShopScreenState extends State<ShopScreen> {
   // Catalogue CONFORT uniquement. Rien ici n'est nécessaire pour finir le jeu.
+  // Les `storeId` sont les produits à déclarer sur App Store Connect.
   static final List<_ShopItem> _items = [
     _ShopItem(
       id: 'comfort_pack',
+      storeId: 'com.teiki5320.trainCosy.comfort_pack',
       emoji: '🧺',
       title: 'Colis de réconfort',
       desc: "Un petit colis trouvé en gare : Shen est reposée et propre, "
@@ -54,6 +61,7 @@ class _ShopScreenState extends State<ShopScreen> {
     ),
     _ShopItem(
       id: 'warm_plaid',
+      storeId: 'com.teiki5320.trainCosy.warm_plaid',
       emoji: '🧣',
       title: 'Plaid chaud',
       desc: "Une couverture épaisse pour le grand nord. Réchauffe durablement "
@@ -65,6 +73,7 @@ class _ShopScreenState extends State<ShopScreen> {
     ),
     _ShopItem(
       id: 'tip_jar',
+      storeId: 'com.teiki5320.trainCosy.tip_jar',
       emoji: '☕',
       title: 'Offrir un café au dev',
       desc: "Aucun effet en jeu — juste un grand merci, et de quoi tenir une "
@@ -74,8 +83,25 @@ class _ShopScreenState extends State<ShopScreen> {
     ),
   ];
 
-  /// SEUL point à brancher sur le vrai store (in_app_purchase). Pour l'instant :
-  /// debug = accordé gratuitement (test) ; release = message « bientôt ».
+  // === BRANCHEMENT DU VRAI PAIEMENT (à faire plus tard) =====================
+  // 1) Ajouter `in_app_purchase: ^3.x` dans pubspec.yaml.
+  // 2) Créer les produits (les `storeId` ci-dessus) sur App Store Connect.
+  // 3) Au démarrage de l'écran : interroger le store une fois.
+  //      final resp = await InAppPurchase.instance
+  //          .queryProductDetails(_items.map((e) => e.storeId).toSet());
+  //      // -> remplir les prix réels affichés (resp.productDetails[i].price).
+  // 4) Écouter `InAppPurchase.instance.purchaseStream` ; sur `purchased`,
+  //    appeler la livraison (item.apply + save) puis `completePurchase`.
+  // 5) Dans [_purchase], lancer l'achat :
+  //      InAppPurchase.instance.buyConsumable(
+  //          purchaseParam: PurchaseParam(productDetails: pd));
+  //    (warm_plaid = non-consommable -> buyNonConsumable + restore.)
+  // Tant que ce n'est pas branché : debug = accordé gratuitement (test),
+  // release = dialog "bientôt". Le `apply` (la LIVRAISON) est déjà écrit.
+  // ==========================================================================
+
+  /// SEUL point à brancher sur le vrai store. Pour l'instant : debug = accordé
+  /// gratuitement (test) ; release = message « bientôt ».
   Future<void> _purchase(_ShopItem item) async {
     if (GameState.instance.debugMode) {
       item.apply(GameState.instance);

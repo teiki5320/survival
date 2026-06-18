@@ -69,7 +69,7 @@ acceptation** (croire que sa famille est vivante, ou apprendre à vivre sinon).
 
 | # | Gare | Beat |
 |---|------|------|
-| 1 | Kogarashi (1er arrêt) | Tuto + **épreuve = défendre le chiot** (carte de choix → `aLeChien`). |
+| 1 | Kogarashi (**ville natale** = départ) | Fuite de la ville en flammes + **épreuve = défendre le chiot** (→ `aLeChien`). |
 | 2 | Kurogane (dépôt fret) | Apprend à nourrir la loco au bois (manuel → lampe). |
 | 3 | Karasuno (brouillard) | Premiers **pillards** dans le brouillard. Choix moral. |
 | 4 | Mayoidani (village fantôme) | **Trouve la radio à manivelle.** 1er fragment du nord. |
@@ -337,9 +337,10 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
   `docs/train_cosy_trame.twee` (357 fillers ; **ignorer ~92 passages de l'ancien
   canon** Vieux/enfant supprimé) pour varier les runs. Rendre chaque gare /
   chaque menace plus riche, distincte, mémorable.
-- **Géo de départ** (décision user en attente) : nommer la ville de départ
-  (= fin), décider s'il faut un nœud « ville natale » AVANT la gare 1 sur la map.
-- **Cinématiques d'entrée en gare** (version texte comme l'ouverture).
+- **Géo de départ** ✅ tranchée : **Kogarashi = la ville natale = la gare 1**
+  (pas de nœud séparé ; le train fuit Kogarashi en flammes, 1re halte à sa gare
+  en ruines). Wagons traversables dès le départ (option a, décision user).
+- **Cinématiques d'entrée en gare** ✅ version texte (`kGareIntros`).
 - **Tamagotchi** : ✅ décroissance faim/soif + besoins confort sommeil/hygiène
   (faite). Reste éventuellement un axe « jeu » (s'occuper du chien/sœur) si on
   veut pousser. Pas de jauge HUD dédiée pour le confort (bulle de pensée only) —

@@ -61,10 +61,10 @@ List<StoryCard> _gare1(Set<String> f) => [
         kind: CardKind.gare,
         speaker: 'Kogarashi',
         text:
-            "Après une nuit de fuite à travers le noir, le train ralentit enfin dans une gare en ruines : ta première halte. Le quai est désert, jonché de débris. Loin derrière toi, ta ville natale n'est plus qu'une lueur rougeoyante sur l'horizon.",
+            "Le train s'arrête enfin à Kogarashi — ta ville. Ou ce qu'il en reste : un quai en ruines, des fumées âcres, et plus loin le grondement des flammes qui dévorent encore les toits. C'est ici, cette nuit, que tout a basculé.",
         left: _c("Regarder une dernière fois l'horizon en feu",
             fx: {Stat.moral: -6}, flags: ['asset_bed'],
-            result: "Tu fixes la lueur jusqu'à ce que la distance l'avale. Tu n'oublieras pas. Jamais. Puis tu t'aménages un coin pour dormir dans le wagon."),
+            result: "Tu fixes Kogarashi brûler jusqu'à ce que le train s'arrache à elle. Tu n'oublieras pas. Jamais. Puis tu t'aménages un coin pour dormir dans le wagon."),
         right: _c("Te détourner et t'installer",
             fx: {Stat.moral: 3}, flags: ['asset_bed'],
             result: "Assez regardé en arrière. Survivre d'abord. Tu pousses une paillasse dans un coin : ton premier lit."),

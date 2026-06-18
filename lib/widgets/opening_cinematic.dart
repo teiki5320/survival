@@ -24,7 +24,7 @@ class _OpeningCinematicState extends State<OpeningCinematic>
   static const List<_Beat> _beats = [
     // --- Le monde d'avant (prélude warm) ---
     _Beat('assets/cinematic/cine_open_avant1.jpg', [
-      'Avant, il y avait ma ville. Paisible, longtemps épargnée par la guerre.',
+      'Avant, il y avait Kogarashi. Ma ville. Paisible, longtemps épargnée par la guerre.',
     ]),
     _Beat('assets/cinematic/cine_open_avant2.jpg', [
       'Mes parents. Ma petite sœur.',
