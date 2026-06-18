@@ -54,9 +54,7 @@ class GameState extends ChangeNotifier {
         'debugMode': debugMode,
         'seenTips': seenTips.toList(),
         'introCinematicSeen': introCinematicSeen,
-        'items': _items,
         'gareWoodLeft': gareWoodLeft,
-        'flags': _flags.toList(),
         'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
         'cabinTemp': cabinTemp,
@@ -112,17 +110,7 @@ class GameState extends ChangeNotifier {
         seenTips.addAll((data['seenTips'] as List).cast<String>());
       }
       introCinematicSeen = data['introCinematicSeen'] as bool? ?? false;
-      _items.clear();
-      if (data['items'] is Map) {
-        (data['items'] as Map).forEach((k, v) {
-          _items[k as String] = (v as num).toInt();
-        });
-      }
       gareWoodLeft = (data['gareWoodLeft'] as num?)?.toInt() ?? gareWoodLeft;
-      _flags.clear();
-      if (data['flags'] is List) {
-        _flags.addAll((data['flags'] as List).cast<String>());
-      }
       _unlocked.clear();
       _unlocked.add('station_abandonnee');
       if (data['unlocked'] is List) {
@@ -694,42 +682,6 @@ class GameState extends ChangeNotifier {
     return pool[_thoughtRng.nextInt(pool.length)];
   }
 
-  // --- Inventory ---
-  final Map<String, int> _items = {};
-  Map<String, int> get items => Map.unmodifiable(_items);
-
-  void grantItem(String id, [int qty = 1]) {
-    _items[id] = (_items[id] ?? 0) + qty;
-    if ((_items[id] ?? 0) > 1000) _items[id] = 1000;
-    notifyListeners();
-    save();
-  }
-
-  /// Returns true if the consumption succeeded (had enough).
-  bool consumeItem(String id, [int qty = 1]) {
-    final have = _items[id] ?? 0;
-    if (have < qty) return false;
-    _items[id] = have - qty;
-    notifyListeners();
-    save();
-    return true;
-  }
-
-  int itemCount(String id) => _items[id] ?? 0;
-
-  // --- Story flags ---
-  final Set<String> _flags = {};
-  Set<String> get flags => Set.unmodifiable(_flags);
-
-  void setFlag(String flag) {
-    if (_flags.add(flag)) {
-      notifyListeners();
-      save();
-    }
-  }
-
-  bool hasFlag(String flag) => _flags.contains(flag);
-
   // ===========================================================
   // MODE CARTES (Reigns) — source de vérité unique des 4 jauges
   // soif/faim/bois/moral (0-100) + état d'une run en cours.
@@ -924,8 +876,6 @@ class GameState extends ChangeNotifier {
     bacSown = false;
     bacGrowth = 0.0;
     outfitWarmth = 0;
-    _items.clear();
-    _flags.clear(); // anciens flags d'histoire (sécurité)
     seenTips.clear(); // le tuto rejoue
     introCinematicSeen = false; // la cinématique d'ouverture rejoue
     _lampOn = true;
@@ -1012,14 +962,6 @@ class GameState extends ChangeNotifier {
 
   // --- Locations ---
   final Set<String> _unlocked = {'station_abandonnee'};
-  Set<String> get unlockedLocations => Set.unmodifiable(_unlocked);
-
-  void unlockLocation(String id) {
-    if (_unlocked.add(id)) {
-      notifyListeners();
-      save();
-    }
-  }
 
   bool isLocationUnlocked(String id) => _unlocked.contains(id);
 

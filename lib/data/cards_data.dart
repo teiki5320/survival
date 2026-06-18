@@ -352,7 +352,7 @@ List<StoryCard> _gare11(Set<String> f) => [
         text:
             "Des pillards ont dressé un barrage sur la voie. Ils veulent le train, les vivres — et ils ont vu ta sœur.",
         left: _c("Foncer dans le barrage",
-            fx: {Stat.bois: -18, Stat.moral: -6}, result: "Tu pousses la loco à fond et tu enfonces l'obstacle. Des cris, des tirs, puis le silence. Vous êtes passées, presque à sec."),
+            fx: {Stat.bois: -18, Stat.moral: -6}, result: "Tu pousses la loco à fond et tu enfonces l'obstacle. Des cris, des tirs, puis le silence. Vous êtes passées, le foyer presque vide."),
         right: _c("Négocier, donner des vivres",
             fx: {Stat.faim: -16, Stat.soif: -10, Stat.moral: 4}, result: "Tu sacrifies la moitié de vos réserves pour qu'ils vous laissent passer. Affamées, mais entières."),
       ),
@@ -1172,7 +1172,7 @@ const Map<String, ({String title, String body})> endings = {
   'abandon': (
     title: "L'abandon",
     body:
-        "À quoi bon. Tu n'y crois plus. À une gare sans nom, tu descends. Le train repart sans toi, et le blanc t'avale.",
+        "À quoi bon. Tu n'y crois plus. À un arrêt perdu entre deux gares, tu descends. Le train repart sans toi, et le blanc t'avale.",
   ),
 };
 

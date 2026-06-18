@@ -259,7 +259,6 @@ g8, hydro+bain+douche+lanternes g10. Chien=`aLeChien` (g1), sœur=`aLaSoeur` (g5
 - `lib/models/reigns_engine.dart` — voir section moteur de cartes.
 - `lib/services/audio_service.dart` — Singleton audio. `ambient_train`,
   `fire_crackle`, musique réactivée (3 morceaux day/night/cold), 9 SFX.
-- `lib/data/world.dart` — Locations narratives (à étoffer).
 - `lib/data/anim_metrics.dart` — métriques sprites perso.
 - `lib/constants.dart` — `kGarePositions`/`_stations`, `kWoodSupplyByGare`,
   `kColdBoisDrainPerCard`, seuils.

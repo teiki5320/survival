@@ -267,7 +267,7 @@ class ReignsEngine {
     // atténués (×0.6) pour éviter que la jauge sature et devienne inutile ;
     // les pertes de moral, elles, comptent plein.
     // Les PERTES sont amplifiées (×1.7) pour créer une vraie tension de
-    // survie. Calé par simulation (tools/sim_game.py) : à ×1.7 + budget 2,
+    // survie. Calé par simulation (tools/sim_current.py) : à ×1.7 + budget 2,
     // une joueuse négligente meurt ~42% du temps, une attentive survit
     // ~95%, une experte ~100%. En-dessous (×1.5) le drain est trop mou et
     // tout le monde survit passivement. Les GAINS de moral restent atténués

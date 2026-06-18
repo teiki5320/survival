@@ -170,7 +170,7 @@ class SideScrollScene extends StatefulWidget {
   final double dogHeight;
 
   /// Nom de l'anim spéciale (preset depuis le parent : 'drink', 'read',
-  /// 'cook', 'pet_dog', 'garden_tend'). Null = pas d'anim active.
+  /// 'eat', 'use_back'…). Null = pas d'anim active.
   /// La scène lit `assets/characters/${specialAnim}_${frame+1}.png`.
   final String? specialAnim;
   /// Nombre de frames dans le PNG set.
@@ -210,7 +210,6 @@ class SideScrollScene extends StatefulWidget {
   static const double stoveCenterX = 0.629;
   static const double filterCenterX = 0.727;
   static const double hydroCenterX = 0.805;
-  static const double bowlCenterX = 0.481;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
@@ -504,6 +503,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   String? _heroFloat;
   double _heroFloatT = 0; // 1 -> 0
   Timer? _heroFloatTimer;
+  Timer? _bacFloatTimer;
 
   // Door-push: short one-shot animation played when entering the
   // locomotive. Fires onDoorPushDone when complete.
@@ -575,7 +575,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   /// Lance une animation spéciale one-shot de façon autonome (même mécanique
   /// que celle pilotée par le parent via specialAnimToken).
-  void _startAutoSpecial(String anim, {int frames = 49}) {
+  void _startAutoSpecial(String anim, {int frames = _heroFrameCount}) {
     setState(() {
       _activeSpecial = anim;
       _activeSpecialFrames = frames;
@@ -688,9 +688,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   void _showBacFloat(String text) {
+    _bacFloatTimer?.cancel();
     setState(() { _bacFloat = text; _bacFloatT = 1.0; });
     int i = 0;
-    Timer.periodic(const Duration(milliseconds: 100), (t) {
+    _bacFloatTimer = Timer.periodic(const Duration(milliseconds: 100), (t) {
       if (!mounted) { t.cancel(); return; }
       i++;
       setState(() => _bacFloatT = (1.0 - i / 14.0).clamp(0.0, 1.0));
@@ -1060,6 +1061,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT4?.cancel();
     _bacTimer?.cancel();
     _heroFloatTimer?.cancel();
+    _bacFloatTimer?.cancel();
     _sky.dispose();
     _horizon.dispose();
     _mid.dispose();
@@ -2827,13 +2829,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     final m = animMetricsFor(prefix);
-    final bool deepInWagon = prefix == 'cook';
-    final depthScale = deepInWagon ? 0.78 : 1.0;
     // Cellier plus grand -> on agrandit un peu Shen pour qu'elle ne paraisse
     // pas minuscule dans le volume.
     final wagonScale = widget.secondWagon ? 1.12 : 1.1;
-    final heroHeight =
-        h * kHeroBaseHeight * m.scale * depthScale * wagonScale;
+    final heroHeight = h * kHeroBaseHeight * m.scale * wagonScale;
     final heroWidth = heroHeight * m.aspect;
     final asset = 'assets/characters/${prefix}_${frame + 1}.png';
 
@@ -2852,7 +2851,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
       shouldMirror = !_heroFacingRight;
     }
 
-    final adjustedFeetY = deepInWagon ? feetY - h * 0.06 : feetY;
     // Ancrage HORIZONTAL sur le PERSO (pas la boîte) : on cale le centre du
     // perso (m.cx, miroité si besoin) sur anchorX. Évite le "saut" au passage
     // entre anims à boîtes de largeurs différentes (ex. idle -> open_door).
@@ -2889,7 +2887,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     return Positioned(
       left: anchorX - heroWidth * effCx,
-      top: adjustedFeetY - heroHeight * m.feet,
+      top: feetY - heroHeight * m.feet,
       width: heroWidth,
       height: heroHeight,
       child: RepaintBoundary(child: IgnorePointer(child: sprite)),
@@ -2969,8 +2967,6 @@ class _PropPos {
   double top;
   double height;
   double width;
-  double animDx = 0;
-  double animDy = 0;
 }
 
 /// Joue une animation `assets/objects/<prefix>_<i>.png` en boucle via un

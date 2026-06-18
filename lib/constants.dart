@@ -66,7 +66,3 @@ const double kDogDefaultHeight = 0.136;
 const double kDogTop = 0.673;
 const double kDogXMin = 0.35;
 const double kDogXMax = 0.70;
-
-// --- Cook depth ---
-const double kCookDepthScale = 0.78;
-const double kCookFeetOffset = 0.06;
