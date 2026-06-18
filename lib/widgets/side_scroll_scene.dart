@@ -1101,10 +1101,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _bathFrame = 0;
                 _bathHeld = false;
                 _bathAccumMs = 0;
-                // Conversion EAU -> moral (le bain consomme de l'eau) + hygiène.
+                // Le bain consomme de l'eau et nettoie ; le BONUS moral passe
+                // par le cooldown confort partagé (anti-farm).
                 GameState.instance.nudgeCardStat('soif', -8);
-                GameState.instance.nudgeCardStat('moral', 12);
                 GameState.instance.restoreHygiene();
+                GameState.instance.tryComfortMoral(12);
               } else if (_pendingShower) {
                 _pendingShower = false;
                 _showering = true;
@@ -1114,8 +1115,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 _showerWashCycles = 0;
                 _showerWaterTick = 0;
                 GameState.instance.nudgeCardStat('soif', -6);
-                GameState.instance.nudgeCardStat('moral', 10);
                 GameState.instance.restoreHygiene();
+                GameState.instance.tryComfortMoral(10);
               }
               return;
             }
@@ -1378,6 +1379,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           // stretch (causait le bug "se penche puis remonte" + saut
           // de position). On snap directement à idle au centre du lit.
           _sleepOnBed = false;
+          GameState.instance.restoreSleep(); // la sieste/nuit a reposé Shen
           final bedCenter =
               (_bedLeft + _bedWidth / 2).clamp(_heroXMin, _heroXMax);
           _heroX = bedCenter;

@@ -265,9 +265,11 @@ class GameState extends ChangeNotifier {
     _comfortDecayTick++;
     // Le lit existe dès la gare 1 -> le sommeil décroît tout de suite.
     if (_comfortDecayTick % 2 == 0 && sleepNeed > 0) sleepNeed--;
-    // L'hygiène ne décroît QUE si on peut se laver (bain/douche débloqués,
-    // gare 10) : sinon on punirait le moral sans aucun remède possible.
-    final canWash = propUnlocked('bath') || propUnlocked('shower');
+    // L'hygiène ne décroît (et ne pénalise) QUE si on peut RÉELLEMENT se laver :
+    // bain/douche débloqués (gare 10) ET pas en plein froid (le bain est refusé
+    // si feltCold). Sinon on punirait le moral sans aucun remède possible.
+    final canWash =
+        (propUnlocked('bath') || propUnlocked('shower')) && !feltCold;
     if (canWash && _comfortDecayTick % 3 == 0 && hygieneNeed > 0) hygieneNeed--;
     if (sleepNeed < 20 || (canWash && hygieneNeed < 20)) {
       nudgeCardStat('moral', -1); // épuisement / inconfort
@@ -285,6 +287,19 @@ class GameState extends ChangeNotifier {
   void restoreHygiene() {
     hygieneNeed = 100;
     notifyListeners();
+  }
+
+  /// Gain de moral « confort » (lire / chien / sœur / bain / douche) passé par
+  /// un cooldown PARTAGÉ (45 s) pour empêcher de farmer le moral. Le geste lui-
+  /// même (se laver, lire) a lieu quand même ; seul le BONUS moral est throttlé.
+  /// Retourne true si le bonus a été appliqué. `lastComfortMs` vit dans le
+  /// singleton -> survit au remontage de l'écran wagon.
+  bool tryComfortMoral(int amount) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - lastComfortMs < 45000) return false;
+    lastComfortMs = now;
+    nudgeCardStat('moral', amount);
+    return true;
   }
 
   // --- Wagon state ---
@@ -622,8 +637,14 @@ class GameState extends ChangeNotifier {
     return TrainZone.warm;
   }
 
+  // Ambiance « froid » : dès la gare 7 (le froid s'annonce, givre/❄️).
   bool get inColdZone =>
       trainZone == TrainZone.cold || trainZone == TrainZone.transitionToCold;
+
+  // Froid PROFOND (gare 8+, canon « entrée zone froide ») : c'est SEULEMENT ici
+  // que la loco boit plus (drain bois/carte). La gare 7 (souvenir tendre) garde
+  // l'ambiance froide mais pas la surconso -> cohérent avec le sim d'équilibrage.
+  bool get inDeepCold => trainZone == TrainZone.cold;
 
   // --- Thought bubble context ---
   final Random _thoughtRng = Random();
@@ -711,7 +732,7 @@ class GameState extends ChangeNotifier {
   /// ~62% / smart 100%). Appliqué en direct (pas de blocage froid : ce sont
   /// des vivres trouvés, pas du réconfort).
   void grantGareSupply() {
-    cardBois = (cardBois + 9).clamp(0, statMax);
+    cardBois = (cardBois + 11).clamp(0, statMax);
     cardSoif = (cardSoif + 6).clamp(0, statMax);
     cardFaim = (cardFaim + 6).clamp(0, statMax);
     cardMoral = (cardMoral + 5).clamp(0, statMax);
@@ -766,6 +787,9 @@ class GameState extends ChangeNotifier {
   // les [creditRefillInterval]). C'est CE rythme qui ralentit l'avancée de
   // l'histoire : on joue quelques cartes d'affilée, puis on laisse le temps
   // passer avant de continuer. (Remplace l'ancien budget de ravitaillement.)
+  // Toggle GLOBAL du système de crédits. DÉSACTIVÉ (jeu sans mur de temps) ;
+  // toute la machinerie est conservée si on veut réactiver un rythme.
+  static const bool creditsEnabled = false;
   static const int cardCreditsMax = 3;
   static const Duration creditRefillInterval = Duration(minutes: 8);
   int cardCredits = cardCreditsMax;
@@ -874,8 +898,17 @@ class GameState extends ChangeNotifier {
     sleepNeed = 100;
     hygieneNeed = 100;
     _comfortDecayTick = 0;
+    lastComfortMs = 0;
     wagonStage = 0;
     wagon2Stage = 0;
+    atelierStage = 0;
+    // Train abîmé/vide à l'arrivée : pas de bac semé, pas de poêle allumé, pas
+    // de manteau chaud hérités d'une partie précédente (sinon récolte/chaleur
+    // gratuites au départ).
+    poeleOn = false;
+    bacSown = false;
+    bacGrowth = 0.0;
+    outfitWarmth = 0;
     _items.clear();
     _flags.clear(); // anciens flags d'histoire (sécurité)
     seenTips.clear(); // le tuto rejoue

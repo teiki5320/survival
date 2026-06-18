@@ -352,15 +352,16 @@ List<StoryCard> _gare11(Set<String> f) => [
         right: _c("Négocier, donner des vivres",
             fx: {Stat.faim: -16, Stat.soif: -10, Stat.moral: 4}, result: "Tu sacrifies la moitié de vos réserves pour qu'ils vous laissent passer. Affamées, mais entières."),
       ),
-      // Épreuve de gare : l'assaut du barrage tourne selon ton choix.
+      // Épreuve de gare : APRÈS le barrage, des éclaireurs prennent le train en
+      // chasse sur une draisine. (Beat distinct de G11 — pas une redite.)
       _epreuve('G11ev', 'Yukihara',
-          "Des pillards ont dressé un barrage sur la voie. Ils veulent le train, les vivres — et ils ont vu ta sœur.",
-          _c("Enfoncer le barrage à pleine vapeur",
-              fx: {Stat.bois: -10, Stat.faim: 10},
-              result: "La loco brise l'obstacle dans un fracas. Dans la panique, ils lâchent leurs réserves : tu rafles vivres et bois au passage."),
-          _c("Négocier, céder une part des vivres",
-              fx: {Stat.faim: -8, Stat.soif: -6, Stat.moral: 4},
-              result: "Tu sacrifies une part de vos réserves pour passer sans casse. Affamées, mais entières et sereines.")),
+          "Le barrage passé, une draisine de pillards surgit derrière vous, gagnant du terrain. Ta sœur s'accroche à toi, terrifiée.",
+          _c("Tout brûler pour les semer",
+              fx: {Stat.bois: -14, Stat.moral: 4},
+              result: "Tu jettes tout ce qui brûle dans le foyer. La loco rugit, distance la draisine, et leurs silhouettes rapetissent. Vous êtes libres — à sec, mais libres."),
+          _c("Te poster, viser leur draisine",
+              fx: {Stat.moral: 6}, flags: ['soeurProtegee'],
+              result: "Tu mets ta sœur à l'abri, tu attends, tu vises l'attelage. Une pierre bien placée, la draisine déraille dans un fracas de tôle. Le silence revient. Tu l'as protégée.")),
     ];
 
 List<StoryCard> _gare12(Set<String> f) => [
@@ -438,8 +439,8 @@ List<StoryCard> _gare14(Set<String> f) => [
 final List<StoryCard> _fill1 = [
   _filler('F1_homme',
       "Un homme court le long de la voie, hurlant, tendant les bras vers le train. Tu pourrais freiner pour le hisser à bord — mais la loco perdrait son élan.",
-      _c("Freiner pour lui", fx: {Stat.bois: -10, Stat.moral: 6}, result: "Tu ralentis... il trébuche, n'y arrive pas. Mais tu auras essayé."),
-      _c("Garder l'élan", fx: {Stat.moral: -8}, result: "Tu ne ralentis pas. Ses cris s'éteignent dans ton dos."),
+      _c("Freiner pour lui", fx: {Stat.bois: -5, Stat.moral: 8}, result: "Tu ralentis juste assez. Il s'agrippe, court à côté, et bifurque vers un abri que tu lui désignes au loin. Il te salue, vivant. Un geste pour rien, ou pour tout — ça réchauffe."),
+      _c("Garder l'élan", fx: {Stat.moral: -8}, result: "Tu ne ralentis pas. Ses cris s'éteignent dans ton dos. Survivre, te répètes-tu. Survivre."),
       oneshot: true),
   _filler('F1_valise',
       "Une valise oubliée par un passager qui ne montera plus. Tu pourrais la vider de fond en comble, ou n'y prendre que l'essentiel.",
@@ -1133,7 +1134,7 @@ const Map<String, ({String title, String body})> endings = {
   'ensemble': (
     title: 'Toutes les deux',
     body:
-        "Vous cherchez longtemps. Vos parents ne sont pas sur ce quai — partis ailleurs, ou jamais arrivés, tu ne sauras pas tout de suite.\n\nMais ta sœur est là, sa main dans la tienne, vivante. Vous êtes arrivées. Le reste, vous l'affronterez ensemble. C'est déjà une victoire.",
+        "Le refuge grouille de monde. Vous scrutez les visages, un à un — vos parents ne sont pas dans cette première foule. Peut-être plus loin, peut-être demain : tu continueras de chercher.\n\nMais ta sœur est là, sa main dans la tienne, vivante. Vous êtes arrivées. Le reste, vous l'affronterez ensemble. C'est déjà une victoire.",
   ),
   'mort': (
     title: "Le voyage s'arrête",

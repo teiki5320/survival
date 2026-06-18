@@ -274,7 +274,7 @@ class ReignsEngine {
     // qui fond à chaque carte. C'est le lien MÉCANIQUE carte↔monde : avancer
     // sur la carte change la difficulté, pas juste le décor. (canon : "le
     // froid menace, la loco boit plus").
-    if (_gs.inColdZone) {
+    if (_gs.inDeepCold) {
       _gs.applyCardDeltas({'bois': -kColdBoisDrainPerCard});
     }
     // Compte les vrais gestes de protection (pour la fin "famille").

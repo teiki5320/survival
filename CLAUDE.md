@@ -71,20 +71,22 @@ acceptation** (croire que sa famille est vivante, ou apprendre à vivre sinon).
 |---|------|------|
 | 1 | Kogarashi (1er arrêt) | Tuto + **épreuve = défendre le chiot** (carte de choix → `aLeChien`). |
 | 2 | Kurogane (dépôt fret) | Apprend à nourrir la loco au bois (manuel → lampe). |
-| 3 | Karasuno (Halte 47) | Premiers **pillards** dans le brouillard. Choix moral. |
-| 4 | Hoshikage (village fantôme) | **Trouve la radio à manivelle.** 1er fragment du nord. |
+| 3 | Karasuno (brouillard) | Premiers **pillards** dans le brouillard. Choix moral. |
+| 4 | Mayoidani (village fantôme) | **Trouve la radio à manivelle.** 1er fragment du nord. |
 | 5 | Tsukibashi (pont) | **Retrouve la petite sœur** (`aLaSoeur`) + choix engagement parents (`capParents`). |
-| 6 | Shizuhara (camp-refuge) | Rumeur du Nord précisée, on gagne le cellier (wagon 2). |
-| 7 | Yasuragi (Halte 12) | Souvenir d'enfance avec la sœur (déjà à bord). |
+| 6 | Yasuragi (camp-refuge) | Rumeur du Nord précisée, on gagne le cellier (wagon 2). |
+| 7 | Hoshikage (souvenir) | Souvenir d'enfance avec la sœur (déjà à bord). |
 | 8 | Kiribe (entrée zone froide) | Le froid menace, la loco boit plus (drain bois/carte). |
-| 9 | Hidamari (plaine enneigée) | Tempête. **La sœur tombe malade** (fièvre). |
-| 10 | Yukihara (oasis/serre) | Répit cosy. Hydroponie, bain/douche, lien avec la sœur. |
-| 11 | Miharashi (Halte 31) | Climax inter : barrage de pillards OU message radio clair. |
-| 12 | Fubuki (tour de guet) | Vue sur le **refuge nord**. Espoir concret. Décision lourde. |
-| 13 | Hokuto (col gelé) | Dernière épreuve, loco menace de lâcher. **Sacrifice**. |
-| 14 | Refuge nord | **Climax.** Selon flags : retrouvailles / vérité / autre. |
+| 9 | Shizuhara (blizzard) | Tempête. **La sœur tombe malade** (fièvre). |
+| 10 | Hidamari (oasis/serre) | Répit cosy. Hydroponie, bain/douche, lien avec la sœur. |
+| 11 | Yukihara (barrage) | Climax inter : barrage de pillards OU message radio clair. |
+| 12 | Miharashi (tour de guet) | Vue sur le **refuge nord**. Espoir concret. Décision lourde. |
+| 13 | Fubuki (col gelé) | Dernière épreuve, loco menace de lâcher. **Sacrifice**. |
+| 14 | Hokuto (refuge nord) | **Climax.** Selon flags : retrouvailles / vérité / autre. |
 
 Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
+(Ordre des noms = thématique : chaque nom colle à sa scène. `cards_data._gareN`,
+`map_screen._stations` et `constants.kGarePositions` DOIVENT rester synchro.)
 
 ### Personnages récurrents (CANON À JOUR)
 1. **Le chien** — gagné à l'épreuve de la gare 1. Ancre du moral.

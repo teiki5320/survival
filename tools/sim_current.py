@@ -6,9 +6,10 @@ Lancer: python3 tools/sim_current.py
 
 Parse les vraies cartes de lib/data/cards_data.dart (paires de choix +
 effets + flags), puis rejoue des milliers de runs sous les regles reelles :
-  - 14 segments, fillers drawCount=4 (sauf 13,14 = 0)
+  - 14 segments, fillers drawCount=4 PARTOUT (la derniere ligne droite glacee
+    compte : ne pas l'ignorer, sinon on sous-estime la difficulte reelle)
   - pertes x1.7, gains de moral x0.6
-  - ravitaillement d'arrivee par gare : +9 bois/+6 soif/+6 faim/+5 moral
+  - ravitaillement d'arrivee par gare : +11 bois/+6 soif/+6 faim/+5 moral
   - recharges wagon liees a l'engagement (careless 1 ... smart 2) : un joueur
     negligent neglige aussi le wagon, ce qui cree le spread de difficulte
   - mecanique soeur : apres flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
@@ -78,8 +79,8 @@ def card_pairs(name):
 segments = []
 for i in range(1, 15):
     gare = card_pairs(f'_gare{i}')
-    fill = card_pairs(f'_fill{i}') if i <= 12 else []
-    draw = 4 if i <= 12 else 0
+    fill = card_pairs(f'_fill{i}')   # les 14 segments ont des fillers (moteur)
+    draw = 4                          # drawCount=4 partout (cf. cards_data)
     segments.append((gare, fill, draw))
 
 LOSS_MULT = 1.7
@@ -139,7 +140,7 @@ def run(strategy, refuels_per_seg=None):
         wood += WOOD_SUPPLY.get(si, 0)
         # COMBAT SUPPRIME. RAVITAILLEMENT D'ARRIVEE par gare (grantGareSupply,
         # calibre par simu) : remplace les ressources de l'ancien combat.
-        stats['bois']=min(100,stats['bois']+9); stats['soif']=min(100,stats['soif']+6)
+        stats['bois']=min(100,stats['bois']+11); stats['soif']=min(100,stats['soif']+6)
         stats['faim']=min(100,stats['faim']+6); stats['moral']=min(100,stats['moral']+5)
         # budget wagon : recharge les N stats les plus basses. Recharger BOIS
         # exige de brûler 1 bûche ; sans bois en réserve, on recharge la stat

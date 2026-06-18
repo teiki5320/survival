@@ -97,14 +97,17 @@ class _CardsScreenState extends State<CardsScreen>
     }
     _gareCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1700));
-    // Régen des crédits (rattrape le temps écoulé hors-ligne) + tic 1s pour
-    // animer le compte à rebours et créditer en direct.
+    // Régen des crédits + tic 1s pour animer le compte à rebours. Crédits
+    // DÉSACTIVÉS pour l'instant -> on n'arme PAS le timer (évite un rebuild
+    // complet de l'écran à 1 Hz pour rien). À réarmer si on réactive le rythme.
     GameState.instance.refreshCredits();
-    _creditTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      GameState.instance.refreshCredits();
-      setState(() {});
-    });
+    if (GameState.creditsEnabled) {
+      _creditTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        GameState.instance.refreshCredits();
+        setState(() {});
+      });
+    }
     // Présente la première carte (annonce de gare le cas échéant).
     _presentCurrentCard();
   }

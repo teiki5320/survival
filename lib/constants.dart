@@ -67,13 +67,6 @@ const double kDogTop = 0.673;
 const double kDogXMin = 0.35;
 const double kDogXMax = 0.70;
 
-// --- Parallax ---
-const Duration kSkyDuration = Duration(seconds: 30);
-const Duration kHorizonDuration = Duration(seconds: 28);
-const Duration kForegroundDuration = Duration(seconds: 4);
-const Duration kHorizonRotatePeriod = Duration(seconds: 45);
-const Duration kHorizonCrossFade = Duration(seconds: 2);
-
 // --- Cook depth ---
 const double kCookDepthScale = 0.78;
 const double kCookFeetOffset = 0.06;

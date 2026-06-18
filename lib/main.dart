@@ -188,13 +188,7 @@ class _WagonScreenState extends State<WagonScreen>
   // partagé : un seul gain de moral confort toutes les 45 s. Le timestamp vit
   // dans GameState (singleton) pour SURVIVRE au remontage de l'écran (un
   // aller-retour loco/map ne doit pas réarmer le cooldown = exploit).
-  void _comfortMoral(int amount) {
-    final gs = GameState.instance;
-    final now = DateTime.now().millisecondsSinceEpoch;
-    if (now - gs.lastComfortMs < 45000) return;
-    gs.lastComfortMs = now;
-    gs.nudgeCardStat('moral', amount);
-  }
+  void _comfortMoral(int amount) => GameState.instance.tryComfortMoral(amount);
 
   // Activation du debug par TRIPLE-TAP caché (plus de bouton visible en jeu).
   int _debugTaps = 0;
