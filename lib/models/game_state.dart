@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -625,15 +626,36 @@ class GameState extends ChangeNotifier {
       trainZone == TrainZone.cold || trainZone == TrainZone.transitionToCold;
 
   // --- Thought bubble context ---
+  final Random _thoughtRng = Random();
+
+  /// Emoji de la bulle de pensée de Shen. PRIORITÉ aux besoins urgents (cause →
+  /// action évidente pour le joueur), sinon une pensée d'ambiance tirée au
+  /// hasard parmi les options pertinentes (compagnons, espoir, météo, détente).
   String get contextualThought {
-    if (hunger < 0.2) return '🍖';
-    if (thirst < 0.2) return '💧';
-    if (sleepNeed < 20) return '💤'; // épuisée -> dormir
-    if (hygieneNeed < 20) return '🛁'; // sale -> se laver
-    if (cardMoral < 15) return '😔'; // moral au plus bas
-    if (inColdZone) return '❄️';
-    const neutral = ['☕', '💭', '🌿', '📖', '🎵'];
-    return neutral[DateTime.now().second % neutral.length];
+    // 1) BESOINS URGENTS — chaque emoji dit quoi faire.
+    if (cardBois < 18) return '🪵'; // bois bas → nourrir la loco
+    if (hunger < 0.2) return '🍖'; // faim → cuisiner
+    if (thirst < 0.2) return '💧'; // soif → filtrer/boire
+    if (sleepNeed < 20) return '💤'; // épuisée → dormir au lit
+    if (hygieneNeed < 20) return '🛁'; // sale → bain/douche
+    if (feltCold) return '🥶'; // a froid → poêle / manteau
+    if (cardMoral < 20) return '😔'; // moral bas → réconfort
+
+    // 2) AMBIANCE — pensées pertinentes selon l'état, tirées au hasard.
+    final pool = <String>[];
+    if (dogShown) pool.addAll(['🐶', '🐾']);
+    if (sisterShown) pool.addAll(['👧', '❤️']);
+    if (cardFlags.contains('capParents')) pool.add('👨‍👩‍👧'); // pense aux parents
+    if (cardFlags.contains('aLaRadio')) pool.add('📻'); // espoir radio
+    if (isNight) {
+      pool.addAll(['🌙', '⭐']);
+    } else {
+      pool.add('☀️');
+    }
+    if (inColdZone) pool.add('❄️');
+    // Détente cosy, toujours possible.
+    pool.addAll(['☕', '🎵', '📖', '🌿', '😊', '💭']);
+    return pool[_thoughtRng.nextInt(pool.length)];
   }
 
   // --- Inventory ---

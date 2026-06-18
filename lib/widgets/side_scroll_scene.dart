@@ -554,13 +554,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
     GameState.instance.addListener(_onGameStateChanged);
     _filterDisplayLevel = _glassesToFrame(
         GameState.instance.waterTankGlasses);
-    _thoughtTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+    _thoughtTimer = Timer.periodic(const Duration(seconds: 28), (_) {
       if (!mounted) return;
-      // 50 % chance to skip — so they don't appear like clockwork.
-      if (math.Random().nextDouble() < 0.5) return;
+      // Léger skip aléatoire pour ne pas paraître mécanique (mais bulles
+      // nettement plus fréquentes qu'avant).
+      if (math.Random().nextDouble() < 0.25) return;
       setState(() => _thoughtEmoji = GameState.instance.contextualThought);
       _thoughtClearTimer?.cancel();
-      _thoughtClearTimer = Timer(const Duration(seconds: 3), () {
+      _thoughtClearTimer = Timer(const Duration(seconds: 4), () {
         if (mounted) setState(() => _thoughtEmoji = null);
       });
     });
