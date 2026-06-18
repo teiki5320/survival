@@ -665,15 +665,31 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                           ),
                         ),
                       ],
-                      _buildHeroine(w, h),
-                      // Warm halo when she's near the firebox (left)
-                      // or the woodpile (right). Brightest right next
-                      // to the open firebox door.
+                      // Cluster héroïne (sprite animé + halo de proximité feu).
+                      // Isolé sous _heroAnim : seul ce sous-arbre se reconstruit
+                      // à chaque frame, pas toute la cabine. RepaintBoundary
+                      // cantonne le repaint.
                       Positioned.fill(
-                        child: CharacterHalo(
-                          heroX: _heroX,
-                          heroY: 0.68,
-                          intensity: _fireProximity(),
+                        child: RepaintBoundary(
+                          child: ValueListenableBuilder<int>(
+                            valueListenable: _heroAnim,
+                            builder: (_, __, ___) => Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                _buildHeroine(w, h),
+                                // Warm halo when she's near the firebox (left)
+                                // or the woodpile (right). Brightest right next
+                                // to the open firebox door.
+                                Positioned.fill(
+                                  child: CharacterHalo(
+                                    heroX: _heroX,
+                                    heroY: 0.68,
+                                    intensity: _fireProximity(),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                       // Subtle breathing of the ambient light synced
@@ -717,7 +733,16 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
                       if (widget.onOpenMap != null) _buildLocoMap(w, h),
                     ],
                   ),
-                ),
+                  ),
+                  builder: (_, shake, child) => Transform.translate(
+                    offset: shake > 0
+                        ? Offset(
+                            (math.sin(shake * 30) * 6) * shake,
+                            (math.cos(shake * 26) * 4) * shake,
+                          )
+                        : Offset.zero,
+                    child: child,
+                  ),
                 ),
               ),
             ),

@@ -410,6 +410,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   String? _thoughtEmoji;
   Timer? _thoughtTimer;
   Timer? _thoughtClearTimer;
+  // Vérifie fréquemment (6 s) si un besoin de confort est CRITIQUE (<20) : si
+  // oui, FORCE la bulle 💤/🛁 sans attendre le tirage aléatoire (28 s), pour
+  // que le joueur voie quoi faire. N'écrase pas une bulle déjà affichée.
+  Timer? _needBubbleTimer;
   int _idleFrame = 0;
   // (Autonomie idle DÉSACTIVÉE : plus de pause yawn/look_window. Les champs
   // _idleBreak*/_idleStillMs ont été retirés — code mort.)
@@ -578,6 +582,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         if (mounted) setState(() => _thoughtEmoji = null);
       });
     });
+    _needBubbleTimer =
+        Timer.periodic(const Duration(seconds: 6), (_) => _forceNeedBubble());
     // Autonomie de Shen DÉSACTIVÉE (demande utilisateur) : le perso principal
     // reste en idle, ne se balade plus et ne lance plus d'actions tout seul.
     // Tout passe par les actions DÉCLENCHÉES par le joueur (boutons / objets).
@@ -724,6 +730,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
     });
   }
 
+  /// Tap sur la gamelle : bascule plein/vide. La transition VIDE -> PLEIN
+  /// (= on remplit) nourrit le chien s'il est là : petit gain de moral confort
+  /// (cooldown partagé anti-farm) + float. Sans chien, simple toggle cosmétique.
+  void _onBowlTap() {
+    final wasEmpty = !_bowlFull;
+    setState(() => _bowlFull = !_bowlFull);
+    if (wasEmpty && _bowlFull && GameState.instance.dogShown) {
+      GameState.instance.tryComfortMoral(6);
+      _showHeroFloat('Le chien est nourri 🐶');
+    }
+  }
+
   /// Poêle à bois : Shen se tourne, le poêle s'allume (ou s'éteint). Le drain
   /// du bois est GLOBAL (géré dans main.dart, actif où que soit Shen).
   void _togglePoele() {
@@ -770,6 +788,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
     });
     ctrl.forward();
     _filterFillCtrl = ctrl;
+  }
+
+  /// Force la bulle de pensée 💤/🛁 quand un besoin de confort est CRITIQUE
+  /// (<20), sans attendre le tirage aléatoire. Ne re-force pas si une bulle est
+  /// déjà affichée (anti-spam). L'hygiène ne compte que si elle est LAVABLE
+  /// (bain/douche débloqué et pas en plein froid) — sinon punir/alerter sans
+  /// remède possible n'aurait pas de sens.
+  void _forceNeedBubble() {
+    if (!mounted || _thoughtEmoji != null) return;
+    final gs = GameState.instance;
+    final washable =
+        (gs.propUnlocked('bath') || gs.propUnlocked('shower')) && !gs.feltCold;
+    final critical = gs.sleepNeed < 20 || (gs.hygieneNeed < 20 && washable);
+    if (!critical) return;
+    setState(() => _thoughtEmoji = gs.contextualThought);
+    _thoughtClearTimer?.cancel();
+    _thoughtClearTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _thoughtEmoji = null);
+    });
   }
 
   // STATIC : le précache lourd ne doit tourner qu'UNE fois par lancement, pas
@@ -1065,6 +1102,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _horizonRotateTimer?.cancel();
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
+    _needBubbleTimer?.cancel();
     _filterFillCtrl?.dispose();
     _fireLoop?.dispose();
     _cookT1?.cancel();
@@ -1115,7 +1153,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
 
     if (_activeSpecial != null) {
-      setState(() {
+      // Avance des frames via _animSet : seul le cluster héroïne se reconstruit
+      // (pas parallax + props + atmo). Les transitions terminales qui montent
+      // un widget HORS de ce cluster (bain/douche) déclenchent leur propre
+      // rebuild de scène via _showHeroFloat (qui appelle setState). Les autres
+      // sorties (idle, anim suivante) restent dans le cluster héroïne.
+      _animSet(() {
         _specialAccumMs += dtMs;
         while (_specialAccumMs >= _specialFrameMs) {
           _specialAccumMs -= _specialFrameMs;
@@ -2638,10 +2681,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
         height: propH,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          // Tap = toggle full ↔ empty. Pour l'instant pas de coût/inventaire ;
-          // c'est juste pour tester la mécanique. Plus tard on conditionnera
-          // la recharge à une ressource "ration" dans le GameState.
-          onTap: () => setState(() => _bowlFull = !_bowlFull),
+          // Tap = toggle plein ↔ vide. REMPLIR la gamelle (vide -> plein) quand
+          // le chien est là = on le nourrit -> petit moral confort (throttlé par
+          // le cooldown partagé anti-farm) + float. Sans chien : juste cosmétique.
+          onTap: _onBowlTap,
           child: wrapped,
         ),
       );
