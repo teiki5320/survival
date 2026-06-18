@@ -125,6 +125,13 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   `resolveTrainCosyEnding`. Flags : `aLeChien`, `aLaSoeur`, `soeurProtegee`
   (compte `cardSoin`), `capParents`, `indiceSoeur`, `aLaRadio`/`radio1/2/3`,
   `asset_*` (déblocage d'objets).
+- **Cartes vivantes** (depuis 2026-06-18) : `CardChoice.reaction` (réplique d'un
+  perso sœur/chien/radio sous la conséquence — ne mettre une réaction sœur QUE
+  post-gare 5), `StoryCard.art` (enum `CardArt` : portraits réutilisant les
+  sprites Shen/sœur/chien, sinon emblème dessiné radio/cold/fire/water/food/
+  refuge/pillards/memory/hope ; `none` = carte texte), `StoryCard.hiddenStakes`
+  (carte-pari, preview des deltas masqué « ??? »). Helpers : `_c(..., reaction:)`,
+  `_filler(..., art:, hidden:)`, `_epreuve(..., art:)`.
 - `lib/widgets/cards_screen.dart` — UI swipe, présente la carte, applique le
   choix, annonce les gares. Cartes inter-gares **SEMI-ALÉATOIRES**
   (`_drawFillers`) : les cartes de PROGRESSION (avec `requires` OU qui posent un
