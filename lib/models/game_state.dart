@@ -722,7 +722,7 @@ class GameState extends ChangeNotifier {
   // File de déblocages d'objets à annoncer (toast dans le wagon). Non persisté.
   final List<String> pendingUnlocks = [];
   static const Map<String, String> unlockNames = {
-    'asset_bed': 'le lit',
+    'asset_bed': 'la paillasse',
     'asset_bowl': 'la gamelle',
     'asset_notebook': 'le carnet',
     'asset_firstaid': 'la trousse de secours',

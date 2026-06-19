@@ -68,31 +68,23 @@ StoryCard _epreuve(String id, String speaker, String text,
 // ============================================================
 
 List<StoryCard> _gare1(Set<String> f) => [
+      // GARE 1 = LA FUITE de Kogarashi (ta ville natale, qui brûle). On ne s'y
+      // arrête pas pour récupérer un chien : on la FUIT. Le chiot est au 1er
+      // vrai arrêt (Kurogane, gare 2). Ici : la fuite + la perte + la paillasse.
       StoryCard(
         id: 'G1',
         kind: CardKind.gare,
         speaker: 'Kogarashi',
+        art: CardArt.fire,
         text:
-            "Le train s'arrête enfin à Kogarashi — ta ville. Ou ce qu'il en reste : un quai en ruines, des fumées âcres, et plus loin le grondement des flammes qui dévorent encore les toits. C'est ici, cette nuit, que tout a basculé.",
-        left: _c("Regarder une dernière fois l'horizon en feu",
+            "Kogarashi brûle. Le train s'arrache à ta ville en flammes — et toi avec, sans avoir eu le choix. Recroquevillée au fond de l'unique wagon, tu regardes ta maison, ta rue, ta vie entière disparaître dans le rougeoiement.",
+        left: _c("Regarder jusqu'au bout, graver l'image",
             fx: {Stat.moral: -6}, flags: ['asset_bed'],
-            result: "Tu fixes Kogarashi brûler jusqu'à ce que le train s'arrache à elle. Tu n'oublieras pas. Jamais. Puis tu t'aménages un coin pour dormir dans le wagon."),
-        right: _c("Te détourner et t'installer",
+            result: "Tu fixes les flammes jusqu'à ce que la nuit les avale. Tu n'oublieras pas. Jamais. Puis tu pousses une paillasse dans un coin du wagon : ton premier couchage."),
+        right: _c("Te détourner, survivre d'abord",
             fx: {Stat.moral: 3}, flags: ['asset_bed'],
-            result: "Assez regardé en arrière. Survivre d'abord. Tu pousses une paillasse dans un coin : ton premier lit."),
+            result: "Assez regardé en arrière. Tu pousses une paillasse dans un coin du wagon : ton premier couchage. Demain, il faudra tenir."),
       ),
-      // PREMIÈRE ÉPREUVE (carte à choix) : un chiot est coincé sur le quai par
-      // des pillards. Le défendre = le sauver (aLeChien). Barricader = il
-      // disparaît dans le chaos. La menace se résout en un choix direct.
-      _epreuve('G1ev', 'Kogarashi',
-          "Sur le quai, un chiot tremblant, cerné par des pillards qui veulent forcer ton wagon. Tu n'as que ton lance-pierre.",
-          _c("Le défendre coûte que coûte",
-              fx: {Stat.moral: 12}, flags: ['aLeChien', 'asset_bowl'],
-              result: "Pierre après pierre, tu tiens le quai. La petite boule de poils file se réfugier contre ta jambe et s'endort. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
-          _c("Barricader la porte, te protéger",
-              fx: {Stat.moral: -4},
-              result: "Tu claques la porte sur le chaos. En sécurité — mais quand le calme revient et que le quai s'éloigne, le chiot a disparu. Le wagon, après, est immense et vide."),
-          art: CardArt.dog),
       StoryCard(
         id: 'G1c',
         kind: CardKind.gare,
@@ -110,6 +102,17 @@ List<StoryCard> _gare1(Set<String> f) => [
     ];
 
 List<StoryCard> _gare2(Set<String> f) => [
+      // PREMIER VRAI ARRÊT (Kurogane, dépôt de fret) : c'est ICI qu'on trouve le
+      // chiot — pas à Kogarashi qu'on a fuie. Le défendre = aLeChien.
+      _epreuve('G2ev_chien', 'Kurogane',
+          "Sur le quai du dépôt, premier arrêt depuis la fuite, un chiot tremblant s'est réfugié sous un wagon. Des charognards l'ont repéré, et lorgnent aussi ta loco. Tu n'as que ton lance-pierre.",
+          _c("Le défendre coûte que coûte",
+              fx: {Stat.moral: 12}, flags: ['aLeChien', 'asset_bowl'],
+              result: "Pierre après pierre, tu tiens le quai. La petite boule de poils file se réfugier contre ta jambe et s'endort. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
+          _c("Barricader la porte, te protéger",
+              fx: {Stat.moral: -4},
+              result: "Tu claques la porte sur le chaos. En sécurité — mais quand le calme revient et que le dépôt s'éloigne, le chiot a disparu. Le wagon, après, est immense et vide."),
+          art: CardArt.dog),
       StoryCard(
         id: 'G2',
         kind: CardKind.gare,

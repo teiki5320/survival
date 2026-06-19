@@ -69,8 +69,8 @@ acceptation** (croire que sa famille est vivante, ou apprendre à vivre sinon).
 
 | # | Gare | Beat |
 |---|------|------|
-| 1 | Kogarashi (**ville natale** = départ) | Fuite de la ville en flammes + **épreuve = défendre le chiot** (→ `aLeChien`). |
-| 2 | Kurogane (dépôt fret) | Apprend à nourrir la loco au bois (manuel → lampe). |
+| 1 | Kogarashi (**ville natale** = départ) | **Fuite** de la ville en flammes (on NE s'y arrête PAS) + perte de la famille + paillasse. PAS de chien ici. |
+| 2 | Kurogane (dépôt fret) | **1er vrai arrêt** : on y trouve le chiot (**épreuve → `aLeChien`**) + apprend à nourrir la loco (manuel → lampe). |
 | 3 | Karasuno (brouillard) | Premiers **pillards** dans le brouillard. Choix moral. |
 | 4 | Mayoidani (village fantôme) | **Trouve la radio à manivelle.** 1er fragment du nord. |
 | 5 | Tsukibashi (pont) | **Retrouve la petite sœur** (`aLaSoeur`) + choix engagement parents (`capParents`). |
@@ -89,7 +89,7 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
 `map_screen._stations` et `constants.kGarePositions` DOIVENT rester synchro.)
 
 ### Personnages récurrents (CANON À JOUR)
-1. **Le chien** — gagné à l'épreuve de la gare 1. Ancre du moral.
+1. **Le chien** — gagné à l'épreuve de la **gare 2** (Kurogane, 1er arrêt ; PAS à Kogarashi qu'on fuit). Ancre du moral.
 2. **La petite sœur** — 7 ans, pyjama, couettes (bien plus petite que Shen).
    Retrouvée gare 5, à bord ensuite (malade gare 9, climax des fins). C'est ELLE
    le levier émotionnel (l'« enfant » du canon).
@@ -220,8 +220,8 @@ de l'écran wagon (triple-tap coin pour l'activer).
 `sisterShown`) lue À LA FOIS par la visibilité (side_scroll) ET l'interaction
 (main `_at*`). Un objet non débloqué est **invisible ET non cliquable**. Les
 flags `asset_*` sont posés par les cartes (`cards_data`) au fil des gares :
-lit+gamelle g1, lampe g2, carnet g3, filtre g4, commode/cellier g6, poêle+trousse
-g8, hydro+bain+douche+lanternes g10. Chien=`aLeChien` (g1), sœur=`aLaSoeur` (g5).
+paillasse g1 / gamelle g2, lampe g2, carnet g3, filtre g4, commode/cellier g6, poêle+trousse
+g8, hydro+bain+douche+lanternes g10. Chien=`aLeChien` (g2), sœur=`aLaSoeur` (g5).
 
 ---
 
