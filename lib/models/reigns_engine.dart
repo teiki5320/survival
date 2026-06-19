@@ -121,6 +121,7 @@ class EngineState {
     required this.isGare,
     required this.finished,
     this.endingId,
+    this.halt = false,
   });
 
   final StoryCard? card;
@@ -128,6 +129,11 @@ class EngineState {
   final bool isGare;
   final bool finished;
   final String? endingId;
+
+  /// HALTE : Shen est à bout d'élan -> il faut retourner s'occuper d'elle au
+  /// wagon avant de tirer la carte suivante (l'écran montre l'invite, pas la
+  /// carte). Toujours sur une frontière de gare (reprise propre).
+  final bool halt;
 }
 
 /// Le moteur. On lui passe le scénario (liste de segments + résolveur de
@@ -371,6 +377,10 @@ class ReignsEngine {
         );
       }
       _gs.cardGareIndex = next;
+      // Franchir une gare coûte 1 élan : à 0, la HALTE bloquera le tirage de la
+      // gare suivante tant qu'on n'est pas repassé soigner Shen au wagon (calculé
+      // dans _emit via elanGateBlocking). Frontière de segment = reprise propre.
+      _gs.consumeLeg();
       // La météo se met au diapason de la (nouvelle) zone : entrer dans
       // le nord fait tomber la neige immédiatement.
       _gs.refreshWeatherForZone();
@@ -423,6 +433,7 @@ class ReignsEngine {
       gareIndex: gareIndex,
       isGare: card?.kind == CardKind.gare,
       finished: false,
+      halt: _gs.elanGateBlocking,
     );
   }
 }

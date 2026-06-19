@@ -149,7 +149,18 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   `constants.kGarePositions`/`kWoodSupplyByGare` (bonus bois dépôt idx1 / camp
   idx5 / oasis idx9).
 - **Système de crédits** : présent mais **DÉSACTIVÉ** (`spendCardCredit` renvoie
-  `true`). Conservé si on veut réactiver un rythme.
+  `true`). Remplacé par l'ÉLAN (ci-dessous). Conservé au cas où.
+- **ÉLAN / rythme cosy** (2026-06-19) : `GameState.cardElan` (max 3) = nb de
+  gares que le train enchaîne avant une **HALTE**. On dépense 1 élan **par gare
+  franchie** (`consumeLeg`, appelé à la frontière de segment dans
+  `reigns_engine.choose` — JAMAIS en plein segment → reprise propre). À 0,
+  `elanGateBlocking` est vrai : `EngineState.halt` passe à true et
+  `cards_screen._buildHalt()` affiche l'invite « Retourner au wagon » au lieu de
+  la carte. On **recharge l'élan dans le wagon** (≠ attente temps réel, ≠
+  l'ancien combat) : **dormir = plein** (`restoreSleep`), bain/douche +1
+  (`restoreHygiene`), câlin chien/sœur/lecture +1 (`tryComfortMoral`). Indicateur
+  = pastille flammes en haut de l'écran cartes (`_elanChip`). Désactivé en debug
+  (élan infini). N'affecte PAS l'équilibrage létal (pacing pur ; sim inchangé).
 
 ### Équilibrage (`tools/sim_current.py`)
 Parse les vraies cartes (regex, `requires` modélisé) et rejoue 4000 runs/profil.

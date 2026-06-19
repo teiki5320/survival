@@ -282,15 +282,18 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Dormir dans le lit : nuit complète -> remise à neuf du sommeil.
+  /// Dormir dans le lit : nuit complète -> remise à neuf du sommeil. Une vraie
+  /// nuit de repos relance le voyage à fond (élan plein).
   void restoreSleep() {
     sleepNeed = 100;
+    cardElan = cardElanMax; // repos complet -> élan rechargé au max
     notifyListeners();
   }
 
-  /// Bain / douche : se laver -> hygiène au max.
+  /// Bain / douche : se laver -> hygiène au max. Un peu d'élan retrouvé.
   void restoreHygiene() {
     hygieneNeed = 100;
+    rechargeElan(1);
     notifyListeners();
   }
 
@@ -304,6 +307,7 @@ class GameState extends ChangeNotifier {
     if (now - lastComfortMs < 45000) return false;
     lastComfortMs = now;
     nudgeCardStat('moral', amount);
+    rechargeElan(1); // s'occuper de Shen (chien/sœur/lecture) relance un peu
     return true;
   }
 
@@ -834,6 +838,39 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
+  // --- Élan du voyage (rythme cosy : alterner cartes <-> soins du wagon) ---
+  // REMPLACE l'ancien mur de temps réel (crédits) par un rythme fondé sur
+  // L'ENGAGEMENT : `cardElan` = le nombre d'« étapes » (gares) que le train peut
+  // enchaîner avant que Shen ne soit à bout. On dépense 1 élan à CHAQUE gare
+  // franchie (frontière de segment = point de reprise propre, jamais en plein
+  // milieu). À 0, le train fait HALTE : il faut retourner s'occuper de Shen dans
+  // le wagon (dormir la recharge à fond, la réchauffer / jouer un peu) avant de
+  // repartir. Pas d'attente sur un écran verrouillé : c'est le wagon (le cœur
+  // Tamagotchi) qui relance le voyage — ce qui remplace l'ancien combat comme
+  // « chose à faire entre deux phases de cartes ».
+  static const bool elanEnabled = true;
+  static const int cardElanMax = 3; // ~1 halte toutes les 3 gares
+  int cardElan = cardElanMax;
+
+  /// Vrai quand Shen est à bout : la HALTE bloque le tirage de la gare suivante
+  /// tant qu'on n'est pas repassé soigner Shen au wagon. (Jamais en debug.)
+  bool get elanGateBlocking =>
+      elanEnabled && !debugMode && hasCardRun && cardElan <= 0;
+
+  /// Dépense 1 élan en franchissant une gare (appelé au passage de segment).
+  void consumeLeg() {
+    if (!elanEnabled || debugMode) return;
+    if (cardElan > 0) cardElan--;
+    notifyListeners();
+  }
+
+  /// Regagne de l'élan via les soins du wagon (dormir = plein, le reste = +n).
+  void rechargeElan(int n) {
+    if (n <= 0 || cardElan >= cardElanMax) return;
+    cardElan = (cardElan + n).clamp(0, cardElanMax);
+    notifyListeners();
+  }
+
   // Stat de départ VOLONTAIREMENT BASSE : on commence l'aventure « au mini »
   // (train abîmé, froid, à bout). À remonter en jouant. (Ajustable.)
   static const int kStartStat = 25;
@@ -850,6 +887,7 @@ class GameState extends ChangeNotifier {
     cardSoin = 0;
     cardCredits = cardCreditsMax;
     cardCreditNextMs = 0;
+    cardElan = cardElanMax;
     cardSegmentProgress = 0.0;
     // Réserve de bois de départ (bûches dans le wagon).
     gareWoodLeft = kWoodStartReserve; // bûches à ramasser à la gare de départ
@@ -938,6 +976,7 @@ class GameState extends ChangeNotifier {
         'soin': cardSoin,
         'credits': cardCredits,
         'creditNextMs': cardCreditNextMs,
+        'elan': cardElan,
         'segProgress': cardSegmentProgress,
       };
 
@@ -959,6 +998,7 @@ class GameState extends ChangeNotifier {
     cardCredits = ((m['credits'] as num?)?.toInt() ?? cardCreditsMax)
         .clamp(0, cardCreditsMax);
     cardCreditNextMs = (m['creditNextMs'] as num?)?.toInt() ?? 0;
+    cardElan = ((m['elan'] as num?)?.toInt() ?? cardElanMax).clamp(0, cardElanMax);
     cardSegmentProgress =
         ((m['segProgress'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 1.0);
   }
