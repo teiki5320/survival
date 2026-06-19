@@ -14,10 +14,37 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../data/cards_data.dart';
 import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
+
+/// Emblèmes de carte DESSINÉS AU TRAIT (SVG inline), accordés à la palette
+/// honey/gold du jeu — remplacent les icônes système (placeholders). Tracés
+/// stroke-only, teintés par `ColorFilter` selon l'ambiance de la carte.
+const Map<CardArt, String> _kEmblemSvg = {
+  CardArt.water:
+      '<svg viewBox="0 0 48 48"><path d="M24 7 C24 7 11 23 11 31 a13 13 0 0 0 26 0 C37 23 24 7 24 7 Z" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/><path d="M18.5 31 a5.5 5.5 0 0 0 5.5 5.5" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/></svg>',
+  CardArt.fire:
+      '<svg viewBox="0 0 48 48"><path d="M24 6 c5 8 11 11 11 19 a11 11 0 0 1 -22 0 c0 -5 3 -8 5.5 -10 c0.5 3 2.5 4 4 4.5 c-2.5 -5.5 -0.5 -9.5 1.5 -13.5 Z" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/></svg>',
+  CardArt.cold:
+      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"><line x1="24" y1="8" x2="24" y2="40"/><line x1="11.6" y1="15" x2="36.4" y2="33"/><line x1="36.4" y1="15" x2="11.6" y2="33"/><path d="M20 12 l4 -3 4 3 M20 36 l4 3 4 -3 M13 19 l-0.5 -5 5 0.5 M35 29 l0.5 5 -5 -0.5 M35 19 l0.5 -5 -5 0.5 M13 29 l-0.5 5 5 -0.5"/></g></svg>',
+  CardArt.radio:
+      '<svg viewBox="0 0 48 48"><circle cx="17" cy="32" r="2.6" fill="#000"/><g fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"><path d="M22 28 a8 8 0 0 1 0 8"/><path d="M26.5 24 a14 14 0 0 1 0 16"/><path d="M31 20 a20 20 0 0 1 0 24"/></g></svg>',
+  CardArt.food:
+      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"><rect x="15" y="13" width="18" height="23" rx="2"/><line x1="15" y1="19" x2="33" y2="19"/><line x1="15" y1="30" x2="33" y2="30"/></g></svg>',
+  CardArt.refuge:
+      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M9 25 L24 12 L39 25"/><path d="M13 22 V38 H35 V22"/><path d="M21 38 V29 H27 V38"/></g></svg>',
+  CardArt.hope:
+      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.3" stroke-linecap="round"><line x1="8" y1="34" x2="40" y2="34"/><path d="M16 34 a8 8 0 0 1 16 0"/><line x1="24" y1="14" x2="24" y2="20"/><line x1="13" y1="18" x2="16" y2="22"/><line x1="35" y1="18" x2="32" y2="22"/></g></svg>',
+  CardArt.memory:
+      '<svg viewBox="0 0 48 48"><path d="M24 14 c-4 -3 -9.5 -3 -13.5 -1 v21 c4 -2 9.5 -2 13.5 1 c4 -3 9.5 -3 13.5 -1 v-21 c-4 -2 -9.5 -2 -13.5 1 Z M24 14 v21" fill="none" stroke="#000" stroke-width="2.2" stroke-linejoin="round"/></svg>',
+  CardArt.pillards:
+      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="37" x2="19" y2="13"/><line x1="24" y1="37" x2="24" y2="11"/><line x1="36" y1="37" x2="29" y2="13"/><line x1="10" y1="25" x2="38" y2="25"/></g></svg>',
+};
 
 class CardsScreen extends StatefulWidget {
   const CardsScreen({super.key, required this.onClose});
@@ -788,42 +815,55 @@ class _CardsScreenState extends State<CardsScreen>
         height: 72,
         child: Image.asset(sprite,
             fit: BoxFit.contain, cacheWidth: 160, gaplessPlayback: true),
-      );
+      ).animate().fadeIn(duration: 350.ms).scale(
+          begin: const Offset(0.85, 0.85),
+          end: const Offset(1, 1),
+          curve: Curves.easeOutBack,
+          duration: 380.ms);
     }
-    final emblem = _emblemFor(art);
-    if (emblem == null) return null;
+    final svg = _kEmblemSvg[art];
+    final color = _emblemColor(art);
+    if (svg == null || color == null) return null;
     return Container(
-      width: 50,
-      height: 50,
+      width: 54,
+      height: 54,
+      padding: const EdgeInsets.all(11),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: emblem.$2.withValues(alpha: 0.16),
-        border: Border.all(color: emblem.$2.withValues(alpha: 0.55), width: 1.5),
+        color: color.withValues(alpha: 0.14),
+        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.4),
       ),
-      child: Icon(emblem.$1, color: emblem.$2, size: 26),
-    );
+      child: SvgPicture.string(
+        svg,
+        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+      ),
+    ).animate().fadeIn(duration: 350.ms).scale(
+        begin: const Offset(0.7, 0.7),
+        end: const Offset(1, 1),
+        curve: Curves.easeOutBack,
+        duration: 420.ms);
   }
 
-  (IconData, Color)? _emblemFor(CardArt art) {
+  Color? _emblemColor(CardArt art) {
     switch (art) {
       case CardArt.radio:
-        return (Icons.radio, const Color(0xFF9BC4E2));
+        return const Color(0xFF9BC4E2);
       case CardArt.pillards:
-        return (Icons.dangerous, const Color(0xFFCF6B6B));
+        return const Color(0xFFCF6B6B);
       case CardArt.refuge:
-        return (Icons.cabin, const Color(0xFFE8B96B));
+        return const Color(0xFFE8B96B);
       case CardArt.cold:
-        return (Icons.ac_unit, const Color(0xFF9BC4E2));
+        return const Color(0xFF9BC4E2);
       case CardArt.fire:
-        return (Icons.local_fire_department, const Color(0xFFE89B5C));
+        return const Color(0xFFE89B5C);
       case CardArt.water:
-        return (Icons.water_drop, const Color(0xFF6FAEDF));
+        return const Color(0xFF6FAEDF);
       case CardArt.food:
-        return (Icons.restaurant, const Color(0xFFD9A05B));
+        return const Color(0xFFD9A05B);
       case CardArt.memory:
-        return (Icons.auto_stories, const Color(0xFFCBB68F));
+        return const Color(0xFFCBB68F);
       case CardArt.hope:
-        return (Icons.wb_twilight, const Color(0xFFE8C98B));
+        return const Color(0xFFE8C98B);
       default:
         return null;
     }
@@ -869,10 +909,10 @@ class _CardsScreenState extends State<CardsScreen>
                 Text(
                   card.text,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF3A2A18),
-                    fontSize: 16,
-                    height: 1.4,
+                  style: GoogleFonts.lora(
+                    color: const Color(0xFF3A2A18),
+                    fontSize: 16.5,
+                    height: 1.45,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -939,10 +979,10 @@ class _CardsScreenState extends State<CardsScreen>
                   child: Text(
                     (card.speaker ?? 'GARE').toUpperCase(),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: GoogleFonts.cinzel(
                       color: gold,
                       fontSize: 13,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                       letterSpacing: 1.5,
                     ),
                   ),
@@ -965,8 +1005,8 @@ class _CardsScreenState extends State<CardsScreen>
                       Text(
                         card.text,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Color(0xFFF3E6CF),
+                        style: GoogleFonts.lora(
+                          color: const Color(0xFFF3E6CF),
                           fontSize: 17,
                           height: 1.5,
                           fontWeight: FontWeight.w500,
@@ -1019,8 +1059,8 @@ class _CardsScreenState extends State<CardsScreen>
                     child: Text(
                       _resultText ?? '',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFFF0E6D2),
+                      style: GoogleFonts.lora(
+                        color: const Color(0xFFF0E6D2),
                         fontSize: 16,
                         height: 1.5,
                         fontStyle: FontStyle.italic,
