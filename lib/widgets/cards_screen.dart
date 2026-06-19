@@ -694,22 +694,24 @@ class _CardsScreenState extends State<CardsScreen>
             scale = 0.9 + 0.1 * _enterCtrl.value;
           }
           return Center(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                _choiceTag(card.left, false, leftActive, card.hiddenStakes),
-                _choiceTag(card.right, true, rightActive, card.hiddenStakes),
-                Transform.translate(
-                  offset: Offset(dx, dy),
-                  child: Transform.rotate(
-                    angle: rotation,
-                    child: Transform.scale(
-                      scale: scale,
-                      child: _cardFace(card),
-                    ),
+            child: Transform.translate(
+              offset: Offset(dx, dy),
+              child: Transform.rotate(
+                angle: rotation,
+                child: Transform.scale(
+                  scale: scale,
+                  // Le choix s'affiche SUR la carte au penché (style Reigns).
+                  child: Stack(
+                    alignment: Alignment.topCenter,
+                    children: [
+                      _cardFace(card),
+                      Positioned.fill(
+                        child: _onCardChoice(card, leftActive, rightActive),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           );
         },
@@ -717,49 +719,63 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  // étiquette de choix révélée pendant le drag (avec deltas)
-  Widget _choiceTag(CardChoice choice, bool right, bool active,
-      [bool hidden = false]) {
-    return Align(
-      alignment: right ? Alignment.centerRight : Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+  // Le CHOIX révélé SUR la carte au penché (style Reigns) : le label du choix
+  // côté penché apparaît en grand en haut de la carte, sur un voile sombre,
+  // avec le preview des deltas (ou « ? ? ? » si enjeu caché).
+  Widget _onCardChoice(StoryCard card, bool leftActive, bool rightActive) {
+    final active = leftActive || rightActive;
+    final choice = leftActive ? card.left : card.right;
+    return IgnorePointer(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
         child: AnimatedOpacity(
-          opacity: active ? 1 : 0.12,
-          duration: const Duration(milliseconds: 120),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 130),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8B96B)
-                  .withValues(alpha: active ? 0.95 : 0.3),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  choice.label,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF2A2018),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
+          opacity: active ? 1 : 0,
+          duration: const Duration(milliseconds: 110),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 22, 20, 30),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.82),
+                    Colors.black.withValues(alpha: 0.45),
+                    Colors.black.withValues(alpha: 0.0),
+                  ],
+                  stops: const [0.0, 0.6, 1.0],
                 ),
-                if (hidden) ...[
-                  const SizedBox(height: 6),
-                  const Text('? ? ?',
-                      style: TextStyle(
-                          color: Color(0xFF2A2018),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          letterSpacing: 2)),
-                ] else if (choice.effects.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  _deltaChips(choice.effects, dark: true),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    choice.label,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.lora(
+                      color: Colors.white,
+                      fontSize: 21,
+                      height: 1.2,
+                      fontWeight: FontWeight.w600,
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 8),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  if (card.hiddenStakes)
+                    const Text('? ? ?',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            letterSpacing: 3))
+                  else if (choice.effects.isNotEmpty)
+                    _deltaChips(choice.effects),
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -872,12 +888,12 @@ class _CardsScreenState extends State<CardsScreen>
   // --- carte de REMPLISSAGE : parchemin clair, léger ---
   Widget _fillerFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
-    final cardW = min(w * 0.6, 330.0);
+    final cardW = min(w * 0.82, 430.0);
     return Container(
       width: cardW,
       constraints: BoxConstraints(
-        minHeight: 190,
-        maxHeight: MediaQuery.of(context).size.height * 0.58,
+        minHeight: 230,
+        maxHeight: MediaQuery.of(context).size.height * 0.66,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -927,13 +943,13 @@ class _CardsScreenState extends State<CardsScreen>
   // --- carte de GARE : sombre, solennelle, liseré doré, bandeau titre ---
   Widget _gareFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
-    final cardW = min(w * 0.66, 360.0);
+    final cardW = min(w * 0.84, 450.0);
     const gold = Color(0xFFE8B96B);
     return Container(
       width: cardW,
       constraints: BoxConstraints(
-        minHeight: 230,
-        maxHeight: MediaQuery.of(context).size.height * 0.62,
+        minHeight: 260,
+        maxHeight: MediaQuery.of(context).size.height * 0.68,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
