@@ -255,18 +255,20 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // L'atelier a ses portes dessinées plus PRÈS DES BORDS que le salon ->
   // bornes élargies (sinon Shen s'arrête avant la porte gauche).
   double get _moveMin =>
-      widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.08 : _heroXMin);
+      widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.08 : 0.27);
   // Cellier : bornes resserrées (ne plus monter sur les portes G/D). On ouvre
   // l'accès dès que le cellier est aménagé (stage>=1) OU qu'un prop du fond
   // (bain/douche) est débloqué — sinon, débloqués avant l'aménagement (ou en
   // debug), bain (0.48) et douche (0.77) resteraient hors d'atteinte.
+  // SALON (wagon 1) : 0.27→0.80 (Shen restait trop près des bords ; l'intérieur
+  // dessiné est ~0.25-0.82).
   double get _moveMax => widget.secondWagon
       ? ((widget.wagonStage >= 1 ||
               _propUnlocked('bath') ||
               _propUnlocked('shower'))
           ? 0.82
           : 0.30)
-      : (widget.isAtelier ? 0.92 : _heroXMax);
+      : (widget.isAtelier ? 0.92 : 0.80);
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
@@ -390,7 +392,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // _onHeroTick le bump à chaque frame au lieu d'un setState global (qui
   // reconstruisait parallax + props + atmosphère 60×/s = saccades).
   final ValueNotifier<int> _heroAnim = ValueNotifier<int>(0);
-  late double _heroX = widget.initialHeroX;
+  // Spawn clampé aux bornes du wagon (sinon, au retour de la map, elle
+  // apparaissait à 0.86 = au bord du salon).
+  late double _heroX = widget.initialHeroX.clamp(_moveMin, _moveMax);
   double? _heroTarget;
   // She has only two facing options: the walk_right sheet, or its
   // horizontal mirror for going left.
