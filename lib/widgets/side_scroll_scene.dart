@@ -2809,7 +2809,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
     // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
     // est dessiné plus grand dans le cadre -> son sol est plus bas.
-    final feetY = h * (widget.secondWagon ? 0.80 : 0.785);
+    // SALON (wagon 1) : son sol peint est plus HAUT que celui de l'atelier ->
+    // Shen y tombait trop près du bord AVANT (en profondeur). On la remonte un
+    // peu (feetY plus petit = plus loin dans la pièce). N'AFFECTE QUE le salon ;
+    // atelier (0.785) et cellier (0.80) inchangés. (Ajustable : ce seul nombre.)
+    final feetY = h *
+        (widget.secondWagon
+            ? 0.80
+            : (widget.isAtelier ? 0.785 : 0.745));
     final anchorX = _heroX * w;
 
     // Cas spéciaux ancrés sur le lit : la fille n'est pas sur le sol,
