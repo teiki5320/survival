@@ -312,10 +312,14 @@ class ReignsEngine {
     if (flags.contains('aLaSoeur')) {
       _gs.applyCardDeltas({'faim': -1, 'soif': -1, 'moral': 1});
     }
-    // ZONE FROIDE (gare 8+) : le grand nord glacé fait boire la loco — bois
-    // qui fond à chaque carte. C'est le lien MÉCANIQUE carte↔monde : avancer
-    // sur la carte change la difficulté, pas juste le décor. (canon : "le
-    // froid menace, la loco boit plus").
+    // CARBURANT : le train brûle du bois à CHAQUE carte (toutes zones). C'est
+    // ce qui rend le bois VITAL — il faut sans cesse réalimenter la loco (corvée
+    // de bûches) ou tomber en panne. Sans ça, le bois n'était qu'une jauge de
+    // plus qu'on remplissait passivement.
+    _gs.applyCardDeltas({'bois': -kBaseBoisDrainPerCard});
+    // ZONE FROIDE (gare 8+) : le grand nord glacé fait boire la loco ENCORE
+    // plus — drain qui s'ajoute au carburant de base. (canon : "le froid
+    // menace, la loco boit plus").
     if (_gs.inDeepCold) {
       _gs.applyCardDeltas({'bois': -kColdBoisDrainPerCard});
     }

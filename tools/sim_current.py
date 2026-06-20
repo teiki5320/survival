@@ -18,8 +18,11 @@ effets + flags), puis rejoue des milliers de runs sous les regles reelles :
   - mecanique soeur : apres flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
   - zone froide (gare 8+) : surconso bois
   - mort si une jauge <= 0 ; fin selon resolveTrainCosyEnding
-Cible calibree : careless ~11% / casual ~62% / smart 100% / caring 100%.
-Stats depart 25/25/25/25 (kStartStat).
+Cible (durcie 2026-06-20, bois = carburant brule a chaque carte) :
+careless ~0% / casual ~18% / smart ~100% / caring ~100%. Le bois est
+desormais la 1re cause de mort (option 'bois inutile' corrigee). Le jeu
+exige de gerer le carburant (corvee loco) + de vrais dilemmes (gains de
+moral payes en survie, cf. chien g2). Stats depart 25/25/25/25 (kStartStat).
 """
 import re, random, sys, collections
 
@@ -150,7 +153,8 @@ def pick(card, stats, strategy):
     return best if random.random() < 0.70 else 1-best
 
 COLD_GARE = 7        # gare 8 (0-based) = entrée zone froide
-COLD_BOIS = 2        # surconso bois/carte dans le froid
+BASE_BOIS = 1        # carburant : bois brûlé à CHAQUE carte (toutes zones)
+COLD_BOIS = 2        # surconso bois/carte dans le froid (s'ajoute à BASE_BOIS)
 WOOD_START = 4       # réserve de bois de départ
 WOOD_SUPPLY = {1:5,5:6,9:4}  # bûches offertes à l'arrivée de gares
 
@@ -218,6 +222,8 @@ def run(strategy, refuels_per_seg=None):
             if 'aLaSoeur' in flags:
                 apply(stats, {'faim':-1,'soif':-1}, flags, True)
                 stats['moral'] = min(100, stats['moral']+1)
+            # carburant : le train brûle du bois à chaque carte (toutes zones)
+            stats['bois'] = max(0, stats['bois'] - BASE_BOIS)
             # zone froide : la loco boit plus (drain bois plat, non multiplié)
             if si >= COLD_GARE:
                 stats['bois'] = max(0, stats['bois'] - COLD_BOIS)

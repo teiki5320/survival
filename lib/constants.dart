@@ -32,6 +32,12 @@ const int kColdGareIndex = 7;
 // qui relie la carte au gameplay ; calé par simulation).
 const int kColdBoisDrainPerCard = 2;
 
+// Le train BRÛLE du bois à CHAQUE carte (toutes zones) : c'est son carburant.
+// -> le bois est la pression centrale, il faut sans cesse réalimenter la loco
+// (corvée de bûches) sous peine de panne (0 bois = mort en terrain hostile).
+// Dans le froid, ce drain s'ajoute à kColdBoisDrainPerCard. (Calé par simu.)
+const int kBaseBoisDrainPerCard = 1;
+
 // --- Bois (FUSIONNÉ) ---
 // Le bois = UNE seule jauge `cardBois` (0-100, mort à 0). `gareWoodLeft` =
 // bûches à ramasser à la loco pour la gare courante (chaque bûche = +10

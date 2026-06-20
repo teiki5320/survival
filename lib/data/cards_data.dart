@@ -105,13 +105,15 @@ List<StoryCard> _gare2(Set<String> f) => [
       // PREMIER VRAI ARRÊT (Kurogane, dépôt de fret) : c'est ICI qu'on trouve le
       // chiot — pas à Kogarashi qu'on a fuie. Le défendre = aLeChien.
       _epreuve('G2ev_chien', 'Kurogane',
-          "Sur le quai du dépôt, premier arrêt depuis la fuite, un chiot tremblant s'est réfugié sous un wagon. Des charognards l'ont repéré, et lorgnent aussi ta loco. Tu n'as que ton lance-pierre.",
-          _c("Le défendre coûte que coûte",
-              fx: {Stat.moral: 12}, flags: ['aLeChien', 'asset_bowl'],
-              result: "Pierre après pierre, tu tiens le quai. La petite boule de poils file se réfugier contre ta jambe et s'endort. Tu n'es plus tout à fait seule. Tu lui bricoles une gamelle."),
-          _c("Barricader la porte, te protéger",
-              fx: {Stat.moral: -4},
-              result: "Tu claques la porte sur le chaos. En sécurité — mais quand le calme revient et que le dépôt s'éloigne, le chiot a disparu. Le wagon, après, est immense et vide."),
+          "Sur le quai du dépôt, un chiot tremblant s'est réfugié sous un wagon. Des charognards le lorgnent — et lorgnent aussi les caisses de vivres et le tas de bûches juste derrière lui. Tu ne peux pas avoir les deux : le temps de l'arracher au danger, ils raflent le reste. Le sauver te coûtera ta réserve.",
+          _c("Le sauver, tant pis pour le butin",
+              fx: {Stat.moral: 14, Stat.faim: -8, Stat.bois: -7},
+              flags: ['aLeChien', 'asset_bowl'],
+              result: "Tu plonges sous le wagon, l'attrapes et déguerpis sous les pierres. Pendant ta fuite, les charognards vident les caisses et la pile de bois. Tu repars le ventre creux et la soute presque vide — mais une petite chaleur tremble contre toi.",
+              reaction: "Le chiot, blotti dans ta veste, lèche ta main gelée comme pour dire merci."),
+          _c("Rafler vivres et bois, le laisser",
+              fx: {Stat.moral: -11, Stat.faim: 12, Stat.bois: 12},
+              result: "Tu choisis de tenir. Pendant que le chiot fuit sous un autre wagon, tu charges conserves et bûches à pleins bras : la soute déborde. Mais ses jappements te poursuivent longtemps dans le silence du dépôt qui s'éloigne."),
           art: CardArt.dog),
       StoryCard(
         id: 'G2',
