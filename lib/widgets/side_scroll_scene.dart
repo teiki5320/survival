@@ -258,8 +258,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // détection de porte (`_atLeftDoor`/`_atRightDoor` dans main, à ±0.01 des
   // bords). Si on les resserre, Shen n'atteint plus les portes et ne peut plus
   // les ouvrir — NE PAS rétrécir le salon sans bouger aussi ces seuils.
+  // ATELIER (wagon du milieu) : ses portes sont dessinées plus VERS L'INTÉRIEUR
+  // que celles du salon. À 0.08/0.92 Shen montait carrément SUR les panneaux de
+  // porte des deux côtés. On la cale juste au seuil d'ouverture (gauche ~0.23 /
+  // droite ~0.85 dans main) sans déborder sur la porte. NE TOUCHE QUE l'atelier.
   double get _moveMin =>
-      widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.08 : _heroXMin);
+      widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.18 : _heroXMin);
   // Cellier : bornes resserrées (ne plus monter sur les portes G/D). On ouvre
   // l'accès dès que le cellier est aménagé (stage>=1) OU qu'un prop du fond
   // (bain/douche) est débloqué — sinon, débloqués avant l'aménagement (ou en
@@ -270,7 +274,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               _propUnlocked('shower'))
           ? 0.82
           : 0.30)
-      : (widget.isAtelier ? 0.92 : _heroXMax);
+      : (widget.isAtelier ? 0.85 : _heroXMax);
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
