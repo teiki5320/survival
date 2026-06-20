@@ -254,21 +254,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // l'entrée. Une fois AMÉNAGÉ (stage >= 1) elle circule dans tout le wagon.
   // L'atelier a ses portes dessinées plus PRÈS DES BORDS que le salon ->
   // bornes élargies (sinon Shen s'arrête avant la porte gauche).
+  // SALON (wagon 1) : bornes = _heroXMin/_heroXMax, ALIGNÉES sur les seuils de
+  // détection de porte (`_atLeftDoor`/`_atRightDoor` dans main, à ±0.01 des
+  // bords). Si on les resserre, Shen n'atteint plus les portes et ne peut plus
+  // les ouvrir — NE PAS rétrécir le salon sans bouger aussi ces seuils.
   double get _moveMin =>
-      widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.08 : 0.27);
+      widget.secondWagon ? 0.15 : (widget.isAtelier ? 0.08 : _heroXMin);
   // Cellier : bornes resserrées (ne plus monter sur les portes G/D). On ouvre
   // l'accès dès que le cellier est aménagé (stage>=1) OU qu'un prop du fond
   // (bain/douche) est débloqué — sinon, débloqués avant l'aménagement (ou en
   // debug), bain (0.48) et douche (0.77) resteraient hors d'atteinte.
-  // SALON (wagon 1) : 0.27→0.80 (Shen restait trop près des bords ; l'intérieur
-  // dessiné est ~0.25-0.82).
   double get _moveMax => widget.secondWagon
       ? ((widget.wagonStage >= 1 ||
               _propUnlocked('bath') ||
               _propUnlocked('shower'))
           ? 0.82
           : 0.30)
-      : (widget.isAtelier ? 0.92 : 0.80);
+      : (widget.isAtelier ? 0.92 : _heroXMax);
   static const double _heroSpeed = 0.18; // normalised units / second
   static const int _walkFrameMs = 50;
   static const int _idleFrameMs = 80;
