@@ -1225,7 +1225,7 @@ class _CardsScreenState extends State<CardsScreen>
               ),
               onPressed: widget.onClose,
               icon: const Icon(Icons.weekend_outlined),
-              label: const Text('Retourner au wagon'),
+              label: const Text('Retourner au train'),
             ),
           ],
         ),

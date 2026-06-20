@@ -376,12 +376,7 @@ class _WagonScreenState extends State<WagonScreen>
     _refreshMusic();
     GameState.instance.addListener(_refreshMusic);
     GameState.instance.setNight(_night);
-    _dayNightTimer = Timer.periodic(_dayNightPeriod, (_) {
-      if (!mounted) return;
-      setState(() => _night = !_night);
-      GameState.instance.setNight(_night);
-      _refreshMusic();
-    });
+    _armDayNight();
     // Tension du froid (RÈGLE PRÉCISE) : toutes les 14 s, si la cabine est sous
     // le seuil de froid, le moral s'érode d'un cran PROPORTIONNEL à l'intensité
     // du froid : drain = max(1, coldness / 5) (coldness = seuil − température).
@@ -552,6 +547,30 @@ class _WagonScreenState extends State<WagonScreen>
     _refreshMusic();
   }
 
+  // (Ré)arme le cycle jour/nuit ambiant. Le voyage le pilote : on repart le
+  // matin, le train fait halte le soir (cf. _setJourneyNight). Le timer flippe
+  // ensuite tout seul après une longue inactivité.
+  void _armDayNight() {
+    _dayNightTimer?.cancel();
+    _dayNightTimer = Timer.periodic(_dayNightPeriod, (_) {
+      if (!mounted) return;
+      setState(() => _night = !_night);
+      GameState.instance.setNight(_night);
+      _refreshMusic();
+    });
+  }
+
+  /// Rythme jour/nuit calé sur le VOYAGE (option 3) : on part le matin (jour),
+  /// le train fait HALTE le soir (nuit, repos cosy au wagon). Source unique :
+  /// `_night`. On réarme le timer pour ne pas flipper en plein milieu du beat.
+  void _setJourneyNight(bool night) {
+    if (_night == night) return;
+    setState(() => _night = night);
+    GameState.instance.setNight(night);
+    _refreshMusic();
+    _armDayNight();
+  }
+
   /// Mode debug actif ? (révèle les outils de test : nettoyage, jour/nuit,
   /// température, danse, ajustement des props).
   bool get _debug => GameState.instance.debugMode;
@@ -578,15 +597,23 @@ class _WagonScreenState extends State<WagonScreen>
         child: _inCards
             ? CardsScreen(
                 key: const ValueKey('cards'),
-                onClose: () => setState(() {
-                  _inCards = false;
-                  // Le voyage se pilote depuis la loco : on y revient en
-                  // quittant les cartes (sinon on retombait sur le wagon 1).
-                  if (_cardsFromLoco) {
-                    _cardsFromLoco = false;
-                    _inLocomotive = true;
+                onClose: () {
+                  // HALTE (Shen à bout d'élan) : le train s'arrête pour la
+                  // nuit -> le wagon où l'on rentre se met en mode nuit cosy
+                  // (repos = recharge de l'élan). Sinon, fermeture normale.
+                  if (GameState.instance.elanGateBlocking) {
+                    _setJourneyNight(true);
                   }
-                }),
+                  setState(() {
+                    _inCards = false;
+                    // Le voyage se pilote depuis la loco : on y revient en
+                    // quittant les cartes (sinon on retombait sur le wagon 1).
+                    if (_cardsFromLoco) {
+                      _cardsFromLoco = false;
+                      _inLocomotive = true;
+                    }
+                  });
+                },
               )
             : _inWardrobe
             ? WardrobeScreen(
@@ -603,11 +630,14 @@ class _WagonScreenState extends State<WagonScreen>
                 key: const ValueKey('map'),
                 onClose: _exitMap,
                 // Entrée des cartes narratives depuis la map (le voyage).
-                onOpenCards: () => setState(() {
-                  _onMap = false;
-                  _inCards = true;
-                  _cardsFromLoco = true; // voyage : retour loco en quittant
-                }),
+                onOpenCards: () {
+                  _setJourneyNight(false); // on repart le matin (jour)
+                  setState(() {
+                    _onMap = false;
+                    _inCards = true;
+                    _cardsFromLoco = true; // voyage : retour loco en quittant
+                  });
+                },
               )
             : _inLocomotive
                 ? LocomotiveScene(

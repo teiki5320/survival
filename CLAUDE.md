@@ -161,6 +161,10 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   (`restoreHygiene`), câlin chien/sœur/lecture +1 (`tryComfortMoral`). Indicateur
   = pastille flammes en haut de l'écran cartes (`_elanChip`). Désactivé en debug
   (élan infini). N'affecte PAS l'équilibrage létal (pacing pur ; sim inchangé).
+  **Jour/nuit calé sur le voyage** (option 3) : on **repart le matin** (jour) et
+  le train **fait halte le soir** (nuit, repos cosy) — `main._setJourneyNight`
+  appelé à l'ouverture des cartes (jour) et à la fermeture sur HALTE (nuit) ;
+  source unique `main._night`, timer ambiant réarmé (`_armDayNight`).
 
 ### Équilibrage (`tools/sim_current.py`)
 Parse les vraies cartes (regex, `requires` modélisé) et rejoue 4000 runs/profil.
