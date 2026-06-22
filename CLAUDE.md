@@ -50,8 +50,9 @@ acceptation** (croire que sa famille est vivante, ou apprendre à vivre sinon).
   longtemps épargnée. **Jeune femme de 20 ANS, adulte — JAMAIS une enfant**
   (cheveux noirs longs, chemise blanche, pieds nus — voulu).
 - **La nuit de la fuite** : explosions proches du train, la famille séparée dans
-  le chaos. Shen se cache seule dans l'unique wagon d'une vieille loco de fret à
-  bois ; par peur des explosions, les autres sautent du train. Le convoi part
+  le chaos. Shen se cache seule dans les wagons d'une vieille loco de fret à
+  bois (3 wagons traversables dès le départ) ; par peur des explosions, les
+  autres sautent du train. Le convoi part
   vers le **nord** (zone froide = refuge où des familles se regroupent, le froid
   tient les pillards à distance).
 - **Cœur du jeu** : survivre de corps ET d'âme assez longtemps pour découvrir si

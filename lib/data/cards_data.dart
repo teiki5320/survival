@@ -77,7 +77,7 @@ List<StoryCard> _gare1(Set<String> f) => [
         speaker: 'Kogarashi',
         art: CardArt.fire,
         text:
-            "Kogarashi brûle. Le train s'arrache à ta ville en flammes — et toi avec, sans avoir eu le choix. Recroquevillée au fond de l'unique wagon, tu regardes ta maison, ta rue, ta vie entière disparaître dans le rougeoiement.",
+            "Kogarashi brûle. Le train s'arrache à ta ville en flammes — et toi avec, sans avoir eu le choix. Recroquevillée au fond du train, tu regardes ta maison, ta rue, ta vie entière disparaître dans le rougeoiement.",
         left: _c("Regarder jusqu'au bout, graver l'image",
             fx: {Stat.moral: -7, Stat.bois: 6}, flags: ['asset_bed'],
             result: "Tu fixes les flammes jusqu'à ce que la nuit les avale. Tu n'oublieras pas. Jamais. La rage te fait arracher des planches calcinées au quai : du bois pour la loco. Puis tu pousses une paillasse dans un coin du wagon : ton premier couchage."),

@@ -700,63 +700,61 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  // Le CHOIX révélé SUR la carte au penché (style Reigns) : le label du choix
-  // côté penché apparaît en grand en haut de la carte, sur un voile sombre,
-  // avec le preview des deltas (ou « ? ? ? » si enjeu caché).
+  // Le CHOIX révélé SUR la carte au penché (style Reigns) : on RECOUVRE toute
+  // la carte d'un voile sombre OPAQUE (sinon le texte de la carte transparaissait
+  // derrière la réponse = illisible), et on affiche au centre, en grand, le label
+  // du choix penché + le preview des deltas (ou « ? ? ? » si enjeu caché).
   Widget _onCardChoice(StoryCard card, bool leftActive, bool rightActive) {
     final active = leftActive || rightActive;
     final choice = leftActive ? card.left : card.right;
+    const gold = Color(0xFFE8B96B);
     return IgnorePointer(
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: AnimatedOpacity(
           opacity: active ? 1 : 0,
           duration: const Duration(milliseconds: 110),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 22, 20, 30),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.82),
-                    Colors.black.withValues(alpha: 0.45),
-                    Colors.black.withValues(alpha: 0.0),
-                  ],
-                  stops: const [0.0, 0.6, 1.0],
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    choice.label,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.lora(
-                      color: Colors.white,
-                      fontSize: 21,
-                      height: 1.2,
-                      fontWeight: FontWeight.w600,
-                      shadows: const [
-                        Shadow(color: Colors.black, blurRadius: 8),
-                      ],
-                    ),
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            // voile quasi-opaque : masque complètement le texte de la carte.
+            color: Colors.black.withValues(alpha: 0.86),
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 22),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(rightActive ? Icons.arrow_forward : Icons.arrow_back,
+                    color: gold, size: 28),
+                const SizedBox(height: 16),
+                Text(
+                  choice.label,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.lora(
+                    color: Colors.white,
+                    fontSize: 22,
+                    height: 1.25,
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 10),
-                  if (card.hiddenStakes)
-                    const Text('? ? ?',
+                ),
+                const SizedBox(height: 20),
+                if (card.hiddenStakes)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: gold.withValues(alpha: 0.6)),
+                    ),
+                    child: const Text('? ? ?',
                         style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            letterSpacing: 3))
-                  else if (choice.effects.isNotEmpty)
-                    _deltaChips(choice.effects),
-                ],
-              ),
+                            fontSize: 18,
+                            letterSpacing: 4)),
+                  )
+                else if (choice.effects.isNotEmpty)
+                  _deltaChips(choice.effects, big: true),
+              ],
             ),
           ),
         ),
@@ -764,22 +762,31 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  // petites pastilles 🍖+10 🪵-6
-  Widget _deltaChips(Map<Stat, int> fx, {bool dark = false}) {
+  // pastilles lisibles : 🍖 +10 / 🪵 −6, sur un fond pilule contrasté.
+  Widget _deltaChips(Map<Stat, int> fx, {bool big = false}) {
     return Wrap(
       alignment: WrapAlignment.center,
-      spacing: 6,
-      runSpacing: 4,
+      spacing: big ? 10 : 7,
+      runSpacing: 7,
       children: fx.entries.map((e) {
         final pos = e.value > 0;
-        return Text(
-          '${_emoji[e.key]}${pos ? '+' : ''}${e.value}',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: pos
-                ? (dark ? const Color(0xFF2C6E2C) : const Color(0xFF8BD18B))
-                : (dark ? const Color(0xFF9E2B2B) : Colors.redAccent),
+        final color =
+            pos ? const Color(0xFF8BD18B) : const Color(0xFFEF6F6F);
+        return Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: big ? 13 : 9, vertical: big ? 7 : 4),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.40),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.7)),
+          ),
+          child: Text(
+            '${_emoji[e.key]} ${pos ? '+' : ''}${e.value}',
+            style: TextStyle(
+              fontSize: big ? 17 : 13.5,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         );
       }).toList(),
