@@ -61,6 +61,7 @@ class _CardsScreenState extends State<CardsScreen>
   // Tic 1s : régénère les crédits en temps réel + rafraîchit le compte à
   // rebours affiché. Flash quand on tente un swipe sans crédit.
   Timer? _creditTimer;
+  bool _noCreditFlash = false;
 
   static const double _threshold = 110;
 
@@ -151,9 +152,20 @@ class _CardsScreenState extends State<CardsScreen>
     final card = _state.card;
     if (card == null || _showingResult || _state.halt) return;
     if (_flyCtrl.isAnimating) return;
-    // Le rythme n'est plus géré carte par carte (ancien système de crédits)
-    // mais gare par gare via l'ÉLAN : la HALTE (écran dédié) bloque entre deux
-    // gares quand Shen est à bout. Ici, on tire librement dans le segment.
+    // Tirer une carte coûte 1 CRÉDIT (5 max, +1 / 5 min en temps réel). À sec :
+    // on annule le swipe et on signale qu'il faut attendre la recharge (le temps
+    // d'attente se meuble dans le wagon). Gratuit en debug.
+    if (!GameState.instance.debugMode &&
+        !GameState.instance.spendCardCredit()) {
+      setState(() {
+        _drag = 0;
+        _noCreditFlash = true;
+      });
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (mounted) setState(() => _noCreditFlash = false);
+      });
+      return;
+    }
     final choice = right ? card.right : card.left;
     final w = MediaQuery.of(context).size.width;
     _flyAnim = Tween<Offset>(
@@ -220,7 +232,7 @@ class _CardsScreenState extends State<CardsScreen>
               child: _state.finished
                   ? _buildEnding()
                   : (_state.halt && !_showingResult)
-                  ? _buildHalt()
+                  ? _buildGareCinematic()
                   : Column(
                       children: [
                         _topBar(),
@@ -428,47 +440,62 @@ class _CardsScreenState extends State<CardsScreen>
                 fontWeight: FontWeight.w600),
           ),
           const Spacer(),
-          _elanChip(),
+          _creditsChip(),
           const SizedBox(width: 8),
         ],
       ),
     );
   }
 
-  // Pastille ÉLAN : N petites flammes = étapes (gares) que le train peut encore
-  // enchaîner avant la HALTE (où il faut retourner soigner Shen au wagon). En
-  // debug : masquée (élan infini).
-  Widget _elanChip() {
-    if (GameState.instance.debugMode || !GameState.elanEnabled) {
+  // Pastille CRÉDITS : N jetons (5 max) = nb de cartes jouables. −1 par carte,
+  // +1 toutes les 5 min (compte à rebours affiché quand pas plein). En debug :
+  // masquée (crédits infinis). Vire au rouge quand on tente sans crédit.
+  Widget _creditsChip() {
+    final gs = GameState.instance;
+    if (gs.debugMode || !GameState.creditsEnabled) {
       return const SizedBox.shrink();
     }
-    final n = GameState.instance.cardElan;
-    const max = GameState.cardElanMax;
+    final n = gs.cardCredits;
+    const max = GameState.cardCreditsMax;
+    final next = gs.msToNextCredit;
     final low = n <= 1;
-    final accent = low ? const Color(0xFFD98A8A) : const Color(0xFFE8B96B);
+    final accent = _noCreditFlash
+        ? const Color(0xFFE06A6A)
+        : (low ? const Color(0xFFD98A8A) : const Color(0xFFE8B96B));
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: low ? 0.22 : 0.12),
+        color: accent.withValues(alpha: _noCreditFlash ? 0.3 : (low ? 0.22 : 0.12)),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accent.withValues(alpha: 0.4)),
+        border: Border.all(color: accent.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.bolt, size: 12, color: accent.withValues(alpha: 0.9)),
-          const SizedBox(width: 3),
+          Icon(Icons.style, size: 12, color: accent.withValues(alpha: 0.9)),
+          const SizedBox(width: 4),
           for (int i = 0; i < max; i++)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 1.5),
               child: Icon(
                 Icons.circle,
-                size: 9,
+                size: 8,
                 color: i < n
                     ? const Color(0xFFE8C56A)
                     : Colors.white.withValues(alpha: 0.18),
               ),
             ),
+          if (next > 0) ...[
+            const SizedBox(width: 6),
+            Text(
+              _fmt(next),
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -773,7 +800,7 @@ class _CardsScreenState extends State<CardsScreen>
         : _fillerFace(card);
   }
 
-  // --- carte de REMPLISSAGE : parchemin clair, léger ---
+  // --- carte de REMPLISSAGE : page de carnet / parchemin vieilli ---
   Widget _fillerFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
     final cardW = min(w * 0.92, 720.0);
@@ -784,36 +811,82 @@ class _CardsScreenState extends State<CardsScreen>
         maxHeight: MediaQuery.of(context).size.height * 0.74,
       ),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF6E7CC), Color(0xFFE9D2A8)],
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0x33000000), width: 1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0x66594025), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        child: Center(
-          child: SingleChildScrollView(
-            child: Text(
-              card.text,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.lora(
-                color: const Color(0xFF3A2A18),
-                fontSize: 18,
-                height: 1.5,
-                fontWeight: FontWeight.w500,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: Stack(
+          children: [
+            // fond parchemin chaud (dégradé riche, pas un crème plat)
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color(0xFFF8EFD9),
+                      Color(0xFFEAD4A8),
+                      Color(0xFFDBC089),
+                    ],
+                    stops: [0.0, 0.55, 1.0],
+                  ),
+                ),
               ),
             ),
-          ),
+            // vignette : bords vieillis légèrement assombris (papier ancien)
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment.center,
+                    radius: 0.95,
+                    colors: [Colors.transparent, Color(0x1F3A2A12)],
+                    stops: [0.62, 1.0],
+                  ),
+                ),
+              ),
+            ),
+            // liseré intérieur fin (cadre de page)
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(7),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border:
+                        Border.all(color: const Color(0x33594025), width: 1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+            // texte
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Text(
+                    card.text,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.lora(
+                      color: const Color(0xFF42301B),
+                      fontSize: 18,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1055,66 +1128,87 @@ class _CardsScreenState extends State<CardsScreen>
     );
   }
 
-  // --- écran de HALTE : Shen est à bout d'élan, le train s'arrête à la gare.
-  // On invite à retourner s'occuper d'elle au wagon (dormir = repos complet,
-  // ou la réchauffer / jouer) avant de repartir. C'est le va-et-vient
-  // cartes <-> Tamagotchi qui donne le rythme (remplace l'ancien combat).
-  Widget _buildHalt() {
-    final gare = _state.card?.speaker ?? 'le prochain arrêt';
+  // --- CINÉMATIQUE D'ARRIVÉE EN GARE : le train entre en gare, une scène
+  // d'ambiance s'impose et OBLIGE à sortir des cartes (bouton -> onClose). Le
+  // temps hors-cartes laisse les crédits se recharger (et on s'occupe du wagon).
+  // Ne se rejoue pas une fois la gare « vue » (cardGareCineSeen).
+  Widget _buildGareCinematic() {
+    final idx = _engine.gareIndex;
+    final gare = _state.card?.speaker ?? 'Gare';
+    final intro =
+        (idx >= 0 && idx < kGareIntros.length) ? kGareIntros[idx] : '';
+    final num = min(idx + 1, 14);
     const gold = Color(0xFFE8B96B);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(30),
+        padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 76,
-              height: 76,
+              width: 72,
+              height: 72,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(color: gold, width: 2),
                 boxShadow: [
                   BoxShadow(
-                      color: gold.withValues(alpha: 0.35),
-                      blurRadius: 26,
+                      color: gold.withValues(alpha: 0.4),
+                      blurRadius: 28,
                       spreadRadius: 2),
                 ],
               ),
-              child: const Icon(Icons.local_cafe_outlined,
-                  color: gold, size: 38),
+              child: const Icon(Icons.train, color: gold, size: 36),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
             Text(
-              'Halte à $gare',
-              textAlign: TextAlign.center,
+              'GARE $num',
               style: GoogleFonts.cinzel(
                 color: gold,
-                fontSize: 22,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
+                letterSpacing: 5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              gare.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cinzel(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(height: 16),
+            Container(width: 80, height: 2, color: gold.withValues(alpha: 0.7)),
+            const SizedBox(height: 16),
             Text(
-              "Le train s'arrête. Shen est à bout de forces — le voyage l'a vidée. "
-              "Retourne t'occuper d'elle dans le wagon : la faire dormir la "
-              "remettra d'aplomb, la réchauffer ou jouer un peu l'aideront aussi. "
-              "Vous repartirez quand elle sera prête.",
+              intro,
               textAlign: TextAlign.center,
               style: GoogleFonts.lora(
-                  color: Colors.white70, fontSize: 15, height: 1.55),
+                  color: Colors.white70,
+                  fontSize: 16,
+                  height: 1.6,
+                  fontStyle: FontStyle.italic),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: 28),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: gold,
                 foregroundColor: const Color(0xFF2A2018),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 22, vertical: 14),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               ),
-              onPressed: widget.onClose,
-              icon: const Icon(Icons.weekend_outlined),
-              label: const Text('Retourner au train'),
+              onPressed: () {
+                // Marque la gare comme vue (ne pas rejouer) PUIS force la sortie
+                // des cartes : on revient au train, les crédits se rechargent.
+                GameState.instance.cardGareCineSeen.add(idx);
+                GameState.instance.save();
+                widget.onClose();
+              },
+              icon: const Icon(Icons.directions_walk),
+              label: const Text('Descendre s\'occuper du train'),
             ),
           ],
         ),

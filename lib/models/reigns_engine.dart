@@ -438,7 +438,9 @@ class ReignsEngine {
       gareIndex: gareIndex,
       isGare: card?.kind == CardKind.gare,
       finished: false,
-      halt: _gs.elanGateBlocking,
+      // HALTE = cinématique d'arrivée à une nouvelle gare (force la sortie des
+      // cartes). Tant que la cinématique de la gare courante n'est pas vue.
+      halt: _gs.gareCineBlocking(gareIndex),
     );
   }
 }

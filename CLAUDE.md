@@ -149,23 +149,21 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   DOIVENT rester synchro (ordre thématique : chaque nom colle à sa scène). Idem
   `constants.kGarePositions`/`kWoodSupplyByGare` (bonus bois dépôt idx1 / camp
   idx5 / oasis idx9).
-- **Système de crédits** : présent mais **DÉSACTIVÉ** (`spendCardCredit` renvoie
-  `true`). Remplacé par l'ÉLAN (ci-dessous). Conservé au cas où.
-- **ÉLAN / rythme cosy** (2026-06-19) : `GameState.cardElan` (max 3) = nb de
-  gares que le train enchaîne avant une **HALTE**. On dépense 1 élan **par gare
-  franchie** (`consumeLeg`, appelé à la frontière de segment dans
-  `reigns_engine.choose` — JAMAIS en plein segment → reprise propre). À 0,
-  `elanGateBlocking` est vrai : `EngineState.halt` passe à true et
-  `cards_screen._buildHalt()` affiche l'invite « Retourner au wagon » au lieu de
-  la carte. On **recharge l'élan dans le wagon** (≠ attente temps réel, ≠
-  l'ancien combat) : **dormir = plein** (`restoreSleep`), bain/douche +1
-  (`restoreHygiene`), câlin chien/sœur/lecture +1 (`tryComfortMoral`). Indicateur
-  = pastille flammes en haut de l'écran cartes (`_elanChip`). Désactivé en debug
-  (élan infini). N'affecte PAS l'équilibrage létal (pacing pur ; sim inchangé).
-  **Jour/nuit calé sur le voyage** (option 3) : on **repart le matin** (jour) et
-  le train **fait halte le soir** (nuit, repos cosy) — `main._setJourneyNight`
-  appelé à l'ouverture des cartes (jour) et à la fermeture sur HALTE (nuit) ;
-  source unique `main._night`, timer ambiant réarmé (`_armDayNight`).
+- **RYTHME (refonte 2026-06-22, demande user) = CRÉDITS + CINÉMATIQUE DE GARE** :
+  - **Crédits** (`creditsEnabled = true`, `cardCreditsMax = 5`,
+    `creditRefillInterval = 5 min`) : tirer une carte coûte **1 crédit**
+    (`spendCardCredit`), recharge **+1 / 5 min en TEMPS RÉEL** (timestamps, régen
+    hors-ligne). À sec, le swipe est bloqué (flash rouge `_noCreditFlash`).
+    Pastille en haut-droite de l'écran cartes (`_creditsChip` : 5 jetons +
+    compte à rebours). Le temps d'attente se meuble dans le wagon.
+  - **Cinématique de gare** : à CHAQUE nouvelle gare atteinte,
+    `EngineState.halt` passe à true (`GameState.gareCineBlocking(idx)` =
+    `!cardGareCineSeen.contains(idx)`) → `cards_screen._buildGareCinematic()`
+    affiche le nom de la gare + `kGareIntros[idx]` et **OBLIGE à sortir des
+    cartes** (bouton → `onClose`, marque `cardGareCineSeen.add(idx)` + save).
+    Gare 0 (départ) marquée vue d'office (l'ouverture la couvre). Persisté.
+  - **ÉLAN DÉSACTIVÉ** (`elanEnabled = false`) : remplacé par les crédits.
+    Code (`cardElan`, `consumeLeg`, `rechargeElan`, `_buildHalt`) conservé inerte.
 
 ### Équilibrage (`tools/sim_current.py`)
 Parse les vraies cartes (regex, `requires` modélisé) et rejoue 4000 runs/profil.

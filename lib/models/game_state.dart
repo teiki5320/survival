@@ -763,9 +763,9 @@ class GameState extends ChangeNotifier {
   // passer avant de continuer. (Remplace l'ancien budget de ravitaillement.)
   // Toggle GLOBAL du système de crédits. DÉSACTIVÉ (jeu sans mur de temps) ;
   // toute la machinerie est conservée si on veut réactiver un rythme.
-  static const bool creditsEnabled = false;
-  static const int cardCreditsMax = 3;
-  static const Duration creditRefillInterval = Duration(minutes: 8);
+  static const bool creditsEnabled = true;
+  static const int cardCreditsMax = 5;
+  static const Duration creditRefillInterval = Duration(minutes: 5);
   int cardCredits = cardCreditsMax;
   // Timestamp (ms epoch) où le PROCHAIN crédit sera rendu. 0 = pile pleine.
   int cardCreditNextMs = 0;
@@ -818,12 +818,9 @@ class GameState extends ChangeNotifier {
 
   /// Dépense 1 crédit pour tirer une carte. Retourne false si à sec (l'écran
   /// bloque alors le swipe et invite à attendre la recharge).
+  /// CRÉDITS : 5 max, −1 par carte, +1 toutes les 5 min en TEMPS RÉEL (régen
+  /// même hors-ligne via timestamps). Le temps d'attente se meuble dans le wagon.
   bool spendCardCredit() {
-    // CRÉDITS DÉSACTIVÉS (proto) : un mur de 8 min en plein moment narratif
-    // est un anti-pattern pour un jeu solo. Le froid + faim/soif limitent
-    // déjà le rythme. (Système conservé si on veut le réactiver.)
-    return true;
-    // ignore: dead_code
     refreshCredits();
     if (cardCredits <= 0) return false;
     final wasFull = cardCredits >= cardCreditsMax;
@@ -848,9 +845,24 @@ class GameState extends ChangeNotifier {
   // repartir. Pas d'attente sur un écran verrouillé : c'est le wagon (le cœur
   // Tamagotchi) qui relance le voyage — ce qui remplace l'ancien combat comme
   // « chose à faire entre deux phases de cartes ».
-  static const bool elanEnabled = true;
-  static const int cardElanMax = 3; // ~1 halte toutes les 3 gares
+  // ÉLAN DÉSACTIVÉ (remplacé par les crédits temps réel + la cinématique de
+  // gare, à la demande). Code conservé au cas où.
+  static const bool elanEnabled = false;
+  static const int cardElanMax = 3;
   int cardElan = cardElanMax;
+
+  // --- Cinématique d'arrivée en gare (FORCE la sortie des cartes) ---
+  // À chaque NOUVELLE gare atteinte, on montre une cinématique (texte
+  // `kGareIntros`) qui oblige à QUITTER les cartes (bouton -> onClose). On
+  // mémorise les gares déjà « vues » pour ne pas la rejouer au retour. La gare
+  // de départ (0) est marquée vue d'office (la cinématique d'ouverture la
+  // couvre déjà). Persisté.
+  final Set<int> cardGareCineSeen = {0};
+
+  /// Vrai quand on vient d'arriver à une gare dont la cinématique n'a pas encore
+  /// été jouée -> l'écran cartes montre la cinématique au lieu de la carte.
+  bool gareCineBlocking(int gareIndex) =>
+      !debugMode && !cardGareCineSeen.contains(gareIndex);
 
   /// Vrai quand Shen est à bout : la HALTE bloque le tirage de la gare suivante
   /// tant qu'on n'est pas repassé soigner Shen au wagon. (Jamais en debug.)
@@ -888,6 +900,9 @@ class GameState extends ChangeNotifier {
     cardCredits = cardCreditsMax;
     cardCreditNextMs = 0;
     cardElan = cardElanMax;
+    cardGareCineSeen
+      ..clear()
+      ..add(0); // gare de départ : pas de cinématique forcée (déjà l'ouverture)
     cardSegmentProgress = 0.0;
     // Réserve de bois de départ (bûches dans le wagon).
     gareWoodLeft = kWoodStartReserve; // bûches à ramasser à la gare de départ
@@ -977,6 +992,7 @@ class GameState extends ChangeNotifier {
         'credits': cardCredits,
         'creditNextMs': cardCreditNextMs,
         'elan': cardElan,
+        'gareCine': cardGareCineSeen.toList(),
         'segProgress': cardSegmentProgress,
       };
 
@@ -999,6 +1015,11 @@ class GameState extends ChangeNotifier {
         .clamp(0, cardCreditsMax);
     cardCreditNextMs = (m['creditNextMs'] as num?)?.toInt() ?? 0;
     cardElan = ((m['elan'] as num?)?.toInt() ?? cardElanMax).clamp(0, cardElanMax);
+    cardGareCineSeen
+      ..clear()
+      ..add(0)
+      ..addAll(((m['gareCine'] as List?) ?? const [])
+          .map((e) => (e as num).toInt()));
     cardSegmentProgress =
         ((m['segProgress'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 1.0);
   }
