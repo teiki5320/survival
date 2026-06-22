@@ -126,6 +126,15 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   `resolveTrainCosyEnding`. Flags : `aLeChien`, `aLaSoeur`, `soeurProtegee`
   (compte `cardSoin`), `capParents`, `indiceSoeur`, `aLaRadio`/`radio1/2/3`,
   `asset_*` (déblocage d'objets).
+- **CARTES-SOUVENIRS (« cartes personnalisées », 2026-06-22)** : `kSouvenirCards`
+  (`cards_data`) = cartes **100 % NARRATIVES** (aucun gain de stat) débloquées par
+  les ACTIVITÉS du wagon. `GameState.unlockSouvenir(key)` pose `souvenir_<key>` →
+  la carte (oneshot, `requires: f.contains('souvenir_<key>')`) s'injecte au
+  prochain segment (`_withSouv` les ajoute à tous les paquets). Sources câblées :
+  **bain/douche** (`restoreHygiene` → `souvenir_bain`), **sommeil** (`restoreSleep`
+  → `souvenir_reve`). Prêtes mais à câbler : `souvenir_peche` (mini-jeu pêche),
+  `souvenir_carnet`. But : « tu fabriques ta propre histoire en t'occupant du
+  train » ; le contenu (petites histoires) s'étoffera. N'affecte PAS le sim.
 - **Cartes vivantes** (depuis 2026-06-18) : `CardChoice.reaction` (réplique d'un
   perso sœur/chien/radio sous la conséquence — ne mettre une réaction sœur QUE
   post-gare 5), `StoryCard.art` (enum `CardArt` : portraits réutilisant les

@@ -1239,21 +1239,66 @@ final List<StoryCard> _fill14 = [
 ];
 
 
+/// CARTES-SOUVENIRS (« cartes personnalisées ») : débloquées par les ACTIVITÉS
+/// du wagon (bain, sommeil, pêche, radio, carnet…). 100 % NARRATIF — AUCUN gain
+/// de stat (elles ne touchent pas l'équilibrage). S'injectent dans le paquet via
+/// `requires` (flag `souvenir_*` posé par `GameState.unlockSouvenir`) et sont
+/// oneshot (vues une fois). Ajoutées à TOUS les segments -> jouées au prochain
+/// segment après déblocage. C'est le cœur du « tu fabriques ta propre histoire
+/// en t'occupant du train » (le contenu s'étoffera).
+final List<StoryCard> kSouvenirCards = [
+  _filler('SV_bain',
+      "Dans l'eau tiède, la buée monte. Un instant tu n'es plus dans un train mort mais dans la salle de bain de ton enfance — ta mère qui chantonne derrière la porte.",
+      _c("Te laisser couler dans le souvenir",
+          result: "Tu fermes les yeux et tu y restes, juste un moment. Ça fait mal et du bien à la fois."),
+      _c("Le chasser, garder la tête froide",
+          result: "Tu rouvres les yeux. Le présent d'abord. Mais l'image reste, tapie."),
+      oneshot: true, requires: (f) => f.contains('souvenir_bain'),
+      art: CardArt.memory),
+  _filler('SV_reve',
+      "Cette nuit-là, tu rêves d'eux. Vous êtes à table, la lumière est dorée, ta petite sœur rit. Puis le froid du wagon te réveille, le rêve encore collé à la peau.",
+      _c("T'accrocher au rêve",
+          result: "Tu le gardes au chaud. Tant que tu rêves d'eux, ils existent quelque part."),
+      _c("Te lever, secouer ça",
+          result: "Un rêve ne nourrit personne. Tu te lèves — les mains tremblantes."),
+      oneshot: true, requires: (f) => f.contains('souvenir_reve'),
+      art: CardArt.memory),
+  _filler('SV_peche',
+      "Au bout de la ligne, ce n'est pas un poisson : un petit ours en peluche gorgé d'eau, un œil pendant. Quelqu'un l'a aimé, avant.",
+      _c("Le garder, le faire sécher",
+          result: "Tu l'accroches près de la fenêtre. Une présence muette de plus dans le wagon."),
+      _c("Le remettre à l'eau noire",
+          result: "Tu le laisses repartir au fil de l'eau. Certaines choses, on ne peut pas les sauver."),
+      oneshot: true, requires: (f) => f.contains('souvenir_peche'),
+      art: CardArt.water),
+  _filler('SV_carnet',
+      "Une page du carnet que tu n'avais pas relue. Ton écriture d'avant, ronde, insouciante : une liste de courses, un cœur griffonné. La fille qui a écrit ça ne sait pas encore.",
+      _c("Continuer à écrire dessous",
+          result: "Tu ajoutes une ligne, aujourd'hui. Le carnet relie les deux Shen."),
+      _c("Refermer vite",
+          result: "Trop. Tu refermes le carnet d'un coup sec."),
+      oneshot: true, requires: (f) => f.contains('souvenir_carnet'),
+      art: CardArt.memory),
+];
+
+/// Ajoute les cartes-souvenirs au paquet d'un segment (déblocage géré par flag).
+List<StoryCard> _withSouv(List<StoryCard> base) => [...base, ...kSouvenirCards];
+
 final List<Segment> trainCosyScenario = [
-  Segment(gareCards: _gare1, fillerPool: _fill1, drawCount: 4),
-  Segment(gareCards: _gare2, fillerPool: _fill2, drawCount: 4),
-  Segment(gareCards: _gare3, fillerPool: _fill3, drawCount: 4),
-  Segment(gareCards: _gare4, fillerPool: _fill4, drawCount: 4),
-  Segment(gareCards: _gare5, fillerPool: _fill5, drawCount: 4),
-  Segment(gareCards: _gare6, fillerPool: _fill6, drawCount: 4),
-  Segment(gareCards: _gare7, fillerPool: _fill7, drawCount: 4),
-  Segment(gareCards: _gare8, fillerPool: _fill8, drawCount: 4),
-  Segment(gareCards: _gare9, fillerPool: _fill9, drawCount: 4),
-  Segment(gareCards: _gare10, fillerPool: _fill10, drawCount: 4),
-  Segment(gareCards: _gare11, fillerPool: _fill11, drawCount: 4),
-  Segment(gareCards: _gare12, fillerPool: _fill12, drawCount: 4),
-  Segment(gareCards: _gare13, fillerPool: _fill13, drawCount: 4),
-  Segment(gareCards: _gare14, fillerPool: _fill14, drawCount: 4),
+  Segment(gareCards: _gare1, fillerPool: _withSouv(_fill1), drawCount: 4),
+  Segment(gareCards: _gare2, fillerPool: _withSouv(_fill2), drawCount: 4),
+  Segment(gareCards: _gare3, fillerPool: _withSouv(_fill3), drawCount: 4),
+  Segment(gareCards: _gare4, fillerPool: _withSouv(_fill4), drawCount: 4),
+  Segment(gareCards: _gare5, fillerPool: _withSouv(_fill5), drawCount: 4),
+  Segment(gareCards: _gare6, fillerPool: _withSouv(_fill6), drawCount: 4),
+  Segment(gareCards: _gare7, fillerPool: _withSouv(_fill7), drawCount: 4),
+  Segment(gareCards: _gare8, fillerPool: _withSouv(_fill8), drawCount: 4),
+  Segment(gareCards: _gare9, fillerPool: _withSouv(_fill9), drawCount: 4),
+  Segment(gareCards: _gare10, fillerPool: _withSouv(_fill10), drawCount: 4),
+  Segment(gareCards: _gare11, fillerPool: _withSouv(_fill11), drawCount: 4),
+  Segment(gareCards: _gare12, fillerPool: _withSouv(_fill12), drawCount: 4),
+  Segment(gareCards: _gare13, fillerPool: _withSouv(_fill13), drawCount: 4),
+  Segment(gareCards: _gare14, fillerPool: _withSouv(_fill14), drawCount: 4),
 ];
 
 /// Résout la fin à partir des stats finales + flags.

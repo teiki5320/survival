@@ -283,18 +283,32 @@ class GameState extends ChangeNotifier {
   }
 
   /// Dormir dans le lit : nuit complète -> remise à neuf du sommeil. Une vraie
-  /// nuit de repos relance le voyage à fond (élan plein).
+  /// nuit de repos relance le voyage à fond (élan plein). Débloque aussi une
+  /// carte-souvenir « rêve » (récompense NARRATIVE, pas une stat).
   void restoreSleep() {
     sleepNeed = 100;
     cardElan = cardElanMax; // repos complet -> élan rechargé au max
+    unlockSouvenir('reve');
     notifyListeners();
   }
 
-  /// Bain / douche : se laver -> hygiène au max. Un peu d'élan retrouvé.
+  /// Bain / douche : se laver -> hygiène au max. Débloque la carte-souvenir
+  /// « bain » (gain NARRATIF : une page d'histoire, pas une stat).
   void restoreHygiene() {
     hygieneNeed = 100;
     rechargeElan(1);
+    unlockSouvenir('bain');
     notifyListeners();
+  }
+
+  /// Débloque une CARTE-SOUVENIR (« carte personnalisée ») : pose le flag
+  /// `souvenir_<key>` qui rend la carte narrative correspondante éligible dans
+  /// le prochain segment de cartes. Aucun effet de stat. Vue une seule fois.
+  void unlockSouvenir(String key) {
+    if (cardFlags.add('souvenir_$key')) {
+      notifyListeners();
+      save();
+    }
   }
 
   /// Gain de moral « confort » (lire / chien / sœur / bain / douche) passé par
