@@ -14,37 +14,11 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../data/cards_data.dart';
 import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
-
-/// Emblèmes de carte DESSINÉS AU TRAIT (SVG inline), accordés à la palette
-/// honey/gold du jeu — remplacent les icônes système (placeholders). Tracés
-/// stroke-only, teintés par `ColorFilter` selon l'ambiance de la carte.
-const Map<CardArt, String> _kEmblemSvg = {
-  CardArt.water:
-      '<svg viewBox="0 0 48 48"><path d="M24 7 C24 7 11 23 11 31 a13 13 0 0 0 26 0 C37 23 24 7 24 7 Z" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/><path d="M18.5 31 a5.5 5.5 0 0 0 5.5 5.5" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"/></svg>',
-  CardArt.fire:
-      '<svg viewBox="0 0 48 48"><path d="M24 6 c5 8 11 11 11 19 a11 11 0 0 1 -22 0 c0 -5 3 -8 5.5 -10 c0.5 3 2.5 4 4 4.5 c-2.5 -5.5 -0.5 -9.5 1.5 -13.5 Z" fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"/></svg>',
-  CardArt.cold:
-      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"><line x1="24" y1="8" x2="24" y2="40"/><line x1="11.6" y1="15" x2="36.4" y2="33"/><line x1="36.4" y1="15" x2="11.6" y2="33"/><path d="M20 12 l4 -3 4 3 M20 36 l4 3 4 -3 M13 19 l-0.5 -5 5 0.5 M35 29 l0.5 5 -5 -0.5 M35 19 l0.5 -5 -5 0.5 M13 29 l-0.5 5 5 -0.5"/></g></svg>',
-  CardArt.radio:
-      '<svg viewBox="0 0 48 48"><circle cx="17" cy="32" r="2.6" fill="#000"/><g fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round"><path d="M22 28 a8 8 0 0 1 0 8"/><path d="M26.5 24 a14 14 0 0 1 0 16"/><path d="M31 20 a20 20 0 0 1 0 24"/></g></svg>',
-  CardArt.food:
-      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round"><rect x="15" y="13" width="18" height="23" rx="2"/><line x1="15" y1="19" x2="33" y2="19"/><line x1="15" y1="30" x2="33" y2="30"/></g></svg>',
-  CardArt.refuge:
-      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M9 25 L24 12 L39 25"/><path d="M13 22 V38 H35 V22"/><path d="M21 38 V29 H27 V38"/></g></svg>',
-  CardArt.hope:
-      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.3" stroke-linecap="round"><line x1="8" y1="34" x2="40" y2="34"/><path d="M16 34 a8 8 0 0 1 16 0"/><line x1="24" y1="14" x2="24" y2="20"/><line x1="13" y1="18" x2="16" y2="22"/><line x1="35" y1="18" x2="32" y2="22"/></g></svg>',
-  CardArt.memory:
-      '<svg viewBox="0 0 48 48"><path d="M24 14 c-4 -3 -9.5 -3 -13.5 -1 v21 c4 -2 9.5 -2 13.5 1 c4 -3 9.5 -3 13.5 -1 v-21 c-4 -2 -9.5 -2 -13.5 1 Z M24 14 v21" fill="none" stroke="#000" stroke-width="2.2" stroke-linejoin="round"/></svg>',
-  CardArt.pillards:
-      '<svg viewBox="0 0 48 48"><g fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round"><line x1="12" y1="37" x2="19" y2="13"/><line x1="24" y1="37" x2="24" y2="11"/><line x1="36" y1="37" x2="29" y2="13"/><line x1="10" y1="25" x2="38" y2="25"/></g></svg>',
-};
 
 class CardsScreen extends StatefulWidget {
   const CardsScreen({super.key, required this.onClose});
@@ -799,89 +773,15 @@ class _CardsScreenState extends State<CardsScreen>
         : _fillerFace(card);
   }
 
-  /// Visuel de carte (illustration MINIMALE) : portrait réutilisant les sprites
-  /// existants (Shen/sœur/chien), sinon un emblème d'ambiance dessiné. Retourne
-  /// null pour `CardArt.none` (carte texte classique).
-  Widget? _cardArt(CardArt art) {
-    String? sprite;
-    switch (art) {
-      case CardArt.shen:
-        sprite = 'assets/characters/heroine_front.png';
-      case CardArt.sister:
-        sprite = 'assets/characters/sister_idle_1.png';
-      case CardArt.dog:
-        sprite = 'assets/objects/dog_bark_1.png';
-      default:
-        break;
-    }
-    if (sprite != null) {
-      return SizedBox(
-        height: 72,
-        child: Image.asset(sprite,
-            fit: BoxFit.contain, cacheWidth: 160, gaplessPlayback: true),
-      ).animate().fadeIn(duration: 350.ms).scale(
-          begin: const Offset(0.85, 0.85),
-          end: const Offset(1, 1),
-          curve: Curves.easeOutBack,
-          duration: 380.ms);
-    }
-    final svg = _kEmblemSvg[art];
-    final color = _emblemColor(art);
-    if (svg == null || color == null) return null;
-    return Container(
-      width: 54,
-      height: 54,
-      padding: const EdgeInsets.all(11),
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color.withValues(alpha: 0.14),
-        border: Border.all(color: color.withValues(alpha: 0.5), width: 1.4),
-      ),
-      child: SvgPicture.string(
-        svg,
-        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
-      ),
-    ).animate().fadeIn(duration: 350.ms).scale(
-        begin: const Offset(0.7, 0.7),
-        end: const Offset(1, 1),
-        curve: Curves.easeOutBack,
-        duration: 420.ms);
-  }
-
-  Color? _emblemColor(CardArt art) {
-    switch (art) {
-      case CardArt.radio:
-        return const Color(0xFF9BC4E2);
-      case CardArt.pillards:
-        return const Color(0xFFCF6B6B);
-      case CardArt.refuge:
-        return const Color(0xFFE8B96B);
-      case CardArt.cold:
-        return const Color(0xFF9BC4E2);
-      case CardArt.fire:
-        return const Color(0xFFE89B5C);
-      case CardArt.water:
-        return const Color(0xFF6FAEDF);
-      case CardArt.food:
-        return const Color(0xFFD9A05B);
-      case CardArt.memory:
-        return const Color(0xFFCBB68F);
-      case CardArt.hope:
-        return const Color(0xFFE8C98B);
-      default:
-        return null;
-    }
-  }
-
   // --- carte de REMPLISSAGE : parchemin clair, léger ---
   Widget _fillerFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
-    final cardW = min(w * 0.82, 430.0);
+    final cardW = min(w * 0.92, 720.0);
     return Container(
       width: cardW,
       constraints: BoxConstraints(
-        minHeight: 230,
-        maxHeight: MediaQuery.of(context).size.height * 0.66,
+        minHeight: 200,
+        maxHeight: MediaQuery.of(context).size.height * 0.74,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -900,27 +800,18 @@ class _CardsScreenState extends State<CardsScreen>
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         child: Center(
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (_cardArt(card.art) case final a?) ...[
-                  a,
-                  const SizedBox(height: 12),
-                ],
-                Text(
-                  card.text,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.lora(
-                    color: const Color(0xFF3A2A18),
-                    fontSize: 16.5,
-                    height: 1.45,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
+            child: Text(
+              card.text,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.lora(
+                color: const Color(0xFF3A2A18),
+                fontSize: 18,
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ),
@@ -931,13 +822,13 @@ class _CardsScreenState extends State<CardsScreen>
   // --- carte de GARE : sombre, solennelle, liseré doré, bandeau titre ---
   Widget _gareFace(StoryCard card) {
     final w = MediaQuery.of(context).size.width;
-    final cardW = min(w * 0.84, 450.0);
+    final cardW = min(w * 0.92, 740.0);
     const gold = Color(0xFFE8B96B);
     return Container(
       width: cardW,
       constraints: BoxConstraints(
-        minHeight: 260,
-        maxHeight: MediaQuery.of(context).size.height * 0.68,
+        minHeight: 230,
+        maxHeight: MediaQuery.of(context).size.height * 0.76,
       ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -996,27 +887,18 @@ class _CardsScreenState extends State<CardsScreen>
           ),
           Flexible(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
               child: Center(
                 child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_cardArt(card.art) case final a?) ...[
-                        a,
-                        const SizedBox(height: 12),
-                      ],
-                      Text(
-                        card.text,
-                        textAlign: TextAlign.center,
-                        style: GoogleFonts.lora(
-                          color: const Color(0xFFF3E6CF),
-                          fontSize: 17,
-                          height: 1.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    card.text,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.lora(
+                      color: const Color(0xFFF3E6CF),
+                      fontSize: 18.5,
+                      height: 1.5,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
@@ -1030,7 +912,7 @@ class _CardsScreenState extends State<CardsScreen>
   // --- carte de conséquence (reste jusqu'au tap) ---
   Widget _resultCard() {
     final w = MediaQuery.of(context).size.width;
-    final cardW = min(w * 0.66, 360.0);
+    final cardW = min(w * 0.88, 620.0);
     return GestureDetector(
       onTap: _tapAdvance,
       behavior: HitTestBehavior.opaque,
