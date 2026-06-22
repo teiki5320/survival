@@ -11,18 +11,18 @@ effets + flags), puis rejoue des milliers de runs sous les regles reelles :
   - `requires` MODELISE (comme le moteur) : une carte n'est jouee que si ses
     flags requis sont presents ; les pinned non-eligibles ne reservent pas de
     slot. -> le taux de fin 'secret' (croire a la radio 3x) est realiste, rare.
-  - pertes x1.48, gains de moral x0.6
+  - pertes x1.20, gains de moral x0.6 ; depart quasi a 0 (START_STAT=6)
   - ravitaillement d arrivee par gare : +9 bois/+5 soif/+7 faim/+4 moral
   - recharges wagon liees a l'engagement (careless 1 ... smart 2) : un joueur
     negligent neglige aussi le wagon, ce qui cree le spread de difficulte
   - mecanique soeur : apres flag 'aLaSoeur', -1 faim/-1 soif/+1 moral par carte
   - zone froide (gare 8+) : surconso bois
   - mort si une jauge <= 0 ; fin selon resolveTrainCosyEnding
-Cible (durcie 2026-06-20, bois = carburant brule a chaque carte) :
-careless ~1% / casual ~36% / smart ~100% / caring ~100%. Le bois est
-desormais la 1re cause de mort (option 'bois inutile' corrigee). Le jeu
-exige de gerer le carburant (corvee loco) + de vrais dilemmes (gains de
-moral payes en survie, cf. chien g2). Stats depart 25/25/25/25 (kStartStat).
+Cible (2026-06-22, depart QUASI A ZERO demande user) :
+careless ~1% / casual ~24% / smart ~99% / caring ~99%. On commence au bord
+du gouffre (kStartStat=6, anneaux ~10-15%) -> pertes ramenees a x1.20. Le
+bois reste la 1re cause de mort. Vrais dilemmes (gains de moral payes en
+survie, cf. chien g2). Stats depart 6/6/6/6 (kStartStat).
 """
 import re, random, sys, collections
 
@@ -114,7 +114,8 @@ for i in range(1, 15):
     draw = 4                          # drawCount=4 partout (cf. cards_data)
     segments.append((gare, fill, draw))
 
-LOSS_MULT = 1.48
+LOSS_MULT = 1.20
+START_STAT = 6   # stats de depart quasi a 0 (kStartStat) ; gare 0 sans ravito
 REFUEL = 10
 SOIN_REQ = 2
 MORAL_REQ = 65
@@ -165,13 +166,14 @@ REFUELS_BY_STRAT = {'careless':1, 'casual':1, 'smart':2, 'caring':2}
 
 def run(strategy, refuels_per_seg=None):
     refuels_per_seg = REFUELS_BY_STRAT[strategy]
-    stats = {'soif':25,'faim':25,'bois':25,'moral':25}
+    stats = {'soif':START_STAT,'faim':START_STAT,'bois':START_STAT,'moral':START_STAT}
     flags = set(); soin = 0
     wood = WOOD_START
     for si, (gare, fill, draw) in enumerate(segments):
         wood += WOOD_SUPPLY.get(si, 0)
-        # COMBAT SUPPRIME. RAVITAILLEMENT D'ARRIVEE par gare (grantGareSupply,
-        # calibre par simu) : remplace les ressources de l'ancien combat.
+        # RAVITAILLEMENT D'ARRIVEE par gare (grantGareSupply), gare 0 incluse
+        # (petit ravito de survie ; stats de base quasi a 0 -> depart au bord du
+        # gouffre).
         stats['bois']=min(100,stats['bois']+9); stats['soif']=min(100,stats['soif']+5)
         stats['faim']=min(100,stats['faim']+7); stats['moral']=min(100,stats['moral']+4)
         # budget wagon : recharge les N stats les plus basses. Recharger BOIS

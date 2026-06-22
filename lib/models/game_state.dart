@@ -883,9 +883,11 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Stat de départ VOLONTAIREMENT BASSE : on commence l'aventure « au mini »
-  // (train abîmé, froid, à bout). À remonter en jouant. (Ajustable.)
-  static const int kStartStat = 25;
+  // Stat de départ QUASI À ZÉRO (demande user) : l'histoire commence au bord du
+  // gouffre — train abîmé, froid, Shen à bout, jauges presque vides. Avec le
+  // petit ravito de la gare 0, les anneaux s'affichent ~10-15 % (presque vides).
+  // À remonter péniblement en jouant. (Calé par simu : start 6 + pertes ×1.20.)
+  static const int kStartStat = 6;
 
   /// Démarre une nouvelle run : remet jauges (basses), flags, progression à 0.
   void startCardRun() {

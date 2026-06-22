@@ -208,9 +208,10 @@ class ReignsEngine {
     // (base 4 + bonus aux gares de ravitaillement). Set une seule fois par gare.
     if (flags.add('woodpile_$idx')) {
       _gs.setGareWoodLeft(4 + (kWoodSupplyByGare[idx] ?? 0));
-      // RAVITAILLEMENT D'ARRIVÉE à la gare (on fouille/troque) : calibré par
-      // simu (careless ~11% / casual ~62% / smart 100%). La corvée de bûches à
-      // la loco reste un bonus optionnel par-dessus.
+      // RAVITAILLEMENT D'ARRIVÉE à la gare (on fouille/troque) : calibré par simu.
+      // Au DÉPART (gare 0, Kogarashi qu'on fuit) on garde un petit ravito de
+      // survie, mais les stats de base sont quasi à 0 (kStartStat) -> l'histoire
+      // commence au bord du gouffre. La corvée de bûches reste un bonus.
       _gs.grantGareSupply();
     }
     _queue
@@ -292,18 +293,17 @@ class ReignsEngine {
     // effets → GameState (clamp + persistance). Les GAINS de moral sont
     // atténués (×0.6) pour éviter que la jauge sature et devienne inutile ;
     // les pertes de moral, elles, comptent plein.
-    // Les PERTES sont amplifiées (×1.48) pour la tension de survie. Calé par
-    // simulation (tools/sim_current.py) APRÈS la refonte « vrais dilemmes »
-    // (chaque carte porte déjà un coût explicite) : à ×1.48 + ravitaillement
-    // resserré, casual survit ~34%, smart/caring ~100% (le bois reste la 1re
-    // cause de mort). Plus haut (×1.7) écrasait tout (casual ~2%) une fois les
-    // coûts des dilemmes empilés. Les GAINS de moral restent atténués (×0.6)
-    // pour éviter que la jauge sature et devienne inutile.
+    // Les PERTES sont amplifiées (×1.20) pour la tension de survie. Calé par
+    // simulation (tools/sim_current.py) avec le DÉPART QUASI À ZÉRO (kStartStat
+    // = 6) : chaque carte porte déjà son coût (vrais dilemmes), et on part au
+    // bord du gouffre -> ×1.20 suffit. casual ~22%, smart/caring ~99%, le bois
+    // reste la 1re cause de mort. Plus haut, le départ bas écrasait tout. Les
+    // GAINS de moral restent atténués (×0.6) pour éviter que la jauge sature.
     if (choice.effects.isNotEmpty) {
       _gs.applyCardDeltas({
         for (final e in choice.effects.entries)
           _statKey[e.key]!: e.value < 0
-              ? (e.value * 1.48).round()
+              ? (e.value * 1.20).round()
               : (e.key == Stat.moral ? (e.value * 0.6).round() : e.value),
       });
     }

@@ -167,19 +167,19 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
 
 ### Équilibrage (`tools/sim_current.py`)
 Parse les vraies cartes (regex, `requires` modélisé) et rejoue 4000 runs/profil.
-**Cible DURCIE (2026-06-20)** : **careless ~1% / casual ~36% / smart ~100% /
-caring ~100%**. Le jeu était trop facile (on finissait en 20 min sans gérer).
-**Le bois est devenu le CARBURANT qui brûle à CHAQUE carte** (`kBaseBoisDrainPerCard
-= 1`, toutes zones ; +`kColdBoisDrainPerCard` dans le froid) → il faut sans cesse
-réalimenter la loco (corvée de bûches), 0 bois = mort. **Le bois est désormais la
-1re cause de mort** (corrige « le bois est inutile »). Stats de départ **25**
-(`kStartStat`). Ravitaillement d'arrivée : **+9 bois / +5 soif / +7 faim / +4
-moral** par gare. Causes de mort = **mix bois (dominant) / moral / faim**.
+**Cible (2026-06-22, DÉPART QUASI À ZÉRO demande user)** : **careless ~1% /
+casual ~24% / smart ~99% / caring ~99%**. **Stats de départ = `kStartStat = 6`**
+(anneaux ~10-15 % à l'ouverture, presque vides) → l'histoire commence **au bord
+du gouffre**, à remonter en jouant.
+**Le bois est le CARBURANT qui brûle à CHAQUE carte** (`kBaseBoisDrainPerCard
+= 1`, toutes zones ; +`kColdBoisDrainPerCard` dans le froid) → réalimenter la
+loco (corvée de bûches), 0 bois = mort. **1re cause de mort**. Ravitaillement
+d'arrivée : **+9 bois / +5 soif / +7 faim / +4 moral** par gare (gare 0 incluse,
+petit ravito de survie). Causes de mort = **mix bois (dominant) / moral / faim**.
 **Dilemmes réels (FAIT, ~95 cartes)** : tout gain de moral se paie en survie et
 inversement — plus AUCUNE option « gratuitement bonne ». Template = chien g2
-`G2ev_chien` (sauver = +moral mais −faim/−bois ; rafler = +vivres/+bois mais
-−moral). Pertes ×**1.48** (calé post-dilemmes ; ×1.7 écrasait tout une fois les
-coûts empilés). Seule G14 (arrivée finale) garde un gain de moral pur. Les recharges « wagon » du sim
+`G2ev_chien`. Pertes ×**1.20** (ramené de ×1.48 : le départ quasi à 0 + les
+coûts des dilemmes suffisent à la tension). Seule G14 garde un gain moral pur. Les recharges « wagon » du sim
 sont liées à l'engagement (un joueur négligent néglige aussi le wagon) → c'est
 ce qui crée le spread de difficulté. Lancer : `python3 tools/sim_current.py`
 (option `--wood` = sweep réserve de bois).
