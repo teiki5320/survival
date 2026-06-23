@@ -285,18 +285,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Bed object placement (normalised to scene size, mutable so the
   // adjustment mode can drag + resize it live). Defaults dialled in
   // via the adjust mode and baked back here.
-  final double _bedLeft = 0.194;
-  final double _bedTop = 0.448;
-  final double _bedWidth = 0.280;
+  // PAILLASSE (couchage de départ) : natte de paille PLATE posée au SOL — bien
+  // plus basse que l'ancien lit (qui montait haut). `_bedTop` descendu pour
+  // qu'elle repose sur le plancher ; la position de sommeil suit (couplée).
+  final double _bedLeft = 0.205;
+  final double _bedTop = 0.66;
+  final double _bedWidth = 0.30;
 
   // When the heroine arrived at the bed via a double-tap on it, render
   // the sleep sprite ON the mattress (instead of on the floor). Offsets
   // are normalised to the scene size, position is relative to the
   // bed's centre/top so it stays glued to the bed as it moves.
   bool _sleepOnBed = false;
-  final double _sleepBedOffsetX = 0.0;   // centré sur le centre du lit
-  final double _sleepBedOffsetY = 0.115; // calé sur le matelas
-  final double _sleepBedScale = 0.36;    // longueur corps en fraction de h
+  final double _sleepBedOffsetX = 0.0;   // centré sur le centre de la paillasse
+  final double _sleepBedOffsetY = 0.06;  // couchée À PLAT sur la natte (au sol)
+  final double _sleepBedScale = 0.34;    // longueur corps en fraction de h
 
   // Props installés dans le wagon — chaque entry contient sa position
   // (left/top centrés, normalisés) + sa hauteur en fraction de h.
@@ -915,6 +918,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'assets/background/atelier_clean.png',
       'assets/background/wagon_rails.png',
       'assets/objects/bed.png',
+      'assets/objects/paillasse.png',
     ]) {
       precacheImage(AssetImage(asset), context);
     }
@@ -1663,7 +1667,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           width: w * _bedWidth,
                           child: _nightTint(
                             Image.asset(
-                              'assets/objects/bed.png',
+                              // Paillasse (paille au sol). Le lit `bed.png` est
+                              // gardé pour un futur déblocage « vrai lit ».
+                              'assets/objects/paillasse.png',
                               fit: BoxFit.contain,
                             ),
                           ),
