@@ -16,6 +16,7 @@ import 'widgets/opening_cinematic.dart';
 import 'widgets/tutorial_overlay.dart';
 import 'widgets/wardrobe_screen.dart';
 import 'widgets/shop_screen.dart';
+import 'widgets/games/fishing_game.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -147,6 +148,7 @@ class _WagonScreenState extends State<WagonScreen>
   double _heroSpawnX = 0.5;
   bool _inWardrobe = false;
   bool _inShop = false;
+  bool _inFishing = false;
   bool _inCards = false;
   bool _cardsFromLoco = false; // cartes ouvertes via le voyage (loco->map) : y revenir
   // Vrai si la map a été ouverte depuis la loco (pour y revenir en quittant).
@@ -385,7 +387,7 @@ class _WagonScreenState extends State<WagonScreen>
       // Pas de drain pendant les cartes NI sur la map (écrans où le joueur ne
       // peut ni manger, ni boire, ni se réchauffer) : sinon on perdait la run
       // sur un timer non actionnable. Cohérent avec le timer des besoins.
-      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe) return;
+      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe || _inFishing) return;
       final gs = GameState.instance;
       if (gs.feltCold) {
         final d = (gs.coldness / 5).round();
@@ -397,7 +399,7 @@ class _WagonScreenState extends State<WagonScreen>
     // économie). Manger (cuisinière/bac) et boire (filtre) deviennent
     // NÉCESSAIRES, pas décoratifs. Ralenti pour limiter les allers-retours.
     _needsTimer = Timer.periodic(const Duration(seconds: 24), (_) {
-      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe) return;
+      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe || _inFishing) return;
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
       gs.nudgeCardStat('soif', -1);
@@ -409,7 +411,7 @@ class _WagonScreenState extends State<WagonScreen>
     // le drain vivait dans l'atelier -> chaleur gratuite ailleurs). Le poêle
     // s'éteint tout seul à 0 bois (nudgeCardStat).
     _poeleTimer = Timer.periodic(const Duration(seconds: 9), (_) {
-      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe) return;
+      if (!mounted || _inCards || _onMap || _inShop || _inWardrobe || _inFishing) return;
       final gs = GameState.instance;
       if (gs.poeleOn) gs.nudgeCardStat('bois', -1);
     });
@@ -624,6 +626,11 @@ class _WagonScreenState extends State<WagonScreen>
             ? ShopScreen(
                 key: const ValueKey('shop'),
                 onClose: () => setState(() => _inShop = false),
+              )
+            : _inFishing
+            ? FishingGame(
+                key: const ValueKey('fishing'),
+                onClose: () => setState(() => _inFishing = false),
               )
             : _onMap
             ? MapScreen(
@@ -1033,6 +1040,16 @@ class _WagonScreenState extends State<WagonScreen>
                   child: const Icon(Icons.shopping_bag_outlined),
                 ),
                 const SizedBox(height: 12),
+                // ===== PÊCHE (mini-jeu cosy -> carte-souvenir, 100% narratif) =====
+                FloatingActionButton.small(
+                  heroTag: 'open_fishing',
+                  tooltip: 'Pêcher à la fenêtre',
+                  backgroundColor: const Color(0xFF3E6B8A),
+                  foregroundColor: Colors.white,
+                  onPressed: () => setState(() => _inFishing = true),
+                  child: const Icon(Icons.phishing),
+                ),
+                const SizedBox(height: 12),
                 // ===== BOUTON DE JEU (toujours visible) =====
                 // Seul le bouton d'ACTION contextuel reste en jeu normal.
                 // Bouton ACTION contextuel + bulle de hint « 1re utilisation ».
@@ -1287,8 +1304,10 @@ class _WagonScreenState extends State<WagonScreen>
       icon = Icons.menu_book;
       action = () {
         _triggerSpecial('read', frames: 25);
-        // Lire réconforte : +moral.
+        // Lire réconforte : +moral. Et débloque une carte-souvenir « carnet »
+        // (récompense NARRATIVE : une page du passé de Shen).
         _comfortMoral(10);
+        GameState.instance.unlockSouvenir('carnet');
       };
     } else if (_inAtelier && _atFilter) {
       final glasses = GameState.instance.waterTankGlasses;
