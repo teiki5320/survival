@@ -1204,7 +1204,7 @@ class _CardsScreenState extends State<CardsScreen>
                 // Marque la gare comme vue (ne pas rejouer) PUIS force la sortie
                 // des cartes : on revient au train, les crédits se rechargent.
                 GameState.instance.cardGareCineSeen.add(idx);
-                GameState.instance.save();
+                GameState.instance.save(checkpoint: true);
                 widget.onClose();
               },
               icon: const Icon(Icons.directions_walk),

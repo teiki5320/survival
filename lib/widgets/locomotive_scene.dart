@@ -321,7 +321,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     int frame;
     switch (_action) {
       case _LocoAction.pickingUp:
-        prefix = 'open_door';
+        // Sprite DÉDIÉ au ramassage (avant : 'open_door', le MÊME que le throw
+        // -> on voyait deux fois la même anim, au tas puis au feu). Distincts.
+        prefix = 'pickup';
         frame = _actionFrame.clamp(0, 13);
         break;
       case _LocoAction.throwing:

@@ -17,16 +17,15 @@ class GameState extends ChangeNotifier {
   // --- Autosave débounced : toute modif d'état (notifyListeners) programme
   // une sauvegarde ~1,2 s plus tard. Sans ça, la progression d'un joueur
   // normal n'était jamais persistée -> pas de « Continuer » au relancement.
-  Timer? _autosaveTimer;
-  bool _loaded = false;
   bool _loading = false; // verrou : pas de save() pendant un load()
 
   @override
   void notifyListeners() {
     super.notifyListeners();
-    if (!_loaded || _loading) return; // pas d'autosave pendant un chargement
-    _autosaveTimer?.cancel();
-    _autosaveTimer = Timer(const Duration(milliseconds: 1200), save);
+    // SAUVEGARDE AUX GARES SEULEMENT (demande user) : plus d'autosave débouncé
+    // sur chaque changement. La persistance se fait UNIQUEMENT aux checkpoints
+    // (frontières de gare) via `save(checkpoint: true)`. Entre deux gares, rien
+    // n'est écrit -> fermer l'app fait reprendre à la dernière gare.
   }
 
   // --- Persistence (pur dart:io, zéro plugin natif) ---
@@ -43,8 +42,13 @@ class GameState extends ChangeNotifier {
     return _savePath!;
   }
 
-  Future<void> save() async {
+  /// Écrit la sauvegarde. `checkpoint: true` = un VRAI point de sauvegarde
+  /// (frontière de gare, début/fin de run, reset). Sans ça, l'appel est ignoré :
+  /// on ne persiste QU'AUX GARES (demande user). Tous les anciens `save()`
+  /// éparpillés (crédits, souvenirs, props…) deviennent donc inertes.
+  Future<void> save({bool checkpoint = false}) async {
     if (_loading) return; // ne pas écraser pendant qu'on charge
+    if (!checkpoint) return; // sauvegarde aux gares uniquement
     try {
       final path = _getSavePathSync();
       final data = jsonEncode({
@@ -95,7 +99,6 @@ class GameState extends ChangeNotifier {
 
   Future<void> load() async {
     _loading = true;
-    _autosaveTimer?.cancel(); // annule un autosave en attente avant de charger
     try {
       final path = _getSavePathSync();
       final file = File(path);
@@ -186,7 +189,6 @@ class GameState extends ChangeNotifier {
       debugPrint('GameState.load() a échoué, partie vierge utilisée: $e\n$st');
     } finally {
       _loading = false;
-      _loaded = true; // autosave actif une fois le chargement terminé
     }
   }
 
@@ -200,7 +202,7 @@ class GameState extends ChangeNotifier {
     debugMode = v;
     if (!v) _recomputeAutoTemp(); // repasse en température auto en sortant
     notifyListeners();
-    save();
+    save(checkpoint: true);
   }
 
   void toggleDebug() => setDebugMode(!debugMode);
@@ -733,7 +735,7 @@ class GameState extends ChangeNotifier {
   int gareWoodLeft = 4;
   void setGareWoodLeft(int v) {
     gareWoodLeft = v.clamp(0, 99);
-    save(); // atomicité avec le flag woodpile_$idx (cardFlags persisté)
+    save(checkpoint: true); // checkpoint gare (woodpile + supply)
     notifyListeners();
   }
 
@@ -924,7 +926,7 @@ class GameState extends ChangeNotifier {
     gareWoodLeft = kWoodStartReserve; // bûches à ramasser à la gare de départ
     // Météo de départ cohérente avec la zone tempérée du début.
     _pickWeather();
-    save();
+    save(checkpoint: true);
     notifyListeners();
   }
 
@@ -960,7 +962,7 @@ class GameState extends ChangeNotifier {
   /// garde les jauges figées pour l'écran de fin.
   void endCardRun() {
     cardGareIndex = null;
-    save();
+    save(checkpoint: true);
   }
 
   /// Applique des deltas aux 4 jauges, clampe 0-100, persiste.

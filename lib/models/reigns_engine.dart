@@ -389,7 +389,7 @@ class ReignsEngine {
       // La météo se met au diapason de la (nouvelle) zone : entrer dans
       // le nord fait tomber la neige immédiatement.
       _gs.refreshWeatherForZone();
-      _gs.save();
+      _gs.save(checkpoint: true);
       _loadSegment();
     }
     return _emit();
@@ -413,7 +413,7 @@ class ReignsEngine {
       final next = (_gs.cardGareIndex ?? 0) + 1;
       _gs.cardGareIndex = next >= segments.length ? 0 : next;
       _gs.refreshWeatherForZone();
-      _gs.save();
+      _gs.save(checkpoint: true);
       _loadSegment();
     }
     return _emit();
@@ -425,7 +425,7 @@ class ReignsEngine {
     final n = segments.length;
     _gs.cardGareIndex = ((idx % n) + n) % n;
     _gs.refreshWeatherForZone();
-    _gs.save();
+    _gs.save(checkpoint: true);
     _queue.clear();
     _loadSegment();
     return _emit();
