@@ -549,6 +549,16 @@ final List<StoryCard> _fill1 = [
       _c("Tout récupérer", fx: {Stat.faim: 8, Stat.moral: -6}, result: "De quoi survivre. Mais fouiller leurs poches te serre la gorge."),
       _c("N'en faire qu'un linceul", fx: {Stat.moral: 7, Stat.faim: -3}, result: "Tu les couvres décemment. Le peu que tu puisses encore offrir à des morts."),
       oneshot: true, art: CardArt.memory),
+  _filler('F1_miroir_eau',
+      "Au petit matin, le wagon a recueilli un peu de pluie cendrée dans une bâche. C'est trouble, gris, à peine buvable. Mais c'est de l'eau.",
+      _c("Te forcer à la boire", fx: {Stat.soif: 10, Stat.moral: -5}, result: "Ça crisse de cendre sous la dent, ça descend mal. Tu fermes les yeux et tu avales tout. Ta gorge te remercie ; ton cœur, lui, mesure ce que survivre veut dire désormais."),
+      _c("Attendre une eau plus propre", fx: {Stat.moral: 5, Stat.soif: -6}, result: "Tu refuses de boire cette boue grise, par dignité plus que par raison. Tu jettes la bâche. Demain, peut-être, une pluie plus franche — d'ici là, la gorge sèche."),
+      art: CardArt.water),
+  _filler('F1_voie_double',
+      "Devant toi, la voie se sépare en deux. À gauche, les rails luisants d'un grand axe — vite, mais à découvert. À droite, une voie de service envahie d'herbes folles — lente, mais cachée.",
+      _c("Le grand axe, droit et rapide", fx: {Stat.bois: 8, Stat.moral: -5}, result: "Tu files sur les rails neufs, le vent dans les oreilles. La loco avale les kilomètres — mais tu roules à nu, repérable à des lieues, et chaque silhouette à l'horizon te glace le sang."),
+      _c("La voie de service, discrète", fx: {Stat.moral: 6, Stat.bois: -6}, result: "Tu t'enfonces dans la voie oubliée, les herbes giflant les flancs du wagon. Personne ne te verra ici — mais les rails encrassés font ramer la loco, qui boit le double."),
+      oneshot: true),
 ];
 
 final List<StoryCard> _fill2 = [
@@ -592,6 +602,18 @@ final List<StoryCard> _fill2 = [
       _c("Forcer la vanne", fx: {Stat.soif: 14, Stat.faim: -4}, result: "De l'eau ! Croupie mais filtrable. L'effort en valait la peine."),
       _c("Ne pas perdre de temps", fx: {Stat.bois: 6, Stat.soif: -5}, result: "Tu n'as pas le luxe de fouiller chaque épave. Tu gardes l'élan et le bois, mais tu repars la gorge sèche."),
       art: CardArt.water),
+  _filler('F2_aiguilleur',
+      "Une cabine d'aiguilleur, perchée au-dessus de la voie. À l'intérieur, un poêle, un lit de camp, et des leviers encore graissés. Y monter prend du temps, mais on y dort au sec.",
+      _c("Y passer la nuit au chaud", fx: {Stat.moral: 9, Stat.bois: -6}, result: "Un vrai toit, un vrai poêle. Tu dors d'une traite pour la première fois depuis la fuite. La loco a refroidi dehors — mais toi, tu revis un peu."),
+      _c("Repartir, ne pas perdre l'élan", fx: {Stat.bois: 6, Stat.moral: -4}, result: "Tu jettes un œil envieux à la cabine, puis tu repars sans couper le moteur, l'élan et le bois préservés. Le nord d'abord. Le repos, c'est pour les vivants installés — pas pour toi."),
+      oneshot: true),
+  _filler('F2_chien_quai',
+      "Le chiot refuse d'avancer sur un quai, planté, grondant vers une grille d'égout. Tu ne vois rien — mais lui, son poil se hérisse.",
+      _c("Le contourner, lui faire confiance", fx: {Stat.bois: -6, Stat.moral: 6}, result: "Tu fais un détour large autour de la grille. Plus tard, tu réalises qu'un éboulis cachait un trou béant juste là. Son flair vous a sauvés tous les deux.",
+          reaction: "Le chiot trottine enfin, fier, le museau haut, comme s'il savait avoir bien fait."),
+      _c("Le tirer, on n'a pas le temps", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu le hisses de force, agacée par ce caprice. Il geint, queue basse, et te lance un regard de reproche. Tu gagnes du temps — mais tu te demandes longtemps ce qu'il avait flairé.",
+          reaction: "Le chiot se laisse traîner, résigné, jetant des coups d'œil inquiets vers la grille."),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
 ];
 
 final List<StoryCard> _fill3 = [
@@ -640,6 +662,16 @@ final List<StoryCard> _fill3 = [
       "Une colonne de fumée droit devant : campement vivant, ou incendie mort. La voie y plonge tout droit.",
       _c("Traverser vite, tête baissée", fx: {Stat.bois: -8, Stat.moral: 3}, result: "Tu passes au cœur des braises d'un village brûlé. Vite, vite, vite."),
       _c("Attendre que ça se dégage", fx: {Stat.bois: 5, Stat.faim: -6}, result: "Tu patientes, moteur coupé, à l'abri du danger et du gaspillage de feu. Le temps file, le ventre crie — mais le bois est sauf.")),
+  _filler('F3_lampe_brume',
+      "Dans le brouillard, une lampe se balance au loin, à hauteur d'homme. Elle s'arrête. Elle attend. Un piège de pillards, ou un survivant perdu ?",
+      _c("T'en approcher, prête à fuir", fx: {Stat.faim: 9, Stat.moral: -6}, result: "Une vieille femme, seule, à demi gelée. Elle te bénit et te cède son maigre garde-manger contre un peu de chaleur. Tu repars nourrie — mais l'idée d'avoir failli foncer sur un guet-apens te hante."),
+      _c("Couper à travers, ne pas tenter le sort", fx: {Stat.bois: -7, Stat.moral: 4}, result: "Tu obliques dans la brume sans répondre à la lampe. Trop de pièges se cachent derrière une lumière trop accueillante. Tu passes, le foyer entamé par le détour — mais entière."),
+      oneshot: true, art: CardArt.pillards),
+  _filler('F3_echo',
+      "Dans le brouillard, ta loco a un écho : un autre train, quelque part tout près, roule au même rythme. Tu ne le vois pas. Tu l'entends respirer comme toi.",
+      _c("Siffler pour l'appeler", fx: {Stat.moral: 8, Stat.bois: -5}, result: "Ton coup de sifflet se perd dans la ouate. Pas de réponse — mais un instant, l'idée qu'un autre cherche aussi son chemin t'a réchauffée. Tu n'es pas seule à rouler vers demain."),
+      _c("Te taire, garder ta position secrète", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu coupes ton propre souffle, tu rases les murs de brume. L'autre train s'éloigne, ou se rapproche, impossible à dire. Tu préfères ne pas savoir qui tient l'autre manette — mais le doute te ronge."),
+      oneshot: true),
 ];
 
 final List<StoryCard> _fill4 = [
@@ -684,6 +716,16 @@ final List<StoryCard> _fill4 = [
       _c("Remplir tes jarres", fx: {Stat.soif: 16, Stat.moral: -4}, result: "Eau claire, presque douce. Tu vides les fonts dans tes jarres. Tu murmures un merci à personne — et une vague gêne d'avoir pris à un lieu sacré te reste sur le cœur."),
       _c("Respecter le lieu", fx: {Stat.moral: 5, Stat.soif: -4}, result: "Tu n'oses pas. Tu repars la gorge sèche, mais l'âme en paix."),
       art: CardArt.water),
+  _filler('F4_horloge',
+      "Au fronton de la gare fantôme, une horloge s'est arrêtée à 3h14 — l'heure exacte de la fin, sûrement. Ses aiguilles de cuivre brilleraient bien dans le foyer. Mais quelque chose te retient.",
+      _c("La démonter pour le métal", fx: {Stat.bois: 9, Stat.moral: -6}, result: "Tu arraches le mécanisme, tu fourres le cuivre dans la soute. Ça brûlera, ça chauffera. Mais éteindre la dernière horloge d'un monde, c'est admettre qu'il n'y aura plus d'heure à lire."),
+      _c("La laisser marquer l'heure", fx: {Stat.moral: 7, Stat.faim: -4}, result: "Tu la laisses là, figée sur l'instant de la fin, comme une stèle. Un témoin pour ceux qui passeront. Tu repars sans son métal, le ventre creux — mais quelque chose en toi refuse encore d'effacer le temps."),
+      oneshot: true, art: CardArt.memory),
+  _filler('F4_radio_silence',
+      "Le soir, tu tournes la manivelle pour la première fois. Rien. Que le souffle blanc du monde. Tu balaies les fréquences, longtemps, le cœur serré.",
+      _c("Insister, fouiller chaque bande", fx: {Stat.moral: 8, Stat.soif: -5}, result: "Des heures penchée sur le cadran, la gorge sèche à force d'espérer. Rien d'humain — mais le simple geste de chercher, de croire qu'il y a quelqu'un à trouver, te tient debout."),
+      _c("Couper, le silence fait trop mal", fx: {Stat.soif: 4, Stat.moral: -6}, result: "Tu éteins net. Écouter le néant total, c'est pire que ne pas écouter. Tu ranges la radio, gorge ménagée — mais ce silence, tu l'emportes avec toi comme une réponse."),
+      oneshot: true, requires: (f) => f.contains('aLaRadio'), art: CardArt.radio),
 ];
 
 final List<StoryCard> _fill5 = [
@@ -756,6 +798,18 @@ final List<StoryCard> _fill5 = [
       _c("Boire et remplir les jarres", fx: {Stat.soif: 13, Stat.faim: -10, Stat.moral: -4}, result: "Tu bois à grandes goulées — puis le goût métallique te prend la gorge. Tu recraches, tu vomis la moitié. C'était saumâtre, traité à on ne sait quoi. Tu gardes le reste pour les bidons, le ventre tordu."),
       _c("Ne pas boire l'inconnu", fx: {Stat.moral: 4, Stat.soif: -5}, result: "Tu refermes la vanne. Une citerne sans nom dans un monde mort, ça ne se boit pas sur la foi. Tu repars la gorge sèche, mais entière."),
       oneshot: true, hidden: true, art: CardArt.water),
+  _filler('F5_soeur_question',
+      "Ta sœur, le front contre la vitre : « Pourquoi le monde s'est cassé ? » Tu n'as pas de réponse qui ne fasse pas peur à une enfant de sept ans.",
+      _c("Lui inventer une histoire douce", fx: {Stat.moral: 10, Stat.faim: -4}, result: "Tu lui racontes un monde qui dort et qui se réveillera. Elle te croit, rassurée, et s'endort le sourire aux lèvres. Le mensonge te coûte — mais son sommeil paisible le vaut bien.",
+          reaction: "Ta sœur bâille : « Alors quand il se réveillera, y aura encore des glaces ? »"),
+      _c("Lui dire un peu la vérité", fx: {Stat.faim: 4, Stat.moral: -5}, result: "Tu lui expliques, avec des mots prudents, que des gens ont fait de mauvais choix. Elle digère ça en silence, trop sérieuse pour son âge. Tu lui dois la vérité — mais la voir vieillir d'un coup te serre le cœur.",
+          reaction: "Ta sœur réfléchit longtemps : « Nous on fera pas les mêmes erreurs, hein ? Promis ? »"),
+      requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F5_pont_branlant',
+      "Un viaduc rongé par la rouille enjambe une gorge profonde. Avec deux à bord maintenant, le wagon pèse plus lourd. Le franchir vite ou pied à pied ?",
+      _c("Franchir au pas, prudente", fx: {Stat.bois: -7, Stat.moral: 5}, result: "Tu rampes sur le tablier qui gémit, ta sœur cramponnée à toi, à compter chaque traverse. Le viaduc tient. Vous passez, lessivées de peur — mais vivantes, et c'est tout ce qui compte."),
+      _c("Foncer avant qu'il ne cède", fx: {Stat.bois: 6, Stat.faim: -7}, result: "Tu pousses la loco d'un coup, sans laisser le temps au viaduc de réfléchir. Derrière vous, une poutre lâche dans le vide. L'élan vous sauve — mais ta sœur a hurlé, et ce cri te poursuit."),
+      oneshot: true),
 ];
 
 final List<StoryCard> _fill6 = [
@@ -792,6 +846,17 @@ final List<StoryCard> _fill6 = [
       "Un homme se dit guérisseur et propose de t'examiner contre du bois. Charlatan, ou vraie aubaine ?",
       _c("Le payer en bois", fx: {Stat.bois: -8, Stat.moral: 8}, result: "Il vous ausculte, te donne des cachets, te dit solide. Du baume sur l'angoisse."),
       _c("Te fier à ta santé", fx: {Stat.bois: 5, Stat.moral: -3}, result: "Tu n'as pas de bois à gaspiller pour un inconnu. Tu repars, la réserve intacte — mais l'angoisse d'un mal qui couve te trotte dans la tête.")),
+  _filler('F6_troc_dessin',
+      "Au camp, ta sœur a passé l'après-midi à dessiner. Un marchand, attendri, propose un sac de farine contre l'un de ses dessins, qu'il dit vouloir pour sa propre fille perdue.",
+      _c("Laisser ta sœur en offrir un", fx: {Stat.faim: 11, Stat.moral: -4}, result: "Elle choisit elle-même le dessin, fière de « gagner à manger pour la famille ». Tu repars le sac plein — mais la voir troquer son enfance contre de la farine te noue la gorge.",
+          reaction: "Ta sœur tend son dessin au marchand : « C'est une maison avec de la fumée. Comme ça votre fille saura qu'il faut aller au chaud. »"),
+      _c("Garder ses dessins, payer autrement", fx: {Stat.faim: -5, Stat.moral: 9}, result: "« Ses dessins ne sont pas à vendre. » Tu donnes un objet à toi à la place. Le marchand sourit, comprend. Ta sœur garde son trésor, et toi ta fierté — le ventre, lui, restera creux."),
+      requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F6_deserteur',
+      "Au camp, un homme propose de te guider par un raccourci qu'il jure connaître, contre une place à bord jusqu'au nord. Ses yeux fuient les tiens.",
+      _c("L'embarquer pour le raccourci", fx: {Stat.bois: 10, Stat.moral: -6}, result: "Il tient parole sur la route — mais il fouille tes réserves la nuit, et tu dors d'un œil jusqu'à le déposer plus loin. Le raccourci valait le bois ; sa présence, beaucoup moins."),
+      _c("Refuser, continuer seule", fx: {Stat.moral: 6, Stat.bois: -7}, result: "Tu ne fais plus monter d'inconnu, pas avec ta sœur à bord. Tu prends la voie longue, le foyer qui fond. Plus de bois brûlé — mais ton wagon reste à vous, et tu dors enfin tranquille."),
+      oneshot: true),
 ];
 
 final List<StoryCard> _fill7 = [
@@ -864,6 +929,18 @@ final List<StoryCard> _fill7 = [
       _c("Stocker du bois maintenant", fx: {Stat.bois: 12, Stat.faim: -5}, result: "Tu ramasses tout ce qui brûle tant qu'il fait encore doux. Sage."),
       _c("Profiter des derniers jours doux", fx: {Stat.moral: 6, Stat.bois: -4}, result: "Tu t'accordes un dernier répit tiède. Le froid attendra un jour de plus."),
       art: CardArt.cold),
+  _filler('F7_balançoire',
+      "Une aire de jeu rouillée près de la voie : une balançoire grince toute seule au vent. Ta sœur la fixe, des étoiles plein les yeux, oubliant le monde mort.",
+      _c("Lui offrir cinq minutes d'enfance", fx: {Stat.moral: 13, Stat.bois: -5}, result: "Tu la pousses sur la balançoire grinçante, son rire perçant le silence. Cinq minutes volées au monde mort. La loco a refroidi — tu t'en fiches éperdument.",
+          reaction: "Ta sœur, en plein élan : « Plus haut ! Plus haut ! Je touche le ciel, regarde ! »"),
+      _c("Garder le cap, ça la fragilise", fx: {Stat.bois: 6, Stat.moral: -5}, result: "Tu détournes son regard et tu relances la loco, élan et bois préservés. T'attendrir maintenant, c'est risquer de ne plus repartir. Mais son petit « oh » déçu te transperce, et tu doutes d'avoir bien fait.",
+          reaction: "Ta sœur s'assoit sagement, la mine basse : « C'est pas grave. On jouera quand le monde sera réparé. »"),
+      requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F7_phonographe',
+      "Dans une halte abandonnée, un vieux phonographe à pavillon, un disque encore posé. Le remonter te ferait entendre de la musique vraie, mais ça use ta force et ça s'entend loin.",
+      _c("Le faire jouer pour vous deux", fx: {Stat.moral: 11, Stat.faim: -5}, result: "Un air de jazz craquelé emplit la halte. Vous dansez maladroitement, ta sœur sur tes pieds, jusqu'au dernier sillon. La faim au ventre — mais l'âme repue."),
+      _c("Résister, ne pas faire de bruit", fx: {Stat.faim: 5, Stat.moral: -5}, result: "Tu reposes le bras du phonographe sans le lancer. La musique attire les oreilles affamées de ce monde. Vous repartez en silence, le ventre sauf — mais ta sœur jette un long regard au disque muet."),
+      oneshot: true, art: CardArt.memory),
 ];
 
 final List<StoryCard> _fill8 = [
@@ -936,6 +1013,18 @@ final List<StoryCard> _fill8 = [
       _c("La passer au filtre", fx: {Stat.soif: 11, Stat.faim: -3, Stat.moral: 3}, result: "Tu pompes, patiemment, les doigts gourds dans le froid. L'eau ressort claire, presque douce. Le filtre tient ses promesses — de l'eau sûre, en plein nulle part. Une petite victoire de technicienne, payée d'un long effort glacé."),
       _c("Boire telle quelle, tant pis", fx: {Stat.soif: 8, Stat.faim: -10, Stat.moral: -3}, result: "Trop pressée, trop assoiffée. Tu bois sans filtrer. Ça étanche — puis ça te tord les boyaux toute la nuit. Le filtre dormait pourtant dans ton sac."),
       requires: (f) => f.contains('asset_filter'), art: CardArt.water),
+  _filler('F8_bonhomme_neige',
+      "À la première vraie halte dans la neige, ta sœur veut faire un bonhomme. Ça demande de sortir dans le froid mordant, de s'arrêter, de gaspiller un peu de chaleur.",
+      _c("Sortir le faire avec elle", fx: {Stat.moral: 12, Stat.bois: -6, Stat.faim: -3}, result: "Vous roulez la neige à mains nues, gelées, hilares. Un bonhomme bancal monte la garde sur le quai. Le froid vous a mordues, le foyer a fondu — mais son rire dans la neige vaut tout l'or du nord.",
+          reaction: "Ta sœur lui plante un caillou en guise de nez : « Lui il garde la gare. Comme ça on est jamais vraiment parties. »"),
+      _c("Rester au chaud, c'est trop risqué", fx: {Stat.bois: 5, Stat.moral: -5}, result: "« Il fait trop froid, ma puce. » Tu la gardes près du poêle, le bois ménagé. C'est la raison qui parle — mais lui refuser ça, alors que les occasions de rire se comptent désormais, te laisse un goût amer.",
+          reaction: "Ta sœur colle son nez à la vitre givrée : « Un jour je ferai le plus grand bonhomme du monde. Quand on sera arrivées. »"),
+      requires: (f) => f.contains('aLaSoeur'), art: CardArt.cold),
+  _filler('F8_gel_rails',
+      "Le gel a fait travailler les rails : devant toi, une fissure court sur le métal. Ralentir pour l'inspecter coûte du temps et de la chaleur ; passer dessus à pleine vapeur est un pari.",
+      _c("Ralentir, sonder la voie", fx: {Stat.bois: -8, Stat.moral: 4}, result: "Tu descends dans le froid mordant, tu testes la fissure au pied. Elle tient, mais de justesse. Tu repasses au ralenti, rassurée — au prix d'une bonne lampée de bois et de doigts gourds."),
+      _c("Passer vite, la fissure tiendra", fx: {Stat.bois: 6, Stat.moral: -6}, result: "Tu fermes les yeux et tu pousses. Un claquement sec sous les roues — le rail a bougé mais a tenu. Tu passes, le bois sauf, mais le cœur cognant : la prochaine fois, peut-être pas."),
+      oneshot: true, art: CardArt.cold),
 ];
 
 final List<StoryCard> _fill9 = [
@@ -994,6 +1083,17 @@ final List<StoryCard> _fill9 = [
       _c("Le forcer, tout prendre", fx: {Stat.faim: 12, Stat.soif: -6, Stat.moral: -3}, result: "Tu tranches les sangles gelées, le cœur battant. Des rations de survie sous vide, un peu de combustible solide — mais la moitié a éclaté au gel, et creuser dans la neige t'a vidée. Une aubaine en demi-teinte."),
       _c("Laisser ce paquet du destin", fx: {Stat.moral: 3, Stat.soif: -3}, result: "Tu n'as pas la force de creuser pour rien, ni les nerfs pour ce qui pourrait s'y cacher. Tu passes. Le doute te suit un moment, puis le froid l'efface."),
       oneshot: true, hidden: true, art: CardArt.cold),
+  _filler('F9_fievre_remede',
+      "Ta sœur brûle de fièvre dans le blizzard. Tu te souviens d'une plante que ta grand-mère faisait infuser — elle pousse sous la neige, mais la cueillir t'oblige à sortir dans la tempête.",
+      _c("Braver le blizzard pour la plante", fx: {Stat.soif: -8, Stat.moral: 10}, flags: ['soeurProtegee'], result: "Tu sors, aveuglée de blanc, et tu creuses la neige à mains nues jusqu'à trouver les feuilles. Tu rentres gelée, mais l'infusion fait baisser la fièvre. Tu as donné de ta gorge et de tes forces — elle respire mieux.",
+          reaction: "Ta sœur, entre deux frissons, boit à petites gorgées : « Ça a le goût de chez mamie. »"),
+      _c("Rester près d'elle, la veiller", fx: {Stat.faim: -7, Stat.moral: 7}, flags: ['soeurProtegee'], result: "Tu ne quittes pas son chevet, tu éponges son front, tu lui parles toute la nuit. Pas de remède miracle, juste ta présence. La fièvre cède plus lentement — mais tu n'as pas risqué de la laisser seule."),
+      requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F9_train_secours',
+      "Dans la tourmente, un wagon-infirmerie de la Croix-Rouge, abandonné, à demi enseveli. Médicaments peut-être, ou cadavres de malades. Fouiller, c'est s'exposer au blizzard et à ce qu'on y trouvera.",
+      _c("Forcer la porte de l'infirmerie", fx: {Stat.faim: 8, Stat.moral: -7}, result: "Antipyrétiques, pansements, un peu de morphine — un trésor pour ta sœur fiévreuse. Mais les couchettes alignées, leurs occupants figés sous le givre, te poursuivront longtemps."),
+      _c("Ne pas profaner ce mouroir", fx: {Stat.moral: 6, Stat.faim: -5}, result: "Tu n'ouvres pas. Certaines portes laissent passer plus que le froid. Tu repars les mains vides, le ventre creux — mais sans cette vision-là greffée derrière les yeux."),
+      oneshot: true, art: CardArt.cold),
 ];
 
 final List<StoryCard> _fill10 = [
@@ -1044,6 +1144,18 @@ final List<StoryCard> _fill10 = [
       _c("Tenir le cap du nord", fx: {Stat.moral: 6, Stat.faim: -4}, result: "« Parce qu'ils nous attendent. » Tu refermes la serre derrière vous, le cœur lourd mais droit."),
       _c("T'attarder encore un peu", fx: {Stat.moral: -3, Stat.faim: 8}, result: "Tu restes un jour de plus. Puis un autre. Le confort est un piège très doux."),
       art: CardArt.hope),
+  _filler('F10_jardinier',
+      "La serre a un gardien : un vieil homme, seul, qui l'entretient depuis des années « pour quand les gens reviendront ». Il vous offre l'hospitalité — et vous propose de rester.",
+      _c("Accepter sa générosité un temps", fx: {Stat.faim: 14, Stat.soif: 8, Stat.moral: -5}, result: "Vous mangez chaud à sa table, il raconte le monde d'avant. Mais quand il vous propose de remplacer la famille qu'il a perdue, son regard suppliant vous serre la gorge. Vous repartez nourries, et un peu coupables de l'abandonner."),
+      _c("Le remercier et repartir vite", fx: {Stat.moral: 9, Stat.faim: -4}, result: "Tu sens le piège tendre de sa solitude. Tu refuses de t'attacher, tu remercies, tu pars avant la nuit. Le ventre creux — mais ta sœur n'a pas eu à voir un homme s'effondrer de vous voir partir."),
+      oneshot: true, art: CardArt.hope),
+  _filler('F10_soeur_dort',
+      "Dans la chaleur de la serre, ta sœur s'est endormie pour la première fois sans frissonner, un sourire aux lèvres. La réveiller pour repartir, ou lui laisser ce sommeil rare ?",
+      _c("La laisser dormir, perdre des heures", fx: {Stat.moral: 13, Stat.bois: -6}, result: "Tu t'assois près d'elle et tu montes la garde, le temps suspendu, la loco qui refroidit. Tu n'as pas le cœur de briser un sommeil sans cauchemars. Des heures perdues, et tu ne les regrettes pas une seconde.",
+          reaction: "Ta sœur sourit dans son sommeil et murmure : « ...encore cinq minutes, maman... »"),
+      _c("La réveiller, le nord n'attend pas", fx: {Stat.bois: 7, Stat.moral: -5}, result: "Tu la secoues doucement. Elle se frotte les yeux, déçue d'avoir quitté son rêve chaud. Tu gardes l'élan et le bois — mais lui voler ce repos rare te pèse plus que la fatigue.",
+          reaction: "Ta sœur se lève à contrecœur : « Je rêvais qu'on était déjà arrivées. Tout le monde était là. »"),
+      requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
 ];
 
 final List<StoryCard> _fill11 = [
@@ -1100,6 +1212,16 @@ final List<StoryCard> _fill11 = [
       _c("Partager ta dernière boîte", fx: {Stat.faim: -12, Stat.moral: 9}, result: "Tu poses la conserve dans ses mains tremblantes. Ses yeux te remercient sans un mot. Tu repars le ventre vide, ta sœur aussi — mais tu peux encore te regarder en face."),
       _c("La garder pour ta sœur", fx: {Stat.faim: 4, Stat.moral: -11}, result: "Tu détournes les yeux et tu avances. Ta sœur mangera. C'est elle, ton devoir. Mais le regard de l'homme te suivra longtemps dans le noir, et tu sais que tu ne l'oublieras pas."),
       oneshot: true, art: CardArt.food),
+  _filler('F11_peage_humain',
+      "Des pillards ont dressé une chaîne en travers de la voie. Pas de barrage cette fois, juste une exigence : un tribut. « Du bois, des vivres, ou la gamine. On en prend bien soin, des gamines, nous. »",
+      _c("Céder ta réserve de bois", fx: {Stat.bois: -16, Stat.moral: 8}, result: "Tu jettes presque toute ta soute à leurs pieds, la rage au ventre, et ils relèvent la chaîne. Ta sœur est intacte, n'a rien compris à la menace. La loco crachote, à sec — mais elle est là, contre toi."),
+      _c("Bluffer, foncer dans la chaîne", fx: {Stat.bois: 8, Stat.moral: -10}, result: "Tu pousses les gaz d'un coup, la chaîne cède dans un fracas d'étincelles. Des cris, des pierres contre la tôle, et vous passez. Tu gardes ton bois — mais ta sœur a vu leurs visages, et toi le tien dans le reflet : celui d'une femme prête à tout."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.pillards),
+  _filler('F11_phare_nord',
+      "Au loin, sur une crête, un grand brasier brûle nuit et jour : un phare dressé par le refuge pour guider les derniers arrivants. La preuve, enfin, qu'il existe. Mais le rejoindre droit, c'est traverser une zone à découvert.",
+      _c("Mettre le cap droit dessus", fx: {Stat.moral: 14, Stat.bois: -9}, result: "Tu vises la lumière, plein nord, sans dévier. Tu brûles gros pour avancer en terrain ouvert — mais ce point d'or dans le noir, c'est la première preuve concrète que le refuge n'est pas un mensonge. Ton cœur s'est remis à battre pour de bon."),
+      _c("Le rejoindre par les voies couvertes", fx: {Stat.bois: 6, Stat.moral: -4}, result: "Tu refuses de t'exposer si près du but. Tu louvoies par les tranchées et les tunnels, le foyer ménagé. Plus long, plus prudent — mais perdre la lueur de vue, même un instant, te serre le ventre d'angoisse."),
+      oneshot: true, art: CardArt.refuge),
 ];
 
 final List<StoryCard> _fill12 = [
@@ -1161,6 +1283,16 @@ final List<StoryCard> _fill12 = [
       _c("Lui donner, et serrer les dents", fx: {Stat.faim: -14, Stat.moral: 6}, flags: ['soeurProtegee'], result: "Tu pousses l'écuelle vers elle et tu mens : « Moi j'ai déjà mangé. » La faim te vrille le ventre, tes mains tremblent sur les commandes — mais elle, elle a des couleurs. C'est tout ce qui compte.",
           reaction: "Ta sœur mange à petites bouchées, méfiante : « Tu mens. T'as pas mangé. Demain c'est mon tour de mentir pour toi. »"),
       oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F12_jumelles',
+      "Du haut de la tour de guet, une paire de jumelles oubliées, gelées à la rambarde. Les arracher au givre te coûte des doigts en sang — mais elles porteraient ton regard jusqu'au refuge.",
+      _c("Les dégager pour scruter le nord", fx: {Stat.faim: -6, Stat.moral: 13}, result: "Tu décolles les jumelles du métal, paumes écorchées, et tu vises l'horizon. Là-bas : des silhouettes sur le quai, des feux, du mouvement. Des vivants. Tu en pleures de soulagement, les mains en sang. Ça valait chaque goutte."),
+      _c("Renoncer, économiser tes forces", fx: {Stat.faim: 5, Stat.moral: -5}, result: "Tu n'as plus de doigts à sacrifier au gel. Tu laisses les jumelles soudées à la rambarde et tu redescends. Tu avanceras à l'aveugle, le ventre un peu moins creux — mais ne pas avoir regardé te ronge tout le reste du chemin."),
+      oneshot: true, art: CardArt.refuge),
+  _filler('F12_neige_rouge',
+      "La neige, devant la tour, est tachée de rouge en larges traînées. Quelque chose s'est passé ici, récemment. Avancer par là, c'est traverser le théâtre d'un drame qu'on préférerait ignorer.",
+      _c("Traverser vite, sans regarder", fx: {Stat.bois: -7, Stat.moral: 3}, result: "Tu pousses la loco droit à travers, les yeux rivés sur les rails, le foyer brûlant pour ne pas ralentir. Tu ne sauras jamais ce qui s'est joué là — et tu fais tout pour que ta sœur ne voie rien non plus."),
+      _c("T'arrêter voir s'il y a un survivant", fx: {Stat.faim: 7, Stat.moral: -8}, result: "Tu descends, le cœur au bord des lèvres. Pas de vivant, juste les restes d'une embuscade et un sac de vivres oublié dans la panique. Tu le prends, l'estomac révulsé. Le butin des morts, encore, si près du but."),
+      oneshot: true, art: CardArt.cold),
 ];
 
 // Gare 13 — Fubuki, le col gelé : la loco menace de lâcher, le froid est
@@ -1196,6 +1328,18 @@ final List<StoryCard> _fill13 = [
           reaction: "Ta sœur regarde ses doigts rosir : « Tes mains, c'est mieux que des moufles. »"),
       _c("Lui céder ta place près du poêle", fx: {Stat.moral: 8, Stat.soif: -4}, flags: ['soeurProtegee'], result: "Tu prends le froid à sa place, sans un mot. Elle s'endort enfin au chaud."),
       requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F13_avalanche',
+      "Un grondement sourd au-dessus du col : la neige des hauteurs se détache. Tu as quelques secondes. Foncer pour passer avant la coulée, ou freiner net et te terrer ?",
+      _c("Tout brûler pour passer devant", fx: {Stat.bois: -16, Stat.moral: 8}, result: "Tu jettes tout au foyer, la loco hurle et s'arrache. La coulée balaie la voie une seconde derrière vos roues. Vous passez, à sec mais vivantes, le cœur cognant à tout rompre."),
+      _c("Freiner et vous terrer", fx: {Stat.faim: -8, Stat.soif: -7, Stat.moral: 5}, result: "Tu bloques les freins et tu serres ta sœur sous toi. La neige ensevelit l'avant du wagon. Des heures à creuser pour vous dégager, vidées jusqu'à l'os — mais le bois, lui, est intact, et vous respirez encore."),
+      oneshot: true, art: CardArt.cold),
+  _filler('F13_braises_choix',
+      "Au plus dur de la montée, la loco réclame du feu et il ne reste presque rien. Ta sœur tend son dessin préféré — deux bonshommes main dans la main. « Brûle-le si ça nous fait avancer. »",
+      _c("Refuser, brûler autre chose", fx: {Stat.bois: 8, Stat.faim: -9}, result: "« Jamais. » Tu arraches plutôt les dernières lattes du plancher, à t'en briser les ongles, plutôt que son trésor. La loco repart. Tu es vidée — mais son dessin est sauf, et ça, ça n'a pas de prix.",
+          reaction: "Ta sœur serre son dessin contre elle, les yeux brillants : « Tu vois ? On a pas eu besoin. On est plus fortes que le froid. »"),
+      _c("Le brûler, la mort dans l'âme", fx: {Stat.bois: 12, Stat.moral: -11}, result: "Tu prends le dessin de ses mains, tu hésites une éternité, et tu le poses sur les braises. Les deux bonshommes noircissent et s'envolent en cendres. La loco repart. Tu ne te le pardonneras pas de sitôt.",
+          reaction: "Ta sœur regarde son dessin brûler sans pleurer, très digne : « C'est rien. Les vrais, on va les retrouver pour de vrai. »"),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.fire),
 ];
 
 // Gare 14 — Hokuto, le refuge : l'arrivée, le quai, les visages. Le moment
@@ -1234,6 +1378,16 @@ final List<StoryCard> _fill14 = [
           reaction: "Le chien tire de toutes ses forces vers la foule, jappant comme il n'a pas jappé depuis Kogarashi."),
       _c("Le calmer, ne pas trop espérer", fx: {Stat.faim: 4, Stat.moral: -4}, result: "« Doucement, mon grand. » Tu retiens ton propre élan, de peur d'avoir trop mal. Tu gardes tes forces, le cœur bridé — mais étouffer cet espoir te coûte plus que tu ne crois."),
       requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
+  _filler('F14_registre',
+      "À l'entrée du refuge, un garde tient un grand registre des familles déjà arrivées. Il propose de chercher tes noms avant que tu n'entres — mais la file est longue, et chaque minute d'attente te ronge.",
+      _c("Patienter, le laisser chercher", fx: {Stat.moral: 12, Stat.faim: -4}, result: "Tu attends, le souffle suspendu, pendant qu'il fait courir son doigt sur les pages. Il s'arrête. Relève les yeux. « Secteur est. » Tes jambes manquent de céder. Ils sont passés. Ils sont là."),
+      _c("Foncer chercher toi-même", fx: {Stat.moral: 7, Stat.soif: -4}, result: "Tu n'as pas la patience d'attendre un registre. Tu bouscules la file et tu te jettes dans la foule, criant leurs noms. La gorge en feu, le cœur fou — tu chercheras de tes propres yeux, dussent-ils te brûler."),
+      oneshot: true, art: CardArt.refuge),
+  _filler('F14_derniere_nuit',
+      "À une halte des portes du refuge, la nuit tombe. Tu pourrais entrer dans le noir, épuisée, ou attendre l'aube pour franchir le seuil en pleine lumière, comme il se doit.",
+      _c("Attendre l'aube pour entrer", fx: {Stat.moral: 11, Stat.bois: -5}, result: "Tu veilles cette dernière nuit, ta sœur endormie contre toi, à regarder les lumières du refuge scintiller. Demain, à la lumière, vous franchirez le seuil dignes et droites. La loco refroidit — mais ce moment-là, vous l'avez choisi."),
+      _c("Entrer maintenant, ne plus attendre", fx: {Stat.bois: 6, Stat.moral: -4}, result: "Tu as trop attendu pour attendre encore. Tu pousses jusqu'aux portes dans le noir, le cœur cognant. L'élan et le bois préservés — mais entrer ainsi, exténuée, dans l'ombre, n'a pas la saveur que tu avais rêvée mille fois."),
+      oneshot: true, art: CardArt.refuge),
 ];
 
 
