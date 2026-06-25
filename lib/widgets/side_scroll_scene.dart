@@ -285,20 +285,26 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Bed object placement (normalised to scene size, mutable so the
   // adjustment mode can drag + resize it live). Defaults dialled in
   // via the adjust mode and baked back here.
-  // PAILLASSE (couchage de départ) : natte de paille posée au sol, MAIS bien
-  // ENFONCÉE dans le wagon (au fond, comme l'ancien lit) — pas au ras du bord
-  // avant. `_bedTop` remonté pour la mettre en profondeur ; le sommeil suit.
+  // COUCHAGE — deux états : PAILLASSE (paille au sol, dès G1) puis VRAI LIT
+  // (`asset_realbed`, posé à G5 quand la sœur arrive). Le lit `bed.png` reprend
+  // sa géométrie d'origine (plus haute) ; la paillasse est plate au sol. Tout
+  // est enfoncé dans le wagon (au fond). La pose de sommeil suit `_bedTop`.
+  bool get _realBed =>
+      GameState.instance.debugMode ||
+      GameState.instance.cardFlags.contains('asset_realbed');
+  String get _bedAsset =>
+      _realBed ? 'assets/objects/bed.png' : 'assets/objects/paillasse.png';
   final double _bedLeft = 0.205;
-  final double _bedTop = 0.50;
-  final double _bedWidth = 0.30;
+  double get _bedTop => _realBed ? 0.448 : 0.50;
+  double get _bedWidth => _realBed ? 0.28 : 0.30;
 
   // When the heroine arrived at the bed via a double-tap on it, render
   // the sleep sprite ON the mattress (instead of on the floor). Offsets
   // are normalised to the scene size, position is relative to the
   // bed's centre/top so it stays glued to the bed as it moves.
   bool _sleepOnBed = false;
-  final double _sleepBedOffsetX = 0.0;   // centré sur le centre de la paillasse
-  final double _sleepBedOffsetY = 0.06;  // couchée À PLAT sur la natte (au sol)
+  final double _sleepBedOffsetX = 0.0;   // centré sur le centre du couchage
+  double get _sleepBedOffsetY => _realBed ? 0.115 : 0.06; // lit haut / natte plate
   final double _sleepBedScale = 0.34;    // longueur corps en fraction de h
 
   // Props installés dans le wagon — chaque entry contient sa position
@@ -1667,9 +1673,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           width: w * _bedWidth,
                           child: _nightTint(
                             Image.asset(
-                              // Paillasse (paille au sol). Le lit `bed.png` est
-                              // gardé pour un futur déblocage « vrai lit ».
-                              'assets/objects/paillasse.png',
+                              // Paillasse (G1) -> vrai lit `bed.png` (G5).
+                              _bedAsset,
                               fit: BoxFit.contain,
                             ),
                           ),

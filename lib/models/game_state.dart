@@ -743,6 +743,7 @@ class GameState extends ChangeNotifier {
   final List<String> pendingUnlocks = [];
   static const Map<String, String> unlockNames = {
     'asset_bed': 'la paillasse',
+    'asset_realbed': 'un vrai lit',
     'asset_bowl': 'la gamelle',
     'asset_notebook': 'le carnet',
     'asset_firstaid': 'la trousse de secours',

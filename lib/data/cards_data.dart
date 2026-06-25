@@ -1,8 +1,6 @@
-// Contenu narratif du mode cartes (porté depuis docs/train_cosy_*.twee).
-//
-// Source de vérité narrative = les fichiers Twine dans docs/. Ici c'est la
-// version "jouable" : 14 gares (avec variantes selon flags) + un paquet de
-// remplissage par segment, taggé repeatable / oneshot pour le tirage.
+// Contenu narratif du mode cartes. CE FICHIER est désormais la SOURCE DE VÉRITÉ
+// (le .twee d'origine a été supprimé). 14 gares (avec variantes selon flags) +
+// un paquet de remplissage par segment, taggé repeatable / oneshot pour le tirage.
 //
 // Flags utilisés : aLeChien (chien recueilli),
 // aLaSoeur (sœur retrouvée gare 5), soeurProtegee (gestes de soin,
@@ -223,10 +221,10 @@ List<StoryCard> _gare5(Set<String> f) => [
             ? "Une silhouette menue, recroquevillée au milieu du pont. À son cou, un foulard rouge à pois — le jumeau de celui que tu as serré de gare en gare, ton fil d'Ariane vers elle. Tu cesses de respirer. Tu savais. Tu as toujours su. C'est elle. C'est ta petite sœur."
             : "Une silhouette menue, recroquevillée au milieu du pont, te barre la route. Elle lève la tête à la lumière de la loco. Tu cesses de respirer. C'est elle. C'est ta petite sœur.",
         left: _c("Courir la serrer dans tes bras",
-            fx: {Stat.moral: 40, Stat.faim: -6}, flags: ['aLaSoeur'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi — une bouche de plus à nourrir, et tu n'y penses même pas.",
+            fx: {Stat.moral: 40, Stat.faim: -6}, flags: ['aLaSoeur', 'asset_realbed'], result: "Tu sautes du train, tu la soulèves, vous pleurez. Le monde mort, un instant, n'existe plus. Elle monte avec toi — une bouche de plus à nourrir, et tu n'y penses même pas. Le soir, tu lui montes un vrai lit dans le wagon : fini la paillasse à même le sol.",
             reaction: "Ta sœur, le visage enfoui dans ton cou : « Je savais que tu viendrais. Je l'ai dit à tout le monde. »"),
         right: _c("La couvrir et vérifier qu'elle va bien",
-            fx: {Stat.moral: 34, Stat.faim: -8, Stat.soif: -4}, flags: ['aLaSoeur', 'soeurProtegee'], result: "Avant les larmes, tu l'enveloppes, tu palpes ses bras gelés, tu la fais boire et manger sur tes propres réserves. Elle est entière. ELLE EST LÀ. Puis seulement tu t'effondres de soulagement.",
+            fx: {Stat.moral: 34, Stat.faim: -8, Stat.soif: -4}, flags: ['aLaSoeur', 'soeurProtegee', 'asset_realbed'], result: "Avant les larmes, tu l'enveloppes, tu palpes ses bras gelés, tu la fais boire et manger sur tes propres réserves. Elle est entière. ELLE EST LÀ. Le soir, tu lui montes un vrai lit dans le wagon : fini la paillasse à même le sol.",
             reaction: "Ta sœur, à mi-voix : « Tu as les mains qui tremblent. C'est toi qu'il faut réchauffer, maintenant. »"),
         art: CardArt.sister,
       ),
@@ -1263,14 +1261,6 @@ final List<StoryCard> kSouvenirCards = [
           result: "Un rêve ne nourrit personne. Tu te lèves — les mains tremblantes."),
       oneshot: true, requires: (f) => f.contains('souvenir_reve'),
       art: CardArt.memory),
-  _filler('SV_peche',
-      "Au bout de la ligne, ce n'est pas un poisson : un petit ours en peluche gorgé d'eau, un œil pendant. Quelqu'un l'a aimé, avant.",
-      _c("Le garder, le faire sécher",
-          result: "Tu l'accroches près de la fenêtre. Une présence muette de plus dans le wagon."),
-      _c("Le remettre à l'eau noire",
-          result: "Tu le laisses repartir au fil de l'eau. Certaines choses, on ne peut pas les sauver."),
-      oneshot: true, requires: (f) => f.contains('souvenir_peche'),
-      art: CardArt.water),
   _filler('SV_carnet',
       "Une page du carnet que tu n'avais pas relue. Ton écriture d'avant, ronde, insouciante : une liste de courses, un cœur griffonné. La fille qui a écrit ça ne sait pas encore.",
       _c("Continuer à écrire dessous",

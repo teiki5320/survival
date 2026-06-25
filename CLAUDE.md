@@ -371,10 +371,10 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 ## Ce qui reste à faire
 
 ### 🚨 Priorité — développer le contenu narratif
-- **Étoffer les cartes** : porter plus de fillers depuis
-  `docs/train_cosy_trame.twee` (357 fillers ; **ignorer ~92 passages de l'ancien
-  canon** Vieux/enfant supprimé) pour varier les runs. Rendre chaque gare /
-  chaque menace plus riche, distincte, mémorable.
+- **Étoffer les cartes** : écrire de NOUVEAUX fillers (le `.twee` source a été
+  SUPPRIMÉ — trop périmé après tous les changements, il égarait). Rendre chaque
+  gare / chaque menace plus riche, distincte, mémorable. Écrire le contenu des
+  cartes-souvenirs (placeholders).
 - **Géo de départ** ✅ tranchée : **Kogarashi = la ville natale = la gare 1**
   (pas de nœud séparé ; le train fuit Kogarashi en flammes, 1re halte à sa gare
   en ruines). Wagons traversables dès le départ (option a, décision user).
@@ -387,8 +387,9 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 
 ### Priorité moyenne
 - Crédits de cartes : **garder désactivé** (décision user) — conservé tel quel.
-- Refaire les musiques si besoin. Brancher les 3 autres plantes hydro.
-- Vraie tenue d'hiver (sprites). Poêle interactif à installer.
+- Refaire les musiques si besoin.
+- Vraie tenue d'hiver (sprites) — REPORTÉ à la toute fin (décision user).
+  (Poêle interactif ✅ déjà fait ; bac hydro semer/récolter ✅ déjà fait.)
 
 ### ⚠️ Pièges connus / conventions
 - **Golden rule** (voir section Communication) : VÉRIFIER le code/les assets
