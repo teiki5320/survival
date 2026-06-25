@@ -1279,6 +1279,14 @@ final List<StoryCard> kSouvenirCards = [
           result: "Trop. Tu refermes le carnet d'un coup sec."),
       oneshot: true, requires: (f) => f.contains('souvenir_carnet'),
       art: CardArt.memory),
+  _filler('SV_radio',
+      "Tu as tourné la manivelle longtemps, ce soir. Dans la friture, une bribe : « …vers le nord… ne lâchez pas… » Une voix de femme, lointaine, hachée. Tu la perds aussitôt. Mais elle existait. Quelqu'un parle, là-dehors.",
+      _c("T'accrocher à cette voix",
+          result: "Tu notes l'heure, la fréquence. Demain tu réessaieras. Tant qu'une voix appelle, tu n'es pas seule au monde."),
+      _c("Te dire que c'est le hasard des ondes",
+          result: "Une interférence, sûrement. Tu coupes la radio. Mais le « ne lâchez pas » te tient éveillée une partie de la nuit."),
+      oneshot: true, requires: (f) => f.contains('souvenir_radio'),
+      art: CardArt.radio),
 ];
 
 /// Ajoute les cartes-souvenirs au paquet d'un segment (déblocage géré par flag).

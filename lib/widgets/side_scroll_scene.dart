@@ -1674,6 +1674,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
+                      // RADIO À MANIVELLE (salon) : objet animé (manivelle +
+                      // éclairs) débloqué à G4 (flag aLaRadio). Tap direct ->
+                      // débloque une carte-souvenir « radio » (narratif).
+                      if (!widget.secondWagon &&
+                          !widget.isAtelier &&
+                          (GameState.instance.debugMode ||
+                              GameState.instance.cardFlags.contains('aLaRadio')))
+                        Positioned(
+                          left: w * 0.62,
+                          top: h * 0.46,
+                          width: w * 0.085,
+                          child: _RadioProp(night: widget.night),
+                        ),
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
@@ -3949,4 +3962,90 @@ class _ScarfPainter extends CustomPainter {
       old.sway != sway ||
       old.facingRight != facingRight ||
       old.neckCx != neckCx;
+}
+
+/// RADIO À MANIVELLE animée (16 frames : manivelle qui tourne + éclairs au
+/// dessus de l'antenne). Objet du salon débloqué à G4. Tap direct -> débloque
+/// la carte-souvenir « radio » (gain NARRATIF, pas de stat). Boucle en continu
+/// pour montrer qu'« elle capte ».
+class _RadioProp extends StatefulWidget {
+  const _RadioProp({required this.night});
+  final bool night;
+  @override
+  State<_RadioProp> createState() => _RadioPropState();
+}
+
+class _RadioPropState extends State<_RadioProp>
+    with SingleTickerProviderStateMixin {
+  static const int _frames = 16;
+  late final AnimationController _c;
+  bool _flash = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1500))
+      ..repeat();
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  void _tap() {
+    GameState.instance.unlockSouvenir('radio');
+    setState(() => _flash = true);
+    Future.delayed(const Duration(milliseconds: 1100), () {
+      if (mounted) setState(() => _flash = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _tap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, __) {
+          final f = (_c.value * _frames).floor().clamp(0, _frames - 1) + 1;
+          Widget img = Image.asset(
+            'assets/objects/radio_$f.png',
+            fit: BoxFit.contain,
+            gaplessPlayback: true,
+          );
+          if (widget.night) {
+            img = ColorFiltered(
+              colorFilter: const ColorFilter.mode(
+                  Color(0xFF6A7CA0), BlendMode.modulate),
+              child: img,
+            );
+          }
+          if (_flash) {
+            img = Stack(
+              alignment: Alignment.center,
+              children: [
+                img,
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                          color: const Color(0xFFE8C56A).withValues(alpha: 0.5),
+                          blurRadius: 24,
+                          spreadRadius: 6),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
+          return img;
+        },
+      ),
+    );
+  }
 }
