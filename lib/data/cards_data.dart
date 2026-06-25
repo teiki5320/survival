@@ -1277,6 +1277,25 @@ final List<StoryCard> kSouvenirCards = [
           result: "Une interférence, sûrement. Tu coupes la radio. Mais le « ne lâchez pas » te tient éveillée une partie de la nuit."),
       oneshot: true, requires: (f) => f.contains('souvenir_radio'),
       art: CardArt.radio),
+  // Débloquée en s'occupant de la sœur (tap sur elle au wagon). N'a de sens
+  // qu'après l'avoir retrouvée (G5) — la source n'existe pas avant, donc OK.
+  _filler('SV_soeur',
+      "Elle s'est endormie la tête sur tes genoux, la bouche entrouverte, un de tes vieux pulls roulé en boule contre sa joue. Tu n'oses plus bouger. Tu regardes sa respiration soulever la couverture, encore et encore. Vivante. Là. À toi de la garder ainsi.",
+      _c("Lui caresser les cheveux, doucement",
+          result: "Elle marmonne ton nom dans son sommeil et se love un peu plus contre toi. Tu resterais là mille ans."),
+      _c("Veiller, le regard sur la voie",
+          result: "Pendant qu'elle dort, tu montes la garde sur le monde noir qui défile. C'est ton tour de tenir, maintenant."),
+      oneshot: true, requires: (f) => f.contains('souvenir_soeur'),
+      art: CardArt.sister),
+  // Débloquée en regardant par la fenêtre du wagon (contemplation, pur cosy).
+  _filler('SV_fenetre',
+      "Front contre la vitre froide, tu regardes le monde mort défiler. Une ville engloutie par le lierre. Un cerf, immobile dans la cendre, qui suit le train des yeux. Une aurore pâle, très loin, par-dessus les ruines. Le monde a fini — et il est, malgré tout, terriblement beau.",
+      _c("Graver l'image, juste pour toi",
+          result: "Tu fixes le paysage jusqu'à ce qu'il s'efface. Personne ne le verra plus jamais comme ça. Toi, si."),
+      _c("Fermer le rideau, garder la chaleur",
+          result: "Trop de beauté triste pour ce soir. Tu tires le rideau sur le dehors et tu reviens à la lumière de la lampe."),
+      oneshot: true, requires: (f) => f.contains('souvenir_fenetre'),
+      art: CardArt.hope),
 ];
 
 /// Ajoute les cartes-souvenirs au paquet d'un segment (déblocage géré par flag).

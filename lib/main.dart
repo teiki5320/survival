@@ -192,6 +192,30 @@ class _WagonScreenState extends State<WagonScreen>
   // aller-retour loco/map ne doit pas réarmer le cooldown = exploit).
   void _comfortMoral(int amount) => GameState.instance.tryComfortMoral(amount);
 
+  // SŒUR QUI PARLE : répliques affichées en bulle quand on s'occupe d'elle.
+  // Lui donne une présence vivante entre les cartes. Débloque aussi la carte-
+  // souvenir « sœur » (narratif). Pool tournant ; les répliques chien ne
+  // sortent que si le chien est là.
+  int _sisterLineIdx = 0;
+  static const List<String> _sisterLines = [
+    '« Tu crois qu\'ils nous attendent, au nord ? »',
+    '« Raconte-moi encore la maison. »',
+    '« J\'ai froid aux pieds. »',
+    '« Quand on sera arrivées, on fera quoi ? »',
+    '« Je suis pas fatiguée… (elle bâille) »',
+    '« Maman dit toujours qu\'il faut pas avoir peur. »',
+  ];
+  void _sisterTalk() {
+    final dog = GameState.instance.dogShown;
+    final lines = [
+      ..._sisterLines,
+      if (dog) '« Le chien a le droit de dormir avec moi ? »',
+    ];
+    _heroFloat(lines[_sisterLineIdx % lines.length]);
+    _sisterLineIdx++;
+    GameState.instance.unlockSouvenir('soeur');
+  }
+
   // Déclenche un float ancré sur Shen dans la scène (retour d'action / refus).
   void _heroFloat(String text) {
     setState(() {
@@ -289,6 +313,9 @@ class _WagonScreenState extends State<WagonScreen>
       _unlocked('stove') && _near(GameState.instance.w1x('poele'));
   bool get _atHydro =>
       _unlocked('hydro') && _near(GameState.instance.w1x('bac'));
+  // Fenêtre contemplative (salon) : zone près d'une vitre, libre de props.
+  static const double _windowX = 0.45;
+  bool get _atWindow => _inLiving && _near(_windowX);
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
@@ -820,6 +847,7 @@ class _WagonScreenState extends State<WagonScreen>
               final wasPoele = _atPoele;
               final wasDog = _atDog;
               final wasHydro = _atHydro;
+              final wasWin = _atWindow;
               _heroX = x;
               if (wasL != _atLeftDoor ||
                   wasR != _atRightDoor ||
@@ -830,7 +858,8 @@ class _WagonScreenState extends State<WagonScreen>
                   wasStove != _atStove ||
                   wasPoele != _atPoele ||
                   wasDog != _atDog ||
-                  wasHydro != _atHydro) {
+                  wasHydro != _atHydro ||
+                  wasWin != _atWindow) {
                 setState(() {});
               }
             },
@@ -1215,6 +1244,9 @@ class _WagonScreenState extends State<WagonScreen>
     if (_inLiving && _atNotebook) {
       return (id: 'notebook', text: 'Lis un moment : ça apaise.');
     }
+    if (_inLiving && _atWindow) {
+      return (id: 'window', text: 'Regarde le paysage défiler.');
+    }
     if (_inLiving && _atDog) {
       return (id: 'dog', text: 'Caresse le chien : ça réchauffe le cœur.');
     }
@@ -1272,14 +1304,26 @@ class _WagonScreenState extends State<WagonScreen>
       icon = Icons.shower;
       action = () => setState(() => _showerToken++);
     } else if (_atSister) {
-      // Test : tap près de la sœur -> alterne lecture / câlin.
+      // Tap près de la sœur -> alterne lecture / câlin + elle PARLE (bulle) +
+      // débloque la carte-souvenir « sœur ».
       icon = Icons.favorite;
-      action = () => setState(() {
-            _duoAnimToPlay =
-                _duoAnimToPlay == 'readduo' ? 'sister_hug' : 'readduo';
-            _duoToken++;
-            _comfortMoral(8);
-          });
+      action = () {
+        setState(() {
+          _duoAnimToPlay =
+              _duoAnimToPlay == 'readduo' ? 'sister_hug' : 'readduo';
+          _duoToken++;
+          _comfortMoral(8);
+        });
+        _sisterTalk();
+      };
+    } else if (_inLiving && _atWindow) {
+      // Fenêtre contemplative : regarder le monde mort défiler -> carte-
+      // souvenir « fenêtre » (pur narratif, pas de stat).
+      icon = Icons.visibility;
+      action = () {
+        GameState.instance.unlockSouvenir('fenetre');
+        _heroFloat('Le monde mort défile… 🌫️');
+      };
     } else if (_inLiving && _atBed) {
       icon = Icons.bed;
       action = () => setState(() => _lieDownToken++);
