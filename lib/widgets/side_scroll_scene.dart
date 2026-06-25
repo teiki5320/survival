@@ -285,11 +285,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Bed object placement (normalised to scene size, mutable so the
   // adjustment mode can drag + resize it live). Defaults dialled in
   // via the adjust mode and baked back here.
-  // PAILLASSE (couchage de départ) : natte de paille PLATE posée au SOL — bien
-  // plus basse que l'ancien lit (qui montait haut). `_bedTop` descendu pour
-  // qu'elle repose sur le plancher ; la position de sommeil suit (couplée).
+  // PAILLASSE (couchage de départ) : natte de paille posée au sol, MAIS bien
+  // ENFONCÉE dans le wagon (au fond, comme l'ancien lit) — pas au ras du bord
+  // avant. `_bedTop` remonté pour la mettre en profondeur ; le sommeil suit.
   final double _bedLeft = 0.205;
-  final double _bedTop = 0.66;
+  final double _bedTop = 0.50;
   final double _bedWidth = 0.30;
 
   // When the heroine arrived at the bed via a double-tap on it, render
