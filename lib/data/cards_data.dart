@@ -1506,10 +1506,34 @@ final List<StoryCard> kStateCards = [
       art: CardArt.hope),
 ];
 
-/// Ajoute les cartes-souvenirs ET les cartes d'état au paquet d'un segment
-/// (déblocage géré par flag / état live).
+/// CARTES CHIEN (#5c) : le chien UTILE — il flaire, alerte, déterre. Gated
+/// `aLeChien`, oneshot. Réaction du chien sous la conséquence.
+final List<StoryCard> kDogCards = [
+  _filler('DOG_trouve',
+      "Le chien se met soudain à gratter furieusement la terre près d'une halte abandonnée, truffe au sol, queue frétillante. Il a senti quelque chose là-dessous.",
+      _c("Creuser avec lui",
+          fx: {Stat.faim: 12, Stat.bois: -5},
+          result: "Vous dégagez une caisse enterrée : des conserves oubliées, intactes ! L'arrêt a coûté un peu de feu, mais quel festin.",
+          reaction: "Le chien aboie de fierté et réclame sa part — il l'a bien méritée."),
+      _c("Le rappeler, ne pas traîner à découvert",
+          fx: {Stat.moral: -5, Stat.bois: 4},
+          result: "Tu siffles, tu repars sans t'attarder ni gaspiller de feu. Le chien te lance un regard déçu par-dessus son épaule."),
+      oneshot: true, requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
+  _filler('DOG_alerte',
+      "En pleine nuit, le chien bondit, poils dressés, et lâche une série d'aboiements rauques vers l'arrière du convoi. Des silhouettes, peut-être, dans le noir.",
+      _c("Te fier à lui, couper les feux",
+          fx: {Stat.bois: -6, Stat.moral: 5},
+          result: "Tu éteins tout et tu passes en fantôme. Des pillards fouillaient la voie — sans le chien, ils t'auraient eue. Rouler à l'aveugle a brûlé du bois, mais tu es passée.",
+          reaction: "Le chien se tait enfin, la tête sur tes genoux. Bon chien. Le meilleur."),
+      _c("Le faire taire, ne pas paniquer",
+          fx: {Stat.moral: -7},
+          result: "Tu le calmes et tu continues, tendue. Rien ne se passe… cette fois. Mais tu n'as pas fermé l'œil, et lui non plus."),
+      oneshot: true, requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
+];
+
+/// Ajoute les cartes-souvenirs, d'état et chien au paquet d'un segment.
 List<StoryCard> _withSouv(List<StoryCard> base) =>
-    [...base, ...kSouvenirCards, ...kStateCards];
+    [...base, ...kSouvenirCards, ...kStateCards, ...kDogCards];
 
 /// Souvenirs déjà COLLECTÉS cette partie (flag `souvenir_*` posé par une
 /// activité du wagon) -> alimentent le CARNET DE VOYAGE. Ordre = ordre de

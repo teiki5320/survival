@@ -600,7 +600,35 @@ class _WagonScreenState extends State<WagonScreen>
       setState(() => _night = !_night);
       GameState.instance.setNight(_night);
       _refreshMusic();
+      _routinePrompt(); // #7 — pensée matin/soir (ancre le rythme)
     });
+  }
+
+  // #7 — ROUTINE : une pensée douce au lever (jour) et au coucher (nuit), pour
+  // donner un rythme au train sans en faire une corvée. Seulement dans le wagon.
+  void _routinePrompt() {
+    final inWagon = !_inCards &&
+        !_onMap &&
+        !_inLocomotive &&
+        !_inShop &&
+        !_inWardrobe &&
+        !_inCarnet;
+    if (!inWagon) return;
+    if (_night) {
+      _heroFloat('💤 La nuit tombe… repose-toi.');
+    } else {
+      // Le matin, on pointe le besoin le plus criant du moment.
+      final gs = GameState.instance;
+      final needs = {
+        'bois 🪵': gs.cardBois,
+        'soif 💧': gs.cardSoif,
+        'faim 🍖': gs.cardFaim,
+      };
+      final low = needs.entries.reduce((a, b) => a.value <= b.value ? a : b);
+      _heroFloat(low.value < 35
+          ? '☀️ Un jour de plus. Pense à ${low.key}.'
+          : '☀️ Un jour de plus vers le nord.');
+    }
   }
 
   /// Rythme jour/nuit calé sur le VOYAGE (option 3) : on part le matin (jour),
