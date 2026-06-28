@@ -1455,6 +1455,12 @@ final List<StoryCard> kSouvenirCards = [
 /// Ajoute les cartes-souvenirs au paquet d'un segment (déblocage géré par flag).
 List<StoryCard> _withSouv(List<StoryCard> base) => [...base, ...kSouvenirCards];
 
+/// Souvenirs déjà COLLECTÉS cette partie (flag `souvenir_*` posé par une
+/// activité du wagon) -> alimentent le CARNET DE VOYAGE. Ordre = ordre de
+/// définition (stable). Le carnet se remplit au fil des gestes du joueur.
+List<StoryCard> collectedSouvenirs(Set<String> flags) =>
+    kSouvenirCards.where((c) => c.requires != null && c.requires!(flags)).toList();
+
 final List<Segment> trainCosyScenario = [
   Segment(gareCards: _gare1, fillerPool: _withSouv(_fill1), drawCount: 4),
   Segment(gareCards: _gare2, fillerPool: _withSouv(_fill2), drawCount: 4),
