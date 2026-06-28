@@ -1431,6 +1431,15 @@ final List<StoryCard> kSouvenirCards = [
           result: "Une interférence, sûrement. Tu coupes la radio. Mais le « ne lâchez pas » te tient éveillée une partie de la nuit."),
       oneshot: true, requires: (f) => f.contains('souvenir_radio'),
       art: CardArt.radio),
+  // #9 — la face SOMBRE de la radio (la manivelle est un pari).
+  _filler('SV_radio_sombre',
+      "Tu tournes la manivelle, le cœur plein d'espoir. Mais ce soir, dans la friture, une voix d'homme, éteinte : « …plus personne au nord… inutile… rentrez chez vous… » Puis le silence. Un silence qui pèse des tonnes.",
+      _c("Refuser d'y croire",
+          result: "Tu coupes la radio d'un geste sec. Il ment, il se trompe, il désespère — pas toi. Pas encore. Mais sa voix te suit dans le noir."),
+      _c("Encaisser le coup",
+          result: "Et s'il avait raison ? Le doute s'installe, froid, et te tient éveillée une partie de la nuit."),
+      oneshot: true, requires: (f) => f.contains('souvenir_radio_sombre'),
+      art: CardArt.radio),
   // Débloquée en s'occupant de la sœur (tap sur elle au wagon). N'a de sens
   // qu'après l'avoir retrouvée (G5) — la source n'existe pas avant, donc OK.
   _filler('SV_soeur',

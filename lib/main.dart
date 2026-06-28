@@ -156,7 +156,13 @@ class _WagonScreenState extends State<WagonScreen>
   // Taille du chien (fraction de la hauteur scène). Réglable via HUD.
   // Chien un peu plus grand pour mieux matcher le husky des sprites de
   // caresse (avant il faisait chiot riquiqui à côté).
-  final double _dogHeight = 0.17;
+  // #5 — LE CHIOT GRANDIT : recueilli petit (g2), il grossit au fil du voyage.
+  double get _dogHeight {
+    final g = GameState.instance.cardGareIndex ?? 0;
+    if (g >= 7) return 0.22; // adulte (zone froide et au-delà)
+    if (g >= 4) return 0.18; // jeune chien
+    return 0.14; // chiot
+  }
   // True while the wagon scene is playing the door_push animation,
   // before the cross-fade to the locomotive. Disables the door FAB so
   // the player can't spam-tap and restart the animation halfway.
@@ -199,23 +205,31 @@ class _WagonScreenState extends State<WagonScreen>
   // souvenir « sœur » (narratif). Pool tournant ; les répliques chien ne
   // sortent que si le chien est là.
   int _sisterLineIdx = 0;
-  static const List<String> _sisterLines = [
+  // #5 — La sœur est ton MIROIR ÉMOTIONNEL : ses répliques suivent l'Espoir.
+  static const List<String> _sisterLinesUp = [
     '« Tu crois qu\'ils nous attendent, au nord ? »',
     '« Raconte-moi encore la maison. »',
-    '« J\'ai froid aux pieds. »',
     '« Quand on sera arrivées, on fera quoi ? »',
-    '« Je suis pas fatiguée… (elle bâille) »',
+    '« Regarde, j\'ai dessiné le train ! »',
     '« Maman dit toujours qu\'il faut pas avoir peur. »',
   ];
+  static const List<String> _sisterLinesDown = [
+    '« On va y arriver, dis ? Dis-moi qu\'on va y arriver. »',
+    '« J\'ai froid… et un peu peur. »',
+    '« Tu pleures pas, toi, hein ? »',
+    '« Je veux rentrer à la maison. »',
+    '« Serre-moi fort, s\'il te plaît. »',
+  ];
   void _sisterTalk() {
-    final dog = GameState.instance.dogShown;
+    final gs = GameState.instance;
+    final up = gs.cardMoral >= 45; // espoir haut -> joyeuse ; bas -> inquiète
     final lines = [
-      ..._sisterLines,
-      if (dog) '« Le chien a le droit de dormir avec moi ? »',
+      ...(up ? _sisterLinesUp : _sisterLinesDown),
+      if (up && gs.dogShown) '« Le chien a le droit de dormir avec moi ? »',
     ];
     _heroFloat(lines[_sisterLineIdx % lines.length]);
     _sisterLineIdx++;
-    GameState.instance.unlockSouvenir('soeur');
+    gs.unlockSouvenir('soeur');
   }
 
   // Déclenche un float ancré sur Shen dans la scène (retour d'action / refus).

@@ -306,8 +306,13 @@ class GameState extends ChangeNotifier {
   /// Débloque une CARTE-SOUVENIR (« carte personnalisée ») : pose le flag
   /// `souvenir_<key>` qui rend la carte narrative correspondante éligible dans
   /// le prochain segment de cartes. Aucun effet de stat. Vue une seule fois.
-  void unlockSouvenir(String key) {
+  void unlockSouvenir(String key, {int hope = 3}) {
     if (cardFlags.add('souvenir_$key')) {
+      // ESPOIR (#8) : un souvenir vécu nourrit l'espoir (boostMoral ignore le
+      // blocage froid -> un souvenir réchauffe même dans le grand nord glacé).
+      // Le moral vit de l'ÉMOTION, pas de la survie. `hope` peut être NÉGATIF
+      // (#9 radio à double tranchant : une bribe désespérée brise l'espoir).
+      if (hope != 0) boostMoralComfort(hope);
       notifyListeners();
       save();
     }

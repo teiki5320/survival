@@ -4001,7 +4001,13 @@ class _RadioPropState extends State<_RadioProp>
   }
 
   void _tap() {
-    GameState.instance.unlockSouvenir('radio');
+    // #9 — PARI ÉMOTIONNEL : ~40% du temps, la radio crache une bribe
+    // désespérée (souvenir sombre, -espoir) au lieu d'une voix d'espoir.
+    if (math.Random().nextDouble() < 0.4) {
+      GameState.instance.unlockSouvenir('radio_sombre', hope: -5);
+    } else {
+      GameState.instance.unlockSouvenir('radio');
+    }
     setState(() => _flash = true);
     Future.delayed(const Duration(milliseconds: 1100), () {
       if (mounted) setState(() => _flash = false);

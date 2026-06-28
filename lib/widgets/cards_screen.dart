@@ -70,13 +70,13 @@ class _CardsScreenState extends State<CardsScreen>
     Stat.soif: '💧',
     Stat.faim: '🍖',
     Stat.bois: '🪵',
-    Stat.moral: '❤️',
+    Stat.moral: '🕯️', // Espoir (#8)
   };
   static const Map<Stat, Color> _color = {
     Stat.soif: Color(0xFF6FAEDF),
     Stat.faim: Color(0xFFE89B5C),
     Stat.bois: Color(0xFFB5854E),
-    Stat.moral: Color(0xFFD98A8A),
+    Stat.moral: Color(0xFFE8C56A), // Espoir (#8)
   };
 
   @override

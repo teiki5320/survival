@@ -25,13 +25,13 @@ class StatRingsBar extends StatelessWidget {
     'soif': '💧',
     'faim': '🍖',
     'bois': '🪵',
-    'moral': '❤️',
+    'moral': '🕯️', // ESPOIR (#8) : une flamme qu'on garde allumée, pas une survie
   };
   static const Map<String, Color> color = {
     'soif': Color(0xFF6FAEDF),
     'faim': Color(0xFFE89B5C),
     'bois': Color(0xFFB5854E),
-    'moral': Color(0xFFD98A8A),
+    'moral': Color(0xFFE8C56A), // or chaud = l'Espoir, distinct des survies
   };
 
   @override
