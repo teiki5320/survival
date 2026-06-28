@@ -444,6 +444,11 @@ class _WagonScreenState extends State<WagonScreen>
       final gs = GameState.instance;
       gs.nudgeCardStat('faim', -1);
       gs.nudgeCardStat('soif', -1);
+      // #3 — malus de panne (passif, tant que pas réparée) : fuite gaspille
+      // l'eau, vitre fissurée = froid/inconfort. Poêle (1) : pas de drain ici,
+      // mais il ne chauffe plus (poeleOn forcé à false).
+      if (gs.activePanne == 2) gs.nudgeCardStat('soif', -1);
+      if (gs.activePanne == 3) gs.nudgeCardStat('moral', -1);
       // Besoins de confort (sommeil/hygiène) : décroissance lente, érodent le
       // moral si négligés. Remontés en dormant / en se lavant.
       gs.decayComfortNeeds();
@@ -1103,6 +1108,23 @@ class _WagonScreenState extends State<WagonScreen>
                   ),
                   const SizedBox(height: 12),
                 ],
+                // ===== RÉPARER (#3) : visible seulement s'il y a une panne =====
+                if (GameState.instance.activePanne != 0) ...[
+                  FloatingActionButton.small(
+                    heroTag: 'repair',
+                    tooltip: GameState
+                        .panneLabel[GameState.instance.activePanne],
+                    backgroundColor: const Color(0xFFD98A5C),
+                    foregroundColor: Colors.white,
+                    onPressed: () {
+                      _triggerSpecial('use_back', frames: 24);
+                      GameState.instance.repairPanne();
+                      _heroFloat('Réparé ✅');
+                    },
+                    child: const Icon(Icons.build),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 // ===== BOUTON BOUTIQUE (toujours visible, confort only) =====
                 FloatingActionButton.small(
                   heroTag: 'open_shop',
@@ -1445,9 +1467,15 @@ class _WagonScreenState extends State<WagonScreen>
       icon = Icons.local_dining;
       action = () => setState(() => _cuisiniereToken++);
     } else if (_inAtelier && _atPoele) {
-      // Poêle à bois : allumer/éteindre (brûle du bois doucement).
+      // Poêle à bois : allumer/éteindre. Si en PANNE (#3), il faut le réparer.
       icon = Icons.local_fire_department;
-      action = () => setState(() => _poeleToken++);
+      action = () {
+        if (GameState.instance.activePanne == 1) {
+          _heroFloat('🔧 Le poêle est en panne — répare-le.');
+          return;
+        }
+        setState(() => _poeleToken++);
+      };
     } else if (_doorPushing) {
       icon = Icons.meeting_room;
     }

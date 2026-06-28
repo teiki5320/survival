@@ -54,6 +54,7 @@ class GameState extends ChangeNotifier {
       final data = jsonEncode({
         'lampOn': _lampOn,
         'poeleOn': poeleOn,
+        'panne': activePanne,
         'bacGrowth': bacGrowth, 'bacSown': bacSown,
         'debugMode': debugMode,
         'seenTips': seenTips.toList(),
@@ -106,6 +107,7 @@ class GameState extends ChangeNotifier {
       final data = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       _lampOn = data['lampOn'] as bool? ?? true;
       poeleOn = data['poeleOn'] as bool? ?? false;
+      activePanne = ((data['panne'] as num?)?.toInt() ?? 0).clamp(0, 3);
       bacGrowth = (data['bacGrowth'] as num?)?.toDouble() ?? 0.0;
       bacSown = data['bacSown'] as bool? ?? false;
       debugMode = data['debugMode'] as bool? ?? false;
@@ -730,6 +732,31 @@ class GameState extends ChangeNotifier {
     cardSoif = (cardSoif + 5).clamp(0, statMax);
     cardFaim = (cardFaim + 7).clamp(0, statMax);
     cardMoral = (cardMoral + 4).clamp(0, statMax);
+    rollPanne(); // #3 — petite chance de panne à l'arrivée en gare
+    notifyListeners();
+  }
+
+  // #3 — PANNES (légères) : 0 aucune · 1 poêle en panne · 2 fuite (filtre) ·
+  // 3 vitre fissurée. Une seule à la fois, ~22% par gare. Malus passif tant que
+  // pas réparée (géré dans main). Réparation = geste au wagon. Persisté.
+  int activePanne = 0;
+  static const List<String> panneLabel = [
+    '', // 0
+    '🔧 Le poêle est en panne.',
+    '💧 Une canalisation fuit.',
+    '🪟 Une vitre s\'est fissurée.',
+  ];
+  void rollPanne() {
+    if (activePanne != 0) return; // jamais deux à la fois
+    if (_thoughtRng.nextInt(100) < 22) {
+      activePanne = 1 + _thoughtRng.nextInt(3);
+      if (activePanne == 1) poeleOn = false; // poêle cassé = éteint
+    }
+  }
+
+  void repairPanne() {
+    if (activePanne == 0) return;
+    activePanne = 0;
     notifyListeners();
   }
 
@@ -953,6 +980,7 @@ class GameState extends ChangeNotifier {
     // de manteau chaud hérités d'une partie précédente (sinon récolte/chaleur
     // gratuites au départ).
     poeleOn = false;
+    activePanne = 0;
     bacSown = false;
     bacGrowth = 0.0;
     outfitWarmth = 0;
