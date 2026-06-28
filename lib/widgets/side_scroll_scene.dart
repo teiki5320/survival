@@ -295,7 +295,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   String get _bedAsset =>
       _realBed ? 'assets/objects/bed.png' : 'assets/objects/paillasse.png';
   final double _bedLeft = 0.205;
-  double get _bedTop => _realBed ? 0.448 : 0.50;
+  double get _bedTop => _realBed ? 0.448 : 0.60; // paillasse descendue au SOL
   double get _bedWidth => _realBed ? 0.28 : 0.30;
 
   // When the heroine arrived at the bed via a double-tap on it, render
@@ -304,7 +304,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // bed's centre/top so it stays glued to the bed as it moves.
   bool _sleepOnBed = false;
   final double _sleepBedOffsetX = 0.0;   // centré sur le centre du couchage
-  double get _sleepBedOffsetY => _realBed ? 0.115 : 0.06; // lit haut / natte plate
+  double get _sleepBedOffsetY => _realBed ? 0.115 : 0.085; // lit haut / natte au sol
   final double _sleepBedScale = 0.34;    // longueur corps en fraction de h
 
   // Props installés dans le wagon — chaque entry contient sa position
