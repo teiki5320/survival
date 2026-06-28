@@ -164,6 +164,23 @@ class ReignsEngine {
 
   Set<String> get flags => _gs.cardFlags;
 
+  // LIEN TRAIN -> CARTES : drapeaux d'ÉTAT calculés en direct (pas persistés),
+  // unionnés aux flags narratifs pour l'évaluation des `requires`. Permet à des
+  // cartes de n'apparaître/changer que selon l'état réel du train et de Shen.
+  Set<String> _stateFlags() {
+    final s = <String>{};
+    if (_gs.sleepNeed < 20) s.add('etat_epuisee');
+    if (_gs.cardMoral < 25) s.add('etat_demoralisee');
+    if (_gs.feltCold) s.add('etat_froid');
+    if (_gs.poeleOn && _gs.sleepNeed > 60 && _gs.cardMoral > 50) {
+      s.add('etat_choye');
+    }
+    return s;
+  }
+
+  /// Flags effectifs pour évaluer `requires` (narratifs + état live).
+  Set<String> get _evalFlags => {...flags, ..._stateFlags()};
+
   // File des cartes du segment courant : beats de gare puis fillers piochés.
   final List<StoryCard> _queue = [];
 
@@ -245,7 +262,7 @@ class ReignsEngine {
     // flag inatteignable (ex. `aLaRadio` jamais trouvée) ne doit PAS réserver de
     // slot pour finir droppée à l'émission (segment amputé). Une carte
     // conditionnée par un flag que la gare va poser reste, elle, éligible.
-    final potential = {...flags};
+    final potential = {...flags, ..._stateFlags()};
     for (final gc in seg.gareCards(flags)) {
       potential
         ..addAll(gc.left.setFlags)
@@ -279,7 +296,7 @@ class ReignsEngine {
   void _skipDeadHead() {
     while (_queue.isNotEmpty) {
       final c = _queue.first;
-      if (c.requires != null && !c.requires!(flags)) {
+      if (c.requires != null && !c.requires!(_evalFlags)) {
         _queue.removeAt(0); // condition pas remplie -> carte abandonnée
         continue;
       }

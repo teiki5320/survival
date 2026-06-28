@@ -1452,8 +1452,55 @@ final List<StoryCard> kSouvenirCards = [
       art: CardArt.hope),
 ];
 
-/// Ajoute les cartes-souvenirs au paquet d'un segment (déblocage géré par flag).
-List<StoryCard> _withSouv(List<StoryCard> base) => [...base, ...kSouvenirCards];
+/// CARTES D'ÉTAT (lien train -> cartes, #2) : n'apparaissent QUE selon l'état
+/// réel du train/de Shen (drapeaux `etat_*` injectés en direct par le moteur).
+/// Oneshot (1×/run chacune). Modèle dilemme respecté.
+final List<StoryCard> kStateCards = [
+  _filler('ST_epuisee',
+      "Tes paupières pèsent des tonnes, ta tête cogne du nez vers le levier. Tu n'as pas dormi depuis trop longtemps. Encore combien de temps avant de t'écrouler aux commandes ?",
+      _c("Tenir coûte que coûte",
+          fx: {Stat.moral: -7, Stat.faim: -4},
+          result: "Tu serres les dents. Mais tes gestes sont lents, ton jugement trouble, et le voyage te pèse deux fois plus."),
+      _c("Couper les machines, sombrer un moment",
+          fx: {Stat.bois: 6, Stat.moral: 5},
+          result: "Tu laisses le train ralentir et tu t'effondres une heure. Tu perds du terrain — mais tu repars d'aplomb, et le feu a moins brûlé."),
+      oneshot: true, requires: (f) => f.contains('etat_epuisee')),
+  _filler('ST_demoralisee',
+      "Le découragement te submerge d'un coup, là, sans prévenir. À quoi bon avancer ? Le monde est mort, et peut-être les tiens avec.",
+      _c("Repenser à eux, t'accrocher",
+          fx: {Stat.moral: 9, Stat.faim: -4},
+          result: "Tu te forces à revoir leurs visages. Tant qu'il n'y a pas de preuve, tu choisis d'y croire. Ça brûle de l'énergie, mais ça te relève."),
+      _c("Te laisser glisser",
+          fx: {Stat.moral: -5, Stat.bois: 5},
+          result: "Tu cesses de lutter, tu avances en pilote automatique, économe de tout. Le cœur éteint, mais le train tient."),
+      oneshot: true, requires: (f) => f.contains('etat_demoralisee'),
+      art: CardArt.hope),
+  _filler('ST_froid',
+      "Le givre gagne l'intérieur du wagon. Ton haleine fume, tes doigts s'engourdissent. La chaleur fout le camp par toutes les fentes.",
+      _c("Brûler tes réserves pour chauffer",
+          fx: {Stat.bois: -8, Stat.moral: 6},
+          result: "Tu enfournes le bois sans compter. La cabine redevient supportable — au prix de ta soute."),
+      _c("Serrer les dents, économiser le bois",
+          fx: {Stat.moral: -6},
+          result: "Tu gardes le bois pour la route et tu encaisses le froid. Tes membres protestent, ton moral aussi."),
+      oneshot: true, requires: (f) => f.contains('etat_froid'),
+      art: CardArt.cold),
+  _filler('ST_choye',
+      "Le wagon est chaud, ton ventre plein, tu as dormi. Le train ronronne sur les rails. Un instant — un seul — presque tout va bien.",
+      _c("Savourer ce répit, simplement",
+          fx: {Stat.moral: 10},
+          result: "Tu fermes les yeux et tu profites. Ces moments-là, c'est aussi pour ça qu'on tient."),
+      _c("En profiter pour pousser l'allure",
+          fx: {Stat.bois: -5, Stat.faim: 6},
+          result: "Tu mets ce répit à profit pour avancer et fouiller : du terrain gagné, des vivres en plus, le feu un peu entamé."),
+      oneshot: true, requires: (f) => f.contains('etat_choye'),
+      art: CardArt.hope),
+];
+
+/// Ajoute les cartes-souvenirs ET les cartes d'état au paquet d'un segment
+/// (déblocage géré par flag / état live).
+List<StoryCard> _withSouv(List<StoryCard> base) =>
+    [...base, ...kSouvenirCards, ...kStateCards];
 
 /// Souvenirs déjà COLLECTÉS cette partie (flag `souvenir_*` posé par une
 /// activité du wagon) -> alimentent le CARNET DE VOYAGE. Ordre = ordre de
