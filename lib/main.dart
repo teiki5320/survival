@@ -242,20 +242,6 @@ class _WagonScreenState extends State<WagonScreen>
   }
 
   // Activation du debug par TRIPLE-TAP caché (plus de bouton visible en jeu).
-  int _debugTaps = 0;
-  Timer? _debugTapTimer;
-  void _debugCornerTap() {
-    _debugTaps++;
-    _debugTapTimer?.cancel();
-    _debugTapTimer = Timer(const Duration(milliseconds: 900), () {
-      _debugTaps = 0;
-    });
-    if (_debugTaps >= 3) {
-      _debugTaps = 0;
-      GameState.instance.toggleDebug();
-      setState(() {});
-    }
-  }
   // Caresse du chien (Shen + husky).
   int _petDogToken = 0;
   // Cuisinière (cuisine + mange au sol) / poêle à bois (allumage) / bac (semer).
@@ -489,7 +475,6 @@ class _WagonScreenState extends State<WagonScreen>
     _coldTimer?.cancel();
     _needsTimer?.cancel();
     _poeleTimer?.cancel();
-    _debugTapTimer?.cancel();
     _unlockTimer?.cancel();
     GameState.instance.removeListener(_refreshMusic);
     _heroXNotifier.dispose();
@@ -1206,14 +1191,28 @@ class _WagonScreenState extends State<WagonScreen>
               animation: GameState.instance,
               builder: (_, __) {
                 final on = GameState.instance.debugMode;
-                // DEBUG OFF : zone INVISIBLE (triple-tap pour activer) -> plus
-                // de bouton qui piège les testeurs. DEBUG ON : pastille verte
-                // discrète (1 tap = sortir du debug).
+                // DEBUG OFF : petit bouton DISCRET mais VISIBLE (1 tap = entrer
+                // en debug). DEBUG ON : pastille verte (1 tap = sortir).
                 if (!on) {
                   return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _debugCornerTap,
-                    child: const SizedBox(width: 64, height: 64),
+                    onTap: () {
+                      GameState.instance.toggleDebug();
+                      setState(() {});
+                    },
+                    child: Opacity(
+                      opacity: 0.45,
+                      child: Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A2018),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                              color: const Color(0xFF6B5E4E), width: 1),
+                        ),
+                        child: const Icon(Icons.bug_report,
+                            size: 18, color: Color(0xFFE8C56A)),
+                      ),
+                    ),
                   );
                 }
                 return GestureDetector(
