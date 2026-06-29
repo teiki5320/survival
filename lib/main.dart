@@ -866,7 +866,11 @@ class _WagonScreenState extends State<WagonScreen>
                         ? 1
                         : 0)
                     : isAtelier
-                        ? GameState.instance.atelierStage
+                        ? ((GameState.instance.atelierStage >= 1 ||
+                                GameState.instance.cardFlags
+                                    .contains('asset_atelier'))
+                            ? 1
+                            : 0)
                         : _wagonStage,
             running: _running,
             night: _night,

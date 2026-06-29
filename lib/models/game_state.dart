@@ -787,6 +787,7 @@ class GameState extends ChangeNotifier {
     'asset_stove': 'le poêle',
     'asset_lantern': 'les lanternes',
     'asset_commode': 'la commode',
+    'asset_atelier': 'l\'atelier (2e wagon) rangé',
     'asset_wagon2': 'le cellier (3e wagon) aménagé',
   };
   String? popUnlock() => pendingUnlocks.isEmpty ? null : pendingUnlocks.removeAt(0);
