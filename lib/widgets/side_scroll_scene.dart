@@ -1863,21 +1863,27 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       if (!widget.secondWagon && !widget.isAtelier)
                         for (final def in _propDefs)
                           if (_propUnlocked(def.key) &&
-                              !(def.key == 'fauteuil' && _chairReading) &&
-                              !(def.key == 'panier' && _dogInBasket))
+                              !(def.key == 'fauteuil' &&
+                                  _chairReading &&
+                                  !widget.salonAdjust) &&
+                              !(def.key == 'panier' &&
+                                  _dogInBasket &&
+                                  !widget.salonAdjust))
                             widget.salonAdjust
                                 ? _buildSalonDrag(def, w, h)
                                 : _buildProp(def: def, w: w, h: h),
                       // Fauteuil : Shen lit (chair_read remplace le fauteuil vide
-                      // + l'héroïne solo) le temps de l'activité.
+                      // + l'héroïne solo) le temps de l'activité. (Pas en ajuster.)
                       if (!widget.secondWagon &&
                           !widget.isAtelier &&
-                          _chairReading)
+                          _chairReading &&
+                          !widget.salonAdjust)
                         _buildChairRead(w, h),
-                      // Chien endormi dans son panier (nuit).
+                      // Chien endormi dans son panier (nuit). (Pas en ajuster.)
                       if (!widget.secondWagon &&
                           !widget.isAtelier &&
-                          _dogInBasket)
+                          _dogInBasket &&
+                          !widget.salonAdjust)
                         _buildDogBasket(w, h),
                       // HUD coords du salon en mode ajuster.
                       if (widget.salonAdjust)
@@ -2198,6 +2204,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
                     : 'assets/objects/bowl_empty.png',
           fit: BoxFit.contain);
     }
+    // Carillon animé : pas de carillon.png, on montre la frame statique.
+    if (def.key == 'carillon') {
+      return Image.asset('assets/objects/carillon_static.png',
+          fit: BoxFit.contain);
+    }
     if (def.key == 'wallmap') {
       return Container(
         decoration: BoxDecoration(
@@ -2248,13 +2259,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('AJUSTER SALON — pincer = taille',
+            const Text('AJUSTER SALON — drag = position, pincer = taille',
                 style: TextStyle(
                     color: Color(0xFFE8B96B),
                     fontSize: 10,
                     fontWeight: FontWeight.bold)),
-            for (final k in const ['notebook', 'firstaid', 'bowl', 'wallmap'])
-              row(k),
+            for (final def in _propDefs)
+              if (gs.salonProps.containsKey(def.key)) row(def.key),
           ],
         ),
       ),

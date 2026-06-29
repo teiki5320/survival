@@ -1069,7 +1069,12 @@ class _WagonScreenState extends State<WagonScreen>
                           _w2Adjust ? const Color(0xFFE8B96B) : null,
                       foregroundColor:
                           _w2Adjust ? const Color(0xFF2A2018) : null,
-                      onPressed: () => setState(() => _w2Adjust = !_w2Adjust),
+                      onPressed: () => setState(() {
+                        _w2Adjust = !_w2Adjust;
+                        if (!_w2Adjust) {
+                          GameState.instance.save(checkpoint: true);
+                        }
+                      }),
                       child: Icon(_w2Adjust ? Icons.check : Icons.edit),
                     ),
                     const SizedBox(height: 12),
@@ -1085,7 +1090,12 @@ class _WagonScreenState extends State<WagonScreen>
                           _w1Adjust ? const Color(0xFFE8B96B) : null,
                       foregroundColor:
                           _w1Adjust ? const Color(0xFF2A2018) : null,
-                      onPressed: () => setState(() => _w1Adjust = !_w1Adjust),
+                      onPressed: () => setState(() {
+                        _w1Adjust = !_w1Adjust;
+                        if (!_w1Adjust) {
+                          GameState.instance.save(checkpoint: true);
+                        }
+                      }),
                       child: Icon(_w1Adjust ? Icons.check : Icons.edit),
                     ),
                     const SizedBox(height: 12),
@@ -1095,14 +1105,18 @@ class _WagonScreenState extends State<WagonScreen>
                     FloatingActionButton.small(
                       heroTag: 'salon_adjust',
                       tooltip: _salonAdjust
-                          ? 'Terminer le placement'
-                          : 'Ajuster carnet/secours/gamelle/carte',
+                          ? 'Terminer le placement (sauvegarde)'
+                          : 'Ajuster tous les objets du salon',
                       backgroundColor:
                           _salonAdjust ? const Color(0xFFE8B96B) : null,
                       foregroundColor:
                           _salonAdjust ? const Color(0xFF2A2018) : null,
-                      onPressed: () =>
-                          setState(() => _salonAdjust = !_salonAdjust),
+                      onPressed: () => setState(() {
+                        _salonAdjust = !_salonAdjust;
+                        if (!_salonAdjust) {
+                          GameState.instance.save(checkpoint: true);
+                        }
+                      }),
                       child: Icon(_salonAdjust ? Icons.check : Icons.edit),
                     ),
                     const SizedBox(height: 12),

@@ -485,6 +485,11 @@ class GameState extends ChangeNotifier {
     'firstaid': [0.296, 0.635, 0.110, 0.110],
     'bowl': [0.481, 0.669, 0.080, 0.080],
     'wallmap': [0.205, 0.300, 0.135, 0.185],
+    // Nouveaux objets (coords par défaut = à placer en mode ajuster).
+    'tournedisque': [0.37, 0.56, 0.165, 0.165],
+    'carillon': [0.74, 0.135, 0.205, 0.105],
+    'fauteuil': [0.30, 0.50, 0.265, 0.265],
+    'panier': [0.58, 0.66, 0.115, 0.165],
   };
   double slx(String k) => salonProps[k]![0];
   double sly(String k) => salonProps[k]![1];
