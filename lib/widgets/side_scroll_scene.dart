@@ -1720,6 +1720,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
                               'assets/objects/deco_peluche.png',
                               fit: BoxFit.contain)),
                         ),
+                      if (!widget.secondWagon && !widget.isAtelier &&
+                          (GameState.instance.debugMode ||
+                              GameState.instance.cardFlags
+                                  .contains('souvenir_fenetre')))
+                        Positioned(
+                          left: w * 0.50,
+                          top: h * 0.42,
+                          width: w * 0.055,
+                          child: _nightTint(Image.asset(
+                              'assets/objects/deco_fleurs.png',
+                              fit: BoxFit.contain)),
+                        ),
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
