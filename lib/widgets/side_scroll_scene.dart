@@ -1692,16 +1692,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         ),
                       ),
                       // Bloc intérieur (wagon + props + perso) descendu d'un
-                      // cran pour poser le wagon 1 sur les rails comme le
-                      // wagon 2 : le wagon 1 est cadré ~7.6% plus haut dans
-                      // son image (bas à 0.828 vs 0.904). On décale tout le
-                      // bloc ensemble -> l'alignement des props est préservé.
-                      // Offset nul pour le 2e wagon (déjà au bon niveau).
+                      // cran pour poser le SALON sur les rails : seul le salon
+                      // (wagon_windowed) est cadré ~7.6% plus haut dans son
+                      // image (bas à 0.828 vs 0.904). On décale tout le bloc
+                      // ensemble -> l'alignement des props est préservé.
+                      // Offset NUL pour l'atelier ET le cellier : leurs images
+                      // sont déjà cadrées au bon niveau ; les descendre cachait
+                      // les rails sous la bande de sable (cas de l'atelier).
                       Positioned.fill(
                         child: Transform.translate(
                           offset: Offset(
                             0,
-                            widget.secondWagon
+                            (widget.secondWagon || widget.isAtelier)
                                 ? 0.0
                                 : 0.076 * math.min(w / 1.7917, h),
                           ),
