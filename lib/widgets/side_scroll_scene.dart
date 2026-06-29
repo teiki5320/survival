@@ -218,6 +218,8 @@ class SideScrollScene extends StatefulWidget {
   /// _heroX à ces valeurs pour décider quoi afficher sur l'action FAB.
   static const double bedCenterX = 0.334;
   static const double notebookCenterX = 0.249;
+  static const double tourneDisqueCenterX = 0.37;
+  static const double carillonCenterX = 0.74;
   static const double lampCenterX = 0.415;
   static const double stoveCenterX = 0.629;
   static const double filterCenterX = 0.727;
@@ -317,6 +319,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('firstaid', 'Secours',   animated: false),
     const _PropDef('bowl',     'Gamelle',   animated: false),
     const _PropDef('wallmap',  'Carte',     animated: false),
+    const _PropDef('tournedisque', 'Tourne-disque', animated: false),
+    const _PropDef('carillon', 'Carillon',  animated: true, frameCount: 13),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -327,6 +331,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'notebook': _PropPos(0.249, 0.670, 0.070),
     'firstaid': _PropPos(0.296, 0.635, 0.110),
     'bowl':     _PropPos(0.481, 0.669, 0.080),
+    'tournedisque': _PropPos(0.37, 0.56, 0.165),
+    // Carillon : suspendu en haut (top bas = près du plafond), étroit et haut.
+    'carillon': _PropPos(0.74, 0.135, 0.205, 0.105),
     // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
     // Format paysage (la map est plus large que haute).
     'wallmap':  _PropPos(0.205, 0.300, 0.135, 0.185),
@@ -470,11 +477,24 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _duoFrame = 0;
   int _duoAccumMs = 0;
   int _duoElapsedMs = 0;
-  int get _duoFrameMs => _duoAnim == 'readduo' ? 430 : 300; // lecture plus lente
+  // lecture/jeu plus lents que le câlin.
+  int get _duoFrameMs => _duoAnim == 'sister_hug' ? 300 : 430;
   static const int _duoTotalMs = 6000;
-  int get _duoFrames => _duoAnim == 'readduo' ? 10 : 4;
-  double get _duoAspect => _duoAnim == 'readduo' ? 290 / 312 : 260 / 301;
-  double get _duoHeightFrac => _duoAnim == 'readduo' ? 0.20 : 0.27;
+  int get _duoFrames => _duoAnim == 'sister_hug'
+      ? 4
+      : _duoAnim == 'playduo'
+          ? 10
+          : 10; // readduo
+  double get _duoAspect => _duoAnim == 'sister_hug'
+      ? 260 / 301
+      : _duoAnim == 'playduo'
+          ? 257 / 262
+          : 290 / 312; // readduo
+  double get _duoHeightFrac => _duoAnim == 'sister_hug'
+      ? 0.27
+      : _duoAnim == 'playduo'
+          ? 0.23
+          : 0.20; // readduo
 
   void _startDuo(String anim) {
     setState(() {

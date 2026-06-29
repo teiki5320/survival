@@ -333,6 +333,16 @@ class _WagonScreenState extends State<WagonScreen>
   static const double _windowX = 0.45;
   bool get _atWindow => _inLiving && _near(_windowX);
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
+  // Tourne-disque (salon) : tap = un morceau + réconfort.
+  bool get _atTourneDisque =>
+      _inLiving &&
+      _unlocked('tournedisque') &&
+      _near(SideScrollScene.tourneDisqueCenterX);
+  // Carillon à vent (salon) : tap = tintement doux + réconfort.
+  bool get _atCarillon =>
+      _inLiving &&
+      _unlocked('carillon') &&
+      _near(SideScrollScene.carillonCenterX);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
       _inCellier && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
@@ -1325,6 +1335,12 @@ class _WagonScreenState extends State<WagonScreen>
     if (_inLiving && _atDog) {
       return (id: 'dog', text: 'Caresse le chien : ça réchauffe le cœur.');
     }
+    if (_atTourneDisque) {
+      return (id: 'tournedisque', text: 'Mets un disque : un peu de douceur.');
+    }
+    if (_atCarillon) {
+      return (id: 'carillon', text: 'Fais tinter le carillon.');
+    }
     if (_inAtelier && _atFilter) {
       return (id: 'filter', text: 'Remplis le filtre, puis bois (jauge Soif).');
     }
@@ -1384,8 +1400,16 @@ class _WagonScreenState extends State<WagonScreen>
       icon = Icons.favorite;
       action = () {
         setState(() {
-          _duoAnimToPlay =
-              _duoAnimToPlay == 'readduo' ? 'sister_hug' : 'readduo';
+          // Rotation des activités duo : lecture -> câlin -> (jeu si débloqué).
+          final cycle = <String>[
+            'readduo',
+            'sister_hug',
+            if (GameState.instance.cardFlags.contains('asset_jeu') ||
+                GameState.instance.debugMode)
+              'playduo',
+          ];
+          final i = cycle.indexOf(_duoAnimToPlay);
+          _duoAnimToPlay = cycle[(i + 1) % cycle.length];
           _duoToken++;
           _comfortMoral(8);
         });
@@ -1451,6 +1475,20 @@ class _WagonScreenState extends State<WagonScreen>
         setState(() => _petDogToken++);
         _comfortMoral(10);
         _audio.playSfx('dog_bark');
+      };
+    } else if (_atTourneDisque) {
+      // Tourne-disque : lance un morceau -> réconfort (un peu d'espoir).
+      icon = Icons.album;
+      action = () {
+        _comfortMoral(9);
+        _heroFloat('Un vieux morceau… 🎵');
+      };
+    } else if (_atCarillon) {
+      // Carillon : un tintement doux -> petit réconfort.
+      icon = Icons.notifications_none;
+      action = () {
+        _comfortMoral(6);
+        _heroFloat('Tintements… 🎐');
       };
     } else if (_inAtelier && _atHydro) {
       // Bac de culture : semer / récolter (séquence dans la scène). Plus de

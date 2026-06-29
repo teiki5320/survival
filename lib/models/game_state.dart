@@ -787,6 +787,11 @@ class GameState extends ChangeNotifier {
     'asset_stove': 'le poêle',
     'asset_lantern': 'les lanternes',
     'asset_commode': 'la commode',
+    'asset_tournedisque': 'le tourne-disque',
+    'asset_carillon': 'le carillon à vent',
+    'asset_jeu': 'le jeu de société',
+    'asset_fauteuil': 'le fauteuil de lecture',
+    'asset_panier': 'le panier du chien',
     'asset_atelier': 'l\'atelier (2e wagon) rangé',
     'asset_wagon2': 'le cellier (3e wagon) aménagé',
   };
