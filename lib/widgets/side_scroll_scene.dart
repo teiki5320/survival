@@ -62,6 +62,7 @@ class SideScrollScene extends StatefulWidget {
     this.secondWagon = false,
     this.isAtelier = false,
     this.bathToken = 0,
+    this.chairToken = 0,
     this.showerToken = 0,
     this.petDogToken = 0,
     this.duoToken = 0,
@@ -114,6 +115,7 @@ class SideScrollScene extends StatefulWidget {
   /// près de la baignoire). Lance le tour (use_back) puis l'anim de bain ;
   /// si elle est déjà dans le bain, la fait sortir.
   final int bathToken;
+  final int chairToken;
 
   /// Idem pour la douche (près du panneau) : tour puis boucle de douche.
   final int showerToken;
@@ -220,6 +222,7 @@ class SideScrollScene extends StatefulWidget {
   static const double notebookCenterX = 0.249;
   static const double tourneDisqueCenterX = 0.37;
   static const double carillonCenterX = 0.74;
+  static const double fauteuilCenterX = 0.30;
   static const double lampCenterX = 0.415;
   static const double stoveCenterX = 0.629;
   static const double filterCenterX = 0.727;
@@ -321,6 +324,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('wallmap',  'Carte',     animated: false),
     const _PropDef('tournedisque', 'Tourne-disque', animated: false),
     const _PropDef('carillon', 'Carillon',  animated: true, frameCount: 13),
+    const _PropDef('fauteuil', 'Fauteuil',  animated: false),
+    const _PropDef('panier',   'Panier',    animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -334,6 +339,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'tournedisque': _PropPos(0.37, 0.56, 0.165),
     // Carillon : suspendu en haut (top bas = près du plafond), étroit et haut.
     'carillon': _PropPos(0.74, 0.135, 0.205, 0.105),
+    // Fauteuil de lecture (salon) : meuble au sol.
+    'fauteuil': _PropPos(0.30, 0.50, 0.265),
+    // Panier du chien (salon) : posé au sol, bas et large.
+    'panier':   _PropPos(0.58, 0.66, 0.115, 0.165),
     // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
     // Format paysage (la map est plus large que haute).
     'wallmap':  _PropPos(0.205, 0.300, 0.135, 0.185),
@@ -449,6 +458,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // baignoire statique. On joue 1->8 (entrée->détente) puis on tient la 8.
   bool _bathing = false;
   bool _pendingBath = false; // use_back en cours, le bain suit
+  // Fauteuil de lecture (salon) : tap -> Shen s'installe et lit (chair_read,
+  // 6f, qui contient son propre fauteuil). Remplace l'héroïne + le fauteuil
+  // statique pendant ~_chairTotalMs, puis on revient au solo.
+  bool _chairReading = false;
+  Timer? _chairTimer;
+  static const int _chairTotalMs = 6500;
+  // La nuit, si le panier est débloqué, le chien va y dormir (dog_basket, qui
+  // contient son propre panier) -> remplace le chien mobile + le panier vide.
+  bool get _dogInBasket =>
+      widget.night && _dogShown && _propUnlocked('panier');
   int _bathFrame = 0;
   bool _bathHeld = false;
   int _bathAccumMs = 0;
@@ -1056,6 +1075,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
         }
       });
     }
+    if (oldWidget.chairToken != widget.chairToken) {
+      setState(() {
+        if (_chairReading) {
+          _chairReading = false; // re-tap -> se lève
+          _chairTimer?.cancel();
+        } else {
+          _heroDancing = false;
+          _heroSleeping = false;
+          _heroLyingDown = false;
+          _heroTarget = null;
+          _chairReading = true;
+          _chairTimer?.cancel();
+          _chairTimer = Timer(
+            const Duration(milliseconds: _chairTotalMs),
+            () { if (mounted) setState(() => _chairReading = false); },
+          );
+        }
+      });
+    }
     if (oldWidget.showerToken != widget.showerToken) {
       if (!_showering) {
         if (GameState.instance.feltCold) {
@@ -1143,6 +1181,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _thoughtTimer?.cancel();
     _thoughtClearTimer?.cancel();
     _needBubbleTimer?.cancel();
+    _chairTimer?.cancel();
     _filterFillCtrl?.dispose();
     _fireLoop?.dispose();
     _cookT1?.cancel();
@@ -1823,10 +1862,23 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // uniquement dans le wagon de vie.
                       if (!widget.secondWagon && !widget.isAtelier)
                         for (final def in _propDefs)
-                          if (_propUnlocked(def.key))
+                          if (_propUnlocked(def.key) &&
+                              !(def.key == 'fauteuil' && _chairReading) &&
+                              !(def.key == 'panier' && _dogInBasket))
                             widget.salonAdjust
                                 ? _buildSalonDrag(def, w, h)
                                 : _buildProp(def: def, w: w, h: h),
+                      // Fauteuil : Shen lit (chair_read remplace le fauteuil vide
+                      // + l'héroïne solo) le temps de l'activité.
+                      if (!widget.secondWagon &&
+                          !widget.isAtelier &&
+                          _chairReading)
+                        _buildChairRead(w, h),
+                      // Chien endormi dans son panier (nuit).
+                      if (!widget.secondWagon &&
+                          !widget.isAtelier &&
+                          _dogInBasket)
+                        _buildDogBasket(w, h),
                       // HUD coords du salon en mode ajuster.
                       if (widget.salonAdjust)
                         _salonCoordHud(GameState.instance),
@@ -1852,6 +1904,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       if (!widget.secondWagon &&
                           !widget.isAtelier &&
                           !_petDog &&
+                          !_dogInBasket &&
                           _dogShown)
                         _buildStaticDog(w, h),
                       if (!widget.secondWagon &&
@@ -2889,10 +2942,42 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
+  // Anim perso+meuble (chair_read / dog_basket) calée sur la position du prop
+  // statique correspondant (mêmes coords -> remplace pile le meuble vide).
+  Widget _buildCharAtProp(double w, double h, String propKey, String prefix,
+      int frames, int frameMs) {
+    final sp = GameState.instance.salonProps[propKey];
+    final pos = sp != null
+        ? _PropPos(sp[0], sp[1], sp[2], sp[3])
+        : _propPos[propKey]!;
+    final propW = w * pos.width;
+    final propH = h * pos.height;
+    return Positioned(
+      left: w * pos.left - propW / 2,
+      top: h * pos.top,
+      width: propW,
+      height: propH,
+      child: IgnorePointer(
+        child: _nightTint(_AnimatedSprite(
+          prefix: prefix,
+          dir: 'assets/characters',
+          frameCount: frames,
+          durationMs: frames * frameMs,
+        )),
+      ),
+    );
+  }
+
+  Widget _buildChairRead(double w, double h) =>
+      _buildCharAtProp(w, h, 'fauteuil', 'chair_read', 6, 430);
+
+  Widget _buildDogBasket(double w, double h) =>
+      _buildCharAtProp(w, h, 'panier', 'dog_basket', 8, 320);
+
   Widget _buildHeroine(double w, double h) {
     // Pendant bain/douche/câlin, Shen est rendue par l'anim dédiée (duo) ->
     // on masque le sprite héroïne normal.
-    if (_bathing || _showering || _duoActive || _petDog) {
+    if (_bathing || _showering || _duoActive || _petDog || _chairReading) {
       return const SizedBox.shrink();
     }
     // Wagon's interior floor sits roughly at this Y. Le 2e wagon (cellier)
@@ -3143,16 +3228,17 @@ class _AnimatedSprite extends StatefulWidget {
     required this.frameCount,
     required this.durationMs,
     this.fit = BoxFit.contain,
+    this.dir = 'assets/objects',
   });
 
   final String prefix;
   final int frameCount;
   final int durationMs;
   final BoxFit fit;
+  final String dir;
   // Les props sont petits à l'écran : on décode toujours à 256px (allège le
   // cache, matche le précache).
   static const int _resizeWidth = 256;
-  static const String _dir = 'assets/objects';
 
   @override
   State<_AnimatedSprite> createState() => _AnimatedSpriteState();
@@ -3185,8 +3271,7 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
         final frame = (_ctrl.value * widget.frameCount)
             .floor()
             .clamp(0, widget.frameCount - 1);
-        final asset =
-            '${_AnimatedSprite._dir}/${widget.prefix}_${frame + 1}.png';
+        final asset = '${widget.dir}/${widget.prefix}_${frame + 1}.png';
         return Image(
           image: ResizeImage(AssetImage(asset),
               width: _AnimatedSprite._resizeWidth),

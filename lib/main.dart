@@ -171,6 +171,7 @@ class _WagonScreenState extends State<WagonScreen>
   int _doorPushToken = 0;
   // Incrémenté pour entrer/sortir du bain et de la douche (cellier).
   int _bathToken = 0;
+  int _chairToken = 0;
   int _showerToken = 0;
   // Mode ajuster (cellier) : déplacer/redimensionner les props + voir coords.
   bool _w2Adjust = false;
@@ -343,6 +344,11 @@ class _WagonScreenState extends State<WagonScreen>
       _inLiving &&
       _unlocked('carillon') &&
       _near(SideScrollScene.carillonCenterX);
+  // Fauteuil de lecture (salon) : tap = Shen s'installe et lit.
+  bool get _atFauteuil =>
+      _inLiving &&
+      _unlocked('fauteuil') &&
+      _near(SideScrollScene.fauteuilCenterX);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
       _inCellier && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
@@ -852,6 +858,7 @@ class _WagonScreenState extends State<WagonScreen>
             wagon1Adjust: isAtelier && _w1Adjust,
             salonAdjust: !secondWagon && !isAtelier && _salonAdjust,
             bathToken: _bathToken,
+            chairToken: _chairToken,
             cuisiniereToken: _cuisiniereToken,
             poeleToken: _poeleToken,
             bacToken: _bacToken,
@@ -1341,6 +1348,9 @@ class _WagonScreenState extends State<WagonScreen>
     if (_atCarillon) {
       return (id: 'carillon', text: 'Fais tinter le carillon.');
     }
+    if (_atFauteuil) {
+      return (id: 'fauteuil', text: 'Installe-toi pour lire un moment.');
+    }
     if (_inAtelier && _atFilter) {
       return (id: 'filter', text: 'Remplis le filtre, puis bois (jauge Soif).');
     }
@@ -1489,6 +1499,13 @@ class _WagonScreenState extends State<WagonScreen>
       action = () {
         _comfortMoral(6);
         _heroFloat('Tintements… 🎐');
+      };
+    } else if (_atFauteuil) {
+      // Fauteuil : Shen s'installe et lit un moment -> réconfort.
+      icon = Icons.chair;
+      action = () {
+        setState(() => _chairToken++);
+        _comfortMoral(10);
       };
     } else if (_inAtelier && _atHydro) {
       // Bac de culture : semer / récolter (séquence dans la scène). Plus de
