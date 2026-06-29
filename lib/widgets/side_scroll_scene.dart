@@ -1692,6 +1692,34 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           width: w * 0.085,
                           child: _RadioProp(night: widget.night),
                         ),
+                      // #4 — DÉCO-SOUVENIRS : objets qui s'accrochent dans le
+                      // salon selon les souvenirs vécus. Le train raconte ta
+                      // partie. (photo de famille = souvenir carnet ; peluche
+                      // de la sœur = souvenir sœur.)
+                      if (!widget.secondWagon && !widget.isAtelier &&
+                          (GameState.instance.debugMode ||
+                              GameState.instance.cardFlags
+                                  .contains('souvenir_carnet')))
+                        Positioned(
+                          left: w * 0.33,
+                          top: h * 0.18,
+                          width: w * 0.07,
+                          child: _nightTint(Image.asset(
+                              'assets/objects/deco_photo.png',
+                              fit: BoxFit.contain)),
+                        ),
+                      if (!widget.secondWagon && !widget.isAtelier &&
+                          (GameState.instance.debugMode ||
+                              GameState.instance.cardFlags
+                                  .contains('souvenir_soeur')))
+                        Positioned(
+                          left: w * 0.30,
+                          top: h * 0.60,
+                          width: w * 0.05,
+                          child: _nightTint(Image.asset(
+                              'assets/objects/deco_peluche.png',
+                              fit: BoxFit.contain)),
+                        ),
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
