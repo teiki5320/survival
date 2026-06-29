@@ -321,7 +321,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('notebook', 'Carnet',    animated: false),
     const _PropDef('firstaid', 'Secours',   animated: false),
     const _PropDef('bowl',     'Gamelle',   animated: false),
-    const _PropDef('wallmap',  'Carte',     animated: false),
+    // 'wallmap' (carte murale) RETIRÉ : la map vit désormais dans la loco ;
+    // ce prop ne servait plus qu'à encombrer le mode ajuster.
     const _PropDef('tournedisque', 'Tourne-disque', animated: false),
     const _PropDef('carillon', 'Carillon',  animated: true, frameCount: 13),
     const _PropDef('fauteuil', 'Fauteuil',  animated: false),
@@ -1757,42 +1758,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // salon selon les souvenirs vécus. Le train raconte ta
                       // partie. (photo de famille = souvenir carnet ; peluche
                       // de la sœur = souvenir sœur.)
-                      if (!widget.secondWagon && !widget.isAtelier &&
-                          (GameState.instance.debugMode ||
-                              GameState.instance.cardFlags
-                                  .contains('souvenir_carnet')))
-                        Positioned(
-                          left: w * 0.33,
-                          top: h * 0.18,
-                          width: w * 0.07,
-                          child: _nightTint(Image.asset(
-                              'assets/objects/deco_photo.png',
-                              fit: BoxFit.contain)),
-                        ),
-                      if (!widget.secondWagon && !widget.isAtelier &&
-                          (GameState.instance.debugMode ||
-                              GameState.instance.cardFlags
-                                  .contains('souvenir_soeur')))
-                        Positioned(
-                          left: w * 0.30,
-                          top: h * 0.60,
-                          width: w * 0.05,
-                          child: _nightTint(Image.asset(
-                              'assets/objects/deco_peluche.png',
-                              fit: BoxFit.contain)),
-                        ),
-                      if (!widget.secondWagon && !widget.isAtelier &&
-                          (GameState.instance.debugMode ||
-                              GameState.instance.cardFlags
-                                  .contains('souvenir_fenetre')))
-                        Positioned(
-                          left: w * 0.50,
-                          top: h * 0.42,
-                          width: w * 0.055,
-                          child: _nightTint(Image.asset(
-                              'assets/objects/deco_fleurs.png',
-                              fit: BoxFit.contain)),
-                        ),
+                      if (!widget.secondWagon && !widget.isAtelier)
+                        _buildDeco('deco_photo', 'souvenir_carnet', w, h),
+                      if (!widget.secondWagon && !widget.isAtelier)
+                        _buildDeco('deco_peluche', 'souvenir_soeur', w, h),
+                      if (!widget.secondWagon && !widget.isAtelier)
+                        _buildDeco('deco_fleurs', 'souvenir_fenetre', w, h),
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
@@ -2206,10 +2177,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                     : 'assets/objects/bowl_empty.png',
           fit: BoxFit.contain);
     }
-    // Carillon animé : pas de carillon.png, on montre la frame statique.
+    // Carillon animé : pas de carillon.png ; le static a un triangle blanc mal
+    // détouré -> on montre la 1re frame animée (propre, fond transparent).
     if (def.key == 'carillon') {
-      return Image.asset('assets/objects/carillon_static.png',
-          fit: BoxFit.contain);
+      return Image.asset('assets/objects/carillon_1.png', fit: BoxFit.contain);
     }
     if (def.key == 'wallmap') {
       return Container(
@@ -2236,6 +2207,35 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: _salonSprite(def),
       onMove: (dx, dy) => gs.slMove(k, dx, dy),
       onResize: (nh) => gs.slResize(k, nh),
+    );
+  }
+
+  // Déco-souvenir (photo/peluche/fleurs) : visible si son souvenir est vécu
+  // (ou en debug), déplaçable en mode ajuster comme les autres props salon.
+  Widget _buildDeco(String key, String flag, double w, double h) {
+    final gs = GameState.instance;
+    if (!gs.debugMode && !gs.cardFlags.contains(flag)) {
+      return const SizedBox.shrink();
+    }
+    final img = _nightTint(
+        Image.asset('assets/objects/$key.png', fit: BoxFit.contain));
+    if (widget.salonAdjust) {
+      return _w2Drag(
+        w: w, h: h,
+        cx: gs.slx(key), topY: gs.sly(key), heightFrac: gs.slh(key),
+        aspect: gs.slw(key) / gs.slh(key), label: key, adjust: true,
+        onMove: (dx, dy) => gs.slMove(key, dx, dy),
+        onResize: (nh) => gs.slResize(key, nh),
+        child: img,
+      );
+    }
+    final sp = gs.salonProps[key]!;
+    final propW = w * sp[3];
+    return Positioned(
+      left: w * sp[0] - propW / 2,
+      top: h * sp[1],
+      width: propW,
+      child: img,
     );
   }
 
@@ -2268,6 +2268,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                     fontWeight: FontWeight.bold)),
             for (final def in _propDefs)
               if (gs.salonProps.containsKey(def.key)) row(def.key),
+            for (final k in const ['deco_photo', 'deco_peluche', 'deco_fleurs'])
+              row(k),
           ],
         ),
       ),

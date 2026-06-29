@@ -490,6 +490,10 @@ class GameState extends ChangeNotifier {
     'carillon': [0.74, 0.135, 0.205, 0.105],
     'fauteuil': [0.30, 0.50, 0.265, 0.265],
     'panier': [0.58, 0.66, 0.115, 0.165],
+    // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
+    'deco_photo': [0.365, 0.18, 0.10, 0.07],
+    'deco_peluche': [0.325, 0.60, 0.09, 0.05],
+    'deco_fleurs': [0.527, 0.42, 0.09, 0.055],
   };
   double slx(String k) => salonProps[k]![0];
   double sly(String k) => salonProps[k]![1];
