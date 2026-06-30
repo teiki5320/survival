@@ -1261,6 +1261,16 @@ final List<StoryCard> _fill11 = [
       _c("Mettre le cap droit dessus", fx: {Stat.moral: 14, Stat.bois: -9}, result: "Tu vises la lumière, plein nord, sans dévier. Tu brûles gros pour avancer en terrain ouvert — mais ce point d'or dans le noir, c'est la première preuve concrète que le refuge n'est pas un mensonge. Ton cœur s'est remis à battre pour de bon."),
       _c("Le rejoindre par les voies couvertes", fx: {Stat.bois: 6, Stat.moral: -4}, result: "Tu refuses de t'exposer si près du but. Tu louvoies par les tranchées et les tunnels, le foyer ménagé. Plus long, plus prudent — mais perdre la lueur de vue, même un instant, te serre le ventre d'angoisse."),
       oneshot: true, art: CardArt.refuge),
+  _filler('F11_convoi',
+      "Sur une voie parallèle, un autre convoi de fortune roule un moment à votre hauteur. Des visages aux fenêtres, une main d'enfant qui se lève. Vous allez tous au même endroit.",
+      _c("Leur faire signe, rester à leur hauteur", fx: {Stat.moral: 12, Stat.bois: -7}, result: "Vous roulez côte à côte, à vous saluer, à crier des nouvelles du nord par-dessus le vent. Tu brûles du bois pour rien — sauf pour ne plus être seule au monde. Ça n'a pas de prix."),
+      _c("Garder ta vitesse, chacun sa route", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu ne ralentis pas : chaque bûche compte si près du but. Leur convoi décroche dans la brume. Tu as gardé ton élan — et l'image de cette petite main qui se rabaissait, déçue."),
+      oneshot: true, art: CardArt.refuge),
+  _filler('F11_mur_noms',
+      "Un panneau planté dans la neige, couvert de noms : ceux qui sont passés, ceux qu'on cherche. Ta sœur tire sur ta manche : « On regarde si papa et maman y sont ? »",
+      _c("Chercher leurs noms avec elle", fx: {Stat.moral: 10, Stat.faim: -5}, result: "Vous passez le mur au peigne fin, doigt sur chaque ligne gelée. Vous ne les trouvez nulle part — ni chez les passés, ni chez les perdus. Terrifiant. Et pourtant : pas de nouvelle, pas de mauvaise nouvelle.", reaction: "« Alors ils sont peut-être déjà tout au bout ! »"),
+      _c("L'éloigner doucement du mur", fx: {Stat.faim: 4, Stat.moral: -6}, result: "« Plus tard, ma puce. » Tu la tournes vers le train avant qu'elle ne lise un nom de trop. Elle n'insiste pas — mais son regard reste accroché au panneau un long moment."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
 ];
 
 final List<StoryCard> _fill12 = [
