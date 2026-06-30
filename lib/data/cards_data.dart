@@ -1000,6 +1000,16 @@ final List<StoryCard> _fill7 = [
       _c("Le faire jouer pour vous deux", fx: {Stat.moral: 11, Stat.faim: -5}, result: "Un air de jazz craquelé emplit la halte. Vous dansez maladroitement, ta sœur sur tes pieds, jusqu'au dernier sillon. La faim au ventre — mais l'âme repue."),
       _c("Résister, ne pas faire de bruit", fx: {Stat.faim: 5, Stat.moral: -5}, result: "Tu reposes le bras du phonographe sans le lancer. La musique attire les oreilles affamées de ce monde. Vous repartez en silence, le ventre sauf — mais ta sœur jette un long regard au disque muet."),
       oneshot: true, art: CardArt.memory),
+  _filler('F7_balancoire',
+      "Près de la halte, une aire de jeux engloutie par les ronces. Une balançoire grince encore au vent. Ta sœur lâche ta main et court vers elle.",
+      _c("La pousser sur la balançoire", fx: {Stat.moral: 12, Stat.bois: -6}, result: "Tu la pousses haut, plus haut, ses rires fusant dans le silence du monde mort. La loco refroidit pendant ce répit — mais ce son-là, tu le mettrais en réserve si tu pouvais.", reaction: "« Encore ! Encore ! »"),
+      _c("L'appeler, ne pas s'attarder", fx: {Stat.bois: 5, Stat.moral: -6}, result: "« On n'a pas le temps, ma puce. » Elle redescend à regret, traînant les pieds vers le train. Tu gardes l'élan — et le grincement de la chaîne te poursuit longtemps."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F7_photos_classe',
+      "Dans une école éventrée, un mur de photos de classe intactes sous la poussière. Des dizaines de petits visages qui sourient à un avenir qui n'est jamais venu.",
+      _c("T'arrêter, leur rendre hommage", fx: {Stat.moral: 7, Stat.bois: -5}, result: "Tu restes un moment devant ces sourires figés, à penser à ta propre classe, tes amis dispersés ou pire. Le foyer fond pendant ta rêverie — mais oublier ces visages serait pire que perdre du bois."),
+      _c("Détourner les yeux, charger du bois", fx: {Stat.bois: 7, Stat.moral: -4}, result: "Tu ne peux pas porter tous les morts du monde. Tu arraches le mobilier scolaire pour le foyer et tu files. Du bon bois sec — mais les petits sourires te suivent jusque dans le wagon."),
+      oneshot: true, art: CardArt.memory),
 ];
 
 final List<StoryCard> _fill8 = [
