@@ -83,6 +83,8 @@ class GameState extends ChangeNotifier {
         'showerHeadH': showerHeadH,
         'wagon2CommodeX': wagon2CommodeX, 'wagon2CommodeY': wagon2CommodeY,
         'wagon2CommodeH': wagon2CommodeH,
+        'wagon2FirstaidX': wagon2FirstaidX, 'wagon2FirstaidY': wagon2FirstaidY,
+        'wagon2FirstaidH': wagon2FirstaidH,
         'locoMapCx': locoMapCx, 'locoMapCy': locoMapCy, 'locoMapW': locoMapW,
         'locoMapTurnY': locoMapTurnY, 'locoMapLeanZ': locoMapLeanZ,
         'waterTankGlasses': waterTankGlasses,
@@ -167,6 +169,9 @@ class GameState extends ChangeNotifier {
       wagon2CommodeX = (data['wagon2CommodeX'] as num?)?.toDouble() ?? wagon2CommodeX;
       wagon2CommodeY = (data['wagon2CommodeY'] as num?)?.toDouble() ?? wagon2CommodeY;
       wagon2CommodeH = (data['wagon2CommodeH'] as num?)?.toDouble() ?? wagon2CommodeH;
+      wagon2FirstaidX = (data['wagon2FirstaidX'] as num?)?.toDouble() ?? wagon2FirstaidX;
+      wagon2FirstaidY = (data['wagon2FirstaidY'] as num?)?.toDouble() ?? wagon2FirstaidY;
+      wagon2FirstaidH = (data['wagon2FirstaidH'] as num?)?.toDouble() ?? wagon2FirstaidH;
       locoMapCx = (data['locoMapCx'] as num?)?.toDouble() ?? locoMapCx;
       locoMapCy = (data['locoMapCy'] as num?)?.toDouble() ?? locoMapCy;
       locoMapW = (data['locoMapW'] as num?)?.toDouble() ?? locoMapW;
@@ -462,6 +467,8 @@ class GameState extends ChangeNotifier {
   /// Déplaçables au doigt dans le wagon 2 ; sauvegardées.
   double wagon2LampAx = 0.27, wagon2LampAy = 0.21, wagon2LampAH = 0.12;
   double wagon2LampBx = 0.49, wagon2LampBy = 0.22, wagon2LampBH = 0.12;
+  // Trousse de secours : posée sur la commode du cellier (wagon 3).
+  double wagon2FirstaidX = 0.29, wagon2FirstaidY = 0.46, wagon2FirstaidH = 0.085;
 
   /// Poêle du wagon 1 : position + taille déplaçables (mode ajuster debug).
   /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
@@ -490,6 +497,7 @@ class GameState extends ChangeNotifier {
     'carillon': [0.726, 0.314, 0.131, 0.067],
     'fauteuil': [0.785, 0.485, 0.250, 0.250],
     'panier': [0.58, 0.66, 0.115, 0.165],
+    'jeu': [0.45, 0.60, 0.16, 0.19],
     'radio': [0.66, 0.46, 0.130, 0.105],
     // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
     'deco_photo': [0.365, 0.18, 0.10, 0.07],
@@ -529,6 +537,7 @@ class GameState extends ChangeNotifier {
     wagon2LampAx = 0.27; wagon2LampAy = 0.21; wagon2LampAH = 0.12;
     wagon2LampBx = 0.49; wagon2LampBy = 0.22; wagon2LampBH = 0.12;
     wagon2CommodeX = 0.29; wagon2CommodeY = 0.53; wagon2CommodeH = 0.23;
+    wagon2FirstaidX = 0.29; wagon2FirstaidY = 0.46; wagon2FirstaidH = 0.085;
   }
 
   double w1x(String k) => wagon1Props[k]![0];
