@@ -1173,6 +1173,16 @@ final List<StoryCard> _fill9 = [
       _c("Forcer la porte de l'infirmerie", fx: {Stat.faim: 8, Stat.moral: -7}, result: "Antipyrétiques, pansements, un peu de morphine — un trésor pour ta sœur fiévreuse. Mais les couchettes alignées, leurs occupants figés sous le givre, te poursuivront longtemps."),
       _c("Ne pas profaner ce mouroir", fx: {Stat.moral: 6, Stat.faim: -5}, result: "Tu n'ouvres pas. Certaines portes laissent passer plus que le froid. Tu repars les mains vides, le ventre creux — mais sans cette vision-là greffée derrière les yeux."),
       oneshot: true, art: CardArt.cold),
+  _filler('F9_white_out',
+      "Le blizzard efface tout : plus de voie, plus de ciel, plus de monde. Juste le hurlement blanc. Avancer à l'aveugle, ou s'arrêter et attendre que ça passe ?",
+      _c("Avancer à l'aveugle, lentement", fx: {Stat.bois: -9, Stat.moral: 4}, result: "Tu rampes dans le mur blanc, priant pour que les rails tiennent sous la neige. Le foyer dévore le bois pour chauffer l'habitacle gelé — mais chaque mètre gagné te rapproche du nord."),
+      _c("S'arrêter, attendre l'accalmie", fx: {Stat.bois: 5, Stat.faim: -7}, result: "Tu coupes les machines et tu attends, blottie, que la tempête s'épuise. Le bois ménagé — mais les heures immobiles grignotent vos réserves de bouche, et l'angoisse monte avec la neige contre la vitre."),
+      oneshot: true, art: CardArt.cold),
+  _filler('F9_couverture',
+      "Une seule couverture est restée sèche. Dehors le blizzard hurle ; dedans, vous grelottez toutes les deux. Une couverture, deux corps gelés.",
+      _c("La lui laisser entière", fx: {Stat.moral: 10, Stat.soif: -6}, result: "Tu l'emmitouffles jusqu'au nez et tu passes la nuit à claquer des dents, à te frictionner les bras. Au matin tu es transie, la gorge en feu — mais elle a dormi au chaud."),
+      _c("La partager, serrées l'une contre l'autre", fx: {Stat.moral: 7, Stat.bois: -5}, result: "Vous vous blottissez sous la même laine, dos à dos, et tu pousses le poêle pour compléter. Le bois fond, mais la chaleur de son petit corps contre le tien vaut tout l'or du monde."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
 ];
 
 final List<StoryCard> _fill10 = [
