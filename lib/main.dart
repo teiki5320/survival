@@ -335,6 +335,9 @@ class _WagonScreenState extends State<WagonScreen>
       _inLiving &&
       _unlocked('fauteuil') &&
       _near(SideScrollScene.fauteuilCenterX);
+  // Table de jeu (salon) : tap = jouer avec la sœur (si elle est là).
+  bool get _atJeu =>
+      _inLiving && _unlocked('jeu') && _near(SideScrollScene.jeuCenterX);
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
       _inCellier && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
@@ -1364,6 +1367,9 @@ class _WagonScreenState extends State<WagonScreen>
     if (_atFauteuil) {
       return (id: 'fauteuil', text: 'Installe-toi pour lire un moment.');
     }
+    if (_atJeu) {
+      return (id: 'jeu', text: 'Joue avec ta sœur à la table.');
+    }
     if (_inAtelier && _atFilter) {
       return (id: 'filter', text: 'Remplis le filtre, puis bois (jauge Soif).');
     }
@@ -1437,6 +1443,21 @@ class _WagonScreenState extends State<WagonScreen>
           _comfortMoral(8);
         });
         _sisterTalk();
+      };
+    } else if (_atJeu) {
+      // Table de jeu : jouer avec la sœur (anim playduo à la table).
+      icon = Icons.casino;
+      action = () {
+        if (GameState.instance.sisterShown) {
+          setState(() {
+            _duoAnimToPlay = 'playduo';
+            _duoToken++;
+            _comfortMoral(8);
+          });
+          _sisterTalk();
+        } else {
+          _heroFloat('Il te faut ta sœur pour jouer 🎲');
+        }
       };
     } else if (_inLiving && _atWindow) {
       // Fenêtre contemplative : regarder le monde mort défiler -> carte-

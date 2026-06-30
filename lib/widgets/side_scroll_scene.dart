@@ -223,6 +223,7 @@ class SideScrollScene extends StatefulWidget {
   static const double tourneDisqueCenterX = 0.37;
   static const double carillonCenterX = 0.74;
   static const double fauteuilCenterX = 0.30;
+  static const double jeuCenterX = 0.45;
   static const double lampCenterX = 0.415;
   static const double stoveCenterX = 0.629;
   static const double filterCenterX = 0.727;
@@ -327,6 +328,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('carillon', 'Carillon',  animated: true, frameCount: 13),
     const _PropDef('fauteuil', 'Fauteuil',  animated: false),
     const _PropDef('panier',   'Panier',    animated: false),
+    const _PropDef('jeu',      'Table de jeu', animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -344,6 +346,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'fauteuil': _PropPos(0.30, 0.50, 0.265),
     // Panier du chien (salon) : posé au sol, bas et large.
     'panier':   _PropPos(0.58, 0.66, 0.115, 0.165),
+    // Table de jeu (salon) : posée au sol.
+    'jeu':      _PropPos(0.45, 0.60, 0.16, 0.19),
     // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
     // Format paysage (la map est plus large que haute).
     'wallmap':  _PropPos(0.205, 0.300, 0.135, 0.185),
@@ -1833,6 +1837,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                   !widget.salonAdjust) &&
                               !(def.key == 'panier' &&
                                   _dogInBasket &&
+                                  !widget.salonAdjust) &&
+                              !(def.key == 'jeu' &&
+                                  _duoActive &&
+                                  _duoAnim == 'playduo' &&
                                   !widget.salonAdjust))
                             widget.salonAdjust
                                 ? _buildSalonDrag(def, w, h)
@@ -2949,8 +2957,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final duoH = h * _duoHeightFrac;
     final duoW = duoH * _duoAspect;
     final feetY = h * 0.74;
+    // Le jeu se joue À la table (sa position) ; lecture/câlin restent près
+    // de la sœur.
+    final anchorX = _duoAnim == 'playduo'
+        ? (GameState.instance.salonProps['jeu']?[0] ?? _sisterX)
+        : _sisterX;
     return Positioned(
-      left: _sisterX * w - duoW / 2,
+      left: anchorX * w - duoW / 2,
       top: feetY - duoH, // contenu collé en bas -> pieds au sol
       width: duoW,
       height: duoH,
