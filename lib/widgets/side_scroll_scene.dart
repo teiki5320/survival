@@ -512,7 +512,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   double get _duoAspect => _duoAnim == 'sister_hug'
       ? 260 / 301
       : _duoAnim == 'playduo'
-          ? 257 / 262
+          ? 279 / 262
           : 290 / 312; // readduo
   double get _duoHeightFrac => _duoAnim == 'sister_hug'
       ? 0.27
@@ -3053,7 +3053,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       _buildCharAtProp(w, h, 'fauteuil', 'chair_read', 6, 430);
 
   Widget _buildDogBasket(double w, double h) =>
-      _buildCharAtProp(w, h, 'panier', 'dog_basket', 8, 320);
+      _buildCharAtProp(w, h, 'panier', 'dog_basket', 6, 360);
 
   Widget _buildHeroine(double w, double h) {
     // Pendant bain/douche/câlin, Shen est rendue par l'anim dédiée (duo) ->
