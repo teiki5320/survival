@@ -906,6 +906,16 @@ final List<StoryCard> _fill6 = [
       _c("L'embarquer pour le raccourci", fx: {Stat.bois: 10, Stat.moral: -6}, result: "Il tient parole sur la route — mais il fouille tes réserves la nuit, et tu dors d'un œil jusqu'à le déposer plus loin. Le raccourci valait le bois ; sa présence, beaucoup moins."),
       _c("Refuser, continuer seule", fx: {Stat.moral: 6, Stat.bois: -7}, result: "Tu ne fais plus monter d'inconnu, pas avec ta sœur à bord. Tu prends la voie longue, le foyer qui fond. Plus de bois brûlé — mais ton wagon reste à vous, et tu dors enfin tranquille."),
       oneshot: true),
+  _filler('F6_troc_chien',
+      "Au camp, un trappeur lorgne ton chien : « Un flair pareil, je t'en donne de quoi tenir deux semaines. » Le chiot se serre contre ta jambe.",
+      _c("Refuser net", fx: {Stat.moral: 10, Stat.faim: -7}, result: "« Il n'est pas à vendre. » Tu repars le ventre creux mais le cœur entier, le chien trottinant fièrement à tes côtés. Certaines choses ne se troquent pas.", reaction: "Il pousse un petit jappement, comme pour te remercier."),
+      _c("Marchander dur, sans le céder", fx: {Stat.faim: 6, Stat.moral: -4}, result: "Tu négocies âprement, sans jamais lâcher la laisse, et tu arraches quelques vivres au trappeur dépité. Tu gagnes un peu — mais l'idée d'avoir mis un prix sur ton compagnon te laisse un goût amer."),
+      oneshot: true, requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
+  _filler('F6_rumeur',
+      "Autour du feu du camp, les rumeurs sur le nord se contredisent : un havre chauffé, disent les uns ; un mouroir gelé, disent les autres. Chacun jure tenir ça d'une source sûre.",
+      _c("Boire leurs histoires d'espoir", fx: {Stat.moral: 9, Stat.bois: -5}, result: "Tu t'attardes près du feu à écouter les belles versions, à t'en remplir le cœur. Tu repars le foyer refroidi par la halte — mais portée par mille raisons d'y croire."),
+      _c("T'en tenir aux faits, repartir", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu n'écoutes ni les anges ni les corbeaux : tu recharges, tu pars. Le bois ménagé, l'esprit clair. Mais sans rêve où t'accrocher, la route paraît soudain plus longue."),
+      oneshot: true, art: CardArt.refuge),
 ];
 
 final List<StoryCard> _fill7 = [
