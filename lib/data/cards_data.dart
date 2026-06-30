@@ -735,6 +735,16 @@ final List<StoryCard> _fill4 = [
       _c("Insister, fouiller chaque bande", fx: {Stat.moral: 8, Stat.soif: -5}, result: "Des heures penchée sur le cadran, la gorge sèche à force d'espérer. Rien d'humain — mais le simple geste de chercher, de croire qu'il y a quelqu'un à trouver, te tient debout."),
       _c("Couper, le silence fait trop mal", fx: {Stat.soif: 4, Stat.moral: -6}, result: "Tu éteins net. Écouter le néant total, c'est pire que ne pas écouter. Tu ranges la radio, gorge ménagée — mais ce silence, tu l'emportes avec toi comme une réponse."),
       oneshot: true, requires: (f) => f.contains('aLaRadio'), art: CardArt.radio),
+  _filler('F4_chien_garde',
+      "En pleine nuit, le chiot se dresse soudain, oreilles tendues, un grognement bas dans la gorge. Dehors, quelque chose rôde le long du wagon.",
+      _c("Te lever, vérifier avec lui", fx: {Stat.moral: 7, Stat.faim: -4}, result: "Tu te lèves, le chien sur tes talons, le ventre noué. Une ombre détale dans le noir : rien ne manque. Il a bien veillé. Tu te recouches, vidée, l'estomac qui réclame.", reaction: "Il pousse son museau froid dans ta paume, fier de lui."),
+      _c("Le calmer et te rendormir", fx: {Stat.faim: 4, Stat.moral: -5}, result: "Tu le serres contre toi en chuchotant jusqu'à ce qu'il se taise. Au matin, des griffures fraîches sur la porte du wagon — et l'idée de ce qui a failli entrer."),
+      oneshot: true, requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
+  _filler('F4_chien_jouet',
+      "Le chiot revient en trottinant, tout fier, une vieille peluche crasseuse dans la gueule, dénichée Dieu sait où sur le quai.",
+      _c("Jouer un moment avec lui", fx: {Stat.moral: 9, Stat.bois: -4}, result: "Vous vous disputez la peluche dans le wagon arrêté, lui qui grogne pour de faux, toi qui ris pour de vrai. La loco refroidit un peu — ça valait le coup."),
+      _c("La lui prendre, repartir", fx: {Stat.bois: 5, Stat.moral: -4}, result: "Tu ranges le jouet et tu remets les gaz. Le chien te fixe, tête penchée, sans comprendre pourquoi le jeu s'arrête. Tu gardes l'élan, mais pas le cœur léger."),
+      oneshot: true, requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
 ];
 
 final List<StoryCard> _fill5 = [
