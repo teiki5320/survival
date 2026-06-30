@@ -623,6 +623,16 @@ final List<StoryCard> _fill2 = [
       _c("Le tirer, on n'a pas le temps", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu le hisses de force, agacée par ce caprice. Il geint, queue basse, et te lance un regard de reproche. Tu gagnes du temps — mais tu te demandes longtemps ce qu'il avait flairé.",
           reaction: "Le chiot se laisse traîner, résigné, jetant des coups d'œil inquiets vers la grille."),
       requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
+  _filler('F2_manuel',
+      "Dans le dépôt, un manuel d'entretien de locomotive, gondolé par l'humidité. Des pages entières sur l'art de doser le foyer. Le déchiffrer prend la soirée.",
+      _c("L'étudier à fond", fx: {Stat.bois: 8, Stat.soif: -5}, result: "Tu passes la nuit le nez dedans, la gorge sèche à force de ne pas t'arrêter pour boire. Mais tu apprends à tirer plus de chaleur de chaque bûche : ta réserve durera plus longtemps."),
+      _c("Garder l'essentiel, repartir", fx: {Stat.soif: 4, Stat.bois: -4}, result: "Tu arraches deux-trois pages utiles et tu files, gorge ménagée. Tu gaspilleras un peu de bois faute d'avoir tout appris — mais le nord n'attendait pas."),
+      oneshot: true, art: CardArt.fire),
+  _filler('F2_wagon_scelle',
+      "Un wagon de marchandises encore scellé, oublié sur une voie morte. Forcer la porte rouillée prendra du temps et de la sueur — mais qui sait ce qu'il cache.",
+      _c("Forcer la porte", fx: {Stat.faim: 10, Stat.bois: -6}, result: "À grands coups de barre, la porte cède : des caisses de conserves intactes ! Le détour, le bois brûlé à l'arrêt — tout est pardonné quand le ventre se remplit."),
+      _c("Ne pas perdre de temps", fx: {Stat.bois: 5, Stat.faim: -4}, result: "Tu passes ton chemin : un wagon scellé peut cacher un trésor comme un piège, ou pire. Tu gardes ton bois et ta tranquillité — l'estomac, lui, proteste."),
+      oneshot: true, art: CardArt.food),
 ];
 
 final List<StoryCard> _fill3 = [
