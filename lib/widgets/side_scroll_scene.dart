@@ -2199,7 +2199,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
   Widget _buildSalonDrag(_PropDef def, double w, double h) {
     final gs = GameState.instance;
     final k = def.key;
-    final aspect = gs.slw(k) / gs.slh(k);
+    // slw/slh sont des fractions de DIMENSIONS d'écran différentes (largeur vs
+    // hauteur). Pour que la boîte d'ajuster soit IDENTIQUE à celle du rendu
+    // normal (_buildProp : propW = w*slw, propH = h*slh), l'aspect passé à
+    // _w2Drag (pw = ph*aspect) doit inclure le ratio d'écran (w/h).
+    final aspect = (w / h) * gs.slw(k) / gs.slh(k);
     return _w2Drag(
       w: w, h: h,
       cx: gs.slx(k), topY: gs.sly(k), heightFrac: gs.slh(k),
@@ -2223,7 +2227,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return _w2Drag(
         w: w, h: h,
         cx: gs.slx(key), topY: gs.sly(key), heightFrac: gs.slh(key),
-        aspect: gs.slw(key) / gs.slh(key), label: key, adjust: true,
+        aspect: (w / h) * gs.slw(key) / gs.slh(key), label: key, adjust: true,
         onMove: (dx, dy) => gs.slMove(key, dx, dy),
         onResize: (nh) => gs.slResize(key, nh),
         child: img,
@@ -2249,7 +2253,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return _w2Drag(
         w: w, h: h,
         cx: gs.slx('radio'), topY: gs.sly('radio'), heightFrac: gs.slh('radio'),
-        aspect: gs.slw('radio') / gs.slh('radio'), label: 'radio', adjust: true,
+        aspect: (w / h) * gs.slw('radio') / gs.slh('radio'), label: 'radio', adjust: true,
         onMove: (dx, dy) => gs.slMove('radio', dx, dy),
         onResize: (nh) => gs.slResize('radio', nh),
         child: Image.asset('assets/objects/radio_1.png', fit: BoxFit.contain),
