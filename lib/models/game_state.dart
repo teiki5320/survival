@@ -485,11 +485,12 @@ class GameState extends ChangeNotifier {
     'firstaid': [0.296, 0.635, 0.110, 0.110],
     'bowl': [0.481, 0.669, 0.080, 0.080],
     'wallmap': [0.205, 0.300, 0.135, 0.185],
-    // Nouveaux objets (coords par défaut = à placer en mode ajuster).
-    'tournedisque': [0.37, 0.56, 0.165, 0.165],
-    'carillon': [0.74, 0.135, 0.205, 0.105],
-    'fauteuil': [0.30, 0.50, 0.265, 0.265],
+    // Nouveaux objets (positions calées d'après les placements testés).
+    'tournedisque': [0.551, 0.560, 0.165, 0.165],
+    'carillon': [0.726, 0.314, 0.131, 0.067],
+    'fauteuil': [0.785, 0.485, 0.250, 0.250],
     'panier': [0.58, 0.66, 0.115, 0.165],
+    'radio': [0.66, 0.46, 0.130, 0.105],
     // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
     'deco_photo': [0.365, 0.18, 0.10, 0.07],
     'deco_peluche': [0.325, 0.60, 0.09, 0.05],

@@ -1744,16 +1744,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // RADIO À MANIVELLE (salon) : objet animé (manivelle +
                       // éclairs) débloqué à G4 (flag aLaRadio). Tap direct ->
                       // débloque une carte-souvenir « radio » (narratif).
-                      if (!widget.secondWagon &&
-                          !widget.isAtelier &&
-                          (GameState.instance.debugMode ||
-                              GameState.instance.cardFlags.contains('aLaRadio')))
-                        Positioned(
-                          left: w * 0.62,
-                          top: h * 0.46,
-                          width: w * 0.085,
-                          child: _RadioProp(night: widget.night),
-                        ),
+                      if (!widget.secondWagon && !widget.isAtelier)
+                        _buildRadio(w, h),
                       // #4 — DÉCO-SOUVENIRS : objets qui s'accrochent dans le
                       // salon selon les souvenirs vécus. Le train raconte ta
                       // partie. (photo de famille = souvenir carnet ; peluche
@@ -2239,14 +2231,55 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
+  // Radio à manivelle : animée + tap (souvenir) en jeu, déplaçable en ajuster.
+  Widget _buildRadio(double w, double h) {
+    final gs = GameState.instance;
+    if (!gs.debugMode && !gs.cardFlags.contains('aLaRadio')) {
+      return const SizedBox.shrink();
+    }
+    if (widget.salonAdjust) {
+      return _w2Drag(
+        w: w, h: h,
+        cx: gs.slx('radio'), topY: gs.sly('radio'), heightFrac: gs.slh('radio'),
+        aspect: gs.slw('radio') / gs.slh('radio'), label: 'radio', adjust: true,
+        onMove: (dx, dy) => gs.slMove('radio', dx, dy),
+        onResize: (nh) => gs.slResize('radio', nh),
+        child: Image.asset('assets/objects/radio_1.png', fit: BoxFit.contain),
+      );
+    }
+    final sp = gs.salonProps['radio']!;
+    final propW = w * sp[3];
+    return Positioned(
+      left: w * sp[0] - propW / 2,
+      top: h * sp[1],
+      width: propW,
+      child: _RadioProp(night: widget.night),
+    );
+  }
+
   Widget _salonCoordHud(GameState gs) {
     Widget row(String k) {
       final t =
           '${k.padRight(9)} x${gs.slx(k).toStringAsFixed(3)} y${gs.sly(k).toStringAsFixed(3)} h${gs.slh(k).toStringAsFixed(3)}';
       return Text(t,
           style: const TextStyle(
-              color: Colors.white, fontSize: 10, fontFamily: 'monospace'));
+              color: Colors.white, fontSize: 9, fontFamily: 'monospace'));
     }
+
+    // Toutes les clés salon présentes dans salonProps, dédoublonnées.
+    final keys = <String>[
+      for (final def in _propDefs)
+        if (gs.salonProps.containsKey(def.key)) def.key,
+      'radio',
+      'deco_photo', 'deco_peluche', 'deco_fleurs',
+    ];
+    // 2 colonnes pour tout faire tenir à l'écran.
+    final half = (keys.length / 2).ceil();
+    Widget col(Iterable<String> ks) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [for (final k in ks) row(k)],
+        );
 
     return Positioned(
       left: 8,
@@ -2254,7 +2287,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
+          color: Colors.black.withValues(alpha: 0.72),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
@@ -2266,10 +2299,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
                     color: Color(0xFFE8B96B),
                     fontSize: 10,
                     fontWeight: FontWeight.bold)),
-            for (final def in _propDefs)
-              if (gs.salonProps.containsKey(def.key)) row(def.key),
-            for (final k in const ['deco_photo', 'deco_peluche', 'deco_fleurs'])
-              row(k),
+            const SizedBox(height: 2),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                col(keys.take(half)),
+                const SizedBox(width: 14),
+                col(keys.skip(half)),
+              ],
+            ),
           ],
         ),
       ),
