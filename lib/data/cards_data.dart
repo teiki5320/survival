@@ -819,6 +819,16 @@ final List<StoryCard> _fill5 = [
       _c("Franchir au pas, prudente", fx: {Stat.bois: -7, Stat.moral: 5}, result: "Tu rampes sur le tablier qui gémit, ta sœur cramponnée à toi, à compter chaque traverse. Le viaduc tient. Vous passez, lessivées de peur — mais vivantes, et c'est tout ce qui compte."),
       _c("Foncer avant qu'il ne cède", fx: {Stat.bois: 6, Stat.faim: -7}, result: "Tu pousses la loco d'un coup, sans laisser le temps au viaduc de réfléchir. Derrière vous, une poutre lâche dans le vide. L'élan vous sauve — mais ta sœur a hurlé, et ce cri te poursuit."),
       oneshot: true),
+  _filler('F5_dent',
+      "Ta petite sœur te montre, émerveillée, une dent de lait au creux de sa paume. Au milieu de tout ça, elle grandit encore.",
+      _c("Inventer une petite souris du nord", fx: {Stat.moral: 9, Stat.faim: -4}, result: "Tu glisses un carré de sucre sous son oreiller pendant qu'elle dort. Son cri de joie au matin vaut bien la ration que ça coûte.", reaction: "« La souris du nord, elle existe vraiment ?! »"),
+      _c("Lui dire de la garder précieusement", fx: {Stat.faim: 4, Stat.moral: -4}, result: "Pas de vivres gaspillés pour un conte. Elle range sa dent dans sa poche, un peu déçue, et tu détournes les yeux."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F5_chanson',
+      "Dans le roulis, ta sœur fredonne tout bas une berceuse — celle de maman. Tu en avais oublié l'air. Le wagon entier semble retenir son souffle.",
+      _c("Chanter avec elle", fx: {Stat.moral: 10, Stat.bois: -4}, result: "Vos deux voix se mêlent dans le wagon un instant. Maman est là, quelque part dans ces notes. Le foyer a refroidi pendant ce moment suspendu — tant pis."),
+      _c("L'écouter en silence, garder le cap", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu la laisses chanter seule sans ralentir la loco. Sa petite voix s'éteint d'elle-même, et le silence qui suit pèse lourd."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
 ];
 
 final List<StoryCard> _fill6 = [
