@@ -1837,10 +1837,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                   !widget.salonAdjust) &&
                               !(def.key == 'panier' &&
                                   _dogInBasket &&
-                                  !widget.salonAdjust) &&
-                              !(def.key == 'jeu' &&
-                                  _duoActive &&
-                                  _duoAnim == 'playduo' &&
                                   !widget.salonAdjust))
                             widget.salonAdjust
                                 ? _buildSalonDrag(def, w, h)
@@ -2957,13 +2953,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final duoH = h * _duoHeightFrac;
     final duoW = duoH * _duoAspect;
     final feetY = h * 0.74;
-    // Le jeu se joue À la table (sa position) ; lecture/câlin restent près
-    // de la sœur.
-    final anchorX = _duoAnim == 'playduo'
-        ? (GameState.instance.salonProps['jeu']?[0] ?? _sisterX)
-        : _sisterX;
     return Positioned(
-      left: anchorX * w - duoW / 2,
+      left: _sisterX * w - duoW / 2,
       top: feetY - duoH, // contenu collé en bas -> pieds au sol
       width: duoW,
       height: duoH,
