@@ -497,7 +497,6 @@ class GameState extends ChangeNotifier {
     'carillon': [0.726, 0.314, 0.131, 0.067],
     'fauteuil': [0.785, 0.485, 0.250, 0.250],
     'panier': [0.58, 0.66, 0.115, 0.165],
-    'jeu': [0.45, 0.60, 0.16, 0.19],
     'radio': [0.66, 0.46, 0.130, 0.105],
     // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
     'deco_photo': [0.365, 0.18, 0.10, 0.07],
