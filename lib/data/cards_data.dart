@@ -1044,6 +1044,16 @@ final List<StoryCard> _fill8 = [
       _c("Ralentir, sonder la voie", fx: {Stat.bois: -8, Stat.moral: 4}, result: "Tu descends dans le froid mordant, tu testes la fissure au pied. Elle tient, mais de justesse. Tu repasses au ralenti, rassurée — au prix d'une bonne lampée de bois et de doigts gourds."),
       _c("Passer vite, la fissure tiendra", fx: {Stat.bois: 6, Stat.moral: -6}, result: "Tu fermes les yeux et tu pousses. Un claquement sec sous les roues — le rail a bougé mais a tenu. Tu passes, le bois sauf, mais le cœur cognant : la prochaine fois, peut-être pas."),
       oneshot: true, art: CardArt.cold),
+  _filler('F8_givre',
+      "Au matin, le givre dessine des fougères sur la vitre. Ta sœur souffle sur ses doigts bleuis sans se plaindre — ce qui est pire que si elle pleurait.",
+      _c("Lui donner tes gants", fx: {Stat.moral: 9, Stat.soif: -5}, result: "Tu lui enfiles tes gants trop grands. Elle sourit, tu claques des dents. Sucer de la neige glacée pour boire n'arrange rien à tes doigts gourds — mais elle a chaud.", reaction: "« Tes mains à toi, alors ? » — « Chut, ça va. »"),
+      _c("Pousser le poêle, garder tes gants", fx: {Stat.bois: -10, Stat.moral: 3}, result: "Tu balances une bûche de plus au foyer pour la réchauffer sans te dévêtir. Le wagon tiédit, le tas de bois fond à vue d'œil."),
+      oneshot: true, requires: (f) => f.contains('aLaSoeur'), art: CardArt.cold),
+  _filler('F8_loups',
+      "Des silhouettes grises filent le long de la voie : des loups efflanqués qui suivent le train dans la neige. Ils ne s'approchent pas. Pas encore.",
+      _c("Leur jeter de la viande séchée", fx: {Stat.faim: -7, Stat.moral: 6}, result: "Tu lances un quartier dans la neige. La meute s'arrête pour se le disputer et lâche le train. Ton garde-manger est plus léger, ta nuit plus tranquille."),
+      _c("Ne rien gaspiller, accélérer", fx: {Stat.bois: -6, Stat.faim: 4}, result: "Tu pousses la loco pour les semer plutôt que de les nourrir. Ils décrochent un à un dans la nuit blanche — au prix d'une belle lampée de bois."),
+      oneshot: true, art: CardArt.cold),
 ];
 
 final List<StoryCard> _fill9 = [
