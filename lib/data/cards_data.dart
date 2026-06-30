@@ -691,6 +691,16 @@ final List<StoryCard> _fill3 = [
       _c("Siffler pour l'appeler", fx: {Stat.moral: 8, Stat.bois: -5}, result: "Ton coup de sifflet se perd dans la ouate. Pas de réponse — mais un instant, l'idée qu'un autre cherche aussi son chemin t'a réchauffée. Tu n'es pas seule à rouler vers demain."),
       _c("Te taire, garder ta position secrète", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu coupes ton propre souffle, tu rases les murs de brume. L'autre train s'éloigne, ou se rapproche, impossible à dire. Tu préfères ne pas savoir qui tient l'autre manette — mais le doute te ronge."),
       oneshot: true),
+  _filler('F3_lanterne',
+      "Une lueur tremblante grandit dans le brouillard, droit devant : une lanterne, portée par quelqu'un qui marche sur la voie. Âme en peine, ou appât de pillards ?",
+      _c("Stopper, tendre la main", fx: {Stat.moral: 9, Stat.faim: -6}, result: "Tu freines. Une vieille femme transie monte un instant, partage ses maigres nouvelles du sud, et redescend plus loin en bénissant ton nom. Une ration de moins — un peu de foi en les vivants de plus."),
+      _c("Éteindre tout, la contourner", fx: {Stat.faim: 5, Stat.moral: -5}, result: "Trop de pillards tendent ce genre d'appât. Tu coupes les feux et tu glisses dans le noir. La lanterne s'agite, appelle — peut-être une vraie détresse. Tu ne le sauras jamais, et ça te ronge."),
+      oneshot: true, art: CardArt.pillards),
+  _filler('F3_barricade',
+      "Des traverses empilées barrent la voie, hérissées de ferraille — un péage de pillards, tapis dans la brume, qui attendent que tu ralentisses.",
+      _c("Descendre négocier le passage", fx: {Stat.faim: -8, Stat.moral: 5}, result: "Tu paies ton péage en conserves, mains levées, le cœur battant. Ils dégagent la voie et te laissent passer. Plus pauvre, mais entière — et tu n'as eu à blesser personne."),
+      _c("Charger à pleine vapeur", fx: {Stat.bois: -9, Stat.moral: -3}, result: "Tu pousses la loco et tu défonces l'obstacle dans une gerbe d'étincelles. Des silhouettes bondissent, trop tard. Tu passes en force — le foyer vidé, et des coups sourds contre la tôle qui résonnent longtemps."),
+      oneshot: true, art: CardArt.pillards),
 ];
 
 final List<StoryCard> _fill4 = [
