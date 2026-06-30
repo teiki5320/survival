@@ -1235,6 +1235,16 @@ final List<StoryCard> _fill10 = [
       _c("La réveiller, le nord n'attend pas", fx: {Stat.bois: 7, Stat.moral: -5}, result: "Tu la secoues doucement. Elle se frotte les yeux, déçue d'avoir quitté son rêve chaud. Tu gardes l'élan et le bois — mais lui voler ce repos rare te pèse plus que la fatigue.",
           reaction: "Ta sœur se lève à contrecœur : « Je rêvais qu'on était déjà arrivées. Tout le monde était là. »"),
       requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
+  _filler('F10_fruits',
+      "La serre déborde de fruits mûrs — les premiers vrais depuis des mois. En remplir un cageot prend un temps précieux, mais le parfum seul te fait monter les larmes.",
+      _c("Tout cueillir, vous en gorger", fx: {Stat.faim: 14, Stat.bois: -7}, result: "Vous mangez à pleines mains, le jus qui dégouline, à en rire. Le cageot déborde pour la route. La loco a refroidi pendant la cueillette — un bois bien dépensé."),
+      _c("Prendre vite, repartir", fx: {Stat.faim: 8, Stat.moral: -4}, result: "Tu remplis un sac à la hâte et tu files, sans t'attarder dans cette douceur. Le ventre nourri, l'élan gardé — mais quitter si vite le seul coin vivant du monde te serre la gorge."),
+      oneshot: true, art: CardArt.food),
+  _filler('F10_bain_chaud',
+      "L'eau de la serre est tiède, presque chaude. Un vrai bain, le premier depuis une éternité. T'y plonger, c'est t'attarder ; mais ton corps épuisé le réclame.",
+      _c("T'offrir le bain", fx: {Stat.moral: 12, Stat.bois: -6}, result: "Tu te coules dans l'eau chaude jusqu'au menton, et pour une fois tu ne penses à rien. Le foyer refroidit dehors — mais tu ressors neuve, prête à affronter le froid qui vient."),
+      _c("T'en passer, ne pas traîner", fx: {Stat.bois: 5, Stat.moral: -5}, result: "Tu te contentes d'un brin de toilette à l'eau froide et tu recharges la loco. Le bois ménagé, le temps gagné — mais ton corps fourbu te reprochera longtemps ce confort refusé."),
+      oneshot: true, art: CardArt.water),
 ];
 
 final List<StoryCard> _fill11 = [
