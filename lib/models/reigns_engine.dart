@@ -399,10 +399,6 @@ class ReignsEngine {
         );
       }
       _gs.cardGareIndex = next;
-      // Franchir une gare coûte 1 élan : à 0, la HALTE bloquera le tirage de la
-      // gare suivante tant qu'on n'est pas repassé soigner Shen au wagon (calculé
-      // dans _emit via elanGateBlocking). Frontière de segment = reprise propre.
-      _gs.consumeLeg();
       // La météo se met au diapason de la (nouvelle) zone : entrer dans
       // le nord fait tomber la neige immédiatement.
       _gs.refreshWeatherForZone();

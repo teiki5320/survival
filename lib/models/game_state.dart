@@ -291,12 +291,10 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Dormir dans le lit : nuit complète -> remise à neuf du sommeil. Une vraie
-  /// nuit de repos relance le voyage à fond (élan plein). Débloque aussi une
-  /// carte-souvenir « rêve » (récompense NARRATIVE, pas une stat).
+  /// Dormir dans le lit : nuit complète -> remise à neuf du sommeil. Débloque
+  /// aussi une carte-souvenir « rêve » (récompense NARRATIVE, pas une stat).
   void restoreSleep() {
     sleepNeed = 100;
-    cardElan = cardElanMax; // repos complet -> élan rechargé au max
     unlockSouvenir('reve');
     notifyListeners();
   }
@@ -305,7 +303,6 @@ class GameState extends ChangeNotifier {
   /// « bain » (gain NARRATIF : une page d'histoire, pas une stat).
   void restoreHygiene() {
     hygieneNeed = 100;
-    rechargeElan(1);
     unlockSouvenir('bain');
     notifyListeners();
   }
@@ -335,7 +332,6 @@ class GameState extends ChangeNotifier {
     if (now - lastComfortMs < 45000) return false;
     lastComfortMs = now;
     nudgeCardStat('moral', amount);
-    rechargeElan(1); // s'occuper de Shen (chien/sœur/lecture) relance un peu
     return true;
   }
 
@@ -913,22 +909,6 @@ class GameState extends ChangeNotifier {
     return true;
   }
 
-  // --- Élan du voyage (rythme cosy : alterner cartes <-> soins du wagon) ---
-  // REMPLACE l'ancien mur de temps réel (crédits) par un rythme fondé sur
-  // L'ENGAGEMENT : `cardElan` = le nombre d'« étapes » (gares) que le train peut
-  // enchaîner avant que Shen ne soit à bout. On dépense 1 élan à CHAQUE gare
-  // franchie (frontière de segment = point de reprise propre, jamais en plein
-  // milieu). À 0, le train fait HALTE : il faut retourner s'occuper de Shen dans
-  // le wagon (dormir la recharge à fond, la réchauffer / jouer un peu) avant de
-  // repartir. Pas d'attente sur un écran verrouillé : c'est le wagon (le cœur
-  // Tamagotchi) qui relance le voyage — ce qui remplace l'ancien combat comme
-  // « chose à faire entre deux phases de cartes ».
-  // ÉLAN DÉSACTIVÉ (remplacé par les crédits temps réel + la cinématique de
-  // gare, à la demande). Code conservé au cas où.
-  static const bool elanEnabled = false;
-  static const int cardElanMax = 3;
-  int cardElan = cardElanMax;
-
   // --- Cinématique d'arrivée en gare (FORCE la sortie des cartes) ---
   // À chaque NOUVELLE gare atteinte, on montre une cinématique (texte
   // `kGareIntros`) qui oblige à QUITTER les cartes (bouton -> onClose). On
@@ -941,25 +921,6 @@ class GameState extends ChangeNotifier {
   /// été jouée -> l'écran cartes montre la cinématique au lieu de la carte.
   bool gareCineBlocking(int gareIndex) =>
       !debugMode && !cardGareCineSeen.contains(gareIndex);
-
-  /// Vrai quand Shen est à bout : la HALTE bloque le tirage de la gare suivante
-  /// tant qu'on n'est pas repassé soigner Shen au wagon. (Jamais en debug.)
-  bool get elanGateBlocking =>
-      elanEnabled && !debugMode && hasCardRun && cardElan <= 0;
-
-  /// Dépense 1 élan en franchissant une gare (appelé au passage de segment).
-  void consumeLeg() {
-    if (!elanEnabled || debugMode) return;
-    if (cardElan > 0) cardElan--;
-    notifyListeners();
-  }
-
-  /// Regagne de l'élan via les soins du wagon (dormir = plein, le reste = +n).
-  void rechargeElan(int n) {
-    if (n <= 0 || cardElan >= cardElanMax) return;
-    cardElan = (cardElan + n).clamp(0, cardElanMax);
-    notifyListeners();
-  }
 
   // Stat de départ QUASI À ZÉRO (demande user) : l'histoire commence au bord du
   // gouffre — train abîmé, froid, Shen à bout, jauges presque vides. Avec le
@@ -979,7 +940,6 @@ class GameState extends ChangeNotifier {
     cardSoin = 0;
     cardCredits = cardCreditsMax;
     cardCreditNextMs = 0;
-    cardElan = cardElanMax;
     cardGareCineSeen
       ..clear()
       ..add(0); // gare de départ : pas de cinématique forcée (déjà l'ouverture)
@@ -1072,7 +1032,6 @@ class GameState extends ChangeNotifier {
         'soin': cardSoin,
         'credits': cardCredits,
         'creditNextMs': cardCreditNextMs,
-        'elan': cardElan,
         'gareCine': cardGareCineSeen.toList(),
         'segProgress': cardSegmentProgress,
       };
@@ -1095,7 +1054,6 @@ class GameState extends ChangeNotifier {
     cardCredits = ((m['credits'] as num?)?.toInt() ?? cardCreditsMax)
         .clamp(0, cardCreditsMax);
     cardCreditNextMs = (m['creditNextMs'] as num?)?.toInt() ?? 0;
-    cardElan = ((m['elan'] as num?)?.toInt() ?? cardElanMax).clamp(0, cardElanMax);
     cardGareCineSeen
       ..clear()
       ..add(0)

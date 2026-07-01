@@ -171,8 +171,9 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
     affiche le nom de la gare + `kGareIntros[idx]` et **OBLIGE à sortir des
     cartes** (bouton → `onClose`, marque `cardGareCineSeen.add(idx)` + save).
     Gare 0 (départ) marquée vue d'office (l'ouverture la couvre). Persisté.
-  - **ÉLAN DÉSACTIVÉ** (`elanEnabled = false`) : remplacé par les crédits.
-    Code (`cardElan`, `consumeLeg`, `rechargeElan`, `_buildHalt`) conservé inerte.
+  - **ÉLAN SUPPRIMÉ** (2026-07-01) : l'ancienne mécanique d'engagement
+    (`cardElan`/`consumeLeg`/`rechargeElan`/`elanGateBlocking`) a été retirée du
+    code — le rythme est porté par les crédits temps réel. NE PAS la ré-introduire.
 
 ### Équilibrage (`tools/sim_current.py`)
 Parse les vraies cartes (regex, `requires` modélisé) et rejoue 4000 runs/profil.
@@ -395,10 +396,10 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 - **Boutique IAP** — confort only, ne JAMAIS bloquer l'histoire.
 
 ### Priorité moyenne
-- Crédits de cartes : **ACTIFS** dans le code (`creditsEnabled = true`, cf. la
-  section RYTHME). ⚠️ Une vieille note disait « garder désactivé » : lever
-  l'ambiguïté avec l'user (si on veut vraiment les couper → `creditsEnabled =
-  false`). En l'état, c'est le système de rythme en place (l'élan est l'inerte).
+- Crédits de cartes : **ACTIFS** (`creditsEnabled = true`, confirmé user
+  2026-07-01) — c'est le système de rythme en place (tirer 1 carte = 1 crédit,
+  recharge +1/5 min temps réel ; cf. section RYTHME). L'ancien ÉLAN a été
+  **supprimé** (voir plus bas).
 - Refaire les musiques si besoin.
 - Vraie tenue d'hiver (sprites) — REPORTÉ à la toute fin (décision user).
   (Poêle interactif ✅ déjà fait ; bac hydro semer/récolter ✅ déjà fait.)

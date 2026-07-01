@@ -685,12 +685,6 @@ class _WagonScreenState extends State<WagonScreen>
             ? CardsScreen(
                 key: const ValueKey('cards'),
                 onClose: () {
-                  // HALTE (Shen à bout d'élan) : le train s'arrête pour la
-                  // nuit -> le wagon où l'on rentre se met en mode nuit cosy
-                  // (repos = recharge de l'élan). Sinon, fermeture normale.
-                  if (GameState.instance.elanGateBlocking) {
-                    _setJourneyNight(true);
-                  }
                   setState(() {
                     _inCards = false;
                     // Le voyage se pilote depuis la loco : on y revient en
@@ -1016,7 +1010,6 @@ class _WagonScreenState extends State<WagonScreen>
                           _wagonStage = (_wagonStage + 1) % 2;
                         }
                       });
-                      _audio.playSfx('clean');
                     },
                     child: const Icon(Icons.cleaning_services),
                   ),
