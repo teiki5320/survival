@@ -250,10 +250,11 @@ de l'écran wagon (triple-tap coin pour l'activer).
 `sisterShown`) lue À LA FOIS par la visibilité (side_scroll) ET l'interaction
 (main `_at*`). Un objet non débloqué est **invisible ET non cliquable**. Les
 flags `asset_*` sont posés par les cartes (`cards_data`) au fil des gares
-(état RÉEL, vérifié 2026-07-01) : paillasse g1 / gamelle+lampe g2 /
-atelier+carillon+carnet g3 / fauteuil+filtre g4 / vrai lit g5 /
-console+douche+tourne-disque+cellier(wagon2) g6 / commode+table de jeu g7 /
-poêle g8 / trousse+lanterne+panier g9 / bain+hydro g10. Chien=`aLeChien` (g2),
+(état RÉEL, front-load appliqué 2026-07-01) : paillasse g1 /
+gamelle+lampe+**filtre** g2 / atelier+carillon+carnet g3 / fauteuil+**poêle**
+(cuisinière+poêle à bois) g4 / vrai lit g5 / console+douche+tourne-disque+
+cellier(wagon2) g6 / commode+table de jeu g7 / trousse+lanterne+panier g9 /
+bain+hydro g10. Chien=`aLeChien` (g2),
 sœur=`aLaSoeur` (g5), radio=`aLaRadio` (g4). radio+bouquet(`deco_fleurs`) à
 l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 
@@ -410,8 +411,9 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
   lecture, panier chien, table de jeu, console. **firstaid** déplacé au cellier.
 - **Bouton debug** = pastille 🐞 bas-gauche (1 tap, plus de triple-tap).
 - Reste à faire (repris du handoff) :
-  1. **Front-load des gains** (validé, PAS appliqué) : filtre g4→**g2**,
-     poêle+cuisinière g8→**g4** + réécrire les textes concernés (cohérence).
+  1. **Front-load des gains** ✅ FAIT (2026-07-01) : filtre g4→g2,
+     poêle+cuisinière g8→g4, textes des cartes G2/G4/G8 réécrits. NB : le sim
+     n'en voit rien (il abstrait la date de déblocage en « recharges wagon »).
   2. **Tap qui suit le drag** : les zones de tap salon (`tourneDisqueCenterX`,
      `carillonCenterX`, `fauteuilCenterX`) sont des consts figées → lier la
      proximité à la position réelle (`salonProps`) pour taper l'objet là où il
