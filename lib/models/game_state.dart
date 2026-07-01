@@ -490,13 +490,12 @@ class GameState extends ChangeNotifier {
     'console': [0.45, 0.60, 0.090, 0],
     'jeu': [0.32, 0.62, 0.140, 0],
   };
-  /// Props ajustables du SALON (carnet, secours, gamelle, carte murale) :
-  /// [centreX, top, height, width] en fractions. Réglables en debug, persistés.
+  /// Props ajustables du SALON (carnet, gamelle, tourne-disque, carillon,
+  /// fauteuil, panier) : [centreX, top, height, width] en fractions. Réglables
+  /// en debug, persistés. (secours = cellier ; carte murale = loco.)
   final Map<String, List<double>> salonProps = {
     'notebook': [0.249, 0.670, 0.070, 0.070],
-    'firstaid': [0.296, 0.635, 0.110, 0.110],
     'bowl': [0.481, 0.669, 0.080, 0.080],
-    'wallmap': [0.205, 0.300, 0.135, 0.185],
     // Nouveaux objets (positions calées d'après les placements testés).
     'tournedisque': [0.551, 0.560, 0.165, 0.165],
     'carillon': [0.726, 0.314, 0.131, 0.067],

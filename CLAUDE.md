@@ -365,8 +365,11 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 ## Outils Python (`tools/`)
 - `sim_current.py` — simulation d'équilibrage des cartes (voir + haut).
 - `key_out_black.py` / `key_out_green.py` — chroma-key → transparence.
-- `split_character_sheet.py`, `trim_character_dividers.py`, `recut_clean.py` —
-  découpe de sheets.
+- `recut_clean.py` — découpe/normalisation de sheets (bottom-center).
+- `make_shen_sheet.py` — assemblage d'une sheet Shen ; `process_sister.py` —
+  traitement des sprites de la sœur.
+- `cut_bath_shower.py`, `cut_duos_cold.py`, `cut_new_props.py` — découpe des
+  lots d'anims/props (bain/douche, duos & froid, nouveaux objets).
 - `reduce_frames.py` — réduction/restauration de frames Shen.
 - `generate_app_icons.py`, `measure_sprite_bboxes.py`.
 - `story_viz/` — générateurs des visuels de design dans `docs/`.
@@ -376,10 +379,11 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 ## Ce qui reste à faire
 
 ### 🚨 Priorité — développer le contenu narratif
-- **Étoffer les cartes** : écrire de NOUVEAUX fillers (le `.twee` source a été
-  SUPPRIMÉ — trop périmé après tous les changements, il égarait). Rendre chaque
-  gare / chaque menace plus riche, distincte, mémorable. Écrire le contenu des
-  cartes-souvenirs (placeholders).
+- **Étoffer les cartes** : écrire de NOUVEAUX fillers directement dans
+  `cards_data.dart` (source de vérité du contenu). `docs/train_cosy_arc.twee`
+  reste une référence de l'ARC (14 gares + fins) mais PAS des fillers — ne pas
+  le traiter comme la source des cartes. Rendre chaque gare / chaque menace plus
+  riche, distincte, mémorable. Écrire le contenu des cartes-souvenirs (placeholders).
 - **Géo de départ** ✅ tranchée : **Kogarashi = la ville natale = la gare 1**
   (pas de nœud séparé ; le train fuit Kogarashi en flammes, 1re halte à sa gare
   en ruines). Wagons traversables dès le départ (option a, décision user).
@@ -391,7 +395,10 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 - **Boutique IAP** — confort only, ne JAMAIS bloquer l'histoire.
 
 ### Priorité moyenne
-- Crédits de cartes : **garder désactivé** (décision user) — conservé tel quel.
+- Crédits de cartes : **ACTIFS** dans le code (`creditsEnabled = true`, cf. la
+  section RYTHME). ⚠️ Une vieille note disait « garder désactivé » : lever
+  l'ambiguïté avec l'user (si on veut vraiment les couper → `creditsEnabled =
+  false`). En l'état, c'est le système de rythme en place (l'élan est l'inerte).
 - Refaire les musiques si besoin.
 - Vraie tenue d'hiver (sprites) — REPORTÉ à la toute fin (décision user).
   (Poêle interactif ✅ déjà fait ; bac hydro semer/récolter ✅ déjà fait.)

@@ -58,17 +58,3 @@ const Duration kWeatherPeriod = Duration(minutes: 5);
 const double kHeroXMin = 0.22;
 const double kHeroXMax = 0.86;
 const double kHeroBaseHeight = 0.36;
-const double kHeroSpeed = 0.18;
-const int kWalkFrameMs = 50;
-const int kIdleFrameMs = 80;
-const int kDanceFrameMs = 55;
-const int kSleepFrameMs = 110;
-const int kSpecialFrameMs = 70;
-// Anims héroïne réduites à 25 frames (cf. _heroFrameCount dans les scènes).
-const int kHeroFrameCount = 25;
-
-// --- Dog ---
-const double kDogDefaultHeight = 0.136;
-const double kDogTop = 0.673;
-const double kDogXMin = 0.35;
-const double kDogXMax = 0.70;

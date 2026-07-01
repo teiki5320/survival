@@ -1,6 +1,7 @@
-// Contenu narratif du mode cartes. CE FICHIER est désormais la SOURCE DE VÉRITÉ
-// (le .twee d'origine a été supprimé). 14 gares (avec variantes selon flags) +
-// un paquet de remplissage par segment, taggé repeatable / oneshot pour le tirage.
+// Contenu narratif du mode cartes. CE FICHIER est la SOURCE DE VÉRITÉ des cartes
+// (docs/train_cosy_arc.twee ne décrit que l'ARC, pas les fillers). 14 gares (avec
+// variantes selon flags) + un paquet de remplissage par segment, taggé
+// repeatable / oneshot pour le tirage.
 //
 // Flags utilisés : aLeChien (chien recueilli),
 // aLaSoeur (sœur retrouvée gare 5), soeurProtegee (gestes de soin,

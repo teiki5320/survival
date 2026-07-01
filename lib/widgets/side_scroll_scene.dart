@@ -8,7 +8,6 @@ import '../constants.dart' as consts;
 import '../data/anim_metrics.dart';
 import '../models/game_state.dart';
 import 'atmosphere.dart';
-import 'map_screen.dart';
 import 'train_rocking.dart';
 
 /// Largeur de décodage des sprites de PERSONNAGE (héroïne / sœur). Égale à la
@@ -50,7 +49,6 @@ class SideScrollScene extends StatefulWidget {
     this.doorPushRight = false,
     this.onDoorPushDone,
     this.onOpenWardrobe,
-    this.onOpenMap,
     this.dogHeight = 0.136,
     this.specialAnim,
     this.specialAnimFrames = 25,
@@ -176,9 +174,6 @@ class SideScrollScene extends StatefulWidget {
   /// Fired when the user taps the commode (wardrobe). The parent opens
   /// the full-screen outfit selector.
   final VoidCallback? onOpenWardrobe;
-
-  /// Ouvre la carte du voyage (depuis la carte accrochée au mur du wagon 1).
-  final VoidCallback? onOpenMap;
 
   /// Hauteur du chien en fraction de h (réglable via slider parent).
   final double dogHeight;
@@ -340,13 +335,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'deco_photo': 0.863, 'deco_peluche': 0.780,
   };
 
+  // Positions de repli des props SALON (les vraies coords vivent dans
+  // GameState.salonProps, réglables en debug). Seules les clés de _propDefs
+  // sont consommées ici (fallback de _buildProp / _buildCharAtProp).
   final Map<String, _PropPos> _propPos = {
-    'hydro':    _PropPos(0.805, 0.412, 0.326),
-    'lamp':     _PropPos(0.415, 0.323, 0.104),
-    'stove':    _PropPos(0.629, 0.445, 0.263),
-    'filter':   _PropPos(0.727, 0.514, 0.200),
     'notebook': _PropPos(0.249, 0.670, 0.070),
-    'firstaid': _PropPos(0.296, 0.635, 0.110),
     'bowl':     _PropPos(0.481, 0.669, 0.080),
     'tournedisque': _PropPos(0.37, 0.56, 0.165),
     // Carillon : suspendu en haut (top bas = près du plafond), étroit et haut.
@@ -355,9 +348,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'fauteuil': _PropPos(0.30, 0.50, 0.265),
     // Panier du chien (salon) : posé au sol, bas et large.
     'panier':   _PropPos(0.58, 0.66, 0.115, 0.165),
-    // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
-    // Format paysage (la map est plus large que haute).
-    'wallmap':  _PropPos(0.205, 0.300, 0.135, 0.185),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
@@ -2183,16 +2173,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (def.key == 'carillon') {
       return Image.asset('assets/objects/carillon_1.png', fit: BoxFit.contain);
     }
-    if (def.key == 'wallmap') {
-      return Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF6B4A2A),
-          border: Border.all(color: const Color(0xFF3A2410), width: 3),
-        ),
-        child: const Center(
-          child: Icon(Icons.map, color: Color(0xFFE8C98A), size: 30)),
-      );
-    }
     return Image.asset('assets/objects/${def.key}.png', fit: BoxFit.contain);
   }
 
@@ -2827,9 +2807,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         : 'assets/objects/${def.key}.png';
     const boxFit = BoxFit.contain;
     final Widget sprite;
-    if (def.key == 'filter') {
-      sprite = _WaterTankSprite(level: _filterDisplayLevel, fit: boxFit);
-    } else if (def.animated) {
+    if (def.animated) {
       sprite = _AnimatedSprite(
         prefix: def.key,
         frameCount: def.frameCount,
@@ -2842,56 +2820,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
         fit: boxFit,
       );
     }
-    Widget wrapped = _nightTint(sprite);
-    // Lampe à pétrole : dim quand éteinte (GameState.lampOn = false).
-    if (def.key == 'lamp') {
-      wrapped = AnimatedBuilder(
-        animation: GameState.instance,
-        builder: (_, child) => Opacity(
-          opacity: GameState.instance.lampOn ? 1.0 : 0.18,
-          child: child,
-        ),
-        child: wrapped,
-      );
-    }
-
-    // Carte murale : tap = ouvre la map (le "menu" du jeu). On réutilise la
-    // VRAIE map (décor + tracé en boucle + gares) en miniature, avec un effet
-    // sépia/vieilli, encadrée d'un cadre bois.
-    if (def.key == 'wallmap') {
-      // La carte a été déplacée dans la locomotive : on ne l'affiche dans le
-      // wagon que si un callback onOpenMap est fourni (sinon prop masqué).
-      if (widget.onOpenMap == null) {
-        return const SizedBox.shrink();
-      }
-      final mapWidget = Container(
-        padding: const EdgeInsets.all(3),
-        decoration: BoxDecoration(
-          color: const Color(0xFF5A3E22),
-          borderRadius: BorderRadius.circular(3),
-          border: Border.all(color: const Color(0xFF3A2614), width: 1),
-          boxShadow: const [
-            BoxShadow(
-                color: Color(0x66000000), blurRadius: 5, offset: Offset(0, 2)),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(2),
-          child: const MiniRouteMap(aged: true),
-        ),
-      );
-      return Positioned(
-        left: left,
-        top: top,
-        width: propW,
-        height: propH,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: widget.onOpenMap,
-          child: _nightTint(mapWidget),
-        ),
-      );
-    }
+    final Widget wrapped = _nightTint(sprite);
 
     // bowl = tap pour remplir si vide, reste = inert. (L'armoire/commode a
     // été déplacée dans le cellier — voir _buildWagon2Props.)

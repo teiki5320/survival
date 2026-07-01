@@ -893,8 +893,6 @@ class _WagonScreenState extends State<WagonScreen>
             doorPushRight: _doorPushRight,
             onDoorPushDone: _onDoorPushDone,
             onOpenWardrobe: () => setState(() => _inWardrobe = true),
-            // La carte est désormais dans la LOCOMOTIVE (plus dans le wagon).
-            onOpenMap: null,
             dogHeight: _dogHeight,
             specialAnim: _specialAnim,
             specialAnimFrames: _specialAnimFrames,

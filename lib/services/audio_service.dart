@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart';
 ///
 /// Looped layers (ambient train, fire crackle in the cab) are kept on
 /// their own players so they can fade independently. One-shot SFX
-/// (footstep, log thud, door open) reuse a small pool of throwaway
-/// players so several can overlap.
+/// (log thud, pickup, drink, lamp toggle…) reuse a small pool of
+/// throwaway players so several can overlap.
 class AudioService {
   AudioService._();
   static final AudioService _instance = AudioService._();
