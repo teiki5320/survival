@@ -332,8 +332,16 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
   `loading_screen.dart`). **TOUJOURS bumper version + build à chaque push.**
 - **Dev local** : Mac mini (`/Users/jeanperraudeau/survival`), iPhone 16 Plus.
   iOS beta + debug → crash `EXC_BAD_ACCESS` : **toujours `flutter run --release`**.
-- **Flutter dans l'env web** : SDK dans `/tmp/flutter/bin/flutter`. **Toujours
-  `flutter analyze lib/` avant push** (cible : 0 issue).
+- **⚠️ FLUTTER ANALYZE = MANUEL (session distante)** : les sessions Claude Code
+  de ce projet tournent dans une **VM Linux cloud SANS Flutter** (réseau
+  verrouillé au repo → impossible à installer). Je NE PEUX PAS lancer
+  `flutter analyze`/`run`/build ici. NE PAS prétendre le contraire, NE PAS dire
+  « pas sur cette session » (ça sous-entend un ailleurs que je ne peux pas
+  garantir). **Workflow convenu (user 2026-07-01)** : quand une vérif Flutter est
+  nécessaire, je **donne la commande** à l'user, il la lance sur son Mac et me
+  colle la sortie :
+  `cd /Users/jeanperraudeau/survival && git pull origin main && flutter analyze lib/`
+  (cible : 0 issue). Vérif côté VM = à la main (grep de refs pendantes) + sim Python.
 - **Dépendances** : `audioplayers: ^6.1.0`, `cupertino_icons: ^1.0.6`.
 
 ### Règles de commit / push
