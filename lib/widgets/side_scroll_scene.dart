@@ -223,10 +223,6 @@ class SideScrollScene extends StatefulWidget {
   static const double tourneDisqueCenterX = 0.37;
   static const double carillonCenterX = 0.74;
   static const double fauteuilCenterX = 0.30;
-  static const double jeuCenterX = 0.45;
-  static const double lampCenterX = 0.415;
-  static const double stoveCenterX = 0.629;
-  static const double filterCenterX = 0.727;
   static const double hydroCenterX = 0.805;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
@@ -335,12 +331,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // dériver la largeur depuis la hauteur -> la boîte colle pile à l'objet
   // (aucun letterbox), identique en rendu normal ET en mode ajuster, sur tout
   // écran. La position stocke la HAUTEUR ; la largeur suit l'image.
+  // NB : radio / bouquet (deco_fleurs) / console / table de jeu (jeu) sont
+  // passés à l'ATELIER (voir _buildWagon1Adjustable, aspects codés en dur là-bas).
   static const Map<String, double> _salonAspect = {
     'notebook': 1.0, 'bowl': 1.0,
     'tournedisque': 0.754, 'carillon': 0.464, 'fauteuil': 1.031,
-    'panier': 1.528, 'jeu': 1.179, 'console': 3.110,
-    'deco_photo': 0.863, 'deco_peluche': 0.780, 'deco_fleurs': 0.779,
-    'radio': 0.810,
+    'panier': 1.528,
+    'deco_photo': 0.863, 'deco_peluche': 0.780,
   };
 
   final Map<String, _PropPos> _propPos = {
@@ -358,10 +355,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'fauteuil': _PropPos(0.30, 0.50, 0.265),
     // Panier du chien (salon) : posé au sol, bas et large.
     'panier':   _PropPos(0.58, 0.66, 0.115, 0.165),
-    // Table de jeu (salon) : posée au sol.
-    'jeu':      _PropPos(0.45, 0.60, 0.16, 0.19),
-    // Console basse (salon) : large et basse, on pose des objets dessus.
-    'console':  _PropPos(0.50, 0.60, 0.09, 0.28),
     // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
     // Format paysage (la map est plus large que haute).
     'wallmap':  _PropPos(0.205, 0.300, 0.135, 0.185),
@@ -1759,11 +1752,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
-                      // RADIO À MANIVELLE (salon) : objet animé (manivelle +
-                      // éclairs) débloqué à G4 (flag aLaRadio). Tap direct ->
-                      // débloque une carte-souvenir « radio » (narratif).
-                      // radio déplacée dans l'atelier
-                      const SizedBox.shrink(),
+                      // NB : radio + bouquet (deco_fleurs) sont passés à
+                      // l'ATELIER (voir _buildWagon1Adjustable).
                       // #4 — DÉCO-SOUVENIRS : objets qui s'accrochent dans le
                       // salon selon les souvenirs vécus. Le train raconte ta
                       // partie. (photo de famille = souvenir carnet ; peluche
@@ -1772,8 +1762,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                         _buildDeco('deco_photo', 'souvenir_carnet', w, h),
                       if (!widget.secondWagon && !widget.isAtelier)
                         _buildDeco('deco_peluche', 'souvenir_soeur', w, h),
-                      if (!widget.secondWagon && !widget.isAtelier)
-                        const SizedBox.shrink(), // bouquet déplacé atelier
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
@@ -1851,10 +1839,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                   !widget.salonAdjust) &&
                               !(def.key == 'panier' &&
                                   _dogInBasket &&
-                                  !widget.salonAdjust) &&
-                              !(def.key == 'jeu' &&
-                                  _duoActive &&
-                                  _duoAnim == 'playduo' &&
                                   !widget.salonAdjust))
                             widget.salonAdjust
                                 ? _buildSalonDrag(def, w, h)
@@ -1893,7 +1877,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             intensity: 1.15),
                       // 4g-bis. Chien statique (dog_idle) ou animé
                       //     pendant les interactions (crouch → wag_tail).
-                      // Compagnons (sœur + chien) : SALON uniquement.
+                      // Chien : SALON uniquement.
                       if (!widget.secondWagon &&
                           !widget.isAtelier &&
                           !_petDog &&
@@ -1905,13 +1889,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           _petDog &&
                           _dogShown)
                         _buildPetDog(w, h),
+                      // Sœur : SALON + ATELIER (elle vient jouer à la table).
+                      // À l'atelier, seulement de JOUR (la nuit elle dort au
+                      // salon, où est le lit).
                       if (!widget.secondWagon &&
-                          !widget.isAtelier &&
+                          (!widget.isAtelier || !widget.night) &&
                           !_duoActive &&
                           _sisterShown)
                         _buildSister(w, h),
                       if (!widget.secondWagon &&
-                          !widget.isAtelier &&
+                          (!widget.isAtelier || !widget.night) &&
                           _duoActive &&
                           _sisterShown)
                         _buildDuo(w, h),
@@ -2258,35 +2245,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
-  // Radio à manivelle : animée + tap (souvenir) en jeu, déplaçable en ajuster.
-  Widget _buildRadio(double w, double h) {
-    final gs = GameState.instance;
-    if (!gs.debugMode && !gs.cardFlags.contains('aLaRadio')) {
-      return const SizedBox.shrink();
-    }
-    const asp = 0.810; // radio_1 200x247
-    if (widget.salonAdjust) {
-      return _w2Drag(
-        w: w, h: h,
-        cx: gs.slx('radio'), topY: gs.sly('radio'), heightFrac: gs.slh('radio'),
-        aspect: asp, label: 'radio', adjust: true,
-        onMove: (dx, dy) => gs.slMove('radio', dx, dy),
-        onResize: (nh) => gs.slResize('radio', nh),
-        child: Image.asset('assets/objects/radio_1.png', fit: BoxFit.contain),
-      );
-    }
-    final sp = gs.salonProps['radio']!;
-    final propH = h * sp[2];
-    final propW = propH * asp;
-    return Positioned(
-      left: w * sp[0] - propW / 2,
-      top: h * sp[1],
-      width: propW,
-      height: propH,
-      child: _RadioProp(night: widget.night),
-    );
-  }
-
   Widget _salonCoordHud(GameState gs) {
     Widget row(String k) {
       final t =
@@ -2300,8 +2258,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final keys = <String>[
       for (final def in _propDefs)
         if (gs.salonProps.containsKey(def.key)) def.key,
-      'radio',
-      'deco_photo', 'deco_peluche', 'deco_fleurs',
+      'deco_photo', 'deco_peluche',
     ];
     // 2 colonnes pour tout faire tenir à l'écran.
     final half = (keys.length / 2).ceil();
@@ -2407,8 +2364,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
           // Objets basculés du salon vers l'atelier.
           prop('console', 'console', 992 / 319,
               Image.asset('assets/objects/console.png', fit: BoxFit.contain)),
+          // Table de jeu : masquée pendant l'anim playduo (le sprite du duo
+          // contient déjà la table), sauf en mode ajuster.
           prop('jeu', 'jeu', 769 / 652,
-              Image.asset('assets/objects/jeu.png', fit: BoxFit.contain)),
+              Image.asset('assets/objects/jeu.png', fit: BoxFit.contain),
+              shown: _propUnlocked('jeu') &&
+                  !(_duoActive &&
+                      _duoAnim == 'playduo' &&
+                      !widget.wagon1Adjust)),
           prop('radio', 'radio', 200 / 247, _RadioProp(night: widget.night),
               shown: gs.debugMode || gs.cardFlags.contains('aLaRadio')),
           prop('deco_fleurs', 'deco_fleurs', 705 / 905,
@@ -2993,10 +2956,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final duoH = h * _duoHeightFrac;
     final duoW = duoH * _duoAspect;
     final feetY = h * 0.74;
-    // Le jeu se joue À la table (sa position) ; lecture/câlin restent près
-    // de la sœur.
+    // Le jeu se joue À la table (atelier, sa position) ; lecture/câlin restent
+    // près de la sœur.
     final anchorX = _duoAnim == 'playduo'
-        ? (GameState.instance.salonProps['jeu']?[0] ?? _sisterX)
+        ? (GameState.instance.wagon1Props['jeu']?[0] ?? _sisterX)
         : _sisterX;
     return Positioned(
       left: anchorX * w - duoW / 2,

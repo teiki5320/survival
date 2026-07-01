@@ -391,6 +391,32 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 - Vraie tenue d'hiver (sprites) — REPORTÉ à la toute fin (décision user).
   (Poêle interactif ✅ déjà fait ; bac hydro semer/récolter ✅ déjà fait.)
 
+### Repris du handoff (session 2026-07-01, ex-ETAT_SESSION.md)
+- **Bascule objets salon → atelier** ✅ TERMINÉE : radio, bouquet
+  (`deco_fleurs`), console, table de jeu (`jeu`) vivent dans l'ATELIER
+  (`wagon1Props` + `_buildWagon1Adjustable`). Nettoyage fait : `_buildRadio`
+  supprimé, entrées mortes `salonProps`/`_salonAspect`/`_propPos` retirées,
+  consts `jeuCenterX`/`lampCenterX`/`stoveCenterX`/`filterCenterX` retirées.
+- **Table de jeu** ✅ tranchée (décision user) : **la sœur est autorisée à
+  l'atelier** (de JOUR ; la nuit elle dort au salon près du lit). `playduo` se
+  déclenche via le tap de la table à l'atelier (`_atJeu` = `_inAtelier && !night
+  && near(w1x('jeu'))`) ; le tap sur la sœur ne cycle plus que lecture↔câlin.
+- **Répartition des déblocages** étalée sur les 14 gares (1-2 objets/gare) +
+  `asset_atelier` g3. **6 objets câblés** : tourne-disque, carillon 13f, fauteuil
+  lecture, panier chien, table de jeu, console. **firstaid** déplacé au cellier.
+- **Bouton debug** = pastille 🐞 bas-gauche (1 tap, plus de triple-tap).
+- Reste à faire (repris du handoff) :
+  1. **Front-load des gains** (validé, PAS appliqué) : filtre g4→**g2**,
+     poêle+cuisinière g8→**g4** + réécrire les textes concernés (cohérence).
+  2. **Tap qui suit le drag** : les zones de tap salon (`tourneDisqueCenterX`,
+     `carillonCenterX`, `fauteuilCenterX`) sont des consts figées → lier la
+     proximité à la position réelle (`salonProps`) pour taper l'objet là où il
+     a été déplacé.
+  3. **Baker les positions par défaut** : une fois l'user satisfait des
+     placements (mode ajuster ✏️ + capture du HUD), figer les coords dans
+     `salonProps`/`wagon1Props` (cf. `applyBakedLayout`).
+  4. Étoffer les cartes des **gares 12-14** (climax). Boutique IAP confort-only.
+
 ### ⚠️ Pièges connus / conventions
 - **Golden rule** (voir section Communication) : VÉRIFIER le code/les assets
   avant de répondre.

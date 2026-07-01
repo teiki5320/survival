@@ -335,9 +335,13 @@ class _WagonScreenState extends State<WagonScreen>
       _inLiving &&
       _unlocked('fauteuil') &&
       _near(SideScrollScene.fauteuilCenterX);
-  // Table de jeu (salon) : tap = jouer avec la sœur (si elle est là).
+  // Table de jeu (ATELIER) : tap = jouer avec la sœur (si elle est là).
+  // De jour seulement (la nuit la sœur dort au salon).
   bool get _atJeu =>
-      _inLiving && _unlocked('jeu') && _near(SideScrollScene.jeuCenterX);
+      _inAtelier &&
+      !_night &&
+      _unlocked('jeu') &&
+      _near(GameState.instance.w1x('jeu'));
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
       _inCellier && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
@@ -346,9 +350,12 @@ class _WagonScreenState extends State<WagonScreen>
       _inCellier &&
       _unlocked('shower') &&
       _near(GameState.instance.showerPanelX, 0.12);
-  // Proximité de la petite sœur (salon, position vivante).
+  // Proximité de la petite sœur (salon, ou atelier de jour où elle vient
+  // jouer). Position vivante rapportée par la scène.
   bool get _atSister =>
-      _inLiving && GameState.instance.sisterShown && _near(_sisterLiveX, 0.08);
+      (_inLiving || (_inAtelier && !_night)) &&
+      GameState.instance.sisterShown &&
+      _near(_sisterLiveX, 0.08);
 
   // Total logs the heroine has thrown into the firebox. Plumbed back
   // to the wagon scene to crank up the smoke trail + speed lines, so
@@ -1429,14 +1436,9 @@ class _WagonScreenState extends State<WagonScreen>
       icon = Icons.favorite;
       action = () {
         setState(() {
-          // Rotation des activités duo : lecture -> câlin -> (jeu si débloqué).
-          final cycle = <String>[
-            'readduo',
-            'sister_hug',
-            if (GameState.instance.cardFlags.contains('asset_jeu') ||
-                GameState.instance.debugMode)
-              'playduo',
-          ];
+          // Rotation des activités duo près de la sœur : lecture <-> câlin.
+          // (Le jeu de société se déclenche à la TABLE de l'atelier, _atJeu.)
+          const cycle = <String>['readduo', 'sister_hug'];
           final i = cycle.indexOf(_duoAnimToPlay);
           _duoAnimToPlay = cycle[(i + 1) % cycle.length];
           _duoToken++;
