@@ -2934,7 +2934,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         key: const ValueKey('sister'),
         tint: _nightTint,
         heightFrac: 0.28,
-        feetY: 0.74,
+        // Sol du wagon : salon 0.74, atelier 0.785 (comme l'héroïne).
+        feetY: widget.isAtelier ? 0.785 : 0.74,
         startX: _sisterX,
         minX: 0.18,
         maxX: 0.60,
@@ -2955,7 +2956,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   Widget _buildDuo(double w, double h) {
     final duoH = h * _duoHeightFrac;
     final duoW = duoH * _duoAspect;
-    final feetY = h * 0.74;
+    // Sol du wagon : salon 0.74, atelier 0.785 (comme l'héroïne).
+    final feetY = h * (widget.isAtelier ? 0.785 : 0.74);
     // Le jeu se joue À la table (atelier, sa position) ; lecture/câlin restent
     // près de la sœur.
     final anchorX = _duoAnim == 'playduo'
