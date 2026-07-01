@@ -332,6 +332,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('console',  'Console',   animated: false),
   ];
 
+  // Aspect RÉEL (largeur/hauteur en px) de chaque image d'objet salon. Sert à
+  // dériver la largeur depuis la hauteur -> la boîte colle pile à l'objet
+  // (aucun letterbox), identique en rendu normal ET en mode ajuster, sur tout
+  // écran. La position stocke la HAUTEUR ; la largeur suit l'image.
+  static const Map<String, double> _salonAspect = {
+    'notebook': 1.0, 'bowl': 1.0,
+    'tournedisque': 0.754, 'carillon': 0.464, 'fauteuil': 1.031,
+    'panier': 1.528, 'jeu': 1.179, 'console': 3.110,
+    'deco_photo': 0.863, 'deco_peluche': 0.780, 'deco_fleurs': 0.779,
+    'radio': 0.810,
+  };
+
   final Map<String, _PropPos> _propPos = {
     'hydro':    _PropPos(0.805, 0.412, 0.326),
     'lamp':     _PropPos(0.415, 0.323, 0.104),
@@ -2202,11 +2214,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
   Widget _buildSalonDrag(_PropDef def, double w, double h) {
     final gs = GameState.instance;
     final k = def.key;
-    // slw/slh sont des fractions de DIMENSIONS d'écran différentes (largeur vs
-    // hauteur). Pour que la boîte d'ajuster soit IDENTIQUE à celle du rendu
-    // normal (_buildProp : propW = w*slw, propH = h*slh), l'aspect passé à
-    // _w2Drag (pw = ph*aspect) doit inclure le ratio d'écran (w/h).
-    final aspect = (w / h) * gs.slw(k) / gs.slh(k);
+    // Aspect RÉEL de l'image -> _w2Drag (pw = ph*aspect) produit la MÊME boîte
+    // que _buildProp (propW = propH*aspect) et colle pile à l'objet.
+    final aspect = _salonAspect[k] ?? (w / h) * gs.slw(k) / gs.slh(k);
     return _w2Drag(
       w: w, h: h,
       cx: gs.slx(k), topY: gs.sly(k), heightFrac: gs.slh(k),
@@ -2226,22 +2236,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
     final img = _nightTint(
         Image.asset('assets/objects/$key.png', fit: BoxFit.contain));
+    final asp = _salonAspect[key] ?? 1.0;
     if (widget.salonAdjust) {
       return _w2Drag(
         w: w, h: h,
         cx: gs.slx(key), topY: gs.sly(key), heightFrac: gs.slh(key),
-        aspect: (w / h) * gs.slw(key) / gs.slh(key), label: key, adjust: true,
+        aspect: asp, label: key, adjust: true,
         onMove: (dx, dy) => gs.slMove(key, dx, dy),
         onResize: (nh) => gs.slResize(key, nh),
         child: img,
       );
     }
     final sp = gs.salonProps[key]!;
-    final propW = w * sp[3];
+    final propH = h * sp[2];
+    final propW = propH * asp;
     return Positioned(
       left: w * sp[0] - propW / 2,
       top: h * sp[1],
       width: propW,
+      height: propH,
       child: img,
     );
   }
@@ -2252,22 +2265,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (!gs.debugMode && !gs.cardFlags.contains('aLaRadio')) {
       return const SizedBox.shrink();
     }
+    const asp = 0.810; // radio_1 200x247
     if (widget.salonAdjust) {
       return _w2Drag(
         w: w, h: h,
         cx: gs.slx('radio'), topY: gs.sly('radio'), heightFrac: gs.slh('radio'),
-        aspect: (w / h) * gs.slw('radio') / gs.slh('radio'), label: 'radio', adjust: true,
+        aspect: asp, label: 'radio', adjust: true,
         onMove: (dx, dy) => gs.slMove('radio', dx, dy),
         onResize: (nh) => gs.slResize('radio', nh),
         child: Image.asset('assets/objects/radio_1.png', fit: BoxFit.contain),
       );
     }
     final sp = gs.salonProps['radio']!;
-    final propW = w * sp[3];
+    final propH = h * sp[2];
+    final propW = propH * asp;
     return Positioned(
       left: w * sp[0] - propW / 2,
       top: h * sp[1],
       width: propW,
+      height: propH,
       child: _RadioProp(night: widget.night),
     );
   }
@@ -2824,7 +2840,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
         ? _PropPos(sp[0], sp[1], sp[2], sp[3])
         : _propPos[def.key]!;
     final propH = h * pos.height;
-    final propW = w * pos.width;
+    // Largeur dérivée de l'aspect réel de l'image (boîte = objet, pas de
+    // letterbox) ; fallback sur l'ancienne largeur pour les clés hors table.
+    final asp = _salonAspect[def.key];
+    final propW = asp != null ? propH * asp : w * pos.width;
     final left = w * pos.left - propW / 2;
     final top = h * pos.top;
     // La gamelle a 2 états (full / empty) → asset différent selon
