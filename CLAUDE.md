@@ -249,9 +249,13 @@ de l'écran wagon (triple-tap coin pour l'activer).
 **SOURCE UNIQUE de déblocage** (`GameState.propUnlocked(key)` / `dogShown` /
 `sisterShown`) lue À LA FOIS par la visibilité (side_scroll) ET l'interaction
 (main `_at*`). Un objet non débloqué est **invisible ET non cliquable**. Les
-flags `asset_*` sont posés par les cartes (`cards_data`) au fil des gares :
-paillasse g1 / gamelle g2, lampe g2, carnet g3, filtre g4, commode/cellier g6, poêle+trousse
-g8, hydro+bain+douche+lanternes g10. Chien=`aLeChien` (g2), sœur=`aLaSoeur` (g5).
+flags `asset_*` sont posés par les cartes (`cards_data`) au fil des gares
+(état RÉEL, vérifié 2026-07-01) : paillasse g1 / gamelle+lampe g2 /
+atelier+carillon+carnet g3 / fauteuil+filtre g4 / vrai lit g5 /
+console+douche+tourne-disque+cellier(wagon2) g6 / commode+table de jeu g7 /
+poêle g8 / trousse+lanterne+panier g9 / bain+hydro g10. Chien=`aLeChien` (g2),
+sœur=`aLaSoeur` (g5), radio=`aLaRadio` (g4). radio+bouquet(`deco_fleurs`) à
+l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 
 ---
 
