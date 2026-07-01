@@ -265,10 +265,10 @@ List<StoryCard> _gare6(Set<String> f) => [
         text:
             "Un camp de survivants. On peut troquer, mais ils regardent ta sœur avec trop d'intérêt — ici, un enfant en bonne santé, ça se monnaie.",
         left: _c("Troquer vite et partir",
-            fx: {Stat.faim: 12, Stat.soif: 8, Stat.moral: -6}, flags: ['asset_wagon2', 'asset_shower', 'asset_tournedisque'],
-            result: "Tu obtiens des vivres mais tu sens leurs regards. Tu repars avant la nuit, elle serrée contre toi — en rattachant au convoi un wagon-cellier abandonné sur une voie de garage. Dedans, un vieux coin douche encore en état, et sur une étagère un tourne-disque à pavillon que tu installes au salon."),
+            fx: {Stat.faim: 12, Stat.soif: 8, Stat.moral: -6}, flags: ['asset_wagon2', 'asset_shower', 'asset_tournedisque', 'asset_console'],
+            result: "Tu obtiens des vivres mais tu sens leurs regards. Tu repars avant la nuit, elle serrée contre toi — en rattachant au convoi un wagon-cellier abandonné sur une voie de garage. Dedans, un vieux coin douche encore en état, et sur une étagère un tourne-disque à pavillon, posé sur une console basse que tu installes au salon."),
         right: _c("Ne pas t'attarder une seconde",
-            fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_wagon2', 'asset_shower', 'asset_tournedisque'],
+            fx: {Stat.moral: 6, Stat.faim: -5}, flags: ['asset_wagon2', 'asset_shower', 'asset_tournedisque', 'asset_console'],
             result: "Tu refuses tout contact. Le ventre vide, mais ta sœur en sécurité. En partant, tu accroches un wagon-cellier laissé là : il abrite un coin douche de fortune et un vieux tourne-disque, que tu remets vite en service."),
       ),
       // Menace = dilemme SOCIAL (le camp jauge ton humanité), pas un combat.

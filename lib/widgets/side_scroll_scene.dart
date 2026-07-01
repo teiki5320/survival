@@ -329,6 +329,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('fauteuil', 'Fauteuil',  animated: false),
     const _PropDef('panier',   'Panier',    animated: false),
     const _PropDef('jeu',      'Table de jeu', animated: false),
+    const _PropDef('console',  'Console',   animated: false),
   ];
 
   final Map<String, _PropPos> _propPos = {
@@ -348,6 +349,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     'panier':   _PropPos(0.58, 0.66, 0.115, 0.165),
     // Table de jeu (salon) : posée au sol.
     'jeu':      _PropPos(0.45, 0.60, 0.16, 0.19),
+    // Console basse (salon) : large et basse, on pose des objets dessus.
+    'console':  _PropPos(0.50, 0.60, 0.09, 0.28),
     // Carte du voyage accrochée au mur (tap = ouvre la map = le "menu").
     // Format paysage (la map est plus large que haute).
     'wallmap':  _PropPos(0.205, 0.300, 0.135, 0.185),

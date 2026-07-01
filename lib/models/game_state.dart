@@ -498,6 +498,7 @@ class GameState extends ChangeNotifier {
     'fauteuil': [0.785, 0.485, 0.250, 0.250],
     'panier': [0.58, 0.66, 0.115, 0.165],
     'jeu': [0.45, 0.60, 0.16, 0.19],
+    'console': [0.50, 0.60, 0.09, 0.28],
     'radio': [0.66, 0.46, 0.130, 0.105],
     // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
     'deco_photo': [0.365, 0.18, 0.10, 0.07],
@@ -807,6 +808,7 @@ class GameState extends ChangeNotifier {
     'asset_lantern': 'les lanternes',
     'asset_commode': 'la commode',
     'asset_tournedisque': 'le tourne-disque',
+    'asset_console': 'la console',
     'asset_carillon': 'le carillon à vent',
     'asset_jeu': 'le jeu de société',
     'asset_fauteuil': 'le fauteuil de lecture',
