@@ -328,8 +328,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('carillon', 'Carillon',  animated: true, frameCount: 13),
     const _PropDef('fauteuil', 'Fauteuil',  animated: false),
     const _PropDef('panier',   'Panier',    animated: false),
-    const _PropDef('jeu',      'Table de jeu', animated: false),
-    const _PropDef('console',  'Console',   animated: false),
+    // 'jeu' + 'console' DÉPLACÉS dans l'atelier (voir _buildWagon1Adjustable).
   ];
 
   // Aspect RÉEL (largeur/hauteur en px) de chaque image d'objet salon. Sert à
@@ -1763,8 +1762,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       // RADIO À MANIVELLE (salon) : objet animé (manivelle +
                       // éclairs) débloqué à G4 (flag aLaRadio). Tap direct ->
                       // débloque une carte-souvenir « radio » (narratif).
-                      if (!widget.secondWagon && !widget.isAtelier)
-                        _buildRadio(w, h),
+                      // radio déplacée dans l'atelier
+                      const SizedBox.shrink(),
                       // #4 — DÉCO-SOUVENIRS : objets qui s'accrochent dans le
                       // salon selon les souvenirs vécus. Le train raconte ta
                       // partie. (photo de famille = souvenir carnet ; peluche
@@ -1774,7 +1773,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                       if (!widget.secondWagon && !widget.isAtelier)
                         _buildDeco('deco_peluche', 'souvenir_soeur', w, h),
                       if (!widget.secondWagon && !widget.isAtelier)
-                        _buildDeco('deco_fleurs', 'souvenir_fenetre', w, h),
+                        const SizedBox.shrink(), // bouquet déplacé atelier
                       // 4c. Floating dust motes — caught in the warm
                       //     light through the wagon windows. Confined
                       //     to the wagon interior (y=0.20..0.80) so
@@ -2353,8 +2352,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     Widget still(String asset) =>
         Image.asset(asset, fit: BoxFit.contain, gaplessPlayback: true);
 
-    Widget prop(String key, String unlock, double aspect, Widget child) =>
-        _propUnlocked(unlock)
+    Widget prop(String key, String unlock, double aspect, Widget child,
+            {bool? shown}) =>
+        (shown ?? _propUnlocked(unlock))
             ? _w2Drag(
                 w: w, h: h,
                 cx: gs.w1x(key), topY: gs.w1y(key), heightFrac: gs.w1h(key),
@@ -2404,6 +2404,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
           prop('filtre', 'filter', 196 / 356,
               _WaterTankSprite(level: _filterDisplayLevel, fit: BoxFit.contain)),
           prop('poele', 'stove', 150 / 218, poeleChild),
+          // Objets basculés du salon vers l'atelier.
+          prop('console', 'console', 992 / 319,
+              Image.asset('assets/objects/console.png', fit: BoxFit.contain)),
+          prop('jeu', 'jeu', 769 / 652,
+              Image.asset('assets/objects/jeu.png', fit: BoxFit.contain)),
+          prop('radio', 'radio', 200 / 247, _RadioProp(night: widget.night),
+              shown: gs.debugMode || gs.cardFlags.contains('aLaRadio')),
+          prop('deco_fleurs', 'deco_fleurs', 705 / 905,
+              Image.asset('assets/objects/deco_fleurs.png', fit: BoxFit.contain),
+              shown: gs.debugMode || gs.cardFlags.contains('souvenir_fenetre')),
           // Float récolte/semis au-dessus du bac.
           if (_bacFloat != null && _propUnlocked('hydro'))
             _bacFloatWidget(w, h),

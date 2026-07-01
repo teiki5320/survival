@@ -484,6 +484,11 @@ class GameState extends ChangeNotifier {
     'filtre': [0.379, 0.530, 0.230, 0],
     'poele': [0.276, 0.523, 0.239, 0],
     'gaziniere': [0.695, 0.486, 0.278, 0],
+    // Objets basculés du salon vers l'atelier (radio, bouquet, console, jeu).
+    'radio': [0.60, 0.48, 0.130, 0],
+    'deco_fleurs': [0.20, 0.42, 0.090, 0],
+    'console': [0.45, 0.60, 0.090, 0],
+    'jeu': [0.32, 0.62, 0.140, 0],
   };
   /// Props ajustables du SALON (carnet, secours, gamelle, carte murale) :
   /// [centreX, top, height, width] en fractions. Réglables en debug, persistés.
