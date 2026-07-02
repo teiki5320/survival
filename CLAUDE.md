@@ -252,10 +252,12 @@ de l'écran wagon (triple-tap coin pour l'activer).
 (main `_at*`). Un objet non débloqué est **invisible ET non cliquable**. Les
 flags `asset_*` sont posés par les cartes (`cards_data`) au fil des gares
 (état RÉEL, front-load appliqué 2026-07-01) : paillasse g1 /
-gamelle+lampe+**filtre** g2 / atelier+carillon+carnet g3 / fauteuil+**poêle**
-(cuisinière+poêle à bois) g4 / vrai lit g5 / console+douche+tourne-disque+
-cellier(wagon2) g6 / commode+table de jeu g7 / trousse+lanterne+panier g9 /
-bain+hydro g10. Chien=`aLeChien` (g2),
+gamelle+lampe+**filtre**+**salon remis à neuf** (`asset_salon`) g2 /
+atelier rangé+carillon+carnet g3 / fauteuil+**poêle** (cuisinière+poêle à
+bois) g4 / vrai lit g5 / console+douche+tourne-disque+cellier(wagon2) g6 /
+commode+table de jeu g7 / trousse+lanterne+panier g9 /
+bain+hydro g10. Le NETTOYAGE des 3 wagons se GAGNE : salon g2, atelier g3,
+cellier g6 (arrive aménagé). Chien=`aLeChien` (g2),
 sœur=`aLaSoeur` (g5), radio=`aLaRadio` (g4). radio+bouquet(`deco_fleurs`) à
 l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 

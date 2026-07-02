@@ -996,6 +996,7 @@ class GameState extends ChangeNotifier {
     'asset_jeu': 'le jeu de société',
     'asset_fauteuil': 'le fauteuil de lecture',
     'asset_panier': 'le panier du chien',
+    'asset_salon': 'le salon remis à neuf',
     'asset_atelier': 'l\'atelier (2e wagon) rangé',
     'asset_wagon2': 'le cellier (3e wagon) aménagé',
   };

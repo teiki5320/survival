@@ -862,8 +862,9 @@ class _WagonScreenState extends State<WagonScreen>
             onDogX: (x) => setState(() => _dogLiveX = x),
             initialHeroX: _heroSpawnX,
             // En mode debug : wagon NETTOYÉ (stage 1) + tous les objets.
-            // En jeu : cellier ET atelier sont ENCOMBRÉS au départ, leur
-            // rangement se gagne (flag / FAB debug). Salon = _wagonStage.
+            // En jeu : les TROIS wagons démarrent abîmés/encombrés et leur
+            // nettoyage SE GAGNE par l'histoire : salon g2 (asset_salon),
+            // atelier g3 (asset_atelier), cellier g6 (asset_wagon2).
             wagonStage: GameState.instance.debugMode
                 ? 1
                 : secondWagon
@@ -878,7 +879,11 @@ class _WagonScreenState extends State<WagonScreen>
                                     .contains('asset_atelier'))
                             ? 1
                             : 0)
-                        : _wagonStage,
+                        : ((_wagonStage >= 1 ||
+                                GameState.instance.cardFlags
+                                    .contains('asset_salon'))
+                            ? 1
+                            : 0),
             running: _running,
             night: _night,
             dancing: _dancing,
