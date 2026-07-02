@@ -476,6 +476,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   static const int _bathFrameMs = 210; // entrée bien plus lente, posée
   static const int _bathFrames = 8;
   double _scaleStartH = 0; // hauteur capturée au début d'un pincer (ajuster)
+  // Objet sélectionné dans le HUD d'ajuster (tap sur sa ligne) : piloté par
+  // le pad ◀▶▲▼/−＋ — indispensable pour les objets trop petits à pincer ou
+  // hors d'atteinte au doigt.
+  String? _adjSel;
 
   // Douche (cellier) : Shen se tourne (use_back) puis se lave les cheveux
   // sous le pommeau, derrière le panneau. shower_1..8 en BOUCLE (+moral).
@@ -1846,9 +1850,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
                           _dogInBasket &&
                           !widget.salonAdjust)
                         _buildDogBasket(w, h),
-                      // HUD coords du salon en mode ajuster.
-                      if (widget.salonAdjust)
-                        _salonCoordHud(GameState.instance),
                       // Props AJUSTABLES de l'ATELIER (cuisinière, lampe, bac,
                       // filtre, poêle).
                       if (widget.isAtelier) _buildWagon1Adjustable(w, h),
@@ -2017,15 +2018,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
-                      // HUD ajuster wagon 1 (debug) — AU-DESSUS de tout pour
-                      // rester lisible. Panneau interactif (coords + flip).
-                      if (widget.isAtelier && widget.wagon1Adjust)
-                        _wagon1CoordHud(GameState.instance),
                     ],
                   ),
                 ),
               ),
               ),
+              // HUDs d'AJUSTER (debug) — HORS de TrainRocking/ClipRect : le
+              // tangage + le scale ×1.03 poussaient le panneau hors écran
+              // (coupé à gauche et en bas). Ici, coordonnées écran stables.
+              if (widget.salonAdjust) _salonCoordHud(GameState.instance),
+              if (widget.isAtelier && widget.wagon1Adjust)
+                _wagon1CoordHud(GameState.instance),
+              if (widget.secondWagon && widget.wagon2Adjust)
+                _coordHud(GameState.instance),
               ],
             );
           },
@@ -2225,14 +2230,68 @@ class _SideScrollSceneState extends State<SideScrollScene>
     );
   }
 
+  // --- Pad de réglage commun aux HUD d'ajuster (tap ligne = sélection) ---
+  Widget _adjPadBtn(String lab, VoidCallback tap) => GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() {
+          tap();
+          GameState.instance.save();
+        }),
+        child: Container(
+          margin: const EdgeInsets.only(right: 6, top: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.white24,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Text(lab,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold)),
+        ),
+      );
+
+  /// Rangée ◀▶▲▼ −＋ qui pilote l'objet sélectionné (`_adjSel`) : déplace par
+  /// pas de 0.008, redimensionne par pas de 0.01. Alternative au drag/pincer
+  /// (objets trop petits ou inaccessibles au doigt).
+  Widget _adjPad({
+    required void Function(double dx, double dy) move,
+    required void Function(double dh) size,
+  }) =>
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _adjPadBtn('◀', () => move(-0.008, 0)),
+          _adjPadBtn('▶', () => move(0.008, 0)),
+          _adjPadBtn('▲', () => move(0, -0.008)),
+          _adjPadBtn('▼', () => move(0, 0.008)),
+          _adjPadBtn('−', () => size(-0.01)),
+          _adjPadBtn('＋', () => size(0.01)),
+        ],
+      );
+
+  /// Ligne de coords tapable : tap = sélectionne l'objet pour le pad.
+  Widget _adjRow(String k, String text) {
+    final sel = _adjSel == k;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => setState(() => _adjSel = k),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+        color: sel ? const Color(0x66E8B96B) : Colors.transparent,
+        child: Text(text,
+            style: TextStyle(
+                color: sel ? const Color(0xFFFFE2A8) : Colors.white,
+                fontSize: 9,
+                fontFamily: 'monospace')),
+      ),
+    );
+  }
+
   Widget _salonCoordHud(GameState gs) {
-    Widget row(String k) {
-      final t =
-          '${k.padRight(9)} x${gs.slx(k).toStringAsFixed(3)} y${gs.sly(k).toStringAsFixed(3)} h${gs.slh(k).toStringAsFixed(3)}';
-      return Text(t,
-          style: const TextStyle(
-              color: Colors.white, fontSize: 9, fontFamily: 'monospace'));
-    }
+    String txt(String k) =>
+        '${k.padRight(9)} x${gs.slx(k).toStringAsFixed(3)} y${gs.sly(k).toStringAsFixed(3)} h${gs.slh(k).toStringAsFixed(3)}';
 
     // Toutes les clés salon présentes dans salonProps, dédoublonnées.
     final keys = <String>[
@@ -2245,9 +2304,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     Widget col(Iterable<String> ks) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
-          children: [for (final k in ks) row(k)],
+          children: [for (final k in ks) _adjRow(k, txt(k))],
         );
 
+    final selValid = _adjSel != null && keys.contains(_adjSel);
     return Positioned(
       left: 8,
       // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
@@ -2262,7 +2322,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('AJUSTER SALON — drag = position, pincer = taille',
+            const Text(
+                'AJUSTER SALON — tap ligne = sélection · drag/pincer = direct',
                 style: TextStyle(
                     color: Color(0xFFE8B96B),
                     fontSize: 10,
@@ -2277,6 +2338,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 col(keys.skip(half)),
               ],
             ),
+            if (selValid)
+              _adjPad(
+                move: (dx, dy) => gs.slMove(_adjSel!, dx, dy),
+                size: (dh) =>
+                    gs.slResize(_adjSel!, gs.slh(_adjSel!) + dh),
+              ),
           ],
         ),
       ),
@@ -2442,6 +2509,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
           ),
         );
     Widget row(String n) {
+      final sel = _adjSel == n;
       final t =
           '${n.padRight(9)} x${gs.w1x(n).toStringAsFixed(3)} y${gs.w1y(n).toStringAsFixed(3)} h${gs.w1h(n).toStringAsFixed(3)}';
       return Padding(
@@ -2449,13 +2517,18 @@ class _SideScrollSceneState extends State<SideScrollScene>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
-              width: 232,
-              child: Text(t,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontFamily: 'monospace')),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => _adjSel = n),
+              child: Container(
+                width: 232,
+                color: sel ? const Color(0x66E8B96B) : Colors.transparent,
+                child: Text(t,
+                    style: TextStyle(
+                        color: sel ? const Color(0xFFFFE2A8) : Colors.white,
+                        fontSize: 10,
+                        fontFamily: 'monospace')),
+              ),
             ),
             flipBtn('↔', gs.w1FlipH(n), () => setState(() => gs.w1ToggleFlip(n, 1))),
             flipBtn('↕', gs.w1FlipV(n), () => setState(() => gs.w1ToggleFlip(n, 2))),
@@ -2471,6 +2544,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       'gaziniere', 'lamp', 'bac', 'filtre', 'poele',
       'radio', 'deco_fleurs', 'console', 'jeu',
     ];
+    final selValid = _adjSel != null && props.contains(_adjSel);
     return Positioned(
       left: 8,
       // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
@@ -2485,14 +2559,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('AJUSTER WAGON 1 — pincer = taille · ↔↕ = miroir',
+            const Text(
+                'AJUSTER WAGON 1 — tap ligne = sélection · ↔↕ = miroir',
                 style: TextStyle(
                     color: Color(0xFFE8B96B),
                     fontSize: 10,
                     fontWeight: FontWeight.bold)),
             // Liste scrollable + plafonnée : elle ne déborde jamais de l'écran.
             ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: mq.size.height * 0.55),
+              constraints: BoxConstraints(maxHeight: mq.size.height * 0.5),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -2501,6 +2576,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 ),
               ),
             ),
+            if (selValid)
+              _adjPad(
+                move: (dx, dy) => gs.w1Move(_adjSel!, dx, dy),
+                size: (dh) => gs.w1Resize(
+                    _adjSel!, (gs.w1h(_adjSel!) + dh).clamp(0.03, 0.8)),
+              ),
           ],
         ),
       ),
@@ -2650,8 +2731,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
               },
               onResize: (nh) => gs.wagon2FirstaidH = nh,
             ),
-          // HUD coordonnées (mode ajuster) : lecture des x/y/h pour rebaker.
-          if (widget.wagon2Adjust) _coordHud(gs),
         ],
       ),
     );
@@ -2660,21 +2739,80 @@ class _SideScrollSceneState extends State<SideScrollScene>
   Widget _coordHud(GameState gs) {
     String l(String n, double x, double y, double hh) =>
         '$n  x${x.toStringAsFixed(2)}  y${y.toStringAsFixed(2)}  h${hh.toStringAsFixed(2)}';
-    final lines = [
-      l('baignoire', gs.bathX, gs.bathY, gs.bathH),
-      l('panneau  ', gs.showerPanelX, gs.showerPanelY, gs.showerPanelH),
-      l('pommeau  ', gs.showerHeadX, gs.showerHeadY, gs.showerHeadH),
-      l('lampe A  ', gs.wagon2LampAx, gs.wagon2LampAy, gs.wagon2LampAH),
-      l('lampe B  ', gs.wagon2LampBx, gs.wagon2LampBy, gs.wagon2LampBH),
-      l('armoire  ', gs.wagon2CommodeX, gs.wagon2CommodeY, gs.wagon2CommodeH),
-      l('secours  ', gs.wagon2FirstaidX, gs.wagon2FirstaidY, gs.wagon2FirstaidH),
+    // (clé, texte, move(dx,dy), size(dh)) — champs nommés du cellier.
+    final rows = <(String, String, void Function(double, double),
+        void Function(double))>[
+      (
+        'baignoire',
+        l('baignoire', gs.bathX, gs.bathY, gs.bathH),
+        (dx, dy) {
+          gs.bathX = (gs.bathX + dx).clamp(0.02, 0.98);
+          gs.bathY = (gs.bathY + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.bathH = (gs.bathH + dh).clamp(0.03, 0.8)
+      ),
+      (
+        'panneau',
+        l('panneau  ', gs.showerPanelX, gs.showerPanelY, gs.showerPanelH),
+        (dx, dy) {
+          gs.showerPanelX = (gs.showerPanelX + dx).clamp(0.02, 0.98);
+          gs.showerPanelY = (gs.showerPanelY + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.showerPanelH = (gs.showerPanelH + dh).clamp(0.03, 0.8)
+      ),
+      (
+        'pommeau',
+        l('pommeau  ', gs.showerHeadX, gs.showerHeadY, gs.showerHeadH),
+        (dx, dy) {
+          gs.showerHeadX = (gs.showerHeadX + dx).clamp(0.02, 0.98);
+          gs.showerHeadY = (gs.showerHeadY + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.showerHeadH = (gs.showerHeadH + dh).clamp(0.03, 0.8)
+      ),
+      (
+        'lampeA',
+        l('lampe A  ', gs.wagon2LampAx, gs.wagon2LampAy, gs.wagon2LampAH),
+        (dx, dy) {
+          gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.02, 0.98);
+          gs.wagon2LampAy = (gs.wagon2LampAy + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.wagon2LampAH = (gs.wagon2LampAH + dh).clamp(0.03, 0.8)
+      ),
+      (
+        'lampeB',
+        l('lampe B  ', gs.wagon2LampBx, gs.wagon2LampBy, gs.wagon2LampBH),
+        (dx, dy) {
+          gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.02, 0.98);
+          gs.wagon2LampBy = (gs.wagon2LampBy + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.wagon2LampBH = (gs.wagon2LampBH + dh).clamp(0.03, 0.8)
+      ),
+      (
+        'armoire',
+        l('armoire  ', gs.wagon2CommodeX, gs.wagon2CommodeY, gs.wagon2CommodeH),
+        (dx, dy) {
+          gs.wagon2CommodeX = (gs.wagon2CommodeX + dx).clamp(0.02, 0.98);
+          gs.wagon2CommodeY = (gs.wagon2CommodeY + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.wagon2CommodeH = (gs.wagon2CommodeH + dh).clamp(0.03, 0.8)
+      ),
+      (
+        'secours',
+        l('secours  ', gs.wagon2FirstaidX, gs.wagon2FirstaidY,
+            gs.wagon2FirstaidH),
+        (dx, dy) {
+          gs.wagon2FirstaidX = (gs.wagon2FirstaidX + dx).clamp(0.02, 0.98);
+          gs.wagon2FirstaidY = (gs.wagon2FirstaidY + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.wagon2FirstaidH = (gs.wagon2FirstaidH + dh).clamp(0.03, 0.8)
+      ),
     ];
+    final sel = rows.where((r) => r.$1 == _adjSel).toList();
     return Positioned(
       left: 8,
       // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
       bottom: 8 + MediaQuery.of(context).padding.bottom,
-      child: IgnorePointer(
-        child: Container(
+      child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: 0.62),
@@ -2684,22 +2822,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('AJUSTER — pincer = taille',
+              const Text('AJUSTER CELLIER — tap ligne = sélection',
                   style: TextStyle(
                       color: Color(0xFFE8B96B),
                       fontSize: 10,
                       fontWeight: FontWeight.bold)),
-              for (final s in lines)
-                Text(s,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                        height: 1.35)),
+              for (final r in rows) _adjRow(r.$1, r.$2),
+              if (sel.isNotEmpty)
+                _adjPad(move: sel.first.$3, size: sel.first.$4),
             ],
           ),
         ),
-      ),
     );
   }
 
