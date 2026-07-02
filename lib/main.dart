@@ -303,7 +303,7 @@ class _WagonScreenState extends State<WagonScreen>
   bool _near(double centerX, [double tol = 0.05]) =>
       (_heroX - centerX).abs() < tol;
   bool get _atNotebook =>
-      _unlocked('notebook') && _near(SideScrollScene.notebookCenterX);
+      _unlocked('notebook') && _near(GameState.instance.slx('notebook'));
   // Lampe / bac de culture / filtre sont des props AJUSTABLES : leur position
   // vit dans GameState.wagon1Props (et plus dans des constantes figées).
   bool get _atFilter =>
@@ -320,28 +320,29 @@ class _WagonScreenState extends State<WagonScreen>
   static const double _windowX = 0.45;
   bool get _atWindow => _inLiving && _near(_windowX);
   bool get _atDog => GameState.instance.dogShown && _near(_dogLiveX, 0.10);
-  // Tourne-disque (salon) : tap = un morceau + réconfort.
+  // Tourne-disque (ATELIER, posé sur la console) : tap = un morceau +
+  // réconfort. Position réelle (déplaçable) — le tap suit le drag.
   bool get _atTourneDisque =>
-      _inLiving &&
+      _inAtelier &&
       _unlocked('tournedisque') &&
-      _near(SideScrollScene.tourneDisqueCenterX);
+      _near(GameState.instance.w1x('tournedisque'));
   // Carillon à vent (salon) : tap = tintement doux + réconfort.
   bool get _atCarillon =>
       _inLiving &&
       _unlocked('carillon') &&
-      _near(SideScrollScene.carillonCenterX);
+      _near(GameState.instance.slx('carillon'));
   // Fauteuil de lecture (salon) : tap = Shen s'installe et lit.
   bool get _atFauteuil =>
       _inLiving &&
       _unlocked('fauteuil') &&
-      _near(SideScrollScene.fauteuilCenterX);
-  // Table de jeu (ATELIER) : tap = jouer avec la sœur (si elle est là).
-  // De jour seulement (la nuit la sœur dort au salon).
+      _near(GameState.instance.slx('fauteuil'));
+  // Table de jeu (SALON, échangée avec le tourne-disque) : tap = jouer avec
+  // la sœur. De jour seulement (la nuit elle dort).
   bool get _atJeu =>
-      _inAtelier &&
+      _inLiving &&
       !_night &&
       _unlocked('jeu') &&
-      _near(GameState.instance.w1x('jeu'));
+      _near(GameState.instance.slx('jeu'));
   // Proximité de la baignoire dans le cellier (position réglable).
   bool get _atBath =>
       _inCellier && _unlocked('bath') && _near(GameState.instance.bathX, 0.12);
@@ -1428,7 +1429,7 @@ class _WagonScreenState extends State<WagonScreen>
       action = () {
         setState(() {
           // Rotation des activités duo près de la sœur : lecture <-> câlin.
-          // (Le jeu de société se déclenche à la TABLE de l'atelier, _atJeu.)
+          // (Le jeu de société se déclenche à la TABLE du salon, _atJeu.)
           const cycle = <String>['readduo', 'sister_hug'];
           final i = cycle.indexOf(_duoAnimToPlay);
           _duoAnimToPlay = cycle[(i + 1) % cycle.length];

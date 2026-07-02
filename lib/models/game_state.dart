@@ -71,6 +71,8 @@ class GameState extends ChangeNotifier {
         'wagon2LampBx': wagon2LampBx,
         'wagon2LampBy': wagon2LampBy,
         'wagon2LampAH': wagon2LampAH, 'wagon2LampBH': wagon2LampBH,
+        'wagon2FleursX': wagon2FleursX, 'wagon2FleursY': wagon2FleursY,
+        'wagon2FleursH': wagon2FleursH,
         'stoveX': stoveX, 'stoveY': stoveY, 'stoveH': stoveH,
         'wagon1Props':
             wagon1Props.map((k, v) => MapEntry(k, v.toList())),
@@ -136,6 +138,9 @@ class GameState extends ChangeNotifier {
       wagon2LampBy = (data['wagon2LampBy'] as num?)?.toDouble() ?? wagon2LampBy;
       wagon2LampAH = (data['wagon2LampAH'] as num?)?.toDouble() ?? wagon2LampAH;
       wagon2LampBH = (data['wagon2LampBH'] as num?)?.toDouble() ?? wagon2LampBH;
+      wagon2FleursX = (data['wagon2FleursX'] as num?)?.toDouble() ?? wagon2FleursX;
+      wagon2FleursY = (data['wagon2FleursY'] as num?)?.toDouble() ?? wagon2FleursY;
+      wagon2FleursH = (data['wagon2FleursH'] as num?)?.toDouble() ?? wagon2FleursH;
       stoveX = (data['stoveX'] as num?)?.toDouble() ?? stoveX;
       stoveY = (data['stoveY'] as num?)?.toDouble() ?? stoveY;
       stoveH = (data['stoveH'] as num?)?.toDouble() ?? stoveH;
@@ -465,6 +470,8 @@ class GameState extends ChangeNotifier {
   double wagon2LampBx = 0.49, wagon2LampBy = 0.22, wagon2LampBH = 0.12;
   // Trousse de secours : posée sur la commode du cellier (wagon 3).
   double wagon2FirstaidX = 0.29, wagon2FirstaidY = 0.46, wagon2FirstaidH = 0.085;
+  // Bouquet de fleurs séchées (souvenir_fenetre) : déplacé au cellier (wagon 3).
+  double wagon2FleursX = 0.63, wagon2FleursY = 0.50, wagon2FleursH = 0.10;
 
   /// Poêle du wagon 1 : position + taille déplaçables (mode ajuster debug).
   /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
@@ -474,34 +481,37 @@ class GameState extends ChangeNotifier {
   /// gazinière) : [x (centre, frac w), y (haut, frac h), h (hauteur, frac h),
   /// flipBits (0=aucun, 1=miroir H, 2=miroir V, 3=les deux)]. Déplaçables +
   /// redimensionnables + miroitables en mode ajuster debug, persistés.
+  // Positions BAKÉES d'après les placements validés (captures user 2026-07-02).
   final Map<String, List<double>> wagon1Props = {
-    'lamp': [0.640, 0.251, 0.108, 0],
-    'bac': [0.514, 0.464, 0.307, 0],
-    'filtre': [0.379, 0.530, 0.230, 0],
-    'poele': [0.276, 0.523, 0.239, 0],
-    'gaziniere': [0.695, 0.486, 0.278, 0],
-    // Objets basculés du salon vers l'atelier (radio, bouquet, console, jeu).
-    'radio': [0.60, 0.48, 0.130, 0],
-    'deco_fleurs': [0.20, 0.42, 0.090, 0],
-    'console': [0.45, 0.60, 0.090, 0],
-    'jeu': [0.32, 0.62, 0.140, 0],
+    'lamp': [0.689, 0.209, 0.108, 0],
+    'bac': [0.756, 0.462, 0.307, 0],
+    'filtre': [0.298, 0.525, 0.230, 0],
+    'poele': [0.196, 0.514, 0.239, 0],
+    'gaziniere': [0.607, 0.484, 0.278, 0],
+    // Objets basculés du salon vers l'atelier (radio, console).
+    'radio': [0.488, 0.511, 0.130, 0],
+    'console': [0.447, 0.624, 0.113, 0],
+    // Tourne-disque échangé avec la table de jeu (jeu → salon) : posé sur la
+    // console. (deco_fleurs → cellier, champs wagon2Fleurs*.)
+    'tournedisque': [0.447, 0.500, 0.155, 0],
   };
-  /// Props ajustables du SALON (carnet, gamelle, tourne-disque, carillon,
+  /// Props ajustables du SALON (carnet, gamelle, table de jeu, carillon,
   /// fauteuil, panier) : [centreX, top, height, width] en fractions. Réglables
   /// en debug, persistés. (secours = cellier ; carte murale = loco.)
+  /// Positions BAKÉES d'après les placements validés (captures user 2026-07-02).
   final Map<String, List<double>> salonProps = {
-    'notebook': [0.249, 0.670, 0.070, 0.070],
-    'bowl': [0.481, 0.669, 0.080, 0.080],
-    // Nouveaux objets (positions calées d'après les placements testés).
-    'tournedisque': [0.551, 0.560, 0.165, 0.165],
+    'notebook': [0.265, 0.666, 0.070, 0.070],
+    'bowl': [0.382, 0.665, 0.080, 0.080],
+    // Table de jeu échangée avec le tourne-disque (tournedisque → atelier).
+    'jeu': [0.548, 0.560, 0.160, 0.190],
     'carillon': [0.726, 0.314, 0.131, 0.067],
-    'fauteuil': [0.785, 0.485, 0.250, 0.250],
-    'panier': [0.58, 0.66, 0.115, 0.165],
-    // radio / console / table de jeu / bouquet (deco_fleurs) : passés à
-    // l'ATELIER (voir wagon1Props ci-dessus).
+    'fauteuil': [0.794, 0.494, 0.245, 0.245],
+    'panier': [0.670, 0.625, 0.106, 0.152],
+    // radio / console : passés à l'ATELIER (wagon1Props) ; bouquet
+    // (deco_fleurs) : passé au CELLIER (wagon2Fleurs*).
     // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
-    'deco_photo': [0.365, 0.18, 0.10, 0.07],
-    'deco_peluche': [0.325, 0.60, 0.09, 0.05],
+    'deco_photo': [0.852, 0.369, 0.089, 0.062],
+    'deco_peluche': [0.420, 0.480, 0.124, 0.069],
   };
   double slx(String k) => salonProps[k]![0];
   double sly(String k) => salonProps[k]![1];
@@ -525,11 +535,15 @@ class GameState extends ChangeNotifier {
   /// Réapplique les positions/tailles d'objets « validées » (atelier + cellier).
   /// Utilisé en migration (anciennes saves) et dispo pour un reset propre.
   void applyBakedLayout() {
-    wagon1Props['lamp'] = [0.640, 0.251, 0.108, 0];
-    wagon1Props['bac'] = [0.514, 0.464, 0.307, 0];
-    wagon1Props['filtre'] = [0.379, 0.530, 0.230, 0];
-    wagon1Props['poele'] = [0.276, 0.523, 0.239, 0];
-    wagon1Props['gaziniere'] = [0.695, 0.486, 0.278, 0];
+    wagon1Props['lamp'] = [0.689, 0.209, 0.108, 0];
+    wagon1Props['bac'] = [0.756, 0.462, 0.307, 0];
+    wagon1Props['filtre'] = [0.298, 0.525, 0.230, 0];
+    wagon1Props['poele'] = [0.196, 0.514, 0.239, 0];
+    wagon1Props['gaziniere'] = [0.607, 0.484, 0.278, 0];
+    wagon1Props['radio'] = [0.488, 0.511, 0.130, 0];
+    wagon1Props['console'] = [0.447, 0.624, 0.113, 0];
+    wagon1Props['tournedisque'] = [0.447, 0.500, 0.155, 0];
+    wagon2FleursX = 0.63; wagon2FleursY = 0.50; wagon2FleursH = 0.10;
     bathX = 0.48; bathY = 0.48; bathH = 0.31;
     showerPanelX = 0.77; showerPanelY = 0.44; showerPanelH = 0.35;
     showerHeadX = 0.75; showerHeadY = 0.22; showerHeadH = 0.32;

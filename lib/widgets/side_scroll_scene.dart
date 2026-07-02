@@ -211,14 +211,10 @@ class SideScrollScene extends StatefulWidget {
   /// (= ouverture sur la map du monde). Source unique : constants.kHeroXMax.
   static const double heroXMax = consts.kHeroXMax;
 
-  /// Centres X normalisés des props interactifs. Le parent compare
-  /// _heroX à ces valeurs pour décider quoi afficher sur l'action FAB.
+  /// Centre X normalisé du lit (fixe). Les AUTRES props interactifs sont
+  /// déplaçables : leur zone de tap suit leur position réelle
+  /// (GameState.salonProps / wagon1Props), plus de constantes figées.
   static const double bedCenterX = 0.334;
-  static const double notebookCenterX = 0.249;
-  static const double tourneDisqueCenterX = 0.37;
-  static const double carillonCenterX = 0.74;
-  static const double fauteuilCenterX = 0.30;
-  static const double hydroCenterX = 0.805;
 
   /// Total logs thrown into the locomotive firebox so far. Scales the
   /// smoke density + speed-line intensity in this scene.
@@ -313,24 +309,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
     const _PropDef('notebook', 'Carnet',    animated: false),
     // 'firstaid' (trousse) DÉPLACÉE dans le cellier (wagon 3), sur la commode.
     const _PropDef('bowl',     'Gamelle',   animated: false),
-    // 'wallmap' (carte murale) RETIRÉ : la map vit désormais dans la loco ;
-    // ce prop ne servait plus qu'à encombrer le mode ajuster.
-    const _PropDef('tournedisque', 'Tourne-disque', animated: false),
+    // 'wallmap' (carte murale) RETIRÉ : la map vit désormais dans la loco.
+    // Table de jeu : ÉCHANGÉE avec le tourne-disque (lui → atelier), pour que
+    // playduo se joue au salon où vit la sœur.
+    const _PropDef('jeu',      'Table de jeu', animated: false),
     const _PropDef('carillon', 'Carillon',  animated: true, frameCount: 13),
     const _PropDef('fauteuil', 'Fauteuil',  animated: false),
     const _PropDef('panier',   'Panier',    animated: false),
-    // 'jeu' + 'console' DÉPLACÉS dans l'atelier (voir _buildWagon1Adjustable).
+    // 'console' + 'tournedisque' vivent à l'atelier (_buildWagon1Adjustable).
   ];
 
   // Aspect RÉEL (largeur/hauteur en px) de chaque image d'objet salon. Sert à
   // dériver la largeur depuis la hauteur -> la boîte colle pile à l'objet
   // (aucun letterbox), identique en rendu normal ET en mode ajuster, sur tout
   // écran. La position stocke la HAUTEUR ; la largeur suit l'image.
-  // NB : radio / bouquet (deco_fleurs) / console / table de jeu (jeu) sont
-  // passés à l'ATELIER (voir _buildWagon1Adjustable, aspects codés en dur là-bas).
+  // NB : radio / console / tourne-disque sont à l'ATELIER (aspects codés en
+  // dur dans _buildWagon1Adjustable) ; le bouquet (deco_fleurs) au CELLIER.
   static const Map<String, double> _salonAspect = {
     'notebook': 1.0, 'bowl': 1.0,
-    'tournedisque': 0.754, 'carillon': 0.464, 'fauteuil': 1.031,
+    'jeu': 1.179, 'carillon': 0.464, 'fauteuil': 1.031,
     'panier': 1.528,
     'deco_photo': 0.863, 'deco_peluche': 0.780,
   };
@@ -339,15 +336,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // GameState.salonProps, réglables en debug). Seules les clés de _propDefs
   // sont consommées ici (fallback de _buildProp / _buildCharAtProp).
   final Map<String, _PropPos> _propPos = {
-    'notebook': _PropPos(0.249, 0.670, 0.070),
-    'bowl':     _PropPos(0.481, 0.669, 0.080),
-    'tournedisque': _PropPos(0.37, 0.56, 0.165),
+    'notebook': _PropPos(0.265, 0.666, 0.070),
+    'bowl':     _PropPos(0.382, 0.665, 0.080),
+    'jeu':      _PropPos(0.548, 0.560, 0.160, 0.19),
     // Carillon : suspendu en haut (top bas = près du plafond), étroit et haut.
-    'carillon': _PropPos(0.74, 0.135, 0.205, 0.105),
+    'carillon': _PropPos(0.726, 0.314, 0.131, 0.067),
     // Fauteuil de lecture (salon) : meuble au sol.
-    'fauteuil': _PropPos(0.30, 0.50, 0.265),
+    'fauteuil': _PropPos(0.794, 0.494, 0.245),
     // Panier du chien (salon) : posé au sol, bas et large.
-    'panier':   _PropPos(0.58, 0.66, 0.115, 0.165),
+    'panier':   _PropPos(0.670, 0.625, 0.106, 0.152),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap
@@ -1746,8 +1743,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
                             ),
                           ),
                         ),
-                      // NB : radio + bouquet (deco_fleurs) sont passés à
-                      // l'ATELIER (voir _buildWagon1Adjustable).
+                      // NB : radio → ATELIER (_buildWagon1Adjustable) ;
+                      // bouquet (deco_fleurs) → CELLIER (_buildWagon2Props).
                       // #4 — DÉCO-SOUVENIRS : objets qui s'accrochent dans le
                       // salon selon les souvenirs vécus. Le train raconte ta
                       // partie. (photo de famille = souvenir carnet ; peluche
@@ -1833,6 +1830,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
                                   !widget.salonAdjust) &&
                               !(def.key == 'panier' &&
                                   _dogInBasket &&
+                                  !widget.salonAdjust) &&
+                              // Table masquée pendant playduo (le sprite du
+                              // duo contient déjà la table).
+                              !(def.key == 'jeu' &&
+                                  _duoActive &&
+                                  _duoAnim == 'playduo' &&
                                   !widget.salonAdjust))
                             widget.salonAdjust
                                 ? _buildSalonDrag(def, w, h)
@@ -2412,19 +2415,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
           // Objets basculés du salon vers l'atelier.
           prop('console', 'console', 992 / 319,
               Image.asset('assets/objects/console.png', fit: BoxFit.contain)),
-          // Table de jeu : masquée pendant l'anim playduo (le sprite du duo
-          // contient déjà la table), sauf en mode ajuster.
-          prop('jeu', 'jeu', 769 / 652,
-              Image.asset('assets/objects/jeu.png', fit: BoxFit.contain),
-              shown: _propUnlocked('jeu') &&
-                  !(_duoActive &&
-                      _duoAnim == 'playduo' &&
-                      !widget.wagon1Adjust)),
+          // Tourne-disque : échangé avec la table de jeu (elle → salon),
+          // posé sur la console. Tap = musique (main._atTourneDisque).
+          prop('tournedisque', 'tournedisque', 0.754,
+              Image.asset('assets/objects/tournedisque.png',
+                  fit: BoxFit.contain)),
           prop('radio', 'radio', 200 / 247, _RadioProp(night: widget.night),
               shown: gs.debugMode || gs.cardFlags.contains('aLaRadio')),
-          prop('deco_fleurs', 'deco_fleurs', 705 / 905,
-              Image.asset('assets/objects/deco_fleurs.png', fit: BoxFit.contain),
-              shown: gs.debugMode || gs.cardFlags.contains('souvenir_fenetre')),
           // Float récolte/semis au-dessus du bac.
           if (_bacFloat != null && _propUnlocked('hydro'))
             _bacFloatWidget(w, h),
@@ -2539,10 +2536,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     final mq = MediaQuery.of(context);
     // Tous les props ajustables de l'atelier, y compris ceux basculés du salon
-    // (radio, bouquet, console, table de jeu) — sinon on ne peut pas les régler.
+    // (radio, console, tourne-disque) — sinon on ne peut pas les régler.
     const props = [
       'gaziniere', 'lamp', 'bac', 'filtre', 'poele',
-      'radio', 'deco_fleurs', 'console', 'jeu',
+      'radio', 'console', 'tournedisque',
     ];
     final selValid = _adjSel != null && props.contains(_adjSel);
     return Positioned(
@@ -2731,6 +2728,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
               },
               onResize: (nh) => gs.wagon2FirstaidH = nh,
             ),
+          // Bouquet de fleurs séchées (souvenir_fenetre) : déplacé au cellier.
+          if (gs.debugMode || gs.cardFlags.contains('souvenir_fenetre'))
+            _w2Drag(
+              w: w, h: h, cx: gs.wagon2FleursX, topY: gs.wagon2FleursY,
+              heightFrac: gs.wagon2FleursH, aspect: 705 / 905, label: 'fleurs',
+              child: Image.asset('assets/objects/deco_fleurs.png',
+                  fit: BoxFit.contain, gaplessPlayback: true),
+              onMove: (dx, dy) {
+                gs.wagon2FleursX = (gs.wagon2FleursX + dx).clamp(0.04, 0.96);
+                gs.wagon2FleursY = (gs.wagon2FleursY + dy).clamp(0.04, 0.9);
+              },
+              onResize: (nh) => gs.wagon2FleursH = nh,
+            ),
         ],
       ),
     );
@@ -2805,6 +2815,15 @@ class _SideScrollSceneState extends State<SideScrollScene>
           gs.wagon2FirstaidY = (gs.wagon2FirstaidY + dy).clamp(0.0, 0.92);
         },
         (dh) => gs.wagon2FirstaidH = (gs.wagon2FirstaidH + dh).clamp(0.03, 0.8)
+      ),
+      (
+        'fleurs',
+        l('fleurs   ', gs.wagon2FleursX, gs.wagon2FleursY, gs.wagon2FleursH),
+        (dx, dy) {
+          gs.wagon2FleursX = (gs.wagon2FleursX + dx).clamp(0.02, 0.98);
+          gs.wagon2FleursY = (gs.wagon2FleursY + dy).clamp(0.0, 0.92);
+        },
+        (dh) => gs.wagon2FleursH = (gs.wagon2FleursH + dh).clamp(0.03, 0.8)
       ),
     ];
     final sel = rows.where((r) => r.$1 == _adjSel).toList();
@@ -3039,10 +3058,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final duoW = duoH * _duoAspect;
     // Sol du wagon : salon 0.74, atelier 0.785 (comme l'héroïne).
     final feetY = h * (widget.isAtelier ? 0.785 : 0.74);
-    // Le jeu se joue À la table (atelier, sa position) ; lecture/câlin restent
+    // Le jeu se joue À la table (salon, sa position) ; lecture/câlin restent
     // près de la sœur.
     final anchorX = _duoAnim == 'playduo'
-        ? (GameState.instance.wagon1Props['jeu']?[0] ?? _sisterX)
+        ? (GameState.instance.salonProps['jeu']?[0] ?? _sisterX)
         : _sisterX;
     return Positioned(
       left: anchorX * w - duoW / 2,
