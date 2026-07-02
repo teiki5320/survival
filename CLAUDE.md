@@ -444,6 +444,15 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
   4. Étoffer les cartes des **gares 12-14** (climax — g13 renforcée ✅).
      Boutique IAP confort-only.
 
+### ⚠️ Décisions de design VALIDÉES (user 2026-07-02) — ne pas re-questionner
+- **Timers dans la locomotive** : les horloges (faim/soif, confort, froid,
+  poêle) restent ACTIVES dans la loco (pause uniquement en cartes/map/boutique/
+  garde-robe/carnet). La loco fait partie du train, la corvée de bûches n'est
+  pas « gratuite ».
+- **feltCold ne bloque QUE les gains de moral du wagon** (chien/lecture/sœur),
+  PAS ceux des cartes : une bonne nouvelle réchauffe même gelée, et
+  l'équilibrage (sim) repose sur ces gains.
+
 ### ⚠️ Pièges connus / conventions
 - **Golden rule** (voir section Communication) : VÉRIFIER le code/les assets
   avant de répondre.
