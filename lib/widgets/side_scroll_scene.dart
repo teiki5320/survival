@@ -337,14 +337,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // sont consommées ici (fallback de _buildProp / _buildCharAtProp).
   final Map<String, _PropPos> _propPos = {
     'notebook': _PropPos(0.265, 0.666, 0.070),
-    'bowl':     _PropPos(0.382, 0.665, 0.080),
-    'jeu':      _PropPos(0.548, 0.560, 0.160, 0.19),
+    'bowl':     _PropPos(0.425, 0.683, 0.080),
+    'jeu':      _PropPos(0.548, 0.591, 0.160, 0.19),
     // Carillon : suspendu en haut (top bas = près du plafond), étroit et haut.
-    'carillon': _PropPos(0.726, 0.314, 0.131, 0.067),
+    'carillon': _PropPos(0.726, 0.314, 0.121, 0.062),
     // Fauteuil de lecture (salon) : meuble au sol.
-    'fauteuil': _PropPos(0.794, 0.494, 0.245),
+    'fauteuil': _PropPos(0.792, 0.498, 0.245),
     // Panier du chien (salon) : posé au sol, bas et large.
-    'panier':   _PropPos(0.670, 0.625, 0.106, 0.152),
+    'panier':   _PropPos(0.675, 0.615, 0.106, 0.152),
   };
 
   // Gamelle double : true = pleine (eau + bouffe), false = vide. Tap

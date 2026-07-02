@@ -492,9 +492,9 @@ class GameState extends ChangeNotifier {
   double wagon2LampAx = 0.27, wagon2LampAy = 0.21, wagon2LampAH = 0.12;
   double wagon2LampBx = 0.49, wagon2LampBy = 0.22, wagon2LampBH = 0.12;
   // Trousse de secours : posée sur la commode du cellier (wagon 3).
-  double wagon2FirstaidX = 0.19, wagon2FirstaidY = 0.51, wagon2FirstaidH = 0.09;
+  double wagon2FirstaidX = 0.187, wagon2FirstaidY = 0.513, wagon2FirstaidH = 0.085;
   // Bouquet de fleurs séchées (souvenir_fenetre) : déplacé au cellier (wagon 3).
-  double wagon2FleursX = 0.23, wagon2FleursY = 0.48, wagon2FleursH = 0.10;
+  double wagon2FleursX = 0.229, wagon2FleursY = 0.484, wagon2FleursH = 0.100;
 
   /// Poêle du wagon 1 : position + taille déplaçables (mode ajuster debug).
   /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
@@ -507,36 +507,40 @@ class GameState extends ChangeNotifier {
   // Positions BAKÉES d'après les placements validés (captures user 2026-07-02).
   // Format : [x (centre, frac w), y (haut, frac h), h (hauteur, frac h),
   // flipBits (1=miroir H, 2=V), rotation (degrés)].
+  // COORDONNÉES DÉFINITIVES (captures user 2026-07-02, 14h38) — format
+  // [x, y, h, flipBits, rot°, turnY rad, tiltX rad].
   final Map<String, List<double>> wagon1Props = {
-    'lamp': [0.689, 0.209, 0.108, 0, 0],
-    'bac': [0.756, 0.462, 0.307, 0, 0],
-    'filtre': [0.298, 0.525, 0.230, 0, 0],
-    'poele': [0.196, 0.514, 0.239, 0, 0],
-    'gaziniere': [0.607, 0.484, 0.278, 0, 0],
+    'lamp': [0.689, 0.209, 0.108, 1, 0, 0, 0], // miroir H voulu
+    'bac': [0.762, 0.471, 0.307, 0, 0, 0.06, 0.12],
+    'filtre': [0.298, 0.525, 0.230, 0, 0, 0, 0],
+    'poele': [0.196, 0.514, 0.239, 0, 0, 0, 0],
+    'gaziniere': [0.609, 0.491, 0.278, 0, 0, 0, 0],
     // Objets basculés du salon vers l'atelier (radio, console).
-    'radio': [0.492, 0.509, 0.130, 0, 0],
-    'console': [0.447, 0.624, 0.113, 0, 0],
+    'radio': [0.492, 0.509, 0.130, 0, 0, 0, 0],
+    'console': [0.447, 0.624, 0.113, 0, 0, 0, 0],
     // Tourne-disque échangé avec la table de jeu (jeu → salon) : posé sur la
     // console. (deco_fleurs → cellier, wagon2Fleurs*.)
-    'tournedisque': [0.403, 0.486, 0.155, 0, 0],
+    'tournedisque': [0.403, 0.486, 0.155, 0, 0, 0, 0],
   };
   /// Props ajustables du SALON (carnet, gamelle, table de jeu, carillon,
   /// fauteuil, panier, déco) : [centreX, top, height, width, flipBits,
   /// rotation°] en fractions/degrés. Réglables en debug, persistés.
   /// Positions BAKÉES d'après les placements validés (captures user 2026-07-02).
+  // COORDONNÉES DÉFINITIVES (captures user 2026-07-02, 14h38) — format
+  // [x, y, h, w, flipBits, rot°, turnY rad, tiltX rad].
   final Map<String, List<double>> salonProps = {
-    'notebook': [0.265, 0.666, 0.070, 0.070, 0, 0],
-    'bowl': [0.382, 0.665, 0.080, 0.080, 0, 0],
+    'notebook': [0.265, 0.666, 0.070, 0.070, 0, 0, 0, 0],
+    'bowl': [0.425, 0.683, 0.080, 0.080, 0, 0, 0, 0],
     // Table de jeu échangée avec le tourne-disque (tournedisque → atelier).
-    'jeu': [0.544, 0.599, 0.160, 0.190, 0, 0],
-    'carillon': [0.726, 0.314, 0.131, 0.067, 0, 0],
-    'fauteuil': [0.764, 0.503, 0.245, 0.245, 0, 0],
-    'panier': [0.670, 0.625, 0.106, 0.152, 0, 0],
+    'jeu': [0.548, 0.591, 0.160, 0.190, 0, 0, 0, 0.54],
+    'carillon': [0.726, 0.314, 0.121, 0.062, 0, 0, 0, 0],
+    'fauteuil': [0.792, 0.498, 0.245, 0.245, 0, 0, 0, 0],
+    'panier': [0.675, 0.615, 0.106, 0.152, 0, 0, 0, 0],
     // radio / console : passés à l'ATELIER (wagon1Props) ; bouquet
     // (deco_fleurs) : passé au CELLIER (wagon2Fleurs*).
     // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
-    'deco_photo': [0.854, 0.375, 0.089, 0.062, 0, 0],
-    'deco_peluche': [0.420, 0.480, 0.124, 0.069, 0, 0],
+    'deco_photo': [0.851, 0.386, 0.059, 0.041, 0, 2, 0.78, 0],
+    'deco_peluche': [0.420, 0.480, 0.124, 0.069, 0, 0, 0, 0],
   };
   double slx(String k) => salonProps[k]![0];
   double sly(String k) => salonProps[k]![1];
@@ -617,22 +621,23 @@ class GameState extends ChangeNotifier {
   /// Réapplique les positions/tailles d'objets « validées » (atelier + cellier).
   /// Utilisé en migration (anciennes saves) et dispo pour un reset propre.
   void applyBakedLayout() {
-    wagon1Props['lamp'] = [0.689, 0.209, 0.108, 0, 0];
-    wagon1Props['bac'] = [0.756, 0.462, 0.307, 0, 0];
-    wagon1Props['filtre'] = [0.298, 0.525, 0.230, 0, 0];
-    wagon1Props['poele'] = [0.196, 0.514, 0.239, 0, 0];
-    wagon1Props['gaziniere'] = [0.607, 0.484, 0.278, 0, 0];
-    wagon1Props['radio'] = [0.492, 0.509, 0.130, 0, 0];
-    wagon1Props['console'] = [0.447, 0.624, 0.113, 0, 0];
-    wagon1Props['tournedisque'] = [0.403, 0.486, 0.155, 0, 0];
-    wagon2FleursX = 0.23; wagon2FleursY = 0.48; wagon2FleursH = 0.10;
+    // Mêmes COORDONNÉES DÉFINITIVES que les défauts (captures 2026-07-02).
+    wagon1Props['lamp'] = [0.689, 0.209, 0.108, 1, 0, 0, 0];
+    wagon1Props['bac'] = [0.762, 0.471, 0.307, 0, 0, 0.06, 0.12];
+    wagon1Props['filtre'] = [0.298, 0.525, 0.230, 0, 0, 0, 0];
+    wagon1Props['poele'] = [0.196, 0.514, 0.239, 0, 0, 0, 0];
+    wagon1Props['gaziniere'] = [0.609, 0.491, 0.278, 0, 0, 0, 0];
+    wagon1Props['radio'] = [0.492, 0.509, 0.130, 0, 0, 0, 0];
+    wagon1Props['console'] = [0.447, 0.624, 0.113, 0, 0, 0, 0];
+    wagon1Props['tournedisque'] = [0.403, 0.486, 0.155, 0, 0, 0, 0];
+    wagon2FleursX = 0.229; wagon2FleursY = 0.484; wagon2FleursH = 0.100;
     bathX = 0.48; bathY = 0.48; bathH = 0.31;
     showerPanelX = 0.77; showerPanelY = 0.44; showerPanelH = 0.35;
     showerHeadX = 0.75; showerHeadY = 0.22; showerHeadH = 0.32;
     wagon2LampAx = 0.27; wagon2LampAy = 0.21; wagon2LampAH = 0.12;
     wagon2LampBx = 0.49; wagon2LampBy = 0.22; wagon2LampBH = 0.12;
-    wagon2CommodeX = 0.21; wagon2CommodeY = 0.53; wagon2CommodeH = 0.23;
-    wagon2FirstaidX = 0.19; wagon2FirstaidY = 0.51; wagon2FirstaidH = 0.09;
+    wagon2CommodeX = 0.21; wagon2CommodeY = 0.534; wagon2CommodeH = 0.23;
+    wagon2FirstaidX = 0.187; wagon2FirstaidY = 0.513; wagon2FirstaidH = 0.085;
   }
 
   double w1x(String k) => wagon1Props[k]![0];
@@ -706,7 +711,7 @@ class GameState extends ChangeNotifier {
   double showerHeadX = 0.75, showerHeadY = 0.22, showerHeadH = 0.32;
   // Armoire à vêtements (commode) déplacée dans le cellier : tap = ouvre la
   // garde-robe, déplaçable/redimensionnable en mode ajuster.
-  double wagon2CommodeX = 0.21, wagon2CommodeY = 0.53, wagon2CommodeH = 0.23;
+  double wagon2CommodeX = 0.21, wagon2CommodeY = 0.534, wagon2CommodeH = 0.23;
 
   /// Miroir + inclinaison + bascule 3D des props du CELLIER (mêmes réglages
   /// que salon / atelier) : clé → [flipBits (1=H, 2=V), rotation°, turnY rad,
