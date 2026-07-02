@@ -150,9 +150,9 @@ class GameState extends ChangeNotifier {
       if (w1p is Map) {
         w1p.forEach((k, v) {
           if (v is List && v.length >= 3 && wagon1Props.containsKey(k)) {
-            // Normalise à 5 éléments [x, y, h, flip, rot] (vieilles saves).
+            // Normalise à 7 éléments [x, y, h, flip, rot, turnY, tiltX].
             final l = v.map((e) => (e as num).toDouble()).toList();
-            while (l.length < 5) {
+            while (l.length < 7) {
               l.add(0);
             }
             wagon1Props[k as String] = l;
@@ -163,9 +163,9 @@ class GameState extends ChangeNotifier {
       if (slp is Map) {
         slp.forEach((k, v) {
           if (v is List && v.length >= 4 && salonProps.containsKey(k)) {
-            // Normalise à 6 éléments [x, y, h, w, flip, rot] (vieilles saves).
+            // Normalise à 8 éléments [x, y, h, w, flip, rot, turnY, tiltX].
             final l = v.map((e) => (e as num).toDouble()).toList();
-            while (l.length < 6) {
+            while (l.length < 8) {
               l.add(0);
             }
             salonProps[k as String] = l;
@@ -176,10 +176,12 @@ class GameState extends ChangeNotifier {
       if (w2fr is Map) {
         w2fr.forEach((k, v) {
           if (v is List && v.length >= 2) {
-            wagon2FlipRot[k as String] = [
-              (v[0] as num).toDouble(),
-              (v[1] as num).toDouble()
-            ];
+            // Normalise à 4 éléments [flip, rot, turnY, tiltX].
+            final l = v.map((e) => (e as num).toDouble()).toList();
+            while (l.length < 4) {
+              l.add(0);
+            }
+            wagon2FlipRot[k as String] = l;
           }
         });
       }
@@ -585,6 +587,33 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Bascule 3D en perspective (comme la map de la loco) : turnY = autour de
+  // l'axe VERTICAL (l'objet « tourne » comme une porte), tiltX = autour de
+  // l'axe HORIZONTAL (penché avant/arrière). En radians, indices 6/7.
+  double slTurnY(String k) {
+    final p = salonProps[k]!;
+    return p.length > 6 ? p[6] : 0;
+  }
+
+  double slTiltX(String k) {
+    final p = salonProps[k]!;
+    return p.length > 7 ? p[7] : 0;
+  }
+
+  void slTurn(String k, double d) {
+    final p = salonProps[k]!;
+    _ensureLen(p, 8);
+    p[6] = (p[6] + d).clamp(-1.3, 1.3);
+    notifyListeners();
+  }
+
+  void slTilt(String k, double d) {
+    final p = salonProps[k]!;
+    _ensureLen(p, 8);
+    p[7] = (p[7] + d).clamp(-1.3, 1.3);
+    notifyListeners();
+  }
+
   /// Réapplique les positions/tailles d'objets « validées » (atelier + cellier).
   /// Utilisé en migration (anciennes saves) et dispo pour un reset propre.
   void applyBakedLayout() {
@@ -644,6 +673,31 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Bascule 3D perspective (indices 5/6, radians) — cf. slTurn/slTilt.
+  double w1TurnY(String k) {
+    final p = wagon1Props[k]!;
+    return p.length > 5 ? p[5] : 0;
+  }
+
+  double w1TiltX(String k) {
+    final p = wagon1Props[k]!;
+    return p.length > 6 ? p[6] : 0;
+  }
+
+  void w1Turn(String k, double d) {
+    final p = wagon1Props[k]!;
+    _ensureLen(p, 7);
+    p[5] = (p[5] + d).clamp(-1.3, 1.3);
+    notifyListeners();
+  }
+
+  void w1Tilt(String k, double d) {
+    final p = wagon1Props[k]!;
+    _ensureLen(p, 7);
+    p[6] = (p[6] + d).clamp(-1.3, 1.3);
+    notifyListeners();
+  }
+
   /// Props positionnables du cellier (x=fraction w du centre, y=fraction h du
   /// haut, h=fraction h de la hauteur). Déplaçables + redimensionnables,
   /// sauvegardés. Valeurs BAKÉES (captures user 2026-07-02).
@@ -654,20 +708,49 @@ class GameState extends ChangeNotifier {
   // garde-robe, déplaçable/redimensionnable en mode ajuster.
   double wagon2CommodeX = 0.21, wagon2CommodeY = 0.53, wagon2CommodeH = 0.23;
 
-  /// Miroir + inclinaison des props du CELLIER (mêmes réglages que salon /
-  /// atelier) : clé → [flipBits (1=H, 2=V), rotation°]. Persisté.
+  /// Miroir + inclinaison + bascule 3D des props du CELLIER (mêmes réglages
+  /// que salon / atelier) : clé → [flipBits (1=H, 2=V), rotation°, turnY rad,
+  /// tiltX rad]. Persisté.
   final Map<String, List<double>> wagon2FlipRot = {};
+  List<double> _w2fr(String k) {
+    final p = wagon2FlipRot.putIfAbsent(k, () => [0, 0, 0, 0]);
+    _ensureLen(p, 4);
+    return p;
+  }
+
   int w2Flip(String k) => (wagon2FlipRot[k]?[0] ?? 0).toInt();
   double w2Rot(String k) => wagon2FlipRot[k]?[1] ?? 0;
+  double w2TurnY(String k) {
+    final p = wagon2FlipRot[k];
+    return (p != null && p.length > 2) ? p[2] : 0;
+  }
+
+  double w2TiltX(String k) {
+    final p = wagon2FlipRot[k];
+    return (p != null && p.length > 3) ? p[3] : 0;
+  }
+
   void w2ToggleFlip(String k, int bit) {
-    final p = wagon2FlipRot.putIfAbsent(k, () => [0, 0]);
+    final p = _w2fr(k);
     p[0] = (p[0].toInt() ^ bit).toDouble();
     notifyListeners();
   }
 
   void w2Rotate(String k, double deg) {
-    final p = wagon2FlipRot.putIfAbsent(k, () => [0, 0]);
+    final p = _w2fr(k);
     p[1] = (p[1] + deg).clamp(-45.0, 45.0);
+    notifyListeners();
+  }
+
+  void w2Turn(String k, double d) {
+    final p = _w2fr(k);
+    p[2] = (p[2] + d).clamp(-1.3, 1.3);
+    notifyListeners();
+  }
+
+  void w2Tilt(String k, double d) {
+    final p = _w2fr(k);
+    p[3] = (p[3] + d).clamp(-1.3, 1.3);
     notifyListeners();
   }
 

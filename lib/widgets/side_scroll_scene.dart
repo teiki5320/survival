@@ -2076,28 +2076,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
     bool? adjust,
     int flipBits = 0,
     double rotDeg = 0,
+    double turnY = 0,
+    double tiltX = 0,
   }) {
     final ph = h * heightFrac;
     final pw = ph * aspect;
-    // Miroir H (bit 1) / V (bit 2) appliqué à l'asset, réglable en mode ajuster.
-    Widget flipped = child;
-    if (flipBits != 0) {
-      flipped = Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scaleByDouble(
-            (flipBits & 1) != 0 ? -1.0 : 1.0,
-            (flipBits & 2) != 0 ? -1.0 : 1.0,
-            1.0,
-            1.0),
-        child: child,
-      );
-    }
-    // Inclinaison (degrés, autour du centre) — réglable au pad d'ajuster.
-    if (rotDeg != 0) {
-      flipped = Transform.rotate(
-          angle: rotDeg * math.pi / 180, child: flipped);
-    }
-    final tinted = _nightTint(flipped);
+    final tinted = _nightTint(_propFx(child,
+        flip: flipBits, rotDeg: rotDeg, turnY: turnY, tiltX: tiltX));
     final adjusting = adjust ?? widget.wagon2Adjust;
     if (!adjusting) {
       // Hors mode ajuster : tappable si onTap fourni (ex. armoire = garde-robe),
@@ -2202,6 +2187,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       cx: gs.slx(k), topY: gs.sly(k), heightFrac: gs.slh(k),
       aspect: aspect, label: k, adjust: true,
       flipBits: gs.slFlip(k), rotDeg: gs.slRot(k),
+      turnY: gs.slTurnY(k), tiltX: gs.slTiltX(k),
       child: _salonSprite(def),
       onMove: (dx, dy) => gs.slMove(k, dx, dy),
       onResize: (nh) => gs.slResize(k, nh),
@@ -2222,27 +2208,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
         cx: gs.slx(key), topY: gs.sly(key), heightFrac: gs.slh(key),
         aspect: asp, label: key, adjust: true,
         flipBits: gs.slFlip(key), rotDeg: gs.slRot(key),
+        turnY: gs.slTurnY(key), tiltX: gs.slTiltX(key),
         onMove: (dx, dy) => gs.slMove(key, dx, dy),
         onResize: (nh) => gs.slResize(key, nh),
         child: Image.asset('assets/objects/$key.png', fit: BoxFit.contain),
       );
     }
-    // Rendu normal : miroir + inclinaison persistés.
-    Widget img = Image.asset('assets/objects/$key.png', fit: BoxFit.contain);
-    final flip = gs.slFlip(key);
-    final rot = gs.slRot(key);
-    if (flip != 0) {
-      img = Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scaleByDouble(
-            (flip & 1) != 0 ? -1.0 : 1.0,
-            (flip & 2) != 0 ? -1.0 : 1.0, 1.0, 1.0),
-        child: img,
-      );
-    }
-    if (rot != 0) {
-      img = Transform.rotate(angle: rot * math.pi / 180, child: img);
-    }
+    // Rendu normal : miroir + inclinaison + bascule 3D persistés.
+    final img = _propFx(
+        Image.asset('assets/objects/$key.png', fit: BoxFit.contain),
+        flip: gs.slFlip(key),
+        rotDeg: gs.slRot(key),
+        turnY: gs.slTurnY(key),
+        tiltX: gs.slTiltX(key));
     final sp = gs.salonProps[key]!;
     final propH = h * sp[2];
     final propW = propH * asp;
@@ -2253,6 +2231,38 @@ class _SideScrollSceneState extends State<SideScrollScene>
       height: propH,
       child: _nightTint(img),
     );
+  }
+
+  /// Applique les réglages visuels d'un prop : miroir H/V, inclinaison (°),
+  /// bascule 3D perspective (turnY = axe vertical « porte », tiltX = axe
+  /// horizontal « penché ») — mêmes réglages dans les TROIS wagons.
+  Widget _propFx(Widget child,
+      {int flip = 0, double rotDeg = 0, double turnY = 0, double tiltX = 0}) {
+    var out = child;
+    if (flip != 0) {
+      out = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scaleByDouble(
+            (flip & 1) != 0 ? -1.0 : 1.0,
+            (flip & 2) != 0 ? -1.0 : 1.0, 1.0, 1.0),
+        child: out,
+      );
+    }
+    if (rotDeg != 0) {
+      out = Transform.rotate(angle: rotDeg * math.pi / 180, child: out);
+    }
+    if (turnY != 0 || tiltX != 0) {
+      // Perspective légère, comme la map de la loco (setEntry(3,2)).
+      out = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, 0.0008)
+          ..rotateY(turnY)
+          ..rotateX(tiltX),
+        child: out,
+      );
+    }
+    return out;
   }
 
   // --- Pad de réglage commun aux HUD d'ajuster (tap ligne = sélection) ---
@@ -2279,12 +2289,16 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   /// Pad COMPLET de l'objet sélectionné — IDENTIQUE dans les trois wagons :
   /// ◀▶▲▼ = position (pas 0.008), −＋ = taille (pas 0.01, sans pincer),
-  /// ↔↕ = miroir H/V, ⟲⟳ = inclinaison (±2°).
+  /// ↔↕ = miroir H/V, ⟲⟳ = inclinaison (±2°), bH−/＋ = bascule 3D
+  /// horizontale (axe vertical, « porte » comme la map de la loco),
+  /// bV−/＋ = bascule 3D verticale (penché avant/arrière).
   Widget _adjPad({
     required void Function(double dx, double dy) move,
     required void Function(double dh) size,
     required void Function(int bit) flip,
     required void Function(double deg) rotate,
+    required void Function(double d) turn,
+    required void Function(double d) tilt,
   }) =>
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2303,6 +2317,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _adjPadBtn('↕', () => flip(2)),
             _adjPadBtn('⟲', () => rotate(-2)),
             _adjPadBtn('⟳', () => rotate(2)),
+            _adjPadBtn('bH−', () => turn(-0.06)),
+            _adjPadBtn('bH＋', () => turn(0.06)),
+            _adjPadBtn('bV−', () => tilt(-0.06)),
+            _adjPadBtn('bV＋', () => tilt(0.06)),
           ]),
         ],
       );
@@ -2369,16 +2387,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 move: sel.move,
                 size: sel.size,
                 flip: sel.flip,
-                rotate: sel.rotate),
+                rotate: sel.rotate,
+                turn: sel.turn,
+                tilt: sel.tilt),
           ],
         ),
       ),
     );
   }
 
+  /// Ligne d'infos COMPLÈTE (x/y/h + rotation + bascules + miroir) — sert
+  /// aussi de source pour rebaker les défauts depuis une capture.
+  static String _fxInfo(String k, double x, double y, double h, int flip,
+          double rot, double turnY, double tiltX) =>
+      '${k.padRight(12)} x${x.toStringAsFixed(3)} y${y.toStringAsFixed(3)} '
+      'h${h.toStringAsFixed(3)} r${rot.toStringAsFixed(0)}° '
+      'bH${turnY.toStringAsFixed(2)} bV${tiltX.toStringAsFixed(2)}'
+      '${flip == 0 ? '' : ' m${(flip & 1) != 0 ? 'H' : ''}${(flip & 2) != 0 ? 'V' : ''}'}';
+
   Widget _salonCoordHud(GameState gs) {
-    String info(String k) =>
-        '${k.padRight(12)} x${gs.slx(k).toStringAsFixed(3)} y${gs.sly(k).toStringAsFixed(3)} h${gs.slh(k).toStringAsFixed(3)} r${gs.slRot(k).toStringAsFixed(0)}°';
     final keys = <String>[
       for (final def in _propDefs)
         if (gs.salonProps.containsKey(def.key)) def.key,
@@ -2388,11 +2415,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
       for (final k in keys)
         _AdjItem(
           k,
-          () => info(k),
+          () => _fxInfo(k, gs.slx(k), gs.sly(k), gs.slh(k), gs.slFlip(k),
+              gs.slRot(k), gs.slTurnY(k), gs.slTiltX(k)),
           (dx, dy) => gs.slMove(k, dx, dy),
           (dh) => gs.slResize(k, gs.slh(k) + dh),
           (bit) => gs.slToggleFlip(k, bit),
           (deg) => gs.slRotate(k, deg),
+          (d) => gs.slTurn(k, d),
+          (d) => gs.slTilt(k, d),
         ),
     ]);
   }
@@ -2412,6 +2442,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 cx: gs.w1x(key), topY: gs.w1y(key), heightFrac: gs.w1h(key),
                 aspect: aspect, label: key, adjust: widget.wagon1Adjust,
                 flipBits: gs.w1Flip(key), rotDeg: gs.w1Rot(key),
+                turnY: gs.w1TurnY(key), tiltX: gs.w1TiltX(key),
                 child: child,
                 onMove: (dx, dy) => gs.w1Move(key, dx, dy),
                 onResize: (nh) => gs.w1Resize(key, nh),
@@ -2532,8 +2563,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _wagon1CoordHud(GameState gs) {
-    String info(String k) =>
-        '${k.padRight(12)} x${gs.w1x(k).toStringAsFixed(3)} y${gs.w1y(k).toStringAsFixed(3)} h${gs.w1h(k).toStringAsFixed(3)} r${gs.w1Rot(k).toStringAsFixed(0)}°';
     // Tous les props ajustables de l'atelier, y compris ceux basculés du salon
     // (radio, console, tourne-disque) — sinon on ne peut pas les régler.
     const props = [
@@ -2544,11 +2573,14 @@ class _SideScrollSceneState extends State<SideScrollScene>
       for (final k in props)
         _AdjItem(
           k,
-          () => info(k),
+          () => _fxInfo(k, gs.w1x(k), gs.w1y(k), gs.w1h(k), gs.w1Flip(k),
+              gs.w1Rot(k), gs.w1TurnY(k), gs.w1TiltX(k)),
           (dx, dy) => gs.w1Move(k, dx, dy),
           (dh) => gs.w1Resize(k, (gs.w1h(k) + dh).clamp(0.03, 0.8)),
           (bit) => gs.w1ToggleFlip(k, bit),
           (deg) => gs.w1Rotate(k, deg),
+          (d) => gs.w1Turn(k, d),
+          (d) => gs.w1Tilt(k, d),
         ),
     ]);
   }
@@ -2582,6 +2614,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
               heightFrac: gs.showerHeadH, aspect: 229 / 672, label: 'pommeau',
               flipBits: gs.w2Flip('pommeau'), rotDeg: gs.w2Rot('pommeau'),
+              turnY: gs.w2TurnY('pommeau'), tiltX: gs.w2TiltX('pommeau'),
               child: pommeau,
               onMove: (dx, dy) {
                 gs.showerHeadX = (gs.showerHeadX + dx).clamp(0.02, 0.98);
@@ -2594,6 +2627,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
               heightFrac: gs.showerPanelH, aspect: 720 / 768, label: 'panneau',
               flipBits: gs.w2Flip('panneau'), rotDeg: gs.w2Rot('panneau'),
+              turnY: gs.w2TurnY('panneau'), tiltX: gs.w2TiltX('panneau'),
               child: Image.asset('assets/objects/shower_panel.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2617,6 +2651,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.bathX, topY: gs.bathY,
               heightFrac: gs.bathH, aspect: 1376 / 768, label: 'baignoire',
               flipBits: gs.w2Flip('baignoire'), rotDeg: gs.w2Rot('baignoire'),
+              turnY: gs.w2TurnY('baignoire'), tiltX: gs.w2TiltX('baignoire'),
               child: Image.asset('assets/objects/bathtub.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2632,6 +2667,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
               heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',
               flipBits: gs.w2Flip('lampeA'), rotDeg: gs.w2Rot('lampeA'),
+              turnY: gs.w2TurnY('lampeA'), tiltX: gs.w2TiltX('lampeA'),
               child: lamp(),
               onMove: (dx, dy) {
                 gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
@@ -2644,6 +2680,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.wagon2LampBx, topY: gs.wagon2LampBy,
               heightFrac: gs.wagon2LampBH, aspect: 1.0, label: 'lampe B',
               flipBits: gs.w2Flip('lampeB'), rotDeg: gs.w2Rot('lampeB'),
+              turnY: gs.w2TurnY('lampeB'), tiltX: gs.w2TiltX('lampeB'),
               child: lamp(),
               onMove: (dx, dy) {
                 gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
@@ -2680,6 +2717,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               heightFrac: gs.wagon2CommodeH, aspect: 1.0,
               label: 'armoire',
               flipBits: gs.w2Flip('armoire'), rotDeg: gs.w2Rot('armoire'),
+              turnY: gs.w2TurnY('armoire'), tiltX: gs.w2TiltX('armoire'),
               child: Image.asset('assets/objects/commode.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onTap: widget.onOpenWardrobe,
@@ -2695,6 +2733,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.wagon2FirstaidX, topY: gs.wagon2FirstaidY,
               heightFrac: gs.wagon2FirstaidH, aspect: 1.0, label: 'secours',
               flipBits: gs.w2Flip('secours'), rotDeg: gs.w2Rot('secours'),
+              turnY: gs.w2TurnY('secours'), tiltX: gs.w2TiltX('secours'),
               child: Image.asset('assets/objects/firstaid.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2709,6 +2748,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.wagon2FleursX, topY: gs.wagon2FleursY,
               heightFrac: gs.wagon2FleursH, aspect: 705 / 905, label: 'fleurs',
               flipBits: gs.w2Flip('fleurs'), rotDeg: gs.w2Rot('fleurs'),
+              turnY: gs.w2TurnY('fleurs'), tiltX: gs.w2TiltX('fleurs'),
               child: Image.asset('assets/objects/deco_fleurs.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2724,7 +2764,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   Widget _coordHud(GameState gs) {
     String l(String n, double x, double y, double hh) =>
-        '$n  x${x.toStringAsFixed(2)}  y${y.toStringAsFixed(2)}  h${hh.toStringAsFixed(2)}';
+        '${n.padRight(9)} x${x.toStringAsFixed(3)} y${y.toStringAsFixed(3)} h${hh.toStringAsFixed(3)}';
     // (clé, texte, move(dx,dy), size(dh)) — champs nommés du cellier.
     final rows = <(String, String, void Function(double, double),
         void Function(double))>[
@@ -2803,16 +2843,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
       ),
     ];
     // Panneau UNIFIÉ : mêmes réglages que salon/atelier (pad complet, miroir
-    // + inclinaison via wagon2FlipRot).
+    // + inclinaison + bascule 3D via wagon2FlipRot).
     return _adjustPanel('AJUSTER CELLIER', [
       for (final r in rows)
         _AdjItem(
           r.$1,
-          () => '${r.$2} r${gs.w2Rot(r.$1).toStringAsFixed(0)}°',
+          () => '${r.$2} r${gs.w2Rot(r.$1).toStringAsFixed(0)}° '
+              'bH${gs.w2TurnY(r.$1).toStringAsFixed(2)} '
+              'bV${gs.w2TiltX(r.$1).toStringAsFixed(2)}'
+              '${gs.w2Flip(r.$1) == 0 ? '' : ' m${(gs.w2Flip(r.$1) & 1) != 0 ? 'H' : ''}${(gs.w2Flip(r.$1) & 2) != 0 ? 'V' : ''}'}',
           r.$3,
           r.$4,
           (bit) => gs.w2ToggleFlip(r.$1, bit),
           (deg) => gs.w2Rotate(r.$1, deg),
+          (d) => gs.w2Turn(r.$1, d),
+          (d) => gs.w2Tilt(r.$1, d),
         ),
     ]);
   }
@@ -2953,21 +2998,13 @@ class _SideScrollSceneState extends State<SideScrollScene>
         fit: boxFit,
       );
     }
-    // Miroir + inclinaison persistés (réglés au pad d'ajuster).
-    final flip = GameState.instance.slFlip(def.key);
-    final rot = GameState.instance.slRot(def.key);
-    if (flip != 0) {
-      sprite = Transform(
-        alignment: Alignment.center,
-        transform: Matrix4.identity()..scaleByDouble(
-            (flip & 1) != 0 ? -1.0 : 1.0,
-            (flip & 2) != 0 ? -1.0 : 1.0, 1.0, 1.0),
-        child: sprite,
-      );
-    }
-    if (rot != 0) {
-      sprite = Transform.rotate(angle: rot * math.pi / 180, child: sprite);
-    }
+    // Miroir + inclinaison + bascule 3D persistés (réglés au pad d'ajuster).
+    final gs = GameState.instance;
+    sprite = _propFx(sprite,
+        flip: gs.slFlip(def.key),
+        rotDeg: gs.slRot(def.key),
+        turnY: gs.slTurnY(def.key),
+        tiltX: gs.slTiltX(def.key));
     final Widget wrapped = _nightTint(sprite);
 
     // bowl = tap pour remplir si vide, reste = inert. (L'armoire/commode a
@@ -4366,15 +4403,17 @@ class _RadioPropState extends State<_RadioProp>
 }
 
 /// Entrée du panneau d'ajuster unifié : un objet réglable (position, taille,
-/// miroir, inclinaison) piloté par des closures vers son stockage
+/// miroir, inclinaison, bascule 3D) piloté par des closures vers son stockage
 /// (salonProps / wagon1Props / champs cellier + wagon2FlipRot).
 class _AdjItem {
-  const _AdjItem(
-      this.key, this.info, this.move, this.size, this.flip, this.rotate);
+  const _AdjItem(this.key, this.info, this.move, this.size, this.flip,
+      this.rotate, this.turn, this.tilt);
   final String key;
   final String Function() info;
   final void Function(double dx, double dy) move;
   final void Function(double dh) size;
   final void Function(int bit) flip;
   final void Function(double deg) rotate;
+  final void Function(double d) turn;
+  final void Function(double d) tilt;
 }
