@@ -2250,7 +2250,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
     return Positioned(
       left: 8,
-      bottom: 8,
+      // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
+      bottom: 8 + MediaQuery.of(context).padding.bottom,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
@@ -2463,9 +2464,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
       );
     }
 
+    final mq = MediaQuery.of(context);
+    // Tous les props ajustables de l'atelier, y compris ceux basculés du salon
+    // (radio, bouquet, console, table de jeu) — sinon on ne peut pas les régler.
+    const props = [
+      'gaziniere', 'lamp', 'bac', 'filtre', 'poele',
+      'radio', 'deco_fleurs', 'console', 'jeu',
+    ];
     return Positioned(
       left: 8,
-      bottom: 8,
+      // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
+      bottom: 8 + mq.padding.bottom,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
@@ -2481,8 +2490,17 @@ class _SideScrollSceneState extends State<SideScrollScene>
                     color: Color(0xFFE8B96B),
                     fontSize: 10,
                     fontWeight: FontWeight.bold)),
-            for (final n in ['gaziniere', 'lamp', 'bac', 'filtre', 'poele'])
-              row(n),
+            // Liste scrollable + plafonnée : elle ne déborde jamais de l'écran.
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: mq.size.height * 0.55),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [for (final n in props) row(n)],
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -2653,7 +2671,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     ];
     return Positioned(
       left: 8,
-      bottom: 8,
+      // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
+      bottom: 8 + MediaQuery.of(context).padding.bottom,
       child: IgnorePointer(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
