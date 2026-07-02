@@ -101,9 +101,8 @@ class _CardsScreenState extends State<CardsScreen>
     // d'ambiance de la gare (mini-cinématique texte) sous le titre.
     _gareCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 3400));
-    // Régen des crédits + tic 1s pour animer le compte à rebours. Crédits
-    // DÉSACTIVÉS pour l'instant -> on n'arme PAS le timer (évite un rebuild
-    // complet de l'écran à 1 Hz pour rien). À réarmer si on réactive le rythme.
+    // Régen des crédits + tic 1s pour animer le compte à rebours de la
+    // pastille (crédits ACTIFS : le timer ne s'arme que si creditsEnabled).
     GameState.instance.refreshCredits();
     if (GameState.creditsEnabled) {
       _creditTimer = Timer.periodic(const Duration(seconds: 1), (_) {

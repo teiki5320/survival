@@ -539,12 +539,6 @@ final List<StoryCard> _fill1 = [
       _c("Tendre les bâches (récolter l'eau)", fx: {Stat.soif: 12, Stat.moral: -3}, result: "Eau grise mais précieuse. Nuit trempée."),
       _c("Tout calfeutrer pour dormir au sec", fx: {Stat.moral: 6, Stat.soif: -4}, result: "Un vrai sommeil. Mais les réserves d'eau baissent."),
       art: CardArt.water),
-  _filler('F1_chien_nuit',
-      "Le chiot tremble contre toi dans le noir du wagon. Il a peur — mais sa petite chaleur te tient éveillée et vivante.",
-      _c("Le serrer contre toi", fx: {Stat.moral: 9, Stat.faim: -4}, result: "Vous vous réchauffez l'un l'autre, à veiller l'un sur l'autre toute la nuit. Tu n'es plus tout à fait seule au monde — mais tu te lèves le ventre creux et les yeux cernés.",
-          reaction: "Le chiot pousse un long soupir tremblant et finit par s'endormir, le museau contre ta gorge."),
-      _c("Le laisser dans son coin", fx: {Stat.bois: 5, Stat.moral: -4}, result: "Tu gardes tes distances et tu laisses le foyer mourir bas pour la nuit. Il gémit doucement jusqu'au matin — mais tu as économisé du bois."),
-      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F1_marchand',
       "À un passage à niveau, un vieux marchand agite un fanion. Il propose un troc rapide, sans que personne descende.",
       _c("Troquer des vivres", fx: {Stat.faim: 10, Stat.bois: -4}, result: "Un sac de conserves contre quelques bûches. Marché honnête, pour une fois."),
@@ -572,6 +566,14 @@ final List<StoryCard> _fill1 = [
 ];
 
 final List<StoryCard> _fill2 = [
+  // Déplacée de _fill1 (MORTE là-bas : le chien n'arrive qu'à la gare 2,
+  // le flag n'est jamais posé pendant le segment 1).
+  _filler('F2_chien_nuit',
+      "Le chiot tremble contre toi dans le noir du wagon. Il a peur — mais sa petite chaleur te tient éveillée et vivante.",
+      _c("Le serrer contre toi", fx: {Stat.moral: 9, Stat.faim: -4}, result: "Vous vous réchauffez l'un l'autre, à veiller l'un sur l'autre toute la nuit. Tu n'es plus tout à fait seule au monde — mais tu te lèves le ventre creux et les yeux cernés.",
+          reaction: "Le chiot pousse un long soupir tremblant et finit par s'endormir, le museau contre ta gorge."),
+      _c("Le laisser dans son coin", fx: {Stat.bois: 5, Stat.moral: -4}, result: "Tu gardes tes distances et tu laisses le foyer mourir bas pour la nuit. Il gémit doucement jusqu'au matin — mais tu as économisé du bois."),
+      requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F2_graffiti',
       "Sur un mur, peint en rouge : « ILS MENTENT SUR LE NORD. » Le doute te ronge le reste du jour.",
       _c("Le marquer sur ta carte (prudence)", fx: {Stat.moral: -6, Stat.faim: 8}, result: "Tu te mets à rationner dur, par peur. L'angoisse, mais des réserves."),
@@ -738,7 +740,7 @@ final List<StoryCard> _fill4 = [
       oneshot: true, art: CardArt.sister),
   _filler('F4_chien_cache',
       "Le chien gratte la terre près d'une maison et déterre une réserve enfouie : conserves, et même un sac de croquettes.",
-      _c("Le récompenser", fx: {Stat.moral: 8, Stat.faim: 7}, result: "Vous festoyez tous les deux, sans compter. Bon chien. Le meilleur de ce monde mort — même si le festin laisse moins pour les jours maigres."),
+      _c("Le récompenser", fx: {Stat.moral: 8, Stat.faim: 7, Stat.bois: -4}, result: "Vous festoyez tous les deux, sans compter, la loco à l'arrêt qui refroidit pendant la fête. Bon chien. Le meilleur de ce monde mort — même si le festin laisse moins pour les jours maigres."),
       _c("Tout rationner", fx: {Stat.faim: 14, Stat.moral: -4}, result: "Tu ranges tout, tu mesures chaque part. Il te fixe, déçu, la queue basse. Mais l'hiver vient, et il dévore."),
       requires: (f) => f.contains('aLeChien'), art: CardArt.dog),
   _filler('F4_fonts',
@@ -751,11 +753,6 @@ final List<StoryCard> _fill4 = [
       _c("La démonter pour le métal", fx: {Stat.bois: 9, Stat.moral: -6}, result: "Tu arraches le mécanisme, tu fourres le cuivre dans la soute. Ça brûlera, ça chauffera. Mais éteindre la dernière horloge d'un monde, c'est admettre qu'il n'y aura plus d'heure à lire."),
       _c("La laisser marquer l'heure", fx: {Stat.moral: 7, Stat.faim: -4}, result: "Tu la laisses là, figée sur l'instant de la fin, comme une stèle. Un témoin pour ceux qui passeront. Tu repars sans son métal, le ventre creux — mais quelque chose en toi refuse encore d'effacer le temps."),
       oneshot: true, art: CardArt.memory),
-  _filler('F4_radio_silence',
-      "Le soir, tu tournes la manivelle pour la première fois. Rien. Que le souffle blanc du monde. Tu balaies les fréquences, longtemps, le cœur serré.",
-      _c("Insister, fouiller chaque bande", fx: {Stat.moral: 8, Stat.soif: -5}, result: "Des heures penchée sur le cadran, la gorge sèche à force d'espérer. Rien d'humain — mais le simple geste de chercher, de croire qu'il y a quelqu'un à trouver, te tient debout."),
-      _c("Couper, le silence fait trop mal", fx: {Stat.soif: 4, Stat.moral: -6}, result: "Tu éteins net. Écouter le néant total, c'est pire que ne pas écouter. Tu ranges la radio, gorge ménagée — mais ce silence, tu l'emportes avec toi comme une réponse."),
-      oneshot: true, requires: (f) => f.contains('aLaRadio'), art: CardArt.radio),
   _filler('F4_chien_garde',
       "En pleine nuit, le chiot se dresse soudain, oreilles tendues, un grognement bas dans la gorge. Dehors, quelque chose rôde le long du wagon.",
       _c("Te lever, vérifier avec lui", fx: {Stat.moral: 7, Stat.faim: -4}, result: "Tu te lèves, le chien sur tes talons, le ventre noué. Une ombre détale dans le noir : rien ne manque. Il a bien veillé. Tu te recouches, vidée, l'estomac qui réclame.", reaction: "Il pousse son museau froid dans ta paume, fier de lui."),
@@ -769,6 +766,13 @@ final List<StoryCard> _fill4 = [
 ];
 
 final List<StoryCard> _fill5 = [
+  // Déplacée de _fill4 (MORTE là-bas : aLaRadio est posé par un filler du
+  // même segment, invisible au tirage — même piège que F5_chanson).
+  _filler('F5_radio_silence',
+      "Le soir, tu tournes la manivelle pour la première fois. Rien. Que le souffle blanc du monde. Tu balaies les fréquences, longtemps, le cœur serré.",
+      _c("Insister, fouiller chaque bande", fx: {Stat.moral: 8, Stat.soif: -5}, result: "Des heures penchée sur le cadran, la gorge sèche à force d'espérer. Rien d'humain — mais le simple geste de chercher, de croire qu'il y a quelqu'un à trouver, te tient debout."),
+      _c("Couper, le silence fait trop mal", fx: {Stat.soif: 4, Stat.moral: -6}, result: "Tu éteins net. Écouter le néant total, c'est pire que ne pas écouter. Tu ranges la radio, gorge ménagée — mais ce silence, tu l'emportes avec toi comme une réponse."),
+      oneshot: true, requires: (f) => f.contains('aLaRadio'), art: CardArt.radio),
   // La chanson de la radio (trouvée gare 4) : jouée sur la route vers la gare 5.
   // (Déplacée depuis _fill4 où elle était morte : son `requires aLaRadio` était
   // évalué avant que la radio ne soit trouvée dans le même segment.)
@@ -989,13 +993,6 @@ final List<StoryCard> _fill7 = [
       _c("Stocker du bois maintenant", fx: {Stat.bois: 12, Stat.faim: -5}, result: "Tu ramasses tout ce qui brûle tant qu'il fait encore doux. Sage."),
       _c("Profiter des derniers jours doux", fx: {Stat.moral: 6, Stat.bois: -4}, result: "Tu t'accordes un dernier répit tiède. Le froid attendra un jour de plus."),
       art: CardArt.cold),
-  _filler('F7_balançoire',
-      "Une aire de jeu rouillée près de la voie : une balançoire grince toute seule au vent. Ta sœur la fixe, des étoiles plein les yeux, oubliant le monde mort.",
-      _c("Lui offrir cinq minutes d'enfance", fx: {Stat.moral: 13, Stat.bois: -5}, result: "Tu la pousses sur la balançoire grinçante, son rire perçant le silence. Cinq minutes volées au monde mort. La loco a refroidi — tu t'en fiches éperdument.",
-          reaction: "Ta sœur, en plein élan : « Plus haut ! Plus haut ! Je touche le ciel, regarde ! »"),
-      _c("Garder le cap, ça la fragilise", fx: {Stat.bois: 6, Stat.moral: -5}, result: "Tu détournes son regard et tu relances la loco, élan et bois préservés. T'attendrir maintenant, c'est risquer de ne plus repartir. Mais son petit « oh » déçu te transperce, et tu doutes d'avoir bien fait.",
-          reaction: "Ta sœur s'assoit sagement, la mine basse : « C'est pas grave. On jouera quand le monde sera réparé. »"),
-      requires: (f) => f.contains('aLaSoeur'), art: CardArt.sister),
   _filler('F7_phonographe',
       "Dans une halte abandonnée, un vieux phonographe à pavillon, un disque encore posé. Le remonter te ferait entendre de la musique vraie, mais ça use ta force et ça s'entend loin.",
       _c("Le faire jouer pour vous deux", fx: {Stat.moral: 11, Stat.faim: -5}, result: "Un air de jazz craquelé emplit la halte. Vous dansez maladroitement, ta sœur sur tes pieds, jusqu'au dernier sillon. La faim au ventre — mais l'âme repue."),

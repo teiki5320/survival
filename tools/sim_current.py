@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simulation Train Cosy ACTUEL (PUR CARTES, plus de combat) : depart 25
+"""Simulation Train Cosy ACTUEL (PUR CARTES, plus de combat) : depart quasi a 0
 (kStartStat) + ravitaillement d'arrivee par gare (grantGareSupply). Reflete
 le jeu reel : voyage 100% narratif, survie geree aux cartes + au wagon.
 Lancer: python3 tools/sim_current.py
@@ -115,7 +115,7 @@ for i in range(1, 15):
     segments.append((gare, fill, draw))
 
 LOSS_MULT = 1.20
-START_STAT = 6   # stats de depart quasi a 0 (kStartStat) ; gare 0 sans ravito
+START_STAT = 6   # stats de depart quasi a 0 (kStartStat) ; ravito applique DES la gare 0
 REFUEL = 10
 SOIN_REQ = 2
 MORAL_REQ = 65

@@ -300,7 +300,7 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
   (Set persisté), wagonStage, wagon2Stage, `waterTankGlasses`, coords props
   cellier, thermomètre (`cabinTemp`/`outfitWarmth`/`coldThreshold`/`feltCold`/
   `coldness`), `grantGareSupply`, `unlockNames`/`pendingUnlocks`,
-  `resetForNewGame`, `kStartStat = 25`.
+  `resetForNewGame`, `kStartStat = 6` (départ quasi à zéro).
 - `lib/models/reigns_engine.dart` — voir section moteur de cartes.
 - `lib/services/audio_service.dart` — Singleton audio. `ambient_train`,
   `fire_crackle`, musique réactivée (3 morceaux day/night/cold), 9 SFX.

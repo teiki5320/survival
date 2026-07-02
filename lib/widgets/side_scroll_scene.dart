@@ -807,6 +807,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
   /// du bois est GLOBAL (géré dans main.dart, actif où que soit Shen).
   void _togglePoele() {
     final gs = GameState.instance;
+    // Pas de bois = pas de feu (cohérent avec la cuisinière et le filtre) —
+    // sinon le poêle restait « allumé » à froid jusqu'au tick suivant.
+    if (!gs.poeleOn && gs.cardBois <= 0) {
+      _showHeroFloat('Plus de bois pour le poêle 🪵');
+      return;
+    }
     _heroFacingRight = gs.w1x('poele') > _heroX;
     _startAutoSpecial('use_back', frames: 24);
     gs.setPoeleOn(!gs.poeleOn);

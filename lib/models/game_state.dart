@@ -622,6 +622,14 @@ class GameState extends ChangeNotifier {
   /// Utilisé en migration (anciennes saves) et dispo pour un reset propre.
   void applyBakedLayout() {
     // Mêmes COORDONNÉES DÉFINITIVES que les défauts (captures 2026-07-02).
+    salonProps['notebook'] = [0.265, 0.666, 0.070, 0.070, 0, 0, 0, 0];
+    salonProps['bowl'] = [0.425, 0.683, 0.080, 0.080, 0, 0, 0, 0];
+    salonProps['jeu'] = [0.548, 0.591, 0.160, 0.190, 0, 0, 0, 0.54];
+    salonProps['carillon'] = [0.726, 0.314, 0.121, 0.062, 0, 0, 0, 0];
+    salonProps['fauteuil'] = [0.792, 0.498, 0.245, 0.245, 0, 0, 0, 0];
+    salonProps['panier'] = [0.675, 0.615, 0.106, 0.152, 0, 0, 0, 0];
+    salonProps['deco_photo'] = [0.851, 0.386, 0.059, 0.041, 0, 2, 0.78, 0];
+    salonProps['deco_peluche'] = [0.420, 0.480, 0.124, 0.069, 0, 0, 0, 0];
     wagon1Props['lamp'] = [0.689, 0.209, 0.108, 1, 0, 0, 0];
     wagon1Props['bac'] = [0.762, 0.471, 0.307, 0, 0, 0.06, 0.12];
     wagon1Props['filtre'] = [0.298, 0.525, 0.230, 0, 0, 0, 0];
@@ -922,9 +930,10 @@ class GameState extends ChangeNotifier {
   int cardMoral = 70;
 
   /// Ravitaillement à l'arrivée d'une gare (fouille/troc), appliqué une fois
-  /// par gare par le moteur. Calibré par simulation (careless ~11% / casual
-  /// ~62% / smart 100%). Appliqué en direct (pas de blocage froid : ce sont
-  /// des vivres trouvés, pas du réconfort).
+  /// par gare par le moteur. Calibré par simulation (cible : careless ~1% /
+  /// casual ~24% / smart ~99% / caring ~99%, cf. tools/sim_current.py).
+  /// Appliqué en direct (pas de blocage froid : ce sont des vivres trouvés,
+  /// pas du réconfort).
   void grantGareSupply() {
     cardBois = (cardBois + 9).clamp(0, statMax);
     cardSoif = (cardSoif + 5).clamp(0, statMax);
@@ -1015,8 +1024,8 @@ class GameState extends ChangeNotifier {
   // les [creditRefillInterval]). C'est CE rythme qui ralentit l'avancée de
   // l'histoire : on joue quelques cartes d'affilée, puis on laisse le temps
   // passer avant de continuer. (Remplace l'ancien budget de ravitaillement.)
-  // Toggle GLOBAL du système de crédits. DÉSACTIVÉ (jeu sans mur de temps) ;
-  // toute la machinerie est conservée si on veut réactiver un rythme.
+  // Toggle GLOBAL du système de crédits. ACTIF (confirmé user 2026-07-01) :
+  // c'est le système de rythme en place (1 carte = 1 crédit, +1/5 min).
   static const bool creditsEnabled = true;
   static const int cardCreditsMax = 5;
   static const Duration creditRefillInterval = Duration(minutes: 5);
@@ -1045,9 +1054,10 @@ class GameState extends ChangeNotifier {
     final intervalMs = creditRefillInterval.inMilliseconds;
     final now = DateTime.now().millisecondsSinceEpoch;
     if (cardCreditNextMs == 0) {
-      // Aucune minuterie en cours : on en démarre une.
+      // Aucune minuterie en cours : on en démarre une. checkpoint : sans lui
+      // save() est inerte → l'ancre de régen serait perdue au kill de l'app.
       cardCreditNextMs = now + intervalMs;
-      save();
+      save(checkpoint: true);
       return;
     }
     var changed = false;
@@ -1059,7 +1069,7 @@ class GameState extends ChangeNotifier {
     if (cardCredits >= cardCreditsMax) cardCreditNextMs = 0;
     if (changed) {
       notifyListeners();
-      save();
+      save(checkpoint: true); // persiste la régen (max 1 écriture / 5 min)
     }
   }
 
@@ -1085,7 +1095,9 @@ class GameState extends ChangeNotifier {
           DateTime.now().millisecondsSinceEpoch + creditRefillInterval.inMilliseconds;
     }
     notifyListeners();
-    save();
+    // checkpoint : sans lui save() est inerte (persistance aux gares) → tuer
+    // l'app en plein segment REMBOURSAIT les crédits dépensés (mur contourné).
+    save(checkpoint: true);
     return true;
   }
 
