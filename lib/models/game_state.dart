@@ -78,6 +78,8 @@ class GameState extends ChangeNotifier {
             wagon1Props.map((k, v) => MapEntry(k, v.toList())),
         'salonProps':
             salonProps.map((k, v) => MapEntry(k, v.toList())),
+        'wagon2FlipRot':
+            wagon2FlipRot.map((k, v) => MapEntry(k, v.toList())),
         'bathX': bathX, 'bathY': bathY, 'bathH': bathH,
         'showerPanelX': showerPanelX, 'showerPanelY': showerPanelY,
         'showerPanelH': showerPanelH,
@@ -148,8 +150,12 @@ class GameState extends ChangeNotifier {
       if (w1p is Map) {
         w1p.forEach((k, v) {
           if (v is List && v.length >= 3 && wagon1Props.containsKey(k)) {
-            wagon1Props[k as String] =
-                v.map((e) => (e as num).toDouble()).toList();
+            // Normalise à 5 éléments [x, y, h, flip, rot] (vieilles saves).
+            final l = v.map((e) => (e as num).toDouble()).toList();
+            while (l.length < 5) {
+              l.add(0);
+            }
+            wagon1Props[k as String] = l;
           }
         });
       }
@@ -157,8 +163,23 @@ class GameState extends ChangeNotifier {
       if (slp is Map) {
         slp.forEach((k, v) {
           if (v is List && v.length >= 4 && salonProps.containsKey(k)) {
-            salonProps[k as String] =
-                v.map((e) => (e as num).toDouble()).toList();
+            // Normalise à 6 éléments [x, y, h, w, flip, rot] (vieilles saves).
+            final l = v.map((e) => (e as num).toDouble()).toList();
+            while (l.length < 6) {
+              l.add(0);
+            }
+            salonProps[k as String] = l;
+          }
+        });
+      }
+      final w2fr = data['wagon2FlipRot'];
+      if (w2fr is Map) {
+        w2fr.forEach((k, v) {
+          if (v is List && v.length >= 2) {
+            wagon2FlipRot[k as String] = [
+              (v[0] as num).toDouble(),
+              (v[1] as num).toDouble()
+            ];
           }
         });
       }
@@ -469,9 +490,9 @@ class GameState extends ChangeNotifier {
   double wagon2LampAx = 0.27, wagon2LampAy = 0.21, wagon2LampAH = 0.12;
   double wagon2LampBx = 0.49, wagon2LampBy = 0.22, wagon2LampBH = 0.12;
   // Trousse de secours : posée sur la commode du cellier (wagon 3).
-  double wagon2FirstaidX = 0.29, wagon2FirstaidY = 0.46, wagon2FirstaidH = 0.085;
+  double wagon2FirstaidX = 0.19, wagon2FirstaidY = 0.51, wagon2FirstaidH = 0.09;
   // Bouquet de fleurs séchées (souvenir_fenetre) : déplacé au cellier (wagon 3).
-  double wagon2FleursX = 0.63, wagon2FleursY = 0.50, wagon2FleursH = 0.10;
+  double wagon2FleursX = 0.23, wagon2FleursY = 0.48, wagon2FleursH = 0.10;
 
   /// Poêle du wagon 1 : position + taille déplaçables (mode ajuster debug).
   /// Défaut = ancien emplacement de la table à biscuits (centre x 0.479).
@@ -482,41 +503,53 @@ class GameState extends ChangeNotifier {
   /// flipBits (0=aucun, 1=miroir H, 2=miroir V, 3=les deux)]. Déplaçables +
   /// redimensionnables + miroitables en mode ajuster debug, persistés.
   // Positions BAKÉES d'après les placements validés (captures user 2026-07-02).
+  // Format : [x (centre, frac w), y (haut, frac h), h (hauteur, frac h),
+  // flipBits (1=miroir H, 2=V), rotation (degrés)].
   final Map<String, List<double>> wagon1Props = {
-    'lamp': [0.689, 0.209, 0.108, 0],
-    'bac': [0.756, 0.462, 0.307, 0],
-    'filtre': [0.298, 0.525, 0.230, 0],
-    'poele': [0.196, 0.514, 0.239, 0],
-    'gaziniere': [0.607, 0.484, 0.278, 0],
+    'lamp': [0.689, 0.209, 0.108, 0, 0],
+    'bac': [0.756, 0.462, 0.307, 0, 0],
+    'filtre': [0.298, 0.525, 0.230, 0, 0],
+    'poele': [0.196, 0.514, 0.239, 0, 0],
+    'gaziniere': [0.607, 0.484, 0.278, 0, 0],
     // Objets basculés du salon vers l'atelier (radio, console).
-    'radio': [0.488, 0.511, 0.130, 0],
-    'console': [0.447, 0.624, 0.113, 0],
+    'radio': [0.492, 0.509, 0.130, 0, 0],
+    'console': [0.447, 0.624, 0.113, 0, 0],
     // Tourne-disque échangé avec la table de jeu (jeu → salon) : posé sur la
-    // console. (deco_fleurs → cellier, champs wagon2Fleurs*.)
-    'tournedisque': [0.447, 0.500, 0.155, 0],
+    // console. (deco_fleurs → cellier, wagon2Fleurs*.)
+    'tournedisque': [0.403, 0.486, 0.155, 0, 0],
   };
   /// Props ajustables du SALON (carnet, gamelle, table de jeu, carillon,
-  /// fauteuil, panier) : [centreX, top, height, width] en fractions. Réglables
-  /// en debug, persistés. (secours = cellier ; carte murale = loco.)
+  /// fauteuil, panier, déco) : [centreX, top, height, width, flipBits,
+  /// rotation°] en fractions/degrés. Réglables en debug, persistés.
   /// Positions BAKÉES d'après les placements validés (captures user 2026-07-02).
   final Map<String, List<double>> salonProps = {
-    'notebook': [0.265, 0.666, 0.070, 0.070],
-    'bowl': [0.382, 0.665, 0.080, 0.080],
+    'notebook': [0.265, 0.666, 0.070, 0.070, 0, 0],
+    'bowl': [0.382, 0.665, 0.080, 0.080, 0, 0],
     // Table de jeu échangée avec le tourne-disque (tournedisque → atelier).
-    'jeu': [0.548, 0.560, 0.160, 0.190],
-    'carillon': [0.726, 0.314, 0.131, 0.067],
-    'fauteuil': [0.794, 0.494, 0.245, 0.245],
-    'panier': [0.670, 0.625, 0.106, 0.152],
+    'jeu': [0.544, 0.599, 0.160, 0.190, 0, 0],
+    'carillon': [0.726, 0.314, 0.131, 0.067, 0, 0],
+    'fauteuil': [0.764, 0.503, 0.245, 0.245, 0, 0],
+    'panier': [0.670, 0.625, 0.106, 0.152, 0, 0],
     // radio / console : passés à l'ATELIER (wagon1Props) ; bouquet
     // (deco_fleurs) : passé au CELLIER (wagon2Fleurs*).
     // Déco-souvenirs (accrochées par les souvenirs vécus) : déplaçables.
-    'deco_photo': [0.852, 0.369, 0.089, 0.062],
-    'deco_peluche': [0.420, 0.480, 0.124, 0.069],
+    'deco_photo': [0.854, 0.375, 0.089, 0.062, 0, 0],
+    'deco_peluche': [0.420, 0.480, 0.124, 0.069, 0, 0],
   };
   double slx(String k) => salonProps[k]![0];
   double sly(String k) => salonProps[k]![1];
   double slh(String k) => salonProps[k]![2];
   double slw(String k) => salonProps[k]![3];
+  int slFlip(String k) {
+    final p = salonProps[k]!;
+    return p.length > 4 ? p[4].toInt() : 0;
+  }
+
+  double slRot(String k) {
+    final p = salonProps[k]!;
+    return p.length > 5 ? p[5] : 0;
+  }
+
   void slMove(String k, double dx, double dy) {
     final p = salonProps[k]!;
     p[0] = (p[0] + dx).clamp(0.02, 0.98);
@@ -532,25 +565,45 @@ class GameState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _ensureLen(List<double> p, int n) {
+    while (p.length < n) {
+      p.add(0);
+    }
+  }
+
+  void slToggleFlip(String k, int bit) {
+    final p = salonProps[k]!;
+    _ensureLen(p, 6);
+    p[4] = (p[4].toInt() ^ bit).toDouble();
+    notifyListeners();
+  }
+
+  void slRotate(String k, double deg) {
+    final p = salonProps[k]!;
+    _ensureLen(p, 6);
+    p[5] = (p[5] + deg).clamp(-45.0, 45.0);
+    notifyListeners();
+  }
+
   /// Réapplique les positions/tailles d'objets « validées » (atelier + cellier).
   /// Utilisé en migration (anciennes saves) et dispo pour un reset propre.
   void applyBakedLayout() {
-    wagon1Props['lamp'] = [0.689, 0.209, 0.108, 0];
-    wagon1Props['bac'] = [0.756, 0.462, 0.307, 0];
-    wagon1Props['filtre'] = [0.298, 0.525, 0.230, 0];
-    wagon1Props['poele'] = [0.196, 0.514, 0.239, 0];
-    wagon1Props['gaziniere'] = [0.607, 0.484, 0.278, 0];
-    wagon1Props['radio'] = [0.488, 0.511, 0.130, 0];
-    wagon1Props['console'] = [0.447, 0.624, 0.113, 0];
-    wagon1Props['tournedisque'] = [0.447, 0.500, 0.155, 0];
-    wagon2FleursX = 0.63; wagon2FleursY = 0.50; wagon2FleursH = 0.10;
+    wagon1Props['lamp'] = [0.689, 0.209, 0.108, 0, 0];
+    wagon1Props['bac'] = [0.756, 0.462, 0.307, 0, 0];
+    wagon1Props['filtre'] = [0.298, 0.525, 0.230, 0, 0];
+    wagon1Props['poele'] = [0.196, 0.514, 0.239, 0, 0];
+    wagon1Props['gaziniere'] = [0.607, 0.484, 0.278, 0, 0];
+    wagon1Props['radio'] = [0.492, 0.509, 0.130, 0, 0];
+    wagon1Props['console'] = [0.447, 0.624, 0.113, 0, 0];
+    wagon1Props['tournedisque'] = [0.403, 0.486, 0.155, 0, 0];
+    wagon2FleursX = 0.23; wagon2FleursY = 0.48; wagon2FleursH = 0.10;
     bathX = 0.48; bathY = 0.48; bathH = 0.31;
     showerPanelX = 0.77; showerPanelY = 0.44; showerPanelH = 0.35;
     showerHeadX = 0.75; showerHeadY = 0.22; showerHeadH = 0.32;
     wagon2LampAx = 0.27; wagon2LampAy = 0.21; wagon2LampAH = 0.12;
     wagon2LampBx = 0.49; wagon2LampBy = 0.22; wagon2LampBH = 0.12;
-    wagon2CommodeX = 0.29; wagon2CommodeY = 0.53; wagon2CommodeH = 0.23;
-    wagon2FirstaidX = 0.29; wagon2FirstaidY = 0.46; wagon2FirstaidH = 0.085;
+    wagon2CommodeX = 0.21; wagon2CommodeY = 0.53; wagon2CommodeH = 0.23;
+    wagon2FirstaidX = 0.19; wagon2FirstaidY = 0.51; wagon2FirstaidH = 0.09;
   }
 
   double w1x(String k) => wagon1Props[k]![0];
@@ -561,8 +614,6 @@ class GameState extends ChangeNotifier {
     return p.length > 3 ? p[3].toInt() : 0;
   }
 
-  bool w1FlipH(String k) => (w1Flip(k) & 1) != 0;
-  bool w1FlipV(String k) => (w1Flip(k) & 2) != 0;
   void w1Move(String k, double dx, double dy) {
     final p = wagon1Props[k]!;
     p[0] = (p[0] + dx).clamp(0.02, 0.98);
@@ -575,23 +626,50 @@ class GameState extends ChangeNotifier {
 
   void w1ToggleFlip(String k, int bit) {
     final p = wagon1Props[k]!;
-    while (p.length < 4) {
-      p.add(0);
-    }
+    _ensureLen(p, 4);
     p[3] = (p[3].toInt() ^ bit).toDouble();
     save();
     notifyListeners();
   }
 
+  double w1Rot(String k) {
+    final p = wagon1Props[k]!;
+    return p.length > 4 ? p[4] : 0;
+  }
+
+  void w1Rotate(String k, double deg) {
+    final p = wagon1Props[k]!;
+    _ensureLen(p, 5);
+    p[4] = (p[4] + deg).clamp(-45.0, 45.0);
+    notifyListeners();
+  }
+
   /// Props positionnables du cellier (x=fraction w du centre, y=fraction h du
   /// haut, h=fraction h de la hauteur). Déplaçables + redimensionnables,
-  /// sauvegardés. Valeurs par défaut calées en jeu (mode ajuster).
+  /// sauvegardés. Valeurs BAKÉES (captures user 2026-07-02).
   double bathX = 0.48, bathY = 0.48, bathH = 0.31;
   double showerPanelX = 0.77, showerPanelY = 0.44, showerPanelH = 0.35;
   double showerHeadX = 0.75, showerHeadY = 0.22, showerHeadH = 0.32;
   // Armoire à vêtements (commode) déplacée dans le cellier : tap = ouvre la
   // garde-robe, déplaçable/redimensionnable en mode ajuster.
-  double wagon2CommodeX = 0.29, wagon2CommodeY = 0.53, wagon2CommodeH = 0.23;
+  double wagon2CommodeX = 0.21, wagon2CommodeY = 0.53, wagon2CommodeH = 0.23;
+
+  /// Miroir + inclinaison des props du CELLIER (mêmes réglages que salon /
+  /// atelier) : clé → [flipBits (1=H, 2=V), rotation°]. Persisté.
+  final Map<String, List<double>> wagon2FlipRot = {};
+  int w2Flip(String k) => (wagon2FlipRot[k]?[0] ?? 0).toInt();
+  double w2Rot(String k) => wagon2FlipRot[k]?[1] ?? 0;
+  void w2ToggleFlip(String k, int bit) {
+    final p = wagon2FlipRot.putIfAbsent(k, () => [0, 0]);
+    p[0] = (p[0].toInt() ^ bit).toDouble();
+    notifyListeners();
+  }
+
+  void w2Rotate(String k, double deg) {
+    final p = wagon2FlipRot.putIfAbsent(k, () => [0, 0]);
+    p[1] = (p[1] + deg).clamp(-45.0, 45.0);
+    notifyListeners();
+  }
 
   /// Carte du voyage accrochée dans la LOCOMOTIVE : centre (cx,cy en fractions
   /// de la scène) + largeur (fraction de la largeur). Déplaçable + pinçable en

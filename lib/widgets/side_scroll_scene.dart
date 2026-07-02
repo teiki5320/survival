@@ -2075,6 +2075,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     VoidCallback? onTap,
     bool? adjust,
     int flipBits = 0,
+    double rotDeg = 0,
   }) {
     final ph = h * heightFrac;
     final pw = ph * aspect;
@@ -2090,6 +2091,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
             1.0),
         child: child,
       );
+    }
+    // Inclinaison (degrés, autour du centre) — réglable au pad d'ajuster.
+    if (rotDeg != 0) {
+      flipped = Transform.rotate(
+          angle: rotDeg * math.pi / 180, child: flipped);
     }
     final tinted = _nightTint(flipped);
     final adjusting = adjust ?? widget.wagon2Adjust;
@@ -2195,6 +2201,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       w: w, h: h,
       cx: gs.slx(k), topY: gs.sly(k), heightFrac: gs.slh(k),
       aspect: aspect, label: k, adjust: true,
+      flipBits: gs.slFlip(k), rotDeg: gs.slRot(k),
       child: _salonSprite(def),
       onMove: (dx, dy) => gs.slMove(k, dx, dy),
       onResize: (nh) => gs.slResize(k, nh),
@@ -2208,18 +2215,33 @@ class _SideScrollSceneState extends State<SideScrollScene>
     if (!gs.debugMode && !gs.cardFlags.contains(flag)) {
       return const SizedBox.shrink();
     }
-    final img = _nightTint(
-        Image.asset('assets/objects/$key.png', fit: BoxFit.contain));
     final asp = _salonAspect[key] ?? 1.0;
     if (widget.salonAdjust) {
       return _w2Drag(
         w: w, h: h,
         cx: gs.slx(key), topY: gs.sly(key), heightFrac: gs.slh(key),
         aspect: asp, label: key, adjust: true,
+        flipBits: gs.slFlip(key), rotDeg: gs.slRot(key),
         onMove: (dx, dy) => gs.slMove(key, dx, dy),
         onResize: (nh) => gs.slResize(key, nh),
+        child: Image.asset('assets/objects/$key.png', fit: BoxFit.contain),
+      );
+    }
+    // Rendu normal : miroir + inclinaison persistés.
+    Widget img = Image.asset('assets/objects/$key.png', fit: BoxFit.contain);
+    final flip = gs.slFlip(key);
+    final rot = gs.slRot(key);
+    if (flip != 0) {
+      img = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scaleByDouble(
+            (flip & 1) != 0 ? -1.0 : 1.0,
+            (flip & 2) != 0 ? -1.0 : 1.0, 1.0, 1.0),
         child: img,
       );
+    }
+    if (rot != 0) {
+      img = Transform.rotate(angle: rot * math.pi / 180, child: img);
     }
     final sp = gs.salonProps[key]!;
     final propH = h * sp[2];
@@ -2229,7 +2251,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       top: h * sp[1],
       width: propW,
       height: propH,
-      child: img,
+      child: _nightTint(img),
     );
   }
 
@@ -2241,116 +2263,138 @@ class _SideScrollSceneState extends State<SideScrollScene>
           GameState.instance.save();
         }),
         child: Container(
-          margin: const EdgeInsets.only(right: 6, top: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+          margin: const EdgeInsets.only(right: 6, top: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
           decoration: BoxDecoration(
             color: Colors.white24,
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(6),
           ),
           child: Text(lab,
               style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 13,
+                  fontSize: 15,
                   fontWeight: FontWeight.bold)),
         ),
       );
 
-  /// Rangée ◀▶▲▼ −＋ qui pilote l'objet sélectionné (`_adjSel`) : déplace par
-  /// pas de 0.008, redimensionne par pas de 0.01. Alternative au drag/pincer
-  /// (objets trop petits ou inaccessibles au doigt).
+  /// Pad COMPLET de l'objet sélectionné — IDENTIQUE dans les trois wagons :
+  /// ◀▶▲▼ = position (pas 0.008), −＋ = taille (pas 0.01, sans pincer),
+  /// ↔↕ = miroir H/V, ⟲⟳ = inclinaison (±2°).
   Widget _adjPad({
     required void Function(double dx, double dy) move,
     required void Function(double dh) size,
+    required void Function(int bit) flip,
+    required void Function(double deg) rotate,
   }) =>
-      Row(
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          _adjPadBtn('◀', () => move(-0.008, 0)),
-          _adjPadBtn('▶', () => move(0.008, 0)),
-          _adjPadBtn('▲', () => move(0, -0.008)),
-          _adjPadBtn('▼', () => move(0, 0.008)),
-          _adjPadBtn('−', () => size(-0.01)),
-          _adjPadBtn('＋', () => size(0.01)),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            _adjPadBtn('◀', () => move(-0.008, 0)),
+            _adjPadBtn('▶', () => move(0.008, 0)),
+            _adjPadBtn('▲', () => move(0, -0.008)),
+            _adjPadBtn('▼', () => move(0, 0.008)),
+            _adjPadBtn('−', () => size(-0.01)),
+            _adjPadBtn('＋', () => size(0.01)),
+          ]),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            _adjPadBtn('↔', () => flip(1)),
+            _adjPadBtn('↕', () => flip(2)),
+            _adjPadBtn('⟲', () => rotate(-2)),
+            _adjPadBtn('⟳', () => rotate(2)),
+          ]),
         ],
       );
 
   /// Ligne de coords tapable : tap = sélectionne l'objet pour le pad.
-  Widget _adjRow(String k, String text) {
-    final sel = _adjSel == k;
+  Widget _adjRow(String k, String text, bool selected) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => setState(() => _adjSel = k),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
-        color: sel ? const Color(0x66E8B96B) : Colors.transparent,
+        color: selected ? const Color(0x66E8B96B) : Colors.transparent,
         child: Text(text,
             style: TextStyle(
-                color: sel ? const Color(0xFFFFE2A8) : Colors.white,
-                fontSize: 9,
+                color: selected ? const Color(0xFFFFE2A8) : Colors.white,
+                fontSize: 10,
                 fontFamily: 'monospace')),
       ),
     );
   }
 
-  Widget _salonCoordHud(GameState gs) {
-    String txt(String k) =>
-        '${k.padRight(9)} x${gs.slx(k).toStringAsFixed(3)} y${gs.sly(k).toStringAsFixed(3)} h${gs.slh(k).toStringAsFixed(3)}';
-
-    // Toutes les clés salon présentes dans salonProps, dédoublonnées.
-    final keys = <String>[
-      for (final def in _propDefs)
-        if (gs.salonProps.containsKey(def.key)) def.key,
-      'deco_photo', 'deco_peluche',
-    ];
-    // 2 colonnes pour tout faire tenir à l'écran.
-    final half = (keys.length / 2).ceil();
-    Widget col(Iterable<String> ks) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [for (final k in ks) _adjRow(k, txt(k))],
-        );
-
-    final selValid = _adjSel != null && keys.contains(_adjSel);
+  /// Panneau d'ajuster UNIFIÉ (salon / atelier / cellier) : liste des objets
+  /// (tap = sélection, 1er sélectionné par défaut) + pad complet TOUJOURS
+  /// visible. Mêmes réglages partout : position, taille, miroir, inclinaison.
+  Widget _adjustPanel(String title, List<_AdjItem> items) {
+    final mq = MediaQuery.of(context);
+    final sel = items.firstWhere((it) => it.key == _adjSel,
+        orElse: () => items.first);
     return Positioned(
       left: 8,
-      // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
-      bottom: 8 + MediaQuery.of(context).padding.bottom,
+      // + safe area (home indicator) sinon le bas passe sous l'écran.
+      bottom: 8 + mq.padding.bottom,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.72),
+          color: Colors.black.withValues(alpha: 0.75),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-                'AJUSTER SALON — tap ligne = sélection · drag/pincer = direct',
-                style: TextStyle(
+            Text('$title — tap un objet puis règle au pad',
+                style: const TextStyle(
                     color: Color(0xFFE8B96B),
                     fontSize: 10,
                     fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                col(keys.take(half)),
-                const SizedBox(width: 14),
-                col(keys.skip(half)),
-              ],
-            ),
-            if (selValid)
-              _adjPad(
-                move: (dx, dy) => gs.slMove(_adjSel!, dx, dy),
-                size: (dh) =>
-                    gs.slResize(_adjSel!, gs.slh(_adjSel!) + dh),
+            // Liste scrollable plafonnée : ne déborde jamais de l'écran.
+            ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: mq.size.height * 0.34),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final it in items)
+                      _adjRow(it.key, it.info(), it.key == sel.key),
+                  ],
+                ),
               ),
+            ),
+            _adjPad(
+                move: sel.move,
+                size: sel.size,
+                flip: sel.flip,
+                rotate: sel.rotate),
           ],
         ),
       ),
     );
+  }
+
+  Widget _salonCoordHud(GameState gs) {
+    String info(String k) =>
+        '${k.padRight(12)} x${gs.slx(k).toStringAsFixed(3)} y${gs.sly(k).toStringAsFixed(3)} h${gs.slh(k).toStringAsFixed(3)} r${gs.slRot(k).toStringAsFixed(0)}°';
+    final keys = <String>[
+      for (final def in _propDefs)
+        if (gs.salonProps.containsKey(def.key)) def.key,
+      'deco_photo', 'deco_peluche',
+    ];
+    return _adjustPanel('AJUSTER SALON', [
+      for (final k in keys)
+        _AdjItem(
+          k,
+          () => info(k),
+          (dx, dy) => gs.slMove(k, dx, dy),
+          (dh) => gs.slResize(k, gs.slh(k) + dh),
+          (bit) => gs.slToggleFlip(k, bit),
+          (deg) => gs.slRotate(k, deg),
+        ),
+    ]);
   }
 
   Widget _buildWagon1Adjustable(double w, double h) {
@@ -2367,7 +2411,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                 w: w, h: h,
                 cx: gs.w1x(key), topY: gs.w1y(key), heightFrac: gs.w1h(key),
                 aspect: aspect, label: key, adjust: widget.wagon1Adjust,
-                flipBits: gs.w1Flip(key),
+                flipBits: gs.w1Flip(key), rotDeg: gs.w1Rot(key),
                 child: child,
                 onMove: (dx, dy) => gs.w1Move(key, dx, dy),
                 onResize: (nh) => gs.w1Resize(key, nh),
@@ -2488,101 +2532,25 @@ class _SideScrollSceneState extends State<SideScrollScene>
   }
 
   Widget _wagon1CoordHud(GameState gs) {
-    Widget flipBtn(String lab, bool on, VoidCallback tap) => GestureDetector(
-          onTap: tap,
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            margin: const EdgeInsets.only(left: 3),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: on ? const Color(0xFFE8B96B) : Colors.white24,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(lab,
-                style: TextStyle(
-                    color: on ? const Color(0xFF2A2018) : Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold)),
-          ),
-        );
-    Widget row(String n) {
-      final sel = _adjSel == n;
-      final t =
-          '${n.padRight(9)} x${gs.w1x(n).toStringAsFixed(3)} y${gs.w1y(n).toStringAsFixed(3)} h${gs.w1h(n).toStringAsFixed(3)}';
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () => setState(() => _adjSel = n),
-              child: Container(
-                width: 232,
-                color: sel ? const Color(0x66E8B96B) : Colors.transparent,
-                child: Text(t,
-                    style: TextStyle(
-                        color: sel ? const Color(0xFFFFE2A8) : Colors.white,
-                        fontSize: 10,
-                        fontFamily: 'monospace')),
-              ),
-            ),
-            flipBtn('↔', gs.w1FlipH(n), () => setState(() => gs.w1ToggleFlip(n, 1))),
-            flipBtn('↕', gs.w1FlipV(n), () => setState(() => gs.w1ToggleFlip(n, 2))),
-          ],
-        ),
-      );
-    }
-
-    final mq = MediaQuery.of(context);
+    String info(String k) =>
+        '${k.padRight(12)} x${gs.w1x(k).toStringAsFixed(3)} y${gs.w1y(k).toStringAsFixed(3)} h${gs.w1h(k).toStringAsFixed(3)} r${gs.w1Rot(k).toStringAsFixed(0)}°';
     // Tous les props ajustables de l'atelier, y compris ceux basculés du salon
     // (radio, console, tourne-disque) — sinon on ne peut pas les régler.
     const props = [
       'gaziniere', 'lamp', 'bac', 'filtre', 'poele',
       'radio', 'console', 'tournedisque',
     ];
-    final selValid = _adjSel != null && props.contains(_adjSel);
-    return Positioned(
-      left: 8,
-      // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
-      bottom: 8 + mq.padding.bottom,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.7),
-          borderRadius: BorderRadius.circular(6),
+    return _adjustPanel('AJUSTER ATELIER', [
+      for (final k in props)
+        _AdjItem(
+          k,
+          () => info(k),
+          (dx, dy) => gs.w1Move(k, dx, dy),
+          (dh) => gs.w1Resize(k, (gs.w1h(k) + dh).clamp(0.03, 0.8)),
+          (bit) => gs.w1ToggleFlip(k, bit),
+          (deg) => gs.w1Rotate(k, deg),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-                'AJUSTER WAGON 1 — tap ligne = sélection · ↔↕ = miroir',
-                style: TextStyle(
-                    color: Color(0xFFE8B96B),
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold)),
-            // Liste scrollable + plafonnée : elle ne déborde jamais de l'écran.
-            ConstrainedBox(
-              constraints: BoxConstraints(maxHeight: mq.size.height * 0.5),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [for (final n in props) row(n)],
-                ),
-              ),
-            ),
-            if (selValid)
-              _adjPad(
-                move: (dx, dy) => gs.w1Move(_adjSel!, dx, dy),
-                size: (dh) => gs.w1Resize(
-                    _adjSel!, (gs.w1h(_adjSel!) + dh).clamp(0.03, 0.8)),
-              ),
-          ],
-        ),
-      ),
-    );
+    ]);
   }
 
   // + baignoire + 2 lanternes. Déplaçables/redimensionnables en mode ajuster.
@@ -2613,6 +2581,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _w2Drag(
               w: w, h: h, cx: gs.showerHeadX, topY: gs.showerHeadY,
               heightFrac: gs.showerHeadH, aspect: 229 / 672, label: 'pommeau',
+              flipBits: gs.w2Flip('pommeau'), rotDeg: gs.w2Rot('pommeau'),
               child: pommeau,
               onMove: (dx, dy) {
                 gs.showerHeadX = (gs.showerHeadX + dx).clamp(0.02, 0.98);
@@ -2624,6 +2593,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _w2Drag(
               w: w, h: h, cx: gs.showerPanelX, topY: gs.showerPanelY,
               heightFrac: gs.showerPanelH, aspect: 720 / 768, label: 'panneau',
+              flipBits: gs.w2Flip('panneau'), rotDeg: gs.w2Rot('panneau'),
               child: Image.asset('assets/objects/shower_panel.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2646,6 +2616,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _w2Drag(
               w: w, h: h, cx: gs.bathX, topY: gs.bathY,
               heightFrac: gs.bathH, aspect: 1376 / 768, label: 'baignoire',
+              flipBits: gs.w2Flip('baignoire'), rotDeg: gs.w2Rot('baignoire'),
               child: Image.asset('assets/objects/bathtub.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2660,6 +2631,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _w2Drag(
               w: w, h: h, cx: gs.wagon2LampAx, topY: gs.wagon2LampAy,
               heightFrac: gs.wagon2LampAH, aspect: 1.0, label: 'lampe A',
+              flipBits: gs.w2Flip('lampeA'), rotDeg: gs.w2Rot('lampeA'),
               child: lamp(),
               onMove: (dx, dy) {
                 gs.wagon2LampAx = (gs.wagon2LampAx + dx).clamp(0.04, 0.96);
@@ -2671,6 +2643,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _w2Drag(
               w: w, h: h, cx: gs.wagon2LampBx, topY: gs.wagon2LampBy,
               heightFrac: gs.wagon2LampBH, aspect: 1.0, label: 'lampe B',
+              flipBits: gs.w2Flip('lampeB'), rotDeg: gs.w2Rot('lampeB'),
               child: lamp(),
               onMove: (dx, dy) {
                 gs.wagon2LampBx = (gs.wagon2LampBx + dx).clamp(0.04, 0.96);
@@ -2706,6 +2679,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
               w: w, h: h, cx: gs.wagon2CommodeX, topY: gs.wagon2CommodeY,
               heightFrac: gs.wagon2CommodeH, aspect: 1.0,
               label: 'armoire',
+              flipBits: gs.w2Flip('armoire'), rotDeg: gs.w2Rot('armoire'),
               child: Image.asset('assets/objects/commode.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onTap: widget.onOpenWardrobe,
@@ -2720,6 +2694,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _w2Drag(
               w: w, h: h, cx: gs.wagon2FirstaidX, topY: gs.wagon2FirstaidY,
               heightFrac: gs.wagon2FirstaidH, aspect: 1.0, label: 'secours',
+              flipBits: gs.w2Flip('secours'), rotDeg: gs.w2Rot('secours'),
               child: Image.asset('assets/objects/firstaid.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2733,6 +2708,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
             _w2Drag(
               w: w, h: h, cx: gs.wagon2FleursX, topY: gs.wagon2FleursY,
               heightFrac: gs.wagon2FleursH, aspect: 705 / 905, label: 'fleurs',
+              flipBits: gs.w2Flip('fleurs'), rotDeg: gs.w2Rot('fleurs'),
               child: Image.asset('assets/objects/deco_fleurs.png',
                   fit: BoxFit.contain, gaplessPlayback: true),
               onMove: (dx, dy) {
@@ -2826,33 +2802,19 @@ class _SideScrollSceneState extends State<SideScrollScene>
         (dh) => gs.wagon2FleursH = (gs.wagon2FleursH + dh).clamp(0.03, 0.8)
       ),
     ];
-    final sel = rows.where((r) => r.$1 == _adjSel).toList();
-    return Positioned(
-      left: 8,
-      // + safe area (home indicator) sinon le bas du HUD passe sous l'écran.
-      bottom: 8 + MediaQuery.of(context).padding.bottom,
-      child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.62),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('AJUSTER CELLIER — tap ligne = sélection',
-                  style: TextStyle(
-                      color: Color(0xFFE8B96B),
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold)),
-              for (final r in rows) _adjRow(r.$1, r.$2),
-              if (sel.isNotEmpty)
-                _adjPad(move: sel.first.$3, size: sel.first.$4),
-            ],
-          ),
+    // Panneau UNIFIÉ : mêmes réglages que salon/atelier (pad complet, miroir
+    // + inclinaison via wagon2FlipRot).
+    return _adjustPanel('AJUSTER CELLIER', [
+      for (final r in rows)
+        _AdjItem(
+          r.$1,
+          () => '${r.$2} r${gs.w2Rot(r.$1).toStringAsFixed(0)}°',
+          r.$3,
+          r.$4,
+          (bit) => gs.w2ToggleFlip(r.$1, bit),
+          (deg) => gs.w2Rotate(r.$1, deg),
         ),
-    );
+    ]);
   }
 
   // Voile de vapeur animé (bain/douche). Boîte centrée sur cx ; la vapeur
@@ -2977,7 +2939,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
                      : 'assets/objects/bowl_empty.png')
         : 'assets/objects/${def.key}.png';
     const boxFit = BoxFit.contain;
-    final Widget sprite;
+    Widget sprite;
     if (def.animated) {
       sprite = _AnimatedSprite(
         prefix: def.key,
@@ -2990,6 +2952,21 @@ class _SideScrollSceneState extends State<SideScrollScene>
         staticAsset,
         fit: boxFit,
       );
+    }
+    // Miroir + inclinaison persistés (réglés au pad d'ajuster).
+    final flip = GameState.instance.slFlip(def.key);
+    final rot = GameState.instance.slRot(def.key);
+    if (flip != 0) {
+      sprite = Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()..scaleByDouble(
+            (flip & 1) != 0 ? -1.0 : 1.0,
+            (flip & 2) != 0 ? -1.0 : 1.0, 1.0, 1.0),
+        child: sprite,
+      );
+    }
+    if (rot != 0) {
+      sprite = Transform.rotate(angle: rot * math.pi / 180, child: sprite);
     }
     final Widget wrapped = _nightTint(sprite);
 
@@ -4386,4 +4363,18 @@ class _RadioPropState extends State<_RadioProp>
       ),
     );
   }
+}
+
+/// Entrée du panneau d'ajuster unifié : un objet réglable (position, taille,
+/// miroir, inclinaison) piloté par des closures vers son stockage
+/// (salonProps / wagon1Props / champs cellier + wagon2FlipRot).
+class _AdjItem {
+  const _AdjItem(
+      this.key, this.info, this.move, this.size, this.flip, this.rotate);
+  final String key;
+  final String Function() info;
+  final void Function(double dx, double dy) move;
+  final void Function(double dh) size;
+  final void Function(int bit) flip;
+  final void Function(double deg) rotate;
 }
