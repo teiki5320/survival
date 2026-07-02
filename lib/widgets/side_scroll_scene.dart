@@ -2118,7 +2118,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
             }
           });
         },
-        onScaleEnd: (_) => GameState.instance.save(),
+        // checkpoint : persiste le drag/pincer immédiatement (le save() simple
+        // est inerte hors gares). N'arrive qu'en mode ajuster (debug).
+        onScaleEnd: (_) => GameState.instance.save(checkpoint: true),
         child: Stack(
           clipBehavior: Clip.none,
           children: [
@@ -2270,7 +2272,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
         behavior: HitTestBehavior.opaque,
         onTap: () => setState(() {
           tap();
-          GameState.instance.save();
+          // checkpoint : sans lui save() est inerte (persistance aux gares
+          // seulement) → les réglages seraient perdus si l'app est tuée
+          // avant le ✓ de sortie du mode ajuster.
+          GameState.instance.save(checkpoint: true);
         }),
         child: Container(
           margin: const EdgeInsets.only(right: 6, top: 5),
