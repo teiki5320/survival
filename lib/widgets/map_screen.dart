@@ -29,36 +29,33 @@ const List<Offset> _trackPoints = [
 ];
 
 class _Station {
-  _Station(this.name, this.t, {this.big = false, this.locationId});
+  _Station(this.name, this.t, {this.big = false});
   final String name;
   double t; // 0→1 position along the spline
   final bool big;
-  final String? locationId;
 }
 
 // Positions (t) tirées de kGarePositions (constants.dart) : source unique de
 // vérité partagée avec le moteur de cartes, pour que carte et run ne dérivent
-// jamais. Ici on n'ajoute que les noms / type / locationId.
+// jamais. Ici on n'ajoute que les noms / le type (big).
 // Noms de gares japonisants (ordre du voyage, escalade vers le grand froid).
-// Le locationId reste une clé interne stable (sauvegarde / déblocage) : on ne
-// change QUE le nom affiché.
 final List<_Station> _stations = [
   // Ordre THÉMATIQUE : chaque nom colle à sa scène narrative (synchro avec les
-  // speakers de cards_data._gareN). Le locationId suit son nom.
-  _Station('Kogarashi', kGarePositions[0], big: true, locationId: 'station_abandonnee'),
-  _Station('Kurogane', kGarePositions[1], big: true, locationId: 'depot_ferroviaire'),
+  // speakers de cards_data._gareN).
+  _Station('Kogarashi', kGarePositions[0], big: true),
+  _Station('Kurogane', kGarePositions[1], big: true),
   _Station('Karasuno', kGarePositions[2]),
-  _Station('Mayoidani', kGarePositions[3], big: true, locationId: 'village_fantome'),
-  _Station('Tsukibashi', kGarePositions[4], locationId: 'pont_suspendu'),
-  _Station('Yasuragi', kGarePositions[5], locationId: 'camp_refuge'),
+  _Station('Mayoidani', kGarePositions[3], big: true),
+  _Station('Tsukibashi', kGarePositions[4]),
+  _Station('Yasuragi', kGarePositions[5]),
   _Station('Hoshikage', kGarePositions[6]),
   _Station('Kiribe', kGarePositions[7]),
   _Station('Shizuhara', kGarePositions[8]),
-  _Station('Hidamari', kGarePositions[9], locationId: 'oasis_perdue'),
+  _Station('Hidamari', kGarePositions[9]),
   _Station('Yukihara', kGarePositions[10]),
-  _Station('Miharashi', kGarePositions[11], locationId: 'tour_de_guet'),
+  _Station('Miharashi', kGarePositions[11]),
   _Station('Fubuki', kGarePositions[12]),
-  _Station('Hokuto', kGarePositions[13], locationId: 'tunnel_nord'),
+  _Station('Hokuto', kGarePositions[13]),
 ];
 
 // ---------------------------------------------------------------------------
@@ -467,10 +464,13 @@ class _MapPainter extends CustomPainter {
   // ---- Stations ----
 
   void _drawStations(Canvas canvas, Size size) {
-    for (final s in stations) {
+    for (var i = 0; i < stations.length; i++) {
+      final s = stations[i];
       final p = _px(path.at(s.t), size);
-      final unlocked = s.locationId != null &&
-          GameState.instance.isLocationUnlocked(s.locationId!);
+      // Gare DORÉE = déjà atteinte dans la run (progression réelle du voyage) ;
+      // grise = encore devant. Remplace l'ancien système `_unlocked` mort.
+      final gs = GameState.instance;
+      final reached = gs.hasCardRun && i <= (gs.cardGareIndex ?? 0);
       final radius = s.big ? 10.0 : 6.0;
 
       canvas.drawCircle(p, radius + 2, Paint()..color = const Color(0x44000000));
@@ -479,7 +479,7 @@ class _MapPainter extends CustomPainter {
         radius,
         Paint()
           ..color =
-              unlocked ? const Color(0xFFD4A55A) : const Color(0xFF6A6A6A),
+              reached ? const Color(0xFFD4A55A) : const Color(0xFF6A6A6A),
       );
       canvas.drawCircle(
         p,

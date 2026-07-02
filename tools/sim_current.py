@@ -164,13 +164,35 @@ WOOD_SUPPLY = {1:5,5:6,9:4}  # bûches offertes à l'arrivée de gares
 # cree le spread careless/casual (sinon le ravitaillement auto sature tout).
 REFUELS_BY_STRAT = {'careless':1, 'casual':1, 'smart':2, 'caring':2}
 
+# PANNES (rollPanne, ~22%/gare, une a la fois) : 1 poele HS (chauffe coupee ->
+# surconso bois en zone froide), 2 fuite (draine la soif), 3 vitre (draine le
+# moral). Reparation = geste au wagon -> liee a l'engagement : un careless
+# laisse trainer, un smart/caring repare dans le segment.
+PANNE_RATE = 0.22
+PANNE_REPAIR = {'careless':0.2, 'casual':0.5, 'smart':1.0, 'caring':1.0}
+PANNE_SEG_MALUS = 3   # points perdus par segment (fuite: soif, vitre: moral)
+PANNE_POELE_COLD = 2  # surconso bois/segment si poele HS en zone froide
+
 def run(strategy, refuels_per_seg=None):
     refuels_per_seg = REFUELS_BY_STRAT[strategy]
     stats = {'soif':START_STAT,'faim':START_STAT,'bois':START_STAT,'moral':START_STAT}
     flags = set(); soin = 0
     wood = WOOD_START
+    panne = 0
     for si, (gare, fill, draw) in enumerate(segments):
         wood += WOOD_SUPPLY.get(si, 0)
+        # pannes : tirage a l'arrivee (comme rollPanne dans grantGareSupply)
+        if panne == 0 and random.random() < PANNE_RATE:
+            panne = 1 + random.randrange(3)
+        if panne:
+            if panne == 1 and si >= COLD_GARE:
+                stats['bois'] = max(0, stats['bois'] - PANNE_POELE_COLD)
+            elif panne == 2:
+                stats['soif'] = max(0, stats['soif'] - PANNE_SEG_MALUS)
+            elif panne == 3:
+                stats['moral'] = max(0, stats['moral'] - PANNE_SEG_MALUS)
+            if random.random() < PANNE_REPAIR[strategy]:
+                panne = 0
         # RAVITAILLEMENT D'ARRIVEE par gare (grantGareSupply), gare 0 incluse
         # (petit ravito de survie ; stats de base quasi a 0 -> depart au bord du
         # gouffre).

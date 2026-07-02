@@ -60,7 +60,6 @@ class GameState extends ChangeNotifier {
         'seenTips': seenTips.toList(),
         'introCinematicSeen': introCinematicSeen,
         'gareWoodLeft': gareWoodLeft,
-        'unlocked': _unlocked.toList(),
         'wagonStage': wagonStage,
         'cabinTemp': cabinTemp,
         'outfitWarmth': outfitWarmth,
@@ -123,11 +122,8 @@ class GameState extends ChangeNotifier {
       }
       introCinematicSeen = data['introCinematicSeen'] as bool? ?? false;
       gareWoodLeft = (data['gareWoodLeft'] as num?)?.toInt() ?? gareWoodLeft;
-      _unlocked.clear();
-      _unlocked.add('station_abandonnee');
-      if (data['unlocked'] is List) {
-        _unlocked.addAll((data['unlocked'] as List).cast<String>());
-      }
+      // (Clé legacy 'unlocked' ignorée : les gares dorées de la map suivent
+      // désormais la progression réelle de la run, plus un set dédié.)
       // 2 stages désormais (windowed/clean) : clamp pour vieilles sauvegardes.
       wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       cabinTemp = (data['cabinTemp'] as num?)?.toDouble() ?? cabinTemp;
@@ -1254,11 +1250,6 @@ class GameState extends ChangeNotifier {
     cardSegmentProgress =
         ((m['segProgress'] as num?)?.toDouble() ?? 0.0).clamp(0.0, 1.0);
   }
-
-  // --- Locations ---
-  final Set<String> _unlocked = {'station_abandonnee'};
-
-  bool isLocationUnlocked(String id) => _unlocked.contains(id);
 
   @override
   void dispose() {
