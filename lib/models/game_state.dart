@@ -413,11 +413,11 @@ class GameState extends ChangeNotifier {
   int sisterOutfit = 0;
 
   /// Anims de la sœur disposant d'une déclinaison laine (`<base>_wool_N.png`).
-  /// `sister_idle` et `playduo` n'ont pas encore leurs planches (idle jamais
-  /// fournie ; playduo régénéré avec un décor incrusté, inutilisable) → repli
-  /// automatique sur la tenue classique pour ces anims-là.
+  /// Seul `playduo` manque encore (régénéré avec un décor incrusté,
+  /// inutilisable) → repli automatique sur la tenue classique pour celle-là.
   static const Set<String> kSisterWoolAnims = {
-    'sister_walk', 'sister_sleep', 'sister_cold', 'sister_hug', 'readduo',
+    'sister_idle', 'sister_walk', 'sister_sleep', 'sister_cold', 'sister_hug',
+    'readduo',
   };
 
   /// Préfixe d'asset effectif d'une anim de la sœur selon sa tenue.

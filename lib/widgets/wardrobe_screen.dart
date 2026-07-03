@@ -222,13 +222,25 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                           const SizedBox(width: 8),
                           _sisterOutfitTile(
                             label: 'Laine 🐻',
-                            asset:
-                                'assets/characters/sister_walk_wool_1.png',
+                            asset: 'assets/objects/outfit_sister_laine.png',
                             selected: GameState.instance.sisterOutfit == 1,
                             onTap: () => setState(() =>
                                 GameState.instance.setSisterOutfit(1)),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Aperçu de la sœur PORTANT la tenue sélectionnée.
+                      Center(
+                        child: SizedBox(
+                          height: 120,
+                          child: Image.asset(
+                            GameState.instance.sisterOutfit == 1
+                                ? 'assets/characters/sister_front_wool.png'
+                                : 'assets/characters/sister_idle_1.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                       ),
                     ],
                   ),

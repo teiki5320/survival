@@ -226,10 +226,14 @@ cartes via « **Débuter / Continuer le voyage** » sur la map.
   **TENUE DE LA SŒUR** (2026-07-03) : `GameState.sisterOutfit` (0 pyjama /
   1 laine à capuche-oreilles, choisie à l'ARMOIRE du cellier, persistée).
   Sprites laine = `<anim>_wool_N.png` via `sisterAnimPrefix()` ; dispo :
-  walk/sleep/cold/hug/readduo (`kSisterWoolAnims`). **MANQUENT : sister_idle
-  (planche jamais fournie) et playduo (régénéré avec un décor incrusté,
-  inutilisable)** → repli auto tenue classique sur ces 2 anims ; à régénérer
-  (consigne : mêmes poses, AUCUN décor dans les cases).
+  idle/walk/sleep/cold/hug/readduo (`kSisterWoolAnims`). L'armoire montre la
+  tenue seule (`objects/outfit_sister_laine.png`) + aperçu porté
+  (`characters/sister_front_wool.png`). **MANQUE : playduo** (régénéré avec un
+  décor incrusté, inutilisable) → repli auto tenue classique sur cette anim ;
+  à régénérer (consigne : mêmes poses, AUCUN décor dans les cases).
+  ⚠️ Planches OpenArt : possibles CASES DUPLIQUÉES (même numéro sous 2 cases
+  adjacentes, ex. idle 59 cases pour 49 frames) → lire les numéros et
+  dédupliquer avant découpe.
   ⚠️ Toute anim « state » (bain/douche/duo/petdog) DOIT finir via `setState`
   (sinon sprite figé + solo qui réapparaît).
 - **Moral de confort** : `_comfortMoral` (main.dart) avec cooldown (lire/chien/
