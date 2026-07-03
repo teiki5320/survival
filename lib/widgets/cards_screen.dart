@@ -1372,7 +1372,50 @@ class _CardsScreenState extends State<CardsScreen>
                         height: 1.6,
                         fontStyle: FontStyle.italic),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 20),
+                  // RAVITAILLEMENT d'arrivée — rendu VISIBLE (il était appliqué
+                  // en silence). Valeurs synchro avec grantGareSupply.
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: gold.withValues(alpha: 0.5), width: 1),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'RAVITAILLEMENT DE LA GARE',
+                          style: TextStyle(
+                            color: gold.withValues(alpha: 0.85),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 2.5,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          '+9 🪵   +5 💧   +7 🍖   +4 🕯️',
+                          style: TextStyle(
+                              color: Color(0xFFF2D49B),
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        if (GameState.instance.gareWoodLeft > 0) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${GameState.instance.gareWoodLeft} bûches à ramasser à la locomotive',
+                            style: const TextStyle(
+                                color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: gold,
@@ -1496,6 +1539,7 @@ class _UnlockBling extends StatefulWidget {
     'asset_salon': Icons.cleaning_services,
     'asset_atelier': Icons.handyman,
     'asset_wagon2': Icons.night_shelter,
+    'gotWarmCoat': Icons.checkroom,
   };
 
   @override

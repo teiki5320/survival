@@ -999,6 +999,8 @@ class GameState extends ChangeNotifier {
     'asset_salon': 'le salon remis à neuf',
     'asset_atelier': 'l\'atelier (2e wagon) rangé',
     'asset_wagon2': 'le cellier (3e wagon) aménagé',
+    // Gain d'objet HORS asset_* (chaleur de tenue +4) : bling aussi.
+    'gotWarmCoat': 'le manteau de laine',
   };
   /// Dépile le prochain déblocage et rend son NOM affichable (la file stocke
   /// les flags asset_* ; la bannière du wagon n'a besoin que du nom).
