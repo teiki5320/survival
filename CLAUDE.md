@@ -223,6 +223,13 @@ cartes via « **Débuter / Continuer le voyage** » sur la map.
 - **Sœur + chien** : `_SisterCharacter`/`_DogCharacter` se baladent quand
   débloqués (sister_walk/dog_walk), dorment la nuit. Duos : lecture
   (`readduo_1..10`), câlin (`sister_hug_1..4`), caresse chien (`petdog_1..9`).
+  **TENUE DE LA SŒUR** (2026-07-03) : `GameState.sisterOutfit` (0 pyjama /
+  1 laine à capuche-oreilles, choisie à l'ARMOIRE du cellier, persistée).
+  Sprites laine = `<anim>_wool_N.png` via `sisterAnimPrefix()` ; dispo :
+  walk/sleep/cold/hug/readduo (`kSisterWoolAnims`). **MANQUENT : sister_idle
+  (planche jamais fournie) et playduo (régénéré avec un décor incrusté,
+  inutilisable)** → repli auto tenue classique sur ces 2 anims ; à régénérer
+  (consigne : mêmes poses, AUCUN décor dans les cases).
   ⚠️ Toute anim « state » (bain/douche/duo/petdog) DOIT finir via `setState`
   (sinon sprite figé + solo qui réapparaît).
 - **Moral de confort** : `_comfortMoral` (main.dart) avec cooldown (lire/chien/

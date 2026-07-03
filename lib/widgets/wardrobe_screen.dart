@@ -181,6 +181,105 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 child: const Icon(Icons.close),
               ),
             ),
+            // Tenue de la PETITE SŒUR (si elle est à bord) : pyjama clair ou
+            // pyjama de laine à capuche-oreilles. Appliquée à toutes ses anims
+            // (repli classique pour celles sans déclinaison laine).
+            if (GameState.instance.sisterShown)
+              Positioned(
+                left: 16,
+                top: 16,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: const Color(0x66FFD9A0), width: 1),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Tenue de la petite sœur',
+                        style: TextStyle(
+                          color: Color(0xFFFFD9A0),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _sisterOutfitTile(
+                            label: 'Pyjama',
+                            asset: 'assets/characters/sister_idle_1.png',
+                            selected: GameState.instance.sisterOutfit == 0,
+                            onTap: () => setState(() =>
+                                GameState.instance.setSisterOutfit(0)),
+                          ),
+                          const SizedBox(width: 8),
+                          _sisterOutfitTile(
+                            label: 'Laine 🐻',
+                            asset:
+                                'assets/characters/sister_walk_wool_1.png',
+                            selected: GameState.instance.sisterOutfit == 1,
+                            onTap: () => setState(() =>
+                                GameState.instance.setSisterOutfit(1)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Vignette de tenue de la sœur (aperçu sprite + libellé, bord doré si
+  /// sélectionnée).
+  Widget _sisterOutfitTile({
+    required String label,
+    required String asset,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 78,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0x33FFD9A0)
+              : Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected ? const Color(0xFFFFD9A0) : Colors.white24,
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 64,
+              child: Image.asset(asset, fit: BoxFit.contain),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? const Color(0xFFFFD9A0) : Colors.white70,
+                fontSize: 11,
+                fontWeight:
+                    selected ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
           ],
         ),
       ),

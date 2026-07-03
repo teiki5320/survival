@@ -3097,7 +3097,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         child: ValueListenableBuilder<int>(
           valueListenable: _heroAnim,
           builder: (_, __, ___) => _nightTint(
-            Image.asset('assets/characters/${_duoAnim}_${_duoFrame + 1}.png',
+            Image.asset(
+                'assets/characters/${GameState.instance.sisterAnimPrefix(_duoAnim)}_${_duoFrame + 1}.png',
                 fit: BoxFit.contain, gaplessPlayback: true),
           ),
         ),
@@ -3678,18 +3679,24 @@ class _SisterCharacterState extends State<_SisterCharacter>
           Widget sprite = AnimatedBuilder(
             animation: Listenable.merge([_ctrl, _idle]),
             builder: (_, __) {
+              // La tenue (pyjama / laine) choisit le préfixe d'asset — repli
+              // classique pour les anims sans déclinaison laine.
+              final gs = GameState.instance;
               final String asset;
               if (_anim == null) {
                 // Idle : boucle debout calme (sister_idle).
                 final f = (_idle.value * _idleFrames).floor().clamp(0, _idleFrames - 1);
-                asset = 'assets/characters/sister_idle_${f + 1}.png';
+                asset =
+                    'assets/characters/${gs.sisterAnimPrefix('sister_idle')}_${f + 1}.png';
               } else if (_anim == 'walk') {
                 // Marche : vrai cycle de profil (49 frames) -> plus de pas inversés.
                 final f = (_ctrl.value * _walkFrames).floor().clamp(0, _walkFrames - 1);
-                asset = 'assets/characters/sister_walk_${f + 1}.png';
+                asset =
+                    'assets/characters/${gs.sisterAnimPrefix('sister_walk')}_${f + 1}.png';
               } else {
                 final f = (_ctrl.value * _frames).floor().clamp(0, _frames - 1);
-                asset = 'assets/characters/sister_${_anim}_${f + 1}.png';
+                asset =
+                    'assets/characters/${gs.sisterAnimPrefix('sister_$_anim')}_${f + 1}.png';
               }
               // Même cap que l'héroïne (512 = source, full quality) + clé de
               // cache alignée avec le précache (loading_screen).
@@ -3737,7 +3744,8 @@ class _SisterCharacterState extends State<_SisterCharacter>
       animation: _ctrl,
       builder: (_, __) {
         final f = (_ctrl.value * _sleepFrames).floor().clamp(0, _sleepFrames - 1);
-        return Image.asset('assets/characters/sister_sleep_${f + 1}.png',
+        return Image.asset(
+            'assets/characters/${GameState.instance.sisterAnimPrefix('sister_sleep')}_${f + 1}.png',
             fit: BoxFit.contain,
             gaplessPlayback: true,
             cacheWidth: kHeroDecodeWidth);

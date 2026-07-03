@@ -63,6 +63,7 @@ class GameState extends ChangeNotifier {
         'wagonStage': wagonStage,
         'cabinTemp': cabinTemp,
         'outfitWarmth': outfitWarmth,
+        'sisterOutfit': sisterOutfit,
         'wagon2Stage': wagon2Stage,
         'atelierStage': atelierStage,
         'wagon2LampAx': wagon2LampAx,
@@ -128,6 +129,8 @@ class GameState extends ChangeNotifier {
       wagonStage = ((data['wagonStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       cabinTemp = (data['cabinTemp'] as num?)?.toDouble() ?? cabinTemp;
       outfitWarmth = (data['outfitWarmth'] as num?)?.toInt() ?? outfitWarmth;
+      sisterOutfit =
+          ((data['sisterOutfit'] as num?)?.toInt() ?? sisterOutfit).clamp(0, 1);
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       atelierStage = ((data['atelierStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
@@ -404,6 +407,30 @@ class GameState extends ChangeNotifier {
   // supporte des températures plus basses (seuil plus bas). Le poêle, lui,
   // RÉCHAUFFE la cabine (entre dans cabinTemp via le feu, pas ici).
   int outfitWarmth = 0; // bonus tenue (0 = tenue de base)
+
+  // --- Tenue de la petite SŒUR (choisie à l'armoire du cellier) ---
+  /// 0 = pyjama clair (deux-pièces), 1 = pyjama de laine à capuche-oreilles.
+  int sisterOutfit = 0;
+
+  /// Anims de la sœur disposant d'une déclinaison laine (`<base>_wool_N.png`).
+  /// `sister_idle` et `playduo` n'ont pas encore leurs planches (idle jamais
+  /// fournie ; playduo régénéré avec un décor incrusté, inutilisable) → repli
+  /// automatique sur la tenue classique pour ces anims-là.
+  static const Set<String> kSisterWoolAnims = {
+    'sister_walk', 'sister_sleep', 'sister_cold', 'sister_hug', 'readduo',
+  };
+
+  /// Préfixe d'asset effectif d'une anim de la sœur selon sa tenue.
+  String sisterAnimPrefix(String base) =>
+      (sisterOutfit == 1 && kSisterWoolAnims.contains(base))
+          ? '${base}_wool'
+          : base;
+
+  void setSisterOutfit(int v) {
+    sisterOutfit = v.clamp(0, 1);
+    notifyListeners();
+    save(checkpoint: true); // choix délibéré à l'armoire → persiste direct
+  }
 
   /// Température cible calculée depuis l'environnement : zone traversée +
   /// météo + nuit + chaleur du feu (poêle alimenté en bois). C'est la mécanique
@@ -1166,6 +1193,7 @@ class GameState extends ChangeNotifier {
     bacSown = false;
     bacGrowth = 0.0;
     outfitWarmth = 0;
+    sisterOutfit = 0;
     seenTips.clear(); // le tuto rejoue
     introCinematicSeen = false; // la cinématique d'ouverture rejoue
     _lampOn = true;
