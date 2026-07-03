@@ -223,6 +223,9 @@ cartes via « **Débuter / Continuer le voyage** » sur la map.
 - **Sœur + chien** : `_SisterCharacter`/`_DogCharacter` se baladent quand
   débloqués (sister_walk/dog_walk), dorment la nuit. Duos : lecture
   (`readduo_1..10`), câlin (`sister_hug_1..4`), caresse chien (`petdog_1..9`).
+  **Frames sœur RÉDUITES** (2026-07-03) : idle/walk 16f, sleep 12f (au lieu de
+  49 — boucles lentes, et les planches laine gagnent 2-3× en taille de case).
+  Le chien reste à 49f (dog_walk).
   **TENUE DE LA SŒUR** (2026-07-03) : `GameState.sisterOutfit` (0 pyjama /
   1 laine à capuche-oreilles, choisie à l'ARMOIRE du cellier, persistée).
   Sprites laine = `<anim>_wool_N.png` via `sisterAnimPrefix()` ; dispo :

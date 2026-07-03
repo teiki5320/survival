@@ -3492,8 +3492,8 @@ class _AnimatedSpriteState extends State<_AnimatedSprite>
 }
 
 /// Petite sœur autonome dans le wagon. Au repos = boucle idle debout
-/// (`sister_idle`, 49f). De temps en temps elle se déplace (`sister_walk`,
-/// vrai cycle de profil 49f), frissonne si froid (`sister_cold`). **La nuit**
+/// (`sister_idle`, 16f). De temps en temps elle se déplace (`sister_walk`,
+/// vrai cycle de profil 16f), frissonne si froid (`sister_cold`). **La nuit**
 /// elle va se coucher sur le lit (`sister_sleep`, mirroré tête-oreiller) et se
 /// réveille au lever du jour. Reporte sa position via [onSettled].
 class _SisterCharacter extends StatefulWidget {
@@ -3542,12 +3542,14 @@ class _SisterCharacterState extends State<_SisterCharacter>
   bool _faceRight = true;
   // null = idle (boucle debout) ; 'walk' ; 'cold' ; 'sleep' (sur le lit)
   String? _anim;
-  int _frames = 49;
+  int _frames = 16;
   bool _goingToBed = false;
 
-  static const int _walkFrames = 49;
-  static const int _idleFrames = 49;
-  static const int _sleepFrames = 49;
+  // Réduits 49 -> 16/16/12 (2026-07-03) : boucles lentes, la moitié des
+  // frames suffit, et les planches laine gagnent 2-3x en taille de case.
+  static const int _walkFrames = 16;
+  static const int _idleFrames = 16;
+  static const int _sleepFrames = 12;
 
   @override
   void initState() {
@@ -3689,7 +3691,7 @@ class _SisterCharacterState extends State<_SisterCharacter>
                 asset =
                     'assets/characters/${gs.sisterAnimPrefix('sister_idle')}_${f + 1}.png';
               } else if (_anim == 'walk') {
-                // Marche : vrai cycle de profil (49 frames) -> plus de pas inversés.
+                // Marche : vrai cycle de profil -> plus de pas inversés.
                 final f = (_ctrl.value * _walkFrames).floor().clamp(0, _walkFrames - 1);
                 asset =
                     'assets/characters/${gs.sisterAnimPrefix('sister_walk')}_${f + 1}.png';
