@@ -345,11 +345,12 @@ class ReignsEngine {
     if (choice.setFlags.contains('soeurProtegee')) _gs.cardSoin++;
     // Manteau trouvé en jeu (carte) : réchauffe la cabine (lien carte<->wagon).
     // Un manteau de fortune = warmth 4 (moins que le plaid boutique = 8).
+    // (Pas de pastille « objet » pour le manteau : il n'a pas de sprite en
+    // jeu — seul son effet chaleur compte, matérialisé par l'écharpe peinte.)
     if (choice.setFlags.contains('gotWarmCoat') &&
-        !flags.contains('gotWarmCoat')) {
-      if (_gs.outfitWarmth < 4) _gs.outfitWarmth = 4;
-      // Le manteau est un vrai gain d'objet : pastille « bling » aussi.
-      _gs.pendingUnlocks.add('gotWarmCoat');
+        !flags.contains('gotWarmCoat') &&
+        _gs.outfitWarmth < 4) {
+      _gs.outfitWarmth = 4;
     }
     // Déblocage d'objet -> file le FLAG (la pastille « bling » de l'écran
     // cartes retrouve la miniature + le nom depuis le flag ; avant addAll,

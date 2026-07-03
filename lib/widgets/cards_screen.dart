@@ -1539,7 +1539,6 @@ class _UnlockBling extends StatefulWidget {
     'asset_salon': Icons.cleaning_services,
     'asset_atelier': Icons.handyman,
     'asset_wagon2': Icons.night_shelter,
-    'gotWarmCoat': Icons.checkroom,
   };
 
   @override
