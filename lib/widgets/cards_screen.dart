@@ -41,6 +41,9 @@ class _CardsScreenState extends State<CardsScreen>
   String? _resultText;
   Map<Stat, int> _resultDeltas = const {};
   String? _resultReaction; // réplique perso à afficher sous la conséquence
+  // Objets gagnés par le choix courant (affichés en pastille « Nouvel objet »
+  // sur la carte de conséquence, puis re-signalés par la bannière du wagon).
+  List<String> _resultUnlocks = const [];
   EngineState? _pending; // état à révéler au tap
 
   late final AnimationController _flyCtrl; // sortie de carte
@@ -97,10 +100,10 @@ class _CardsScreenState extends State<CardsScreen>
           vsync: this, duration: const Duration(milliseconds: 520));
       _pulseSign[st] = 0;
     }
-    // Plus longue (~3,4 s) qu'avant : laisse le temps de lire la ligne
-    // d'ambiance de la gare (mini-cinématique texte) sous le titre.
+    // Longue (~4,6 s) : laisse le temps de lire la ligne d'ambiance de la
+    // gare (mini-cinématique texte) sous le titre.
     _gareCtrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 3400));
+        vsync: this, duration: const Duration(milliseconds: 4600));
     // Régen des crédits + tic 1s pour animer le compte à rebours de la
     // pastille (crédits ACTIFS : le timer ne s'arme que si creditsEnabled).
     GameState.instance.refreshCredits();
@@ -172,6 +175,10 @@ class _CardsScreenState extends State<CardsScreen>
       end: Offset(right ? w * 1.2 : -w * 1.2, 60),
     ).animate(CurvedAnimation(parent: _flyCtrl, curve: Curves.easeIn));
     _flyCtrl.forward(from: 0).then((_) {
+      // Capture les OBJETS gagnés par CE choix (le moteur les file dans
+      // pendingUnlocks) pour les montrer sur la carte de conséquence — sinon
+      // le joueur ne comprend pas qu'il vient de gagner quelque chose.
+      final beforeUnlocks = GameState.instance.pendingUnlocks.length;
       final next = _engine.choose(choice); // applique les effets
       // pulse les jauges qui ont effectivement changé
       choice.effects.forEach((st, delta) {
@@ -179,6 +186,9 @@ class _CardsScreenState extends State<CardsScreen>
         _pulseSign[st] = delta;
         _pulse[st]?.forward(from: 0);
       });
+      final gained = GameState.instance.pendingUnlocks
+          .skip(beforeUnlocks)
+          .toList(growable: false);
       setState(() {
         _drag = 0;
         _pending = next;
@@ -189,6 +199,7 @@ class _CardsScreenState extends State<CardsScreen>
           _resultText = choice.resultText;
           _resultDeltas = choice.effects;
           _resultReaction = choice.reaction;
+          _resultUnlocks = gained;
         }
       });
       _flyCtrl.value = 0;
@@ -201,6 +212,7 @@ class _CardsScreenState extends State<CardsScreen>
     _resultText = null;
     _resultDeltas = const {};
     _resultReaction = null;
+    _resultUnlocks = const [];
     _enterCtrl.forward(from: 0);
     _presentCurrentCard();
   }
@@ -301,7 +313,7 @@ class _CardsScreenState extends State<CardsScreen>
                         ),
                         const SizedBox(height: 18),
                         Text(
-                          'GARE $num',
+                          'GARE $num / 14',
                           style: const TextStyle(
                             color: gold,
                             fontSize: 15,
@@ -318,7 +330,7 @@ class _CardsScreenState extends State<CardsScreen>
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 26,
+                              fontSize: 32,
                               fontWeight: FontWeight.bold,
                               height: 1.2,
                             ),
@@ -867,20 +879,29 @@ class _CardsScreenState extends State<CardsScreen>
                 ),
               ),
             ),
-            // texte
+            // médaillon d'illustration (si la carte en a un) + texte
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 26),
               child: Center(
                 child: SingleChildScrollView(
-                  child: Text(
-                    card.text,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.lora(
-                      color: const Color(0xFF42301B),
-                      fontSize: 18,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_artMedallion(card.art) != null) ...[
+                        _artMedallion(card.art, size: 58)!,
+                        const SizedBox(height: 12),
+                      ],
+                      Text(
+                        card.text,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.lora(
+                          color: const Color(0xFF42301B),
+                          fontSize: 18,
+                          height: 1.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -926,10 +947,11 @@ class _CardsScreenState extends State<CardsScreen>
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // bandeau titre de la gare
+          // bandeau titre de la gare : « ◆ GARE N / 14 ◆ » + NOM en grand,
+          // pour qu'on comprenne au premier regard qu'on est à une GARE.
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
             decoration: BoxDecoration(
               color: gold.withValues(alpha: 0.16),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
@@ -937,21 +959,36 @@ class _CardsScreenState extends State<CardsScreen>
                 bottom: BorderSide(color: gold, width: 1),
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.train, color: gold, size: 16),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    (card.speaker ?? 'GARE').toUpperCase(),
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.cinzel(
-                      color: gold,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.5,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.train, color: gold, size: 15),
+                    const SizedBox(width: 8),
+                    Text(
+                      'GARE ${min(_engine.gareIndex + 1, 14)} / 14',
+                      style: GoogleFonts.cinzel(
+                        color: gold.withValues(alpha: 0.85),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 3,
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.train, color: gold, size: 15),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  (card.speaker ?? 'GARE').toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cinzel(
+                    color: gold,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 2,
                   ),
                 ),
               ],
@@ -959,25 +996,103 @@ class _CardsScreenState extends State<CardsScreen>
           ),
           Flexible(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 22),
-              child: Center(
-                child: SingleChildScrollView(
-                  child: Text(
-                    card.text,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.lora(
-                      color: const Color(0xFFF3E6CF),
-                      fontSize: 18.5,
-                      height: 1.5,
-                      fontWeight: FontWeight.w500,
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 22),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Illustration de la carte (portrait ou emblème).
+                    if (_artMedallion(card.art) != null) ...[
+                      _artMedallion(card.art, size: 70)!,
+                      const SizedBox(height: 14),
+                    ],
+                    Text(
+                      card.text,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.lora(
+                        color: const Color(0xFFF3E6CF),
+                        fontSize: 18.5,
+                        height: 1.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Médaillon d'illustration d'une carte : portrait (sprites Shen / sœur /
+  /// chien / radio existants) ou emblème (icône dorée) selon [CardArt].
+  /// Retourne null pour CardArt.none (carte texte pure).
+  Widget? _artMedallion(CardArt art, {double size = 64}) {
+    if (art == CardArt.none) return null;
+    const gold = Color(0xFFE8B96B);
+    String? img;
+    IconData? icon;
+    switch (art) {
+      case CardArt.shen:
+        img = 'assets/characters/idle_right_1.png';
+        break;
+      case CardArt.sister:
+        img = 'assets/characters/sister_idle_1.png';
+        break;
+      case CardArt.dog:
+        img = 'assets/objects/dog_idle.png';
+        break;
+      case CardArt.radio:
+        img = 'assets/objects/radio_1.png';
+        break;
+      case CardArt.pillards:
+        icon = Icons.gpp_maybe;
+        break;
+      case CardArt.refuge:
+        icon = Icons.night_shelter;
+        break;
+      case CardArt.cold:
+        icon = Icons.ac_unit;
+        break;
+      case CardArt.fire:
+        icon = Icons.local_fire_department;
+        break;
+      case CardArt.water:
+        icon = Icons.water_drop;
+        break;
+      case CardArt.food:
+        icon = Icons.restaurant;
+        break;
+      case CardArt.memory:
+        icon = Icons.auto_stories;
+        break;
+      case CardArt.hope:
+        icon = Icons.wb_twilight;
+        break;
+      case CardArt.none:
+        return null;
+    }
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF241812),
+        border: Border.all(color: gold, width: 1.6),
+        boxShadow: [
+          BoxShadow(
+              color: gold.withValues(alpha: 0.3), blurRadius: 14),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: img != null
+          ? Padding(
+              padding: const EdgeInsets.all(7),
+              child: Image.asset(img, fit: BoxFit.contain),
+            )
+          : Icon(icon, color: gold, size: size * 0.5),
     );
   }
 
@@ -1029,6 +1144,45 @@ class _CardsScreenState extends State<CardsScreen>
                 if (_resultDeltas.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   _deltaChips(_resultDeltas),
+                ],
+                // OBJETS GAGNÉS par ce choix : pastille dorée impossible à
+                // rater (sinon le joueur ne sait pas qu'il a gagné qqch).
+                for (final name in _resultUnlocks) ...[
+                  const SizedBox(height: 14),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8B96B).withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                          color: const Color(0xFFE8B96B), width: 1.4),
+                      boxShadow: [
+                        BoxShadow(
+                            color: const Color(0xFFE8B96B)
+                                .withValues(alpha: 0.25),
+                            blurRadius: 14),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.card_giftcard,
+                            color: Color(0xFFE8B96B), size: 18),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Nouvel objet : $name',
+                            style: const TextStyle(
+                              color: Color(0xFFF2D49B),
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
                 // RÉACTION d'un personnage à ton choix : rend la décision « vue ».
                 if (_resultReaction != null) ...[
@@ -1138,80 +1292,142 @@ class _CardsScreenState extends State<CardsScreen>
         (idx >= 0 && idx < kGareIntros.length) ? kGareIntros[idx] : '';
     final num = min(idx + 1, 14);
     const gold = Color(0xFFE8B96B);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: gold, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                      color: gold.withValues(alpha: 0.4),
-                      blurRadius: 28,
-                      spreadRadius: 2),
+    // Fond IMAGE selon la zone du voyage (réutilise les horizons du wagon) :
+    // l'arrivée en gare devient une vraie scène, plus un écran texte nu.
+    final backdrop = idx >= 7
+        ? 'assets/background/horizon_snow_a.png'
+        : idx == 6
+            ? 'assets/background/horizon_transition_a.png'
+            : 'assets/background/horizon_a.png';
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(backdrop, fit: BoxFit.cover),
+        // Voile sombre : lisibilité + solennité (plus dense en bas).
+        const DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xB3140F0A), Color(0xE6140F0A)],
+            ),
+          ),
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 34, vertical: 24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 72,
+                    height: 72,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xCC241812),
+                      border: Border.all(color: gold, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                            color: gold.withValues(alpha: 0.4),
+                            blurRadius: 28,
+                            spreadRadius: 2),
+                      ],
+                    ),
+                    child: const Icon(Icons.train, color: gold, size: 36),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'LE TRAIN ENTRE EN GARE',
+                    style: GoogleFonts.cinzel(
+                      color: gold.withValues(alpha: 0.9),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    gare.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.cinzel(
+                      color: Colors.white,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  // Fil du voyage : 14 points, ceux déjà franchis en doré.
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var i = 0; i < 14; i++)
+                        Container(
+                          width: i == idx ? 11 : 7,
+                          height: i == idx ? 11 : 7,
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: i <= idx
+                                ? gold
+                                : Colors.white.withValues(alpha: 0.25),
+                            boxShadow: i == idx
+                                ? [
+                                    BoxShadow(
+                                        color: gold.withValues(alpha: 0.8),
+                                        blurRadius: 10),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Gare $num sur 14',
+                    style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.55),
+                        fontSize: 12),
+                  ),
+                  const SizedBox(height: 18),
+                  Container(
+                      width: 80, height: 2,
+                      color: gold.withValues(alpha: 0.7)),
+                  const SizedBox(height: 16),
+                  Text(
+                    intro,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.lora(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        height: 1.6,
+                        fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 28),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: gold,
+                      foregroundColor: const Color(0xFF2A2018),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 22, vertical: 14),
+                    ),
+                    onPressed: () {
+                      // Marque la gare comme vue (ne pas rejouer) PUIS force la
+                      // sortie des cartes : retour au train, crédits en recharge.
+                      GameState.instance.cardGareCineSeen.add(idx);
+                      GameState.instance.save(checkpoint: true);
+                      widget.onClose();
+                    },
+                    icon: const Icon(Icons.directions_walk),
+                    label: const Text('Descendre s\'occuper du train'),
+                  ),
                 ],
               ),
-              child: const Icon(Icons.train, color: gold, size: 36),
             ),
-            const SizedBox(height: 20),
-            Text(
-              'GARE $num',
-              style: GoogleFonts.cinzel(
-                color: gold,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              gare.toUpperCase(),
-              textAlign: TextAlign.center,
-              style: GoogleFonts.cinzel(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(width: 80, height: 2, color: gold.withValues(alpha: 0.7)),
-            const SizedBox(height: 16),
-            Text(
-              intro,
-              textAlign: TextAlign.center,
-              style: GoogleFonts.lora(
-                  color: Colors.white70,
-                  fontSize: 16,
-                  height: 1.6,
-                  fontStyle: FontStyle.italic),
-            ),
-            const SizedBox(height: 28),
-            ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: gold,
-                foregroundColor: const Color(0xFF2A2018),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-              ),
-              onPressed: () {
-                // Marque la gare comme vue (ne pas rejouer) PUIS force la sortie
-                // des cartes : on revient au train, les crédits se rechargent.
-                GameState.instance.cardGareCineSeen.add(idx);
-                GameState.instance.save(checkpoint: true);
-                widget.onClose();
-              },
-              icon: const Icon(Icons.directions_walk),
-              label: const Text('Descendre s\'occuper du train'),
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 

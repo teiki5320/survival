@@ -190,7 +190,10 @@ class _WagonScreenState extends State<WagonScreen>
     setState(() => _unlockBanner = 'Nouvel objet : $name !');
     _unlockTimer?.cancel();
     _unlockTimer = Timer(const Duration(milliseconds: 3500), () {
-      if (mounted) setState(() => _unlockBanner = null);
+      if (mounted) {
+        setState(() => _unlockBanner = null);
+        _checkUnlocks(); // enchaîne le déblocage suivant s'il y en a en file
+      }
     });
   }
 
