@@ -19,6 +19,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../data/cards_data.dart';
 import '../models/game_state.dart';
 import '../models/reigns_engine.dart';
+import '../services/audio_service.dart';
 
 class CardsScreen extends StatefulWidget {
   const CardsScreen({super.key, required this.onClose});
@@ -1145,44 +1146,11 @@ class _CardsScreenState extends State<CardsScreen>
                   const SizedBox(height: 18),
                   _deltaChips(_resultDeltas),
                 ],
-                // OBJETS GAGNÉS par ce choix : pastille dorée impossible à
-                // rater (sinon le joueur ne sait pas qu'il a gagné qqch).
-                for (final name in _resultUnlocks) ...[
+                // OBJETS GAGNÉS par ce choix : pastille « bling » animée
+                // (miniature de l'objet qui pop + éclat, façon pièce Mario).
+                for (final flag in _resultUnlocks) ...[
                   const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8B96B).withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                          color: const Color(0xFFE8B96B), width: 1.4),
-                      boxShadow: [
-                        BoxShadow(
-                            color: const Color(0xFFE8B96B)
-                                .withValues(alpha: 0.25),
-                            blurRadius: 14),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.card_giftcard,
-                            color: Color(0xFFE8B96B), size: 18),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'Nouvel objet : $name',
-                            style: const TextStyle(
-                              color: Color(0xFFF2D49B),
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  _UnlockBling(flag: flag, key: ValueKey('bling_$flag')),
                 ],
                 // RÉACTION d'un personnage à ton choix : rend la décision « vue ».
                 if (_resultReaction != null) ...[
@@ -1489,6 +1457,179 @@ class _CardsScreenState extends State<CardsScreen>
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Pastille « BLING » de gain d'objet (façon pièce de Mario) : la MINIATURE
+/// de l'objet pop avec un rebond élastique, un halo doré pulse, une étoile
+/// scintille, et un petit son de gain retentit. Affichée sur la carte de
+/// conséquence pour CHAQUE objet gagné par le choix.
+class _UnlockBling extends StatefulWidget {
+  const _UnlockBling({super.key, required this.flag});
+  final String flag;
+
+  /// Miniature par flag (image de l'objet). Les « gains d'état » (wagons
+  /// remis à neuf) n'ont pas d'objet : icône dédiée en repli.
+  static const Map<String, String> unlockArt = {
+    'asset_bed': 'assets/objects/paillasse.png',
+    'asset_realbed': 'assets/objects/bed.png',
+    'asset_bowl': 'assets/objects/bowl_full.png',
+    'asset_notebook': 'assets/objects/notebook.png',
+    'asset_firstaid': 'assets/objects/firstaid.png',
+    'asset_lamp': 'assets/objects/lamp_1.png',
+    'asset_filter': 'assets/objects/filtre_1.png',
+    'asset_hydro': 'assets/objects/bac_1.png',
+    'asset_bath': 'assets/objects/bathtub.png',
+    'asset_shower': 'assets/objects/shower_panel.png',
+    'asset_stove': 'assets/objects/poele_1.png',
+    'asset_lantern': 'assets/objects/lamp_1.png',
+    'asset_commode': 'assets/objects/commode.png',
+    'asset_tournedisque': 'assets/objects/tournedisque.png',
+    'asset_console': 'assets/objects/console.png',
+    'asset_carillon': 'assets/objects/carillon_1.png',
+    'asset_jeu': 'assets/objects/jeu.png',
+    'asset_fauteuil': 'assets/objects/fauteuil.png',
+    'asset_panier': 'assets/objects/panier.png',
+  };
+  static const Map<String, IconData> unlockIcon = {
+    'asset_salon': Icons.cleaning_services,
+    'asset_atelier': Icons.handyman,
+    'asset_wagon2': Icons.night_shelter,
+  };
+
+  @override
+  State<_UnlockBling> createState() => _UnlockBlingState();
+}
+
+class _UnlockBlingState extends State<_UnlockBling>
+    with TickerProviderStateMixin {
+  late final AnimationController _pop;   // rebond d'apparition (one-shot)
+  late final AnimationController _shine; // halo + étoile qui pulsent (boucle)
+
+  @override
+  void initState() {
+    super.initState();
+    _pop = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 750))
+      ..forward();
+    _shine = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1100))
+      ..repeat(reverse: true);
+    // Le « bling » sonore du gain.
+    AudioService().playSfx('pickup', volume: 0.9);
+  }
+
+  @override
+  void dispose() {
+    _pop.dispose();
+    _shine.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const gold = Color(0xFFE8B96B);
+    final name = GameState.unlockNames[widget.flag] ?? 'un objet';
+    final img = _UnlockBling.unlockArt[widget.flag];
+    final icon = _UnlockBling.unlockIcon[widget.flag];
+    return AnimatedBuilder(
+      animation: Listenable.merge([_pop, _shine]),
+      builder: (context, _) {
+        final pop = Curves.elasticOut.transform(_pop.value);
+        final glow = 0.35 + 0.4 * _shine.value;
+        final starT = _shine.value;
+        return Transform.scale(
+          scale: 0.6 + 0.4 * pop,
+          child: Opacity(
+            opacity: _pop.value.clamp(0.0, 1.0) * 2 > 1
+                ? 1
+                : (_pop.value * 2).clamp(0.0, 1.0),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: gold.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: gold, width: 1.4),
+                boxShadow: [
+                  BoxShadow(
+                      color: gold.withValues(alpha: glow), blurRadius: 18),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Médaillon-miniature de l'objet + étoile scintillante.
+                  SizedBox(
+                    width: 52,
+                    height: 52,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF241812),
+                            border: Border.all(color: gold, width: 1.4),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          padding: const EdgeInsets.all(6),
+                          child: img != null
+                              ? Image.asset(img, fit: BoxFit.contain)
+                              : Icon(icon ?? Icons.card_giftcard,
+                                  color: gold, size: 26),
+                        ),
+                        // Étoile qui scintille (tourne + pulse) — le « bling ».
+                        Positioned(
+                          top: -6,
+                          right: -6,
+                          child: Transform.rotate(
+                            angle: starT * 0.8,
+                            child: Icon(
+                              Icons.auto_awesome,
+                              color: Colors.white
+                                  .withValues(alpha: 0.55 + 0.45 * starT),
+                              size: 16 + 5 * starT,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'NOUVEL OBJET',
+                        style: TextStyle(
+                          color: gold.withValues(alpha: 0.85),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 2.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          color: Color(0xFFF2D49B),
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

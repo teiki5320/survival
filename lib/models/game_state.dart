@@ -1000,7 +1000,11 @@ class GameState extends ChangeNotifier {
     'asset_atelier': 'l\'atelier (2e wagon) rangé',
     'asset_wagon2': 'le cellier (3e wagon) aménagé',
   };
-  String? popUnlock() => pendingUnlocks.isEmpty ? null : pendingUnlocks.removeAt(0);
+  /// Dépile le prochain déblocage et rend son NOM affichable (la file stocke
+  /// les flags asset_* ; la bannière du wagon n'a besoin que du nom).
+  String? popUnlock() => pendingUnlocks.isEmpty
+      ? null
+      : (unlockNames[pendingUnlocks.removeAt(0)] ?? 'un objet');
 
   // Progression de la run en cours (null = pas de run / terminée).
   int? cardGareIndex; // segment courant (0-based)

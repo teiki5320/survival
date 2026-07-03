@@ -350,13 +350,14 @@ class ReignsEngine {
         _gs.outfitWarmth < 4) {
       _gs.outfitWarmth = 4;
     }
-    // Déblocage d'objet -> file un toast (avant addAll, pour ne compter que
-    // les NOUVEAUX flags asset_*).
+    // Déblocage d'objet -> file le FLAG (la pastille « bling » de l'écran
+    // cartes retrouve la miniature + le nom depuis le flag ; avant addAll,
+    // pour ne compter que les NOUVEAUX flags asset_*).
     for (final f in choice.setFlags) {
       if (f.startsWith('asset_') &&
           !flags.contains(f) &&
           GameState.unlockNames.containsKey(f)) {
-        _gs.pendingUnlocks.add(GameState.unlockNames[f]!);
+        _gs.pendingUnlocks.add(f);
       }
     }
     flags.addAll(choice.setFlags);
