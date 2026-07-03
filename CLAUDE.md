@@ -232,8 +232,15 @@ cartes via « **Débuter / Continuer le voyage** » sur la map.
   décor incrusté, inutilisable) → repli auto tenue classique sur cette anim ;
   à régénérer (consigne : mêmes poses, AUCUN décor dans les cases).
   ⚠️ Planches OpenArt : possibles CASES DUPLIQUÉES (même numéro sous 2 cases
-  adjacentes, ex. idle 59 cases pour 49 frames) → lire les numéros et
-  dédupliquer avant découpe.
+  adjacentes) ET CASES VIDES (sleep) → lire les numéros et dédupliquer avant
+  découpe (`tools/…` : détection par couleur de fond de case ≠ canvas, tol 8).
+  ⚠️ RÈGLE SPRITES SŒUR : toute frame laine DOIT être RECOMPOSÉE sur le canvas
+  de la frame classique (512×512 pour idle/walk/sleep, 198×672 cold, 260×301
+  hug, 290×312 readduo) avec la MÊME registration (échelle calée sur la
+  hauteur de contenu classique, bas/centre alignés, offsets intra-case
+  préservés). Un crop serré par frame + `BoxFit.contain` ANNULE le mouvement
+  (chaque frame re-étirée pareil) → sœur figée. Outil :
+  `tools/recompose_wool.py` (détection grille + dédup + recomposition).
   ⚠️ Toute anim « state » (bain/douche/duo/petdog) DOIT finir via `setState`
   (sinon sprite figé + solo qui réapparaît).
 - **Moral de confort** : `_comfortMoral` (main.dart) avec cooldown (lire/chien/
