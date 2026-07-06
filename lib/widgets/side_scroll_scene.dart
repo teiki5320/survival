@@ -269,11 +269,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
           : 0.30)
       : (widget.isAtelier ? 0.85 : _heroXMax);
   static const double _heroSpeed = 0.18; // normalised units / second
-  static const int _walkFrameMs = 50;
-  static const int _idleFrameMs = 80;
-  static const int _sleepFrameMs = 110;
-  static const int _danceFrameMs = 55;
-  static const int _lieDownFrameMs = 60;
+  static const int _walkFrameMs = 78; // 16f x 78 = 1248 ms (cycle d'origine 25f x 50)
+  static const int _idleFrameMs = 125; // 16f x 125 = 2000 ms (= 25f x 80)
+  static const int _sleepFrameMs = 172; // 16f x 172 = 2752 ms (= 25f x 110)
+  static const int _danceFrameMs = 86; // 16f x 86 = 1376 ms (= 25f x 55)
+  static const int _lieDownFrameMs = 94; // 16f x 94 = 1504 ms (= 25f x 60)
 
   // Bed object placement (normalised to scene size, mutable so the
   // adjustment mode can drag + resize it live). Defaults dialled in
@@ -548,7 +548,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _wakingPhase = 0; // 0 = wake_up, 1 = stretch
   int _wakingFrame = 0;
   int _wakingAccumMs = 0;
-  static const int _wakingFrameMs = 55;
+  static const int _wakingFrameMs = 86; // 16f x 86 = 1376 ms (= 25f x 55)
 
   // Anim spéciale en cours (drink, read, cook, pet_dog, garden_tend).
   // Pilotée par le parent via specialAnim + specialAnimToken.
@@ -557,7 +557,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _activeSpecialLoops = false;
   int _specialFrame = 0;
   int _specialAccumMs = 0;
-  static const int _specialFrameMs = 70;
+  static const int _specialFrameMs = 110; // 16f x 110 = 1760 ms (= 25f x 70)
   // Optional follow-up anim that plays right after the current special
   // ends — used to chain "turn back" + "drink" at the filter.
   String? _nextSpecial;
@@ -588,7 +588,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _doorPushRight = false;
   int _doorFrame = 0;
   int _doorAccumMs = 0;
-  static const int _doorFrameMs = 50;
+  static const int _doorFrameMs = 62; // 16f x 62 = 992 ms (= 20f x 50)
   static const int _doorMaxFrames = 20;
   int _sleepFrame = 0;
   int _danceFrame = 0;
@@ -3326,25 +3326,6 @@ class _SideScrollSceneState extends State<SideScrollScene>
         child: sprite,
       );
     }
-    // TENUE CHAUDE — overlay simple : une écharpe peinte par-dessus le sprite
-    // quand une tenue chaude est portée (outfitWarmth > 0). Affichée seulement
-    // sur idle/walk (les autres anims ont des poses trop différentes).
-    if (GameState.instance.outfitWarmth > 0 &&
-        (prefix == 'idle_right' || prefix == 'walk_right')) {
-      sprite = Stack(
-        fit: StackFit.expand,
-        children: [
-          sprite,
-          CustomPaint(
-            painter: _ScarfPainter(
-              facingRight: !shouldMirror,
-              neckCx: effCx,
-              sway: (frame % 49) / 49.0,
-            ),
-          ),
-        ],
-      );
-    }
     sprite = _nightTint(sprite);
 
     return Positioned(
@@ -4250,89 +4231,6 @@ class _WaterTankSprite extends StatelessWidget {
       fit: fit,
     );
   }
-}
-
-/// Écharpe peinte par-dessus Shen (tenue chaude, overlay simple sans sprites
-/// dédiés) : bande autour du cou + pan qui pend et ondule doucement.
-/// Dessinée dans la boîte du sprite ; tailles en fraction de hauteur (h).
-class _ScarfPainter extends CustomPainter {
-  _ScarfPainter({
-    required this.facingRight,
-    required this.neckCx,
-    required this.sway,
-  });
-  final bool facingRight;
-  final double neckCx; // centre du perso dans la boîte (fraction de largeur)
-  final double sway; // 0..1 cycle d'ondulation
-
-  static const _scarf = Color(0xFFA8453A); // rouge brique chaud
-  static const _scarfLight = Color(0xFFC2685B);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final h = size.height;
-    final cx = size.width * neckCx;
-    final neckY = h * 0.225; // hauteur du cou (sous le menton)
-    final bandW = h * 0.085;
-    final bandH = h * 0.045;
-    // Bande de cou (deux épaisseurs pour un peu de volume).
-    final band = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-          center: Offset(cx, neckY), width: bandW, height: bandH),
-      Radius.circular(bandH * 0.5),
-    );
-    canvas.drawRRect(band, Paint()..color = _scarf);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromCenter(
-            center: Offset(cx, neckY - bandH * 0.22),
-            width: bandW * 0.92,
-            height: bandH * 0.5),
-        Radius.circular(bandH * 0.3),
-      ),
-      Paint()..color = _scarfLight,
-    );
-    // Pan qui pend DERRIÈRE l'épaule (côté dos = opposé au regard), avec une
-    // ondulation douce.
-    final dir = facingRight ? -1.0 : 1.0;
-    final wave = math.sin(sway * 2 * math.pi) * h * 0.012;
-    final tailTopX = cx + dir * bandW * 0.32;
-    final tail = Path()
-      ..moveTo(tailTopX - bandW * 0.16, neckY)
-      ..lineTo(tailTopX + bandW * 0.16, neckY)
-      ..quadraticBezierTo(
-        tailTopX + bandW * 0.22 + dir * h * 0.012,
-        neckY + h * 0.07,
-        tailTopX + bandW * 0.10 + dir * h * 0.022 + wave,
-        neckY + h * 0.13,
-      )
-      ..lineTo(tailTopX - bandW * 0.20 + dir * h * 0.022 + wave,
-          neckY + h * 0.125)
-      ..quadraticBezierTo(
-        tailTopX - bandW * 0.22 + dir * h * 0.010,
-        neckY + h * 0.06,
-        tailTopX - bandW * 0.16,
-        neckY,
-      )
-      ..close();
-    canvas.drawPath(tail, Paint()..color = _scarf);
-    // Petite rayure crème au bout du pan.
-    final stripeY = neckY + h * 0.112;
-    canvas.drawLine(
-      Offset(tailTopX - bandW * 0.18 + dir * h * 0.020 + wave, stripeY),
-      Offset(tailTopX + bandW * 0.08 + dir * h * 0.020 + wave, stripeY),
-      Paint()
-        ..color = const Color(0xFFE8D9B8)
-        ..strokeWidth = h * 0.008
-        ..strokeCap = StrokeCap.round,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_ScarfPainter old) =>
-      old.sway != sway ||
-      old.facingRight != facingRight ||
-      old.neckCx != neckCx;
 }
 
 /// RADIO À MANIVELLE animée (16 frames : manivelle qui tourne + éclairs au

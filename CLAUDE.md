@@ -255,8 +255,11 @@ Cabine = zone map (17/12/5/-4) + météo (0/-1/-2/-4) + nuit (-3) + poêle ALLUM
 (+12, +18 si bois≥30). Froid si < seuil (12 - wagonStage×2 - `outfitWarmth`) →
 givre fenêtres, **gains de moral bloqués**, drain moral. **AUTO** en jeu
 (`computeAutoCabinTemp`), recalculé sur changement gare/météo/nuit/bois ; bouton
-test manuel seulement en debug. `outfitWarmth` : tenues chaudes (manteau warmth
-8 → le nord devient gérable ; sprite dédié à faire, écharpe peinte en attendant).
+test manuel seulement en debug. `outfitWarmth` : tenues chaudes — actuellement
+pyjama lapin warmth 6 (le nord devient gérable). Le vrai manteau d'hiver et la
+robe de lin ont été RETIRÉS de l'armoire (2026-07-06, pas de sprites — à
+re-proposer seulement avec de vraies planches). L'ÉCHARPE PEINTE
+(`_ScarfPainter`) a été SUPPRIMÉE (moche, décision user).
 
 ---
 
@@ -318,8 +321,10 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
   fond sombre si image manque).
 - `lib/widgets/tutorial_overlay.dart` — bulles de tuto (intro + 1re utilisation).
 - `lib/widgets/wardrobe_screen.dart` — armoire en 2 temps : sélecteur de
-  PERSONNAGE (Shen / sœur si à bord) puis ses tenues (flèches). Shen →
-  `outfitWarmth`, sœur → `sisterOutfit`.
+  PERSONNAGE (Shen / sœur si à bord) puis ses tenues (flèches = feuilleter,
+  bouton VALIDER = porter ; « Portée ✓ » sur la tenue actuelle). Seules les
+  tenues à VRAIS sprites sont listées. Shen → `shenOutfit`+`outfitWarmth`,
+  sœur → `sisterOutfit`.
 - `lib/models/game_state.dart` — Singleton ChangeNotifier, sauvegarde JSON
   (autosave **débouncé 1,2 s**, gardé par `_loaded`/`_loading`). 4 jauges cartes
   + `nudgeCardStat` (bloqué si `feltCold` pour le moral), items, `cardFlags`
@@ -340,7 +345,10 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 - Sprites Shen **réduits à 16 frames** (2026-07-03 : idle/walk/sleep/dance/
   wake_up/read/eat/stretch/drink/carry_walk/warm_hands/use_back/open_door/
   pickup — tous à 16). `_heroFrameCount = 16` (side_scroll + locomotive) +
-  littéraux main.dart. **yawn SUPPRIMÉ** (49 frames, plus aucune invocation).
+  littéraux main.dart + cadences par frame RECALÉES sur les durées de cycle
+  d'origine (walk 78 ms, idle 125, sleep 172, dance/wake 86, special 110,
+  door 62, lie-down 94 ; loco walk 78/idle 125/action 86, caps pickup 9 /
+  throw 11). **yawn SUPPRIMÉ** (49 frames, plus aucune invocation).
   L'ancien backup `frames_backup_49/` + `reduce_frames.py --restore` datent
   de l'ère 49f (restore obsolète, historique git fait foi).
   **TENUE LAPIN DE SHEN** (2026-07-03) : `GameState.shenOutfit` (0 base /

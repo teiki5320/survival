@@ -4,9 +4,12 @@ import '../models/game_state.dart';
 
 /// Plein écran "armoire", en DEUX temps : on choisit d'abord le PERSONNAGE
 /// (Shen / petite sœur si elle est à bord), puis on feuillette SES tenues
-/// avec les flèches. Sélectionner une tenue l'applique tout de suite :
-///  - Shen : bonus de chaleur `outfitWarmth` (agit sur le froid ressenti) ;
+/// avec les flèches et on VALIDE pour la porter (bouton — le feuilletage ne
+/// change plus la tenue tout seul).
+///  - Shen : `shenOutfit` (sprites) + bonus de chaleur `outfitWarmth` ;
 ///  - sœur : `sisterOutfit` (0 pyjama / 1 laine), sprites `<anim>_wool_N`.
+/// Seules les tenues avec de VRAIS sprites sont proposées (la robe de lin et
+/// le manteau placeholder ont été retirés — ils n'existaient pas en jeu).
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key, required this.onClose});
   final VoidCallback onClose;
@@ -16,33 +19,20 @@ class WardrobeScreen extends StatefulWidget {
 }
 
 class _WardrobeScreenState extends State<WardrobeScreen> {
-  // --- Tenues de SHEN. `frontAsset` = sprite statique de face (pour voir la
-  // tenue, pas un profil). Pour la voir portée par le personnage animé il
-  // faudra régénérer ses sheets (voir CLAUDE.md / brief vêtements).
+  // --- Tenues de SHEN (uniquement celles qui existent en sprites).
   static const List<_Outfit> _shenOutfits = [
     _Outfit(
       name: 'Chemise blanche',
       frontAsset: 'assets/characters/heroine_front.png',
       warmth: 0,
     ),
-    _Outfit(
-      name: 'Robe de lin',
-      frontAsset: 'assets/objects/outfit_robe.png',
-      warmth: 3,
-    ),
-    // Manteau d'hiver : le VRAI outil contre le froid du nord. Sprite dédié à
-    // venir ; en attendant on réutilise le rendu robe + l'écharpe peinte.
-    _Outfit(
-      name: 'Manteau d\'hiver',
-      frontAsset: 'assets/objects/outfit_robe.png',
-      warmth: 6,
-    ),
-    // Pyjama lapin rose : la SEULE tenue de Shen avec ses propres sprites
-    // (`<anim>_lapin_N.png`, cf. GameState.kShenLapinAnims) — cosy et chaude.
+    // Pyjama lapin rose : jeu complet de sprites (`<anim>_lapin_N.png`).
+    // Bien chaud (kigurumi polaire) -> l'outil anti-froid en attendant le
+    // vrai manteau d'hiver.
     _Outfit(
       name: 'Pyjama lapin 🐰',
       frontAsset: 'assets/characters/heroine_front_lapin.png',
-      warmth: 4,
+      warmth: 6,
       spriteOutfit: 1,
     ),
   ];
@@ -70,45 +60,59 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
 
   int get _index => _character == 0 ? _shenIndex : _sisterIndex;
 
+  set _index(int v) {
+    if (_character == 0) {
+      _shenIndex = v;
+    } else {
+      _sisterIndex = v;
+    }
+  }
+
+  /// Index de la tenue actuellement PORTÉE par le perso affiché.
+  int get _wornIndex {
+    if (_character == 0) {
+      return GameState.instance.shenOutfit == 1
+          ? _shenOutfits.indexWhere((o) => o.spriteOutfit == 1)
+          : 0;
+    }
+    return GameState.instance.sisterOutfit.clamp(0, 1);
+  }
+
   @override
   void initState() {
     super.initState();
-    // Reprend les tenues actuellement portées.
-    if (GameState.instance.shenOutfit == 1) {
-      _shenIndex = _shenOutfits.indexWhere((o) => o.spriteOutfit == 1);
-    } else {
-      final w = GameState.instance.outfitWarmth;
-      final i = _shenOutfits
-          .indexWhere((o) => o.spriteOutfit == 0 && o.warmth == w);
-      if (i >= 0) _shenIndex = i;
-    }
+    // Ouvre sur les tenues actuellement portées.
+    _shenIndex = GameState.instance.shenOutfit == 1
+        ? _shenOutfits.indexWhere((o) => o.spriteOutfit == 1)
+        : 0;
     if (_shenIndex < 0) _shenIndex = 0;
     _sisterIndex = GameState.instance.sisterOutfit.clamp(0, 1);
   }
 
-  // Sélectionner une tenue applique tout de suite son effet.
-  void _select(int i) {
+  // Les flèches ne font que FEUILLETER — la tenue n'est appliquée qu'au
+  // bouton Valider.
+  void _prev() =>
+      setState(() => _index = (_index - 1 + _outfits.length) % _outfits.length);
+
+  void _next() => setState(() => _index = (_index + 1) % _outfits.length);
+
+  void _apply() {
     setState(() {
       if (_character == 0) {
-        _shenIndex = i;
-        GameState.instance.outfitWarmth = _shenOutfits[i].warmth;
-        GameState.instance.setShenOutfit(_shenOutfits[i].spriteOutfit);
+        GameState.instance.outfitWarmth = _shenOutfits[_shenIndex].warmth;
+        GameState.instance.setShenOutfit(_shenOutfits[_shenIndex].spriteOutfit);
       } else {
-        _sisterIndex = i;
-        GameState.instance.setSisterOutfit(i);
+        GameState.instance.setSisterOutfit(_sisterIndex);
       }
     });
   }
 
-  void _prev() => _select((_index - 1 + _outfits.length) % _outfits.length);
-
-  void _next() => _select((_index + 1) % _outfits.length);
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final figureH = size.height * 0.72;
+    final figureH = size.height * 0.68;
     final outfit = _outfits[_index];
+    final worn = _index == _wornIndex;
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1410),
@@ -130,7 +134,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
             ),
-            // Personnage centré, en grand, dans la tenue sélectionnée.
+            // Personnage centré, en grand, dans la tenue feuilletée.
             Center(
               child: SizedBox(
                 height: figureH,
@@ -194,11 +198,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
             ),
-            // Nom de la tenue + effet + indicateur "X / N" en bas.
+            // Nom + effet + bouton VALIDER en bas.
             Positioned(
               left: 0,
               right: 0,
-              bottom: 40,
+              bottom: 32,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -212,7 +216,6 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Effet de la tenue (chaleur pour Shen, cosy pour la sœur).
                   Text(
                     _character == 0
                         ? (outfit.warmth > 0
@@ -225,13 +228,38 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   Text(
                     '${_index + 1} / ${_outfits.length}',
                     style: TextStyle(
                       color: const Color(0xFFFFD9A0).withValues(alpha: 0.6),
                       fontSize: 13,
                       fontFamily: 'Courier',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Bouton Valider : applique la tenue feuilletée. Devient
+                  // « Portée ✓ » (inactif) quand c'est déjà celle du perso.
+                  ElevatedButton(
+                    onPressed: worn ? null : _apply,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB85522),
+                      disabledBackgroundColor:
+                          const Color(0xFF4A3A28).withValues(alpha: 0.8),
+                      foregroundColor: Colors.white,
+                      disabledForegroundColor: const Color(0xFFFFD9A0),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 34, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    child: Text(
+                      worn ? 'Portée ✓' : 'Valider',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],

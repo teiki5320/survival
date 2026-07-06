@@ -61,8 +61,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   static const double _heroXMin = 0.30;
   static const double _heroXMax = 0.72;
   static const double _heroSpeed = 0.18;
-  static const int _walkFrameMs = 50;
-  static const int _idleFrameMs = 80;
+  static const int _walkFrameMs = 78; // 16f = cycle d'origine 25f x 50
+  static const int _idleFrameMs = 125; // 16f = cycle d'origine 25f x 80
 
   late final Ticker _heroTicker;
   // Pilote les frames de l'héroïne SANS reconstruire toute la cabine. Seul le
@@ -84,7 +84,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   _LocoAction _action = _LocoAction.idle;
   int _actionFrame = 0;
   int _actionAccumMs = 0;
-  static const int _actionFrameMs = 55;
+  static const int _actionFrameMs = 86; // 16f = cycle d'origine 25f x 55
 
   // Layout anchors (normalised to scene size). _fireboxX is also the
   // centre of the warm-hands proximity zone — used by both _fireProximity
@@ -170,7 +170,9 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // Drive the scripted log-loading sequence first; falls through to
     // free-walk + idle below when _action is idle.
     if (_action == _LocoAction.pickingUp || _action == _LocoAction.throwing) {
-      const actionMaxFrames = 14;
+      // Mêmes fractions d'anim qu'avant la réduction 25f/20f -> 16f :
+      // pickup s'arrêtait à 14/25 (56%), le lancer (open_door) à 14/20 (70%).
+      final actionMaxFrames = _action == _LocoAction.pickingUp ? 9 : 11;
       _animSet(() {
         _actionAccumMs += dtMs;
         while (_actionAccumMs >= _actionFrameMs) {
