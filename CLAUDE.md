@@ -345,9 +345,7 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
   de l'ère 49f (restore obsolète, historique git fait foi).
   **TENUE LAPIN DE SHEN** (2026-07-03) : `GameState.shenOutfit` (0 base /
   1 pyjama lapin rose, à l'armoire, persistée) + `heroAnimPrefix()` →
-  `<anim>_lapin_N.png` (14 anims, `kShenLapinAnims`). **MANQUE :
-  idle_right (planche OpenArt ratée — gros plans buste)** →
-  repli tenue de base. Armoire : `heroine_front_lapin.png` (portée) +
+  `<anim>_lapin_N.png` (15 anims = jeu COMPLET, `kShenLapinAnims`). Armoire : `heroine_front_lapin.png` (portée) +
   `objects/outfit_lapin.png` (seule), warmth 4. L'anim `cold` de Shen
   (8f, jamais invoquée — le frisson est à la sœur) a été SUPPRIMÉE.
   Outil de découpe : `tools/cut_lapin.py` (grilles
