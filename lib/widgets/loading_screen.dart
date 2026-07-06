@@ -7,7 +7,7 @@ import 'side_scroll_scene.dart' show kHeroDecodeWidth, kDogDecodeWidth;
 /// sprites du jeu et ATTEND la fin avant de céder la main au wagon. Sans ça,
 /// le décodage des PNG se faisait en tâche de fond pendant qu'on jouait, et
 /// la première fois qu'une animation était jouée elle saccadait le temps de
-/// décoder ses frames (25 pour Shen). Ici tout est prêt avant le premier tap.
+/// décoder ses frames (16 pour Shen). Ici tout est prêt avant le premier tap.
 class LoadingScreen extends StatefulWidget {
   final VoidCallback onReady;
   const LoadingScreen({super.key, required this.onReady});
@@ -218,7 +218,7 @@ class _LoadingScreenState extends State<LoadingScreen> {
             const SizedBox(height: 8),
             // Numéro de build (pour vérifier qu'on teste la bonne version).
             const Text(
-              'build 0.99.176',
+              'build 0.99.177',
               style: TextStyle(color: Color(0xFF6B5E4E), fontSize: 11),
             ),
           ],

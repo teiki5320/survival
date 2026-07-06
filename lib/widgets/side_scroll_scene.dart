@@ -236,7 +236,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Heroine state. Position is normalised to the scene width. X bounds
   // keep her on the wagon's parquet floor — left of 0.25 is the
   // locomotive / coupling, right of 0.82 is the closed back-door area.
-  static const int _heroFrameCount = 25;
+  static const int _heroFrameCount = 16;
   // Bornes héroïne : source unique = constants.dart (plus de valeur dupliquée).
   static const double _heroXMin = consts.kHeroXMin;
   static const double _heroXMax = consts.kHeroXMax;
@@ -682,7 +682,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
     _cooking = true; // bloque le déplacement pendant toute la séquence
     _heroTarget = null; // si elle marchait, on l'arrête
-    _startAutoSpecial('use_back', frames: 24);
+    _startAutoSpecial('use_back', frames: 16);
     _cookT1?.cancel();
     _cookT2?.cancel();
     _cookT3?.cancel();
@@ -693,12 +693,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT2 = Timer(const Duration(milliseconds: 6100), () {
       if (!mounted) return;
       setState(() => _cookLit = false); // extinction
-      _startAutoSpecial('use_back', frames: 24); // se retourne à nouveau
+      _startAutoSpecial('use_back', frames: 16); // se retourne à nouveau
     });
     // ... puis elle s'installe et mange au sol.
     _cookT3 = Timer(const Duration(milliseconds: 7500), () {
       if (!mounted) return;
-      _startAutoSpecial('eat', frames: 25);
+      _startAutoSpecial('eat', frames: 16);
       // CONVERSION (rien de gratuit) : la gazinière BRÛLE DU BOIS pour cuire.
       gs.nudgeCardStat('bois', -8);
       gs.nudgeCardStat('faim', 12);
@@ -814,7 +814,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
     _heroFacingRight = gs.w1x('poele') > _heroX;
-    _startAutoSpecial('use_back', frames: 24);
+    _startAutoSpecial('use_back', frames: 16);
     gs.setPoeleOn(!gs.poeleOn);
   }
 
@@ -4347,17 +4347,21 @@ class _RadioPropState extends State<_RadioProp>
   static const int _frames = 16;
   late final AnimationController _c;
   bool _flash = false;
+  // ÉTEINTE par défaut : elle ne « capte » (anim qui boucle) que le temps
+  // d'une écoute déclenchée par le joueur (tap), puis se rééteint.
+  bool _on = false;
+  Timer? _offTimer;
 
   @override
   void initState() {
     super.initState();
     _c = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1500))
-      ..repeat();
+        vsync: this, duration: const Duration(milliseconds: 1500));
   }
 
   @override
   void dispose() {
+    _offTimer?.cancel();
     _c.dispose();
     super.dispose();
   }
@@ -4370,9 +4374,16 @@ class _RadioPropState extends State<_RadioProp>
     } else {
       GameState.instance.unlockSouvenir('radio');
     }
-    setState(() => _flash = true);
+    setState(() { _flash = true; _on = true; });
+    _c.repeat();
     Future.delayed(const Duration(milliseconds: 1100), () {
       if (mounted) setState(() => _flash = false);
+    });
+    _offTimer?.cancel();
+    _offTimer = Timer(const Duration(seconds: 6), () {
+      if (!mounted) return;
+      _c.stop();
+      setState(() => _on = false);
     });
   }
 
@@ -4384,7 +4395,10 @@ class _RadioPropState extends State<_RadioProp>
       child: AnimatedBuilder(
         animation: _c,
         builder: (_, __) {
-          final f = (_c.value * _frames).floor().clamp(0, _frames - 1) + 1;
+          // Éteinte -> frame 1 figée ; allumée -> boucle complète.
+          final f = _on
+              ? (_c.value * _frames).floor().clamp(0, _frames - 1) + 1
+              : 1;
           Widget img = Image.asset(
             'assets/objects/radio_$f.png',
             fit: BoxFit.contain,

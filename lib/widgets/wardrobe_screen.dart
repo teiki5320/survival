@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/game_state.dart';
 
-/// Plein écran "armoire" : la fille en grand au centre, idle qui boucle,
-/// et une flèche de chaque côté pour cycler entre les tenues. Sélectionner
-/// une tenue applique son bonus de chaleur (`outfitWarmth`) qui agit sur le
-/// froid ressenti en jeu. Pour la voir VRAIMENT portée par le personnage
-/// animé il faudra régénérer ses sheets d'anim avec la tenue (voir CLAUDE.md
-/// / brief vêtements) ; ici on affiche le vêtement dans le placard.
+/// Plein écran "armoire", en DEUX temps : on choisit d'abord le PERSONNAGE
+/// (Shen / petite sœur si elle est à bord), puis on feuillette SES tenues
+/// avec les flèches. Sélectionner une tenue l'applique tout de suite :
+///  - Shen : bonus de chaleur `outfitWarmth` (agit sur le froid ressenti) ;
+///  - sœur : `sisterOutfit` (0 pyjama / 1 laine), sprites `<anim>_wool_N`.
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key, required this.onClose});
   final VoidCallback onClose;
@@ -17,11 +16,10 @@ class WardrobeScreen extends StatefulWidget {
 }
 
 class _WardrobeScreenState extends State<WardrobeScreen> {
-  // Une entry par tenue. `frontAsset` = chemin du sprite STATIQUE de
-  // face affiché au centre (pour qu'on voie la tenue, pas un profil).
-  // L'animation idle reviendra quand on aura plus d'1 tenue + une vue
-  // de face animée par tenue.
-  static const List<_Outfit> _outfits = [
+  // --- Tenues de SHEN. `frontAsset` = sprite statique de face (pour voir la
+  // tenue, pas un profil). Pour la voir portée par le personnage animé il
+  // faudra régénérer ses sheets (voir CLAUDE.md / brief vêtements).
+  static const List<_Outfit> _shenOutfits = [
     _Outfit(
       name: 'Chemise blanche',
       frontAsset: 'assets/characters/heroine_front.png',
@@ -32,10 +30,8 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       frontAsset: 'assets/objects/outfit_robe.png',
       warmth: 3,
     ),
-    // Manteau d'hiver : le VRAI outil contre le froid du nord (warmth 8 ->
-    // seuil de froid 12 - stage*2 - 8, géable avec le poêle). Sprite dédié à
-    // venir ; en attendant on réutilise le rendu robe + l'écharpe peinte
-    // (_ScarfPainter) qui s'affiche dès que outfitWarmth > 0.
+    // Manteau d'hiver : le VRAI outil contre le froid du nord. Sprite dédié à
+    // venir ; en attendant on réutilise le rendu robe + l'écharpe peinte.
     _Outfit(
       name: 'Manteau d\'hiver',
       frontAsset: 'assets/objects/outfit_robe.png',
@@ -43,33 +39,62 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     ),
   ];
 
-  int _outfitIndex = 0;
+  // --- Tenues de la PETITE SŒUR (sisterOutfit 0/1).
+  static const List<_Outfit> _sisterOutfits = [
+    _Outfit(
+      name: 'Pyjama',
+      frontAsset: 'assets/characters/sister_idle_1.png',
+    ),
+    _Outfit(
+      name: 'Pyjama de laine 🐻',
+      frontAsset: 'assets/characters/sister_front_wool.png',
+    ),
+  ];
+
+  int _character = 0; // 0 = Shen, 1 = sœur
+  int _shenIndex = 0;
+  int _sisterIndex = 0;
+
+  bool get _sisterAvailable => GameState.instance.sisterShown;
+
+  List<_Outfit> get _outfits =>
+      _character == 0 ? _shenOutfits : _sisterOutfits;
+
+  int get _index => _character == 0 ? _shenIndex : _sisterIndex;
 
   @override
   void initState() {
     super.initState();
-    // Reprend la tenue actuellement portée (selon le bonus chaleur stocké).
+    // Reprend les tenues actuellement portées.
     final w = GameState.instance.outfitWarmth;
-    final i = _outfits.indexWhere((o) => o.warmth == w);
-    if (i >= 0) _outfitIndex = i;
+    final i = _shenOutfits.indexWhere((o) => o.warmth == w);
+    if (i >= 0) _shenIndex = i;
+    _sisterIndex = GameState.instance.sisterOutfit.clamp(0, 1);
   }
 
-  // Sélectionner une tenue applique tout de suite son bonus de chaleur.
+  // Sélectionner une tenue applique tout de suite son effet.
   void _select(int i) {
-    setState(() => _outfitIndex = i);
-    GameState.instance.outfitWarmth = _outfits[i].warmth;
-    GameState.instance.save();
+    setState(() {
+      if (_character == 0) {
+        _shenIndex = i;
+        GameState.instance.outfitWarmth = _shenOutfits[i].warmth;
+        GameState.instance.save();
+      } else {
+        _sisterIndex = i;
+        GameState.instance.setSisterOutfit(i);
+      }
+    });
   }
 
-  void _prev() =>
-      _select((_outfitIndex - 1 + _outfits.length) % _outfits.length);
+  void _prev() => _select((_index - 1 + _outfits.length) % _outfits.length);
 
-  void _next() => _select((_outfitIndex + 1) % _outfits.length);
+  void _next() => _select((_index + 1) % _outfits.length);
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final figureH = size.height * 0.80;
+    final figureH = size.height * 0.72;
+    final outfit = _outfits[_index];
 
     return Scaffold(
       backgroundColor: const Color(0xFF1A1410),
@@ -91,15 +116,42 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
             ),
-            // Fille centrée, en grand.
+            // Personnage centré, en grand, dans la tenue sélectionnée.
             Center(
               child: SizedBox(
                 height: figureH,
                 child: AspectRatio(
                   aspectRatio: 1,
                   child: Image.asset(
-                    _outfits[_outfitIndex].frontAsset,
+                    outfit.frontAsset,
                     fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+            // Sélecteur de PERSONNAGE en haut (étape 1).
+            Positioned(
+              top: 14,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(24),
+                    border:
+                        Border.all(color: const Color(0x66FFD9A0), width: 1),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _characterChip('Shen', 0),
+                      if (_sisterAvailable) ...[
+                        const SizedBox(width: 4),
+                        _characterChip('Petite sœur', 1),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -128,7 +180,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 ),
               ),
             ),
-            // Nom de la tenue + indicateur "X / N" en bas.
+            // Nom de la tenue + effet + indicateur "X / N" en bas.
             Positioned(
               left: 0,
               right: 0,
@@ -137,7 +189,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _outfits[_outfitIndex].name,
+                    outfit.name,
                     style: const TextStyle(
                       color: Color(0xFFFFD9A0),
                       fontSize: 20,
@@ -146,11 +198,13 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Bonus de chaleur de la tenue (0 = neutre).
+                  // Effet de la tenue (chaleur pour Shen, cosy pour la sœur).
                   Text(
-                    _outfits[_outfitIndex].warmth > 0
-                        ? '🔥 Chaleur +${_outfits[_outfitIndex].warmth}'
-                        : 'Chaleur neutre',
+                    _character == 0
+                        ? (outfit.warmth > 0
+                            ? '🔥 Chaleur +${outfit.warmth}'
+                            : 'Chaleur neutre')
+                        : (_index == 1 ? '🧸 Bien au chaud' : 'Tenue de nuit'),
                     style: const TextStyle(
                       color: Color(0xFFFFB066),
                       fontSize: 14,
@@ -159,7 +213,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${_outfitIndex + 1} / ${_outfits.length}',
+                    '${_index + 1} / ${_outfits.length}',
                     style: TextStyle(
                       color: const Color(0xFFFFD9A0).withValues(alpha: 0.6),
                       fontSize: 13,
@@ -181,118 +235,34 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
                 child: const Icon(Icons.close),
               ),
             ),
-            // Tenue de la PETITE SŒUR (si elle est à bord) : pyjama clair ou
-            // pyjama de laine à capuche-oreilles. Appliquée à toutes ses anims
-            // (repli classique pour celles sans déclinaison laine).
-            if (GameState.instance.sisterShown)
-              Positioned(
-                left: 16,
-                top: 16,
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: const Color(0x66FFD9A0), width: 1),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Tenue de la petite sœur',
-                        style: TextStyle(
-                          color: Color(0xFFFFD9A0),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _sisterOutfitTile(
-                            label: 'Pyjama',
-                            asset: 'assets/characters/sister_idle_1.png',
-                            selected: GameState.instance.sisterOutfit == 0,
-                            onTap: () => setState(() =>
-                                GameState.instance.setSisterOutfit(0)),
-                          ),
-                          const SizedBox(width: 8),
-                          _sisterOutfitTile(
-                            label: 'Laine 🐻',
-                            asset: 'assets/objects/outfit_sister_laine.png',
-                            selected: GameState.instance.sisterOutfit == 1,
-                            onTap: () => setState(() =>
-                                GameState.instance.setSisterOutfit(1)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Aperçu de la sœur PORTANT la tenue sélectionnée.
-                      Center(
-                        child: SizedBox(
-                          height: 120,
-                          child: Image.asset(
-                            GameState.instance.sisterOutfit == 1
-                                ? 'assets/characters/sister_front_wool.png'
-                                : 'assets/characters/sister_idle_1.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
           ],
         ),
       ),
     );
   }
 
-  /// Vignette de tenue de la sœur (aperçu sprite + libellé, bord doré si
-  /// sélectionnée).
-  Widget _sisterOutfitTile({
-    required String label,
-    required String asset,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
+  /// Puce du sélecteur de personnage (bord doré si sélectionné).
+  Widget _characterChip(String label, int value) {
+    final selected = _character == value;
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => setState(() => _character = value),
       child: Container(
-        width: 78,
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(0x33FFD9A0)
-              : Colors.white.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(10),
+          color: selected ? const Color(0x33FFD9A0) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected ? const Color(0xFFFFD9A0) : Colors.white24,
-            width: selected ? 2 : 1,
+            color: selected ? const Color(0xFFFFD9A0) : Colors.transparent,
+            width: 1.5,
           ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            SizedBox(
-              height: 64,
-              child: Image.asset(asset, fit: BoxFit.contain),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? const Color(0xFFFFD9A0) : Colors.white70,
-                fontSize: 11,
-                fontWeight:
-                    selected ? FontWeight.w700 : FontWeight.w400,
-              ),
-            ),
-          ],
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? const Color(0xFFFFD9A0) : Colors.white70,
+            fontSize: 14,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+          ),
         ),
       ),
     );
@@ -307,7 +277,7 @@ class _Outfit {
   });
   final String name;
   final String frontAsset;
-  // Bonus de chaleur appliqué à GameState.outfitWarmth quand portée.
+  // Bonus de chaleur appliqué à GameState.outfitWarmth quand portée (Shen).
   final int warmth;
 }
 

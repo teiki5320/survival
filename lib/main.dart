@@ -501,11 +501,11 @@ class _WagonScreenState extends State<WagonScreen>
   // porte : l'anim d'ouverture dure ~1 s, largement le temps de tout décoder)
   // pour qu'elles ne saccadent pas au 1er affichage dans la cabine.
   static const Map<String, int> _locoAnims = {
-    'carry_walk': 25,
-    'warm_hands': 25,
-    'open_door': 20,
-    'walk_right': 25,
-    'idle_right': 25,
+    'carry_walk': 16,
+    'warm_hands': 16,
+    'open_door': 16,
+    'walk_right': 16,
+    'idle_right': 16,
   };
 
   void _warmLocoAnims() {
@@ -1147,7 +1147,7 @@ class _WagonScreenState extends State<WagonScreen>
                     backgroundColor: const Color(0xFFD98A5C),
                     foregroundColor: Colors.white,
                     onPressed: () {
-                      _triggerSpecial('use_back', frames: 24);
+                      _triggerSpecial('use_back', frames: 16);
                       GameState.instance.repairPanne();
                       _heroFloat('Réparé ✅');
                     },
@@ -1477,7 +1477,7 @@ class _WagonScreenState extends State<WagonScreen>
       action = () {
         // Anim de lecture + réconfort + souvenir 'carnet', PUIS on ouvre le
         // CARNET DE VOYAGE (collection des souvenirs vécus cette partie).
-        _triggerSpecial('read', frames: 25);
+        _triggerSpecial('read', frames: 16);
         _comfortMoral(10);
         GameState.instance.unlockSouvenir('carnet');
         Future.delayed(const Duration(milliseconds: 650), () {
@@ -1507,8 +1507,8 @@ class _WagonScreenState extends State<WagonScreen>
         action = () {
           // Boire = 1 verre de la cuve (réserve) + remonte la jauge Soif.
           GameState.instance.nudgeCardStat('soif', 6);
-          _triggerSpecial('use_back', frames: 24,
-              next: 'drink', nextFrames: 25);
+          _triggerSpecial('use_back', frames: 16,
+              next: 'drink', nextFrames: 16);
           _audio.playSfx('drink');
           GameState.instance.setWaterTankGlasses(glasses - 1);
           _heroFloat('+soif 💧');

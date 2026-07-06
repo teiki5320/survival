@@ -92,7 +92,6 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   'pickup':        AnimMetrics(scale: 1.00, aspect: 170 / 385, feet: 0.948),
 
   // --- 512×512 debout (idle-breaks), mirror selon facing ---
-  'yawn':          AnimMetrics(scale: 1.40, aspect: 1.0, feet: 0.861),
 
   // --- 512×512 composition orientée → noMirror ---
   'stretch':       AnimMetrics(

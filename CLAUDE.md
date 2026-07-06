@@ -219,7 +219,8 @@ cartes via « **Débuter / Continuer le voyage** » sur la map.
 - **Cellier (wagon 2)** : bain (`bath_1..8`), douche (`shower_1..8` + pommeau +
   vapeur `_SteamPainter`), armoire/commode (garde-robe), 2 lanternes (FireGlow
   la nuit). Props posables en **mode AJUSTER** (debug, drag + pincer, coords
-  persistées dans GameState).
+  persistées dans GameState). **Radio ÉTEINTE par défaut** (frame 1 figée) :
+  le tap l'allume (boucle + souvenir) puis elle se rééteint après ~6 s.
 - **Sœur + chien** : `_SisterCharacter`/`_DogCharacter` se baladent quand
   débloqués (sister_walk/dog_walk), dorment la nuit. Duos : lecture
   (`readduo_1..10`), câlin (`sister_hug_1..4`), caresse chien (`petdog_1..9`).
@@ -316,7 +317,9 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
   `cine_open_*` dans `assets/cinematic/`, 1re personne, sentimental ; fallback
   fond sombre si image manque).
 - `lib/widgets/tutorial_overlay.dart` — bulles de tuto (intro + 1re utilisation).
-- `lib/widgets/wardrobe_screen.dart` — tenues (`outfitWarmth`).
+- `lib/widgets/wardrobe_screen.dart` — armoire en 2 temps : sélecteur de
+  PERSONNAGE (Shen / sœur si à bord) puis ses tenues (flèches). Shen →
+  `outfitWarmth`, sœur → `sisterOutfit`.
 - `lib/models/game_state.dart` — Singleton ChangeNotifier, sauvegarde JSON
   (autosave **débouncé 1,2 s**, gardé par `_loaded`/`_loading`). 4 jauges cartes
   + `nudgeCardStat` (bloqué si `feltCold` pour le moral), items, `cardFlags`
@@ -334,9 +337,12 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 ### Précisions side-scroll
 - Heroine bounds : `heroXMin = 0.22`, `heroXMax = 0.86`. Spawn retour loco →
   heroXMin, retour map → heroXMax.
-- Sprites Shen **réduits à 25 frames** (idle/walk/sleep/dance/wake_up/read/eat/
-  stretch ; use_back 24 ; carry_walk/warm_hands 25). `_heroFrameCount = 25`.
-  Backup `frames_backup_49/` (gitignored) + `tools/reduce_frames.py --restore`.
+- Sprites Shen **réduits à 16 frames** (2026-07-03 : idle/walk/sleep/dance/
+  wake_up/read/eat/stretch/drink/carry_walk/warm_hands/use_back/open_door/
+  pickup — tous à 16). `_heroFrameCount = 16` (side_scroll + locomotive) +
+  littéraux main.dart. **yawn SUPPRIMÉ** (49 frames, plus aucune invocation).
+  L'ancien backup `frames_backup_49/` + `reduce_frames.py --restore` datent
+  de l'ère 49f (restore obsolète, historique git fait foi).
 - Anims câblées : walk_right, idle_right, sleep_right, dance, pickup, yawn,
   stretch, read, wake_up, door_push, warm_hands, carry_walk, drink, eat,
   open_door (clamp), crouch, use_back (de dos), + bath/shower/petdog/readduo/
