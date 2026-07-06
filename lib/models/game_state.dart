@@ -416,13 +416,13 @@ class GameState extends ChangeNotifier {
   /// 1 = pyjama lapin rose (kigurumi, sprites `<anim>_lapin_N.png`).
   int shenOutfit = 0;
 
-  /// Anims de Shen disposant d'une déclinaison lapin. Manquent encore :
-  /// idle_right (planche ratée par OpenArt) et open_door → repli
-  /// automatique sur la tenue de base pour celles-là.
+  /// Anims de Shen disposant d'une déclinaison lapin. Manque encore :
+  /// idle_right (planche ratée par OpenArt) → repli automatique sur la
+  /// tenue de base pour celle-là.
   static const Set<String> kShenLapinAnims = {
     'walk_right', 'sleep_right', 'wake_up', 'stretch', 'use_back',
     'warm_hands', 'pickup', 'read', 'eat', 'drink', 'dance', 'carry_walk',
-    'petdog',
+    'petdog', 'open_door',
   };
 
   /// Préfixe d'asset effectif d'une anim de Shen selon sa tenue.
