@@ -64,6 +64,7 @@ class GameState extends ChangeNotifier {
         'cabinTemp': cabinTemp,
         'outfitWarmth': outfitWarmth,
         'sisterOutfit': sisterOutfit,
+        'shenOutfit': shenOutfit,
         'wagon2Stage': wagon2Stage,
         'atelierStage': atelierStage,
         'wagon2LampAx': wagon2LampAx,
@@ -131,6 +132,8 @@ class GameState extends ChangeNotifier {
       outfitWarmth = (data['outfitWarmth'] as num?)?.toInt() ?? outfitWarmth;
       sisterOutfit =
           ((data['sisterOutfit'] as num?)?.toInt() ?? sisterOutfit).clamp(0, 1);
+      shenOutfit =
+          ((data['shenOutfit'] as num?)?.toInt() ?? shenOutfit).clamp(0, 1);
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       atelierStage = ((data['atelierStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
@@ -407,6 +410,32 @@ class GameState extends ChangeNotifier {
   // supporte des températures plus basses (seuil plus bas). Le poêle, lui,
   // RÉCHAUFFE la cabine (entre dans cabinTemp via le feu, pas ici).
   int outfitWarmth = 0; // bonus tenue (0 = tenue de base)
+
+  // --- Tenue à SPRITES de SHEN (choisie à l'armoire du cellier) ---
+  /// 0 = tenue de base (chemise ; robe/manteau = bonus chaleur sans sprites),
+  /// 1 = pyjama lapin rose (kigurumi, sprites `<anim>_lapin_N.png`).
+  int shenOutfit = 0;
+
+  /// Anims de Shen disposant d'une déclinaison lapin. Manquent encore :
+  /// idle_right (planche ratée par OpenArt) et open_door → repli
+  /// automatique sur la tenue de base pour celles-là.
+  static const Set<String> kShenLapinAnims = {
+    'walk_right', 'sleep_right', 'wake_up', 'stretch', 'use_back',
+    'warm_hands', 'pickup', 'read', 'eat', 'drink', 'dance', 'carry_walk',
+    'petdog',
+  };
+
+  /// Préfixe d'asset effectif d'une anim de Shen selon sa tenue.
+  String heroAnimPrefix(String base) =>
+      (shenOutfit == 1 && kShenLapinAnims.contains(base))
+          ? '${base}_lapin'
+          : base;
+
+  void setShenOutfit(int v) {
+    shenOutfit = v.clamp(0, 1);
+    notifyListeners();
+    save(checkpoint: true); // choix délibéré à l'armoire → persiste direct
+  }
 
   // --- Tenue de la petite SŒUR (choisie à l'armoire du cellier) ---
   /// 0 = pyjama clair (deux-pièces), 1 = pyjama de laine à capuche-oreilles.
@@ -1194,6 +1223,7 @@ class GameState extends ChangeNotifier {
     bacGrowth = 0.0;
     outfitWarmth = 0;
     sisterOutfit = 0;
+    shenOutfit = 0;
     seenTips.clear(); // le tuto rejoue
     introCinematicSeen = false; // la cinématique d'ouverture rejoue
     _lampOn = true;

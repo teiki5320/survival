@@ -277,11 +277,11 @@ class _WagonScreenState extends State<WagonScreen>
   // incrémente `_specialAnimToken` à chaque (re)déclenchement pour que
   // la scène détecte le changement même si le nom reste identique.
   String? _specialAnim;
-  int _specialAnimFrames = 25;
+  int _specialAnimFrames = 16;
   bool _specialAnimLoops = false;
   int _specialAnimToken = 0;
   String? _specialAnimNext;
-  int _specialAnimNextFrames = 25;
+  int _specialAnimNextFrames = 16;
 
   void _triggerSpecial(String name,
       {int frames = 25, bool loops = false, String? next, int nextFrames = 25}) {

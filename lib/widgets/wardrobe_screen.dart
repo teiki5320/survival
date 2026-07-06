@@ -37,6 +37,14 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       frontAsset: 'assets/objects/outfit_robe.png',
       warmth: 6,
     ),
+    // Pyjama lapin rose : la SEULE tenue de Shen avec ses propres sprites
+    // (`<anim>_lapin_N.png`, cf. GameState.kShenLapinAnims) — cosy et chaude.
+    _Outfit(
+      name: 'Pyjama lapin 🐰',
+      frontAsset: 'assets/characters/heroine_front_lapin.png',
+      warmth: 4,
+      spriteOutfit: 1,
+    ),
   ];
 
   // --- Tenues de la PETITE SŒUR (sisterOutfit 0/1).
@@ -66,9 +74,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   void initState() {
     super.initState();
     // Reprend les tenues actuellement portées.
-    final w = GameState.instance.outfitWarmth;
-    final i = _shenOutfits.indexWhere((o) => o.warmth == w);
-    if (i >= 0) _shenIndex = i;
+    if (GameState.instance.shenOutfit == 1) {
+      _shenIndex = _shenOutfits.indexWhere((o) => o.spriteOutfit == 1);
+    } else {
+      final w = GameState.instance.outfitWarmth;
+      final i = _shenOutfits
+          .indexWhere((o) => o.spriteOutfit == 0 && o.warmth == w);
+      if (i >= 0) _shenIndex = i;
+    }
+    if (_shenIndex < 0) _shenIndex = 0;
     _sisterIndex = GameState.instance.sisterOutfit.clamp(0, 1);
   }
 
@@ -78,7 +92,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       if (_character == 0) {
         _shenIndex = i;
         GameState.instance.outfitWarmth = _shenOutfits[i].warmth;
-        GameState.instance.save();
+        GameState.instance.setShenOutfit(_shenOutfits[i].spriteOutfit);
       } else {
         _sisterIndex = i;
         GameState.instance.setSisterOutfit(i);
@@ -274,11 +288,14 @@ class _Outfit {
     required this.name,
     required this.frontAsset,
     this.warmth = 0,
+    this.spriteOutfit = 0,
   });
   final String name;
   final String frontAsset;
   // Bonus de chaleur appliqué à GameState.outfitWarmth quand portée (Shen).
   final int warmth;
+  // Valeur GameState.shenOutfit (0 = sprites de base, 1 = sprites lapin).
+  final int spriteOutfit;
 }
 
 class _ArrowButton extends StatelessWidget {

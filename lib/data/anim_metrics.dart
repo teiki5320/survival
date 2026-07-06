@@ -120,10 +120,6 @@ const Map<String, AnimMetrics> kAnimMetrics = {
   'use_back':      AnimMetrics(
     scale: 1.42, aspect: 1.0, feet: 0.842, noMirror: true,
   ),
-  // Frissonne (a froid) : sprite plein corps 198x672, profil fixe.
-  'cold':          AnimMetrics(
-    scale: 1.08, aspect: 198 / 672, feet: 0.984, noMirror: true,
-  ),
   // Capé — gros mobilier dans la bbox gonfle le h_ratio.
   'read':          AnimMetrics(
     scale: 0.90, aspect: 1.0, feet: 0.840, noMirror: true,

@@ -343,6 +343,16 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
   littéraux main.dart. **yawn SUPPRIMÉ** (49 frames, plus aucune invocation).
   L'ancien backup `frames_backup_49/` + `reduce_frames.py --restore` datent
   de l'ère 49f (restore obsolète, historique git fait foi).
+  **TENUE LAPIN DE SHEN** (2026-07-03) : `GameState.shenOutfit` (0 base /
+  1 pyjama lapin rose, à l'armoire, persistée) + `heroAnimPrefix()` →
+  `<anim>_lapin_N.png` (13 anims, `kShenLapinAnims`). **MANQUENT :
+  idle_right (planche OpenArt ratée — gros plans buste) et open_door** →
+  repli tenue de base. Armoire : `heroine_front_lapin.png` (portée) +
+  `objects/outfit_lapin.png` (seule), warmth 4. L'anim `cold` de Shen
+  (8f, jamais invoquée — le frisson est à la sœur) a été SUPPRIMÉE.
+  Outil de découpe : `tools/cut_lapin.py` (grilles
+  mixtes 8×2/10×2/5×2, dédup par numéros, nettoyage déchets planche sleep,
+  fragments voisins petdog).
 - Anims câblées : walk_right, idle_right, sleep_right, dance, pickup, yawn,
   stretch, read, wake_up, door_push, warm_hands, carry_walk, drink, eat,
   open_door (clamp), crouch, use_back (de dos), + bath/shower/petdog/readduo/
@@ -493,7 +503,7 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
 - **Découpe IA** : traits rouges #FF0000 + fond vert #00FF00.
 - **Toujours** `flutter analyze` + bump du n° de build avant push.
 - **NE PAS** remettre : les combats / mini-jeux modaux, les bruits de pas, les
-  anims retirées (cook/garden_tend/…), « Le Vieux » / l'enfant, habiller Shen
+  anims retirées (cook/garden_tend/yawn/cold-Shen/…), « Le Vieux » / l'enfant, habiller Shen
   sans sprites régénérés.
 
 ---

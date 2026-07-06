@@ -3120,7 +3120,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
         child: ValueListenableBuilder<int>(
           valueListenable: _heroAnim,
           builder: (_, __, ___) => _nightTint(
-            Image.asset('assets/characters/petdog_${_petDogFrame + 1}.png',
+            Image.asset(
+                'assets/characters/${GameState.instance.heroAnimPrefix('petdog')}_${_petDogFrame + 1}.png',
                 fit: BoxFit.contain, gaplessPlayback: true),
           ),
         ),
@@ -3206,7 +3207,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // trop de la formule générale feetY-anchored.
     if (_heroSleeping && _sleepOnBed) {
       // Allongée sur le matelas, sprite mirroré (tête côté oreiller).
-      final asset = 'assets/characters/sleep_right_${_sleepFrame + 1}.png';
+      final asset =
+          'assets/characters/${GameState.instance.heroAnimPrefix('sleep_right')}_${_sleepFrame + 1}.png';
       final bodyLen = h * _sleepBedScale;
       final bodyThick = bodyLen / (366 / 103);
       final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
@@ -3233,7 +3235,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
     if (_waking && _wakingPhase == 0 && _sleepOnBed) {
       // wake_up sur le matelas (avant que stretch ne reparte au sol).
-      final asset = 'assets/characters/wake_up_${_wakingFrame + 1}.png';
+      final asset =
+          'assets/characters/${GameState.instance.heroAnimPrefix('wake_up')}_${_wakingFrame + 1}.png';
       final m = animMetricsFor('wake_up');
       final heroHeight = h * kHeroBaseHeight * m.scale;
       final heroWidth = heroHeight * m.aspect;
@@ -3288,7 +3291,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final wagonScale = widget.secondWagon ? 1.12 : 1.1;
     final heroHeight = h * kHeroBaseHeight * m.scale * wagonScale;
     final heroWidth = heroHeight * m.aspect;
-    final asset = 'assets/characters/${prefix}_${frame + 1}.png';
+    final asset =
+        'assets/characters/${GameState.instance.heroAnimPrefix(prefix)}_${frame + 1}.png';
 
     // Mirror logic :
     //  - door_push source pousse vers la droite, porte loco est à

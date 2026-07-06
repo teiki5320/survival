@@ -348,7 +348,8 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         }
         break;
     }
-    final asset = 'assets/characters/${prefix}_${frame + 1}.png';
+    final asset =
+        'assets/characters/${GameState.instance.heroAnimPrefix(prefix)}_${frame + 1}.png';
 
     final m = animMetricsFor(prefix);
     final bool shouldMirror;
