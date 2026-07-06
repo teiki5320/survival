@@ -236,7 +236,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Heroine state. Position is normalised to the scene width. X bounds
   // keep her on the wagon's parquet floor — left of 0.25 is the
   // locomotive / coupling, right of 0.82 is the closed back-door area.
-  static const int _heroFrameCount = 16;
+  // Compteur et cadences PAR TENUE : classique = 25f aux cadences
+  // d'origine ; lapin = cycles natifs 16f aux mêmes durées de cycle.
+  static bool get _lapin => GameState.instance.shenOutfit == 1;
+  static int get _heroFrameCount => _lapin ? 16 : 25;
   // Bornes héroïne : source unique = constants.dart (plus de valeur dupliquée).
   static const double _heroXMin = consts.kHeroXMin;
   static const double _heroXMax = consts.kHeroXMax;
@@ -269,11 +272,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
           : 0.30)
       : (widget.isAtelier ? 0.85 : _heroXMax);
   static const double _heroSpeed = 0.18; // normalised units / second
-  static const int _walkFrameMs = 78; // 16f x 78 = 1248 ms (cycle d'origine 25f x 50)
-  static const int _idleFrameMs = 125; // 16f x 125 = 2000 ms (= 25f x 80)
-  static const int _sleepFrameMs = 172; // 16f x 172 = 2752 ms (= 25f x 110)
-  static const int _danceFrameMs = 86; // 16f x 86 = 1376 ms (= 25f x 55)
-  static const int _lieDownFrameMs = 94; // 16f x 94 = 1504 ms (= 25f x 60)
+  static int get _walkFrameMs => _lapin ? 78 : 50; // cycle ~1250 ms
+  static int get _idleFrameMs => _lapin ? 125 : 80; // cycle 2000 ms
+  static int get _sleepFrameMs => _lapin ? 172 : 110; // cycle ~2750 ms
+  static int get _danceFrameMs => _lapin ? 86 : 55; // cycle ~1375 ms
+  static int get _lieDownFrameMs => _lapin ? 94 : 60; // cycle ~1500 ms
 
   // Bed object placement (normalised to scene size, mutable so the
   // adjustment mode can drag + resize it live). Defaults dialled in
@@ -437,7 +440,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Lie-down transition: plays pickup frames in reverse (upright → bent
   // over), then snaps into the sleep loop on the floor.
   bool _heroLyingDown = false;
-  int _lieDownFrame = _heroFrameCount - 1; // counts down toward 0
+  int _lieDownFrame = 0; // counts down toward 0 (armé au déclenchement)
   int _walkFrame = 0;
   // Occasional thought-bubble emoji shown above the heroine. Picked at
   // random every ~60 s while idle, cleared after a couple of seconds.
@@ -548,7 +551,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _wakingPhase = 0; // 0 = wake_up, 1 = stretch
   int _wakingFrame = 0;
   int _wakingAccumMs = 0;
-  static const int _wakingFrameMs = 86; // 16f x 86 = 1376 ms (= 25f x 55)
+  static int get _wakingFrameMs => _lapin ? 86 : 55; // cycle ~1375 ms
 
   // Anim spéciale en cours (drink, read, cook, pet_dog, garden_tend).
   // Pilotée par le parent via specialAnim + specialAnimToken.
@@ -557,7 +560,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _activeSpecialLoops = false;
   int _specialFrame = 0;
   int _specialAccumMs = 0;
-  static const int _specialFrameMs = 110; // 16f x 110 = 1760 ms (= 25f x 70)
+  static int get _specialFrameMs => _lapin ? 110 : 70; // cycle ~1750 ms
   // Optional follow-up anim that plays right after the current special
   // ends — used to chain "turn back" + "drink" at the filter.
   String? _nextSpecial;
@@ -588,7 +591,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   bool _doorPushRight = false;
   int _doorFrame = 0;
   int _doorAccumMs = 0;
-  static const int _doorFrameMs = 62; // 16f x 62 = 992 ms (= 20f x 50)
+  static int get _doorFrameMs => _lapin ? 62 : 50; // cycle ~1000 ms
   static const int _doorMaxFrames = 20;
   int _sleepFrame = 0;
   int _danceFrame = 0;
@@ -654,10 +657,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   /// Lance une animation spéciale one-shot de façon autonome (même mécanique
   /// que celle pilotée par le parent via specialAnimToken).
-  void _startAutoSpecial(String anim, {int frames = _heroFrameCount}) {
+  void _startAutoSpecial(String anim, {int? frames}) {
     setState(() {
       _activeSpecial = anim;
-      _activeSpecialFrames = frames;
+      _activeSpecialFrames = frames ?? GameState.instance.heroAnimFrames(anim);
       _activeSpecialLoops = false;
       _specialFrame = 0;
       _specialAccumMs = 0;
@@ -682,7 +685,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _heroFacingRight = gs.w1x('gaziniere') > _heroX;
     _cooking = true; // bloque le déplacement pendant toute la séquence
     _heroTarget = null; // si elle marchait, on l'arrête
-    _startAutoSpecial('use_back', frames: 16);
+    _startAutoSpecial('use_back');
     _cookT1?.cancel();
     _cookT2?.cancel();
     _cookT3?.cancel();
@@ -693,12 +696,12 @@ class _SideScrollSceneState extends State<SideScrollScene>
     _cookT2 = Timer(const Duration(milliseconds: 6100), () {
       if (!mounted) return;
       setState(() => _cookLit = false); // extinction
-      _startAutoSpecial('use_back', frames: 16); // se retourne à nouveau
+      _startAutoSpecial('use_back'); // se retourne à nouveau
     });
     // ... puis elle s'installe et mange au sol.
     _cookT3 = Timer(const Duration(milliseconds: 7500), () {
       if (!mounted) return;
-      _startAutoSpecial('eat', frames: 16);
+      _startAutoSpecial('eat');
       // CONVERSION (rien de gratuit) : la gazinière BRÛLE DU BOIS pour cuire.
       gs.nudgeCardStat('bois', -8);
       gs.nudgeCardStat('faim', 12);
@@ -814,7 +817,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
       return;
     }
     _heroFacingRight = gs.w1x('poele') > _heroX;
-    _startAutoSpecial('use_back', frames: 16);
+    _startAutoSpecial('use_back');
     gs.setPoeleOn(!gs.poeleOn);
   }
 
@@ -3207,8 +3210,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     // trop de la formule générale feetY-anchored.
     if (_heroSleeping && _sleepOnBed) {
       // Allongée sur le matelas, sprite mirroré (tête côté oreiller).
+      final sleepN = GameState.instance.heroAnimFrames('sleep_right');
       final asset =
-          'assets/characters/${GameState.instance.heroAnimPrefix('sleep_right')}_${_sleepFrame + 1}.png';
+          'assets/characters/${GameState.instance.heroAnimPrefix('sleep_right')}_${_sleepFrame.clamp(0, sleepN - 1) + 1}.png';
       final bodyLen = h * _sleepBedScale;
       final bodyThick = bodyLen / (366 / 103);
       final bedCenterX = (_bedLeft + _bedWidth / 2) * w;
@@ -3235,8 +3239,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     }
     if (_waking && _wakingPhase == 0 && _sleepOnBed) {
       // wake_up sur le matelas (avant que stretch ne reparte au sol).
+      final wakeN = GameState.instance.heroAnimFrames('wake_up');
       final asset =
-          'assets/characters/${GameState.instance.heroAnimPrefix('wake_up')}_${_wakingFrame + 1}.png';
+          'assets/characters/${GameState.instance.heroAnimPrefix('wake_up')}_${_wakingFrame.clamp(0, wakeN - 1) + 1}.png';
       final m = animMetricsFor('wake_up');
       final heroHeight = h * kHeroBaseHeight * m.scale;
       final heroWidth = heroHeight * m.aspect;
@@ -3291,6 +3296,9 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final wagonScale = widget.secondWagon ? 1.12 : 1.1;
     final heroHeight = h * kHeroBaseHeight * m.scale * wagonScale;
     final heroWidth = heroHeight * m.aspect;
+    // Clamp de sécurité : si la tenue vient de changer, l'index courant
+    // peut dépasser le compte de la nouvelle déclinaison (16 vs 25).
+    frame = frame.clamp(0, GameState.instance.heroAnimFrames(prefix) - 1);
     final asset =
         'assets/characters/${GameState.instance.heroAnimPrefix(prefix)}_${frame + 1}.png';
 

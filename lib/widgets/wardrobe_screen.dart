@@ -25,6 +25,9 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       name: 'Chemise blanche',
       frontAsset: 'assets/characters/heroine_front.png',
       warmth: 0,
+      // Fraction de contenu de l'asset (h corps / h canvas) : sert à afficher
+      // tous les persos/tenues à la MÊME taille dans l'armoire.
+      figureScale: 1.0, // contenu 0.73 -> corps = 0.73 x figureH
     ),
     // Pyjama lapin rose : jeu complet de sprites (`<anim>_lapin_N.png`).
     // Bien chaud (kigurumi polaire) -> l'outil anti-froid en attendant le
@@ -34,6 +37,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       frontAsset: 'assets/characters/heroine_front_lapin.png',
       warmth: 6,
       spriteOutfit: 1,
+      figureScale: 0.73, // portrait plein cadre -> ramené au corps chemise
     ),
   ];
 
@@ -42,10 +46,12 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
     _Outfit(
       name: 'Pyjama',
       frontAsset: 'assets/characters/sister_idle_1.png',
+      figureScale: 1.0, // contenu 0.69 -> corps = 0.69 x figureH
     ),
     _Outfit(
       name: 'Pyjama de laine 🐻',
       frontAsset: 'assets/characters/sister_front_wool.png',
+      figureScale: 0.69, // portrait plein cadre -> ramené au corps pyjama
     ),
   ];
 
@@ -135,14 +141,19 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
               ),
             ),
             // Personnage centré, en grand, dans la tenue feuilletée.
-            Center(
-              child: SizedBox(
-                height: figureH,
-                child: AspectRatio(
-                  aspectRatio: 1,
+            // Bas des personnages ALIGNÉ (et hauteur de corps homogène via
+            // figureScale) pour que le changement de tenue/perso ne saute pas.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: size.height * 0.16,
+              child: Center(
+                child: SizedBox(
+                  height: figureH * outfit.figureScale,
                   child: Image.asset(
                     outfit.frontAsset,
                     fit: BoxFit.contain,
+                    alignment: Alignment.bottomCenter,
                   ),
                 ),
               ),
@@ -317,6 +328,7 @@ class _Outfit {
     required this.frontAsset,
     this.warmth = 0,
     this.spriteOutfit = 0,
+    this.figureScale = 1.0,
   });
   final String name;
   final String frontAsset;
@@ -324,6 +336,9 @@ class _Outfit {
   final int warmth;
   // Valeur GameState.shenOutfit (0 = sprites de base, 1 = sprites lapin).
   final int spriteOutfit;
+  // Échelle d'affichage : compense la fraction de contenu de chaque asset
+  // (portrait serré vs canvas 512 avec marges) -> corps de même hauteur.
+  final double figureScale;
 }
 
 class _ArrowButton extends StatelessWidget {

@@ -57,12 +57,13 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   late final AnimationController _sky;
   late final AnimationController _horizon;
 
-  static const int _heroFrameCount = 16;
+  static bool get _lapin => GameState.instance.shenOutfit == 1;
+  static int get _heroFrameCount => _lapin ? 16 : 25;
   static const double _heroXMin = 0.30;
   static const double _heroXMax = 0.72;
   static const double _heroSpeed = 0.18;
-  static const int _walkFrameMs = 78; // 16f = cycle d'origine 25f x 50
-  static const int _idleFrameMs = 125; // 16f = cycle d'origine 25f x 80
+  static int get _walkFrameMs => _lapin ? 78 : 50; // cycle ~1250 ms
+  static int get _idleFrameMs => _lapin ? 125 : 80; // cycle 2000 ms
 
   late final Ticker _heroTicker;
   // Pilote les frames de l'héroïne SANS reconstruire toute la cabine. Seul le
@@ -84,7 +85,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
   _LocoAction _action = _LocoAction.idle;
   int _actionFrame = 0;
   int _actionAccumMs = 0;
-  static const int _actionFrameMs = 86; // 16f = cycle d'origine 25f x 55
+  static int get _actionFrameMs => _lapin ? 86 : 55; // cycle ~1375 ms
 
   // Layout anchors (normalised to scene size). _fireboxX is also the
   // centre of the warm-hands proximity zone — used by both _fireProximity
@@ -170,9 +171,10 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
     // Drive the scripted log-loading sequence first; falls through to
     // free-walk + idle below when _action is idle.
     if (_action == _LocoAction.pickingUp || _action == _LocoAction.throwing) {
-      // Mêmes fractions d'anim qu'avant la réduction 25f/20f -> 16f :
-      // pickup s'arrêtait à 14/25 (56%), le lancer (open_door) à 14/20 (70%).
-      final actionMaxFrames = _action == _LocoAction.pickingUp ? 9 : 11;
+      // Caps par tenue : classique = 14 (comme à l'origine, sur 25f/20f) ;
+      // lapin (16f) = mêmes fractions d'anim (pickup 56%, lancer 70%).
+      final actionMaxFrames =
+          _action == _LocoAction.pickingUp ? (_lapin ? 9 : 14) : (_lapin ? 11 : 14);
       _animSet(() {
         _actionAccumMs += dtMs;
         while (_actionAccumMs >= _actionFrameMs) {
@@ -350,6 +352,7 @@ class _LocomotiveSceneState extends State<LocomotiveScene>
         }
         break;
     }
+    frame = frame.clamp(0, GameState.instance.heroAnimFrames(prefix) - 1);
     final asset =
         'assets/characters/${GameState.instance.heroAnimPrefix(prefix)}_${frame + 1}.png';
 

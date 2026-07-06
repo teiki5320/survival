@@ -430,6 +430,19 @@ class GameState extends ChangeNotifier {
           ? '${base}_lapin'
           : base;
 
+  /// Nombre de frames d'une anim de Shen selon sa tenue : les planches lapin
+  /// sont des cycles natifs 16f ; les jeux classiques gardent leurs comptes
+  /// d'origine (25f, use_back 24, open_door 20) — un ré-échantillonnage 25→16
+  /// donnait une cadence source irrégulière (marche saccadée).
+  static const Map<String, int> _kShenBaseFrames = {
+    'use_back': 24,
+    'open_door': 20,
+  };
+  int heroAnimFrames(String base) =>
+      (shenOutfit == 1 && kShenLapinAnims.contains(base))
+          ? 16
+          : (_kShenBaseFrames[base] ?? 25);
+
   void setShenOutfit(int v) {
     shenOutfit = v.clamp(0, 1);
     notifyListeners();

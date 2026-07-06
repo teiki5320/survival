@@ -500,17 +500,21 @@ class _WagonScreenState extends State<WagonScreen>
   // Anims jouées DANS la loco. On les décode à l'avance (dès le clic sur la
   // porte : l'anim d'ouverture dure ~1 s, largement le temps de tout décoder)
   // pour qu'elles ne saccadent pas au 1er affichage dans la cabine.
-  static const Map<String, int> _locoAnims = {
-    'carry_walk': 16,
-    'warm_hands': 16,
-    'open_door': 16,
-    'walk_right': 16,
-    'idle_right': 16,
-  };
+  static const List<String> _locoAnims = [
+    'carry_walk',
+    'warm_hands',
+    'open_door',
+    'walk_right',
+    'idle_right',
+  ];
 
   void _warmLocoAnims() {
     if (!mounted) return;
-    _locoAnims.forEach((p, n) {
+    final gs = GameState.instance;
+    for (final base in _locoAnims) {
+      // Décode la déclinaison de la TENUE ACTIVE (comptes par tenue).
+      final p = gs.heroAnimPrefix(base);
+      final n = gs.heroAnimFrames(base);
       for (int i = 1; i <= n; i++) {
         // MÊME clé de cache que le rendu (kHeroDecodeWidth) : sinon le sprite
         // serait décodé une 2e fois à l'affichage dans la cabine.
@@ -520,7 +524,7 @@ class _WagonScreenState extends State<WagonScreen>
                 context)
             .catchError((_) {});
       }
-    });
+    }
   }
 
   void _enterLocomotive() {
@@ -1147,7 +1151,8 @@ class _WagonScreenState extends State<WagonScreen>
                     backgroundColor: const Color(0xFFD98A5C),
                     foregroundColor: Colors.white,
                     onPressed: () {
-                      _triggerSpecial('use_back', frames: 16);
+                      _triggerSpecial('use_back',
+                          frames: GameState.instance.heroAnimFrames('use_back'));
                       GameState.instance.repairPanne();
                       _heroFloat('Réparé ✅');
                     },
@@ -1477,7 +1482,8 @@ class _WagonScreenState extends State<WagonScreen>
       action = () {
         // Anim de lecture + réconfort + souvenir 'carnet', PUIS on ouvre le
         // CARNET DE VOYAGE (collection des souvenirs vécus cette partie).
-        _triggerSpecial('read', frames: 16);
+        _triggerSpecial('read',
+            frames: GameState.instance.heroAnimFrames('read'));
         _comfortMoral(10);
         GameState.instance.unlockSouvenir('carnet');
         Future.delayed(const Duration(milliseconds: 650), () {
@@ -1507,8 +1513,10 @@ class _WagonScreenState extends State<WagonScreen>
         action = () {
           // Boire = 1 verre de la cuve (réserve) + remonte la jauge Soif.
           GameState.instance.nudgeCardStat('soif', 6);
-          _triggerSpecial('use_back', frames: 16,
-              next: 'drink', nextFrames: 16);
+          _triggerSpecial('use_back',
+              frames: GameState.instance.heroAnimFrames('use_back'),
+              next: 'drink',
+              nextFrames: GameState.instance.heroAnimFrames('drink'));
           _audio.playSfx('drink');
           GameState.instance.setWaterTankGlasses(glasses - 1);
           _heroFloat('+soif 💧');

@@ -322,7 +322,9 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 - `lib/widgets/tutorial_overlay.dart` — bulles de tuto (intro + 1re utilisation).
 - `lib/widgets/wardrobe_screen.dart` — armoire en 2 temps : sélecteur de
   PERSONNAGE (Shen / sœur si à bord) puis ses tenues (flèches = feuilleter,
-  bouton VALIDER = porter ; « Portée ✓ » sur la tenue actuelle). Seules les
+  bouton VALIDER = porter ; « Portée ✓ » sur la tenue actuelle). Persos
+  affichés à TAILLE HOMOGÈNE (`_Outfit.figureScale` compense la fraction de
+  contenu de chaque asset, bas aligné). Seules les
   tenues à VRAIS sprites sont listées. Shen → `shenOutfit`+`outfitWarmth`,
   sœur → `sisterOutfit`.
 - `lib/models/game_state.dart` — Singleton ChangeNotifier, sauvegarde JSON
@@ -342,13 +344,16 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 ### Précisions side-scroll
 - Heroine bounds : `heroXMin = 0.22`, `heroXMax = 0.86`. Spawn retour loco →
   heroXMin, retour map → heroXMax.
-- Sprites Shen **réduits à 16 frames** (2026-07-03 : idle/walk/sleep/dance/
-  wake_up/read/eat/stretch/drink/carry_walk/warm_hands/use_back/open_door/
-  pickup — tous à 16). `_heroFrameCount = 16` (side_scroll + locomotive) +
-  littéraux main.dart + cadences par frame RECALÉES sur les durées de cycle
-  d'origine (walk 78 ms, idle 125, sleep 172, dance/wake 86, special 110,
-  door 62, lie-down 94 ; loco walk 78/idle 125/action 86, caps pickup 9 /
-  throw 11). **yawn SUPPRIMÉ** (49 frames, plus aucune invocation).
+- Sprites Shen : comptes de frames **PAR TENUE** (2026-07-06). Classique =
+  jeux D'ORIGINE restaurés (25f ; use_back 24, open_door 20, pickup 25) aux
+  cadences d'origine — un ré-échantillonnage 25→16 donnait des pas source
+  irréguliers 1-2-1-2 = marche saccadée. Lapin = cycles NATIFS 16f aux mêmes
+  durées de cycle (walk 78 ms/frame, idle 125, sleep 172, dance/wake 86,
+  special 110, door 62 ; loco action 86, caps pickup 9/lancer 11 vs 14
+  classique). Source : `GameState.heroAnimFrames(base)` + getters `_lapin`
+  dans side_scroll/locomotive ; clamps de sécurité aux points de rendu
+  (changement de tenue en cours d'anim). **yawn SUPPRIMÉ** (49 frames,
+  plus aucune invocation).
   L'ancien backup `frames_backup_49/` + `reduce_frames.py --restore` datent
   de l'ère 49f (restore obsolète, historique git fait foi).
   **TENUE LAPIN DE SHEN** (2026-07-03) : `GameState.shenOutfit` (0 base /
