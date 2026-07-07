@@ -445,6 +445,13 @@ class GameState extends ChangeNotifier {
 
   void setShenOutfit(int v) {
     shenOutfit = v.clamp(0, 1);
+    // Flag de CARTE : permet aux cartes de réagir à la tenue (ex. la sœur
+    // qui découvre le kigurumi assorti au sien).
+    if (shenOutfit == 1) {
+      cardFlags.add('tenue_lapin');
+    } else {
+      cardFlags.remove('tenue_lapin');
+    }
     notifyListeners();
     save(checkpoint: true); // choix délibéré à l'armoire → persiste direct
   }

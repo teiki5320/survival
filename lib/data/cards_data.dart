@@ -1355,6 +1355,19 @@ final List<StoryCard> _fill11 = [
 ];
 
 final List<StoryCard> _fill12 = [
+  // Indice de la FIN SECRÈTE : la voix de la radio en sait trop. Ne pose
+  // AUCUN flag (radio3 reste gagné par l'arc principal) — il éclaire juste
+  // ceux qui hésitent à « y croire jusqu'au bout ».
+  _filler('F12_radio_prenom',
+      "La friture, puis la voix de femme, plus nette que jamais : « …tenez bon… la passe est ouverte… Shen… » Ton prénom. Tu as bien entendu ton prénom.",
+      _c("Y croire : elle te connaît", fx: {Stat.moral: 4, Stat.faim: -3},
+          result: "Tu restes collée au poste toute la nuit, à tourner la manivelle jusqu'à l'aube. Qui d'autre au monde connaît ton prénom ?",
+          reaction: "« …Shen… vers le nord… je vous attends. »"),
+      _c("Le froid te joue des tours", fx: {Stat.bois: 3, Stat.moral: -5},
+          result: "Des centaines de Shen ont pris ces rails. Tu éteins la radio pour économiser tes forces et tu recharges le foyer. Mais le doute, lui, reste allumé."),
+      oneshot: true,
+      requires: (f) => f.contains('radio2') && !f.contains('radio3'),
+      art: CardArt.radio),
   _filler('F12_autel',
       "Un autel de voyageurs : photos, jouets, mots d'adieu. Y laisser un objet à toi t'allège — mais c'est un objet de moins.",
       _c("Y déposer la photo de famille", fx: {Stat.moral: 10, Stat.bois: -4}, result: "Tu t'agenouilles longtemps, la loco qui refroidit derrière toi, et tu confies leur image au seuil du refuge. Étrangement, tu te sens plus légère."),
@@ -1715,8 +1728,24 @@ final List<StoryCard> kDogCards = [
 ];
 
 /// Ajoute les cartes-souvenirs, d'état et chien au paquet d'un segment.
+/// Moments UNIQUES déclenchés par l'état du wagon (tenues…) — narratifs,
+/// injectés partout comme les souvenirs mais SANS entrer au carnet.
+final List<StoryCard> kMomentCards = [
+  _filler('MO_lapins_assortis',
+      "Ta petite sœur te dévisage, bouche ouverte : toi dans ton pyjama lapin, elle dans son pyjama ours. Deux peluches dans un train qui traverse la fin du monde.",
+      _c("Faire les oreilles avec les mains",
+          result: "Elle explose de rire et bondit partout dans le wagon. Pendant cinq minutes, la guerre n'existe plus.",
+          reaction: "« On est une famille de doudous ! »"),
+      _c("Hausser les épaules, digne",
+          result: "« C'est pratique, c'est chaud. » Elle hoche la tête, très sérieuse — puis pouffe dans sa capuche.",
+          reaction: "« Madame Lapin est fâchée… »"),
+      oneshot: true,
+      requires: (f) => f.contains('aLaSoeur') && f.contains('tenue_lapin'),
+      art: CardArt.sister),
+];
+
 List<StoryCard> _withSouv(List<StoryCard> base) =>
-    [...base, ...kSouvenirCards, ...kStateCards, ...kDogCards];
+    [...base, ...kSouvenirCards, ...kStateCards, ...kDogCards, ...kMomentCards];
 
 /// Souvenirs déjà COLLECTÉS cette partie (flag `souvenir_*` posé par une
 /// activité du wagon) -> alimentent le CARNET DE VOYAGE. Ordre = ordre de

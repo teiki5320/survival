@@ -130,11 +130,12 @@ Chaque gare = carte(s) à 2 choix avec variantes selon les flags accumulés.
   (`cards_data`) = cartes **100 % NARRATIVES** (aucun gain de stat) débloquées par
   les ACTIVITÉS du wagon. `GameState.unlockSouvenir(key)` pose `souvenir_<key>` →
   la carte (oneshot, `requires: f.contains('souvenir_<key>')`) s'injecte au
-  prochain segment (`_withSouv` les ajoute à tous les paquets). Sources câblées :
-  **bain/douche** (`restoreHygiene` → `souvenir_bain`), **sommeil** (`restoreSleep`
-  → `souvenir_reve`). Prêtes mais à câbler : `souvenir_peche` (mini-jeu pêche),
-  `souvenir_carnet`. But : « tu fabriques ta propre histoire en t'occupant du
-  train » ; le contenu (petites histoires) s'étoffera. N'affecte PAS le sim.
+  prochain segment (`_withSouv` les ajoute à tous les paquets). 7 souvenirs
+  câblés et ÉCRITS (bain, rêve, carnet, fenêtre, sœur, radio, radio_sombre —
+  tous déclenchés en jeu, vérifié à l'audit 2026-07-06). S'y ajoutent
+  `kMomentCards` (moments uniques hors carnet, ex. `MO_lapins_assortis`
+  déclenché par le flag `tenue_lapin` posé via `setShenOutfit`). N'affecte
+  PAS le sim.
 - **Cartes vivantes** (depuis 2026-06-18) : `CardChoice.reaction` (réplique d'un
   perso sœur/chien/radio sous la conséquence — ne mettre une réaction sœur QUE
   post-gare 5), `StoryCard.art` (enum `CardArt` : portraits réutilisant les
@@ -335,8 +336,11 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
   `coldness`), `grantGareSupply`, `unlockNames`/`pendingUnlocks`,
   `resetForNewGame`, `kStartStat = 6` (départ quasi à zéro).
 - `lib/models/reigns_engine.dart` — voir section moteur de cartes.
-- `lib/services/audio_service.dart` — Singleton audio. `ambient_train`,
-  `fire_crackle`, musique réactivée (3 morceaux day/night/cold), 9 SFX.
+- `lib/services/audio_service.dart` — Singleton audio. `fire_crackle`,
+  musique (3 morceaux day/night/cold), 5 SFX (dog_bark/drink/lamp_toggle/
+  log_throw/pickup). `ambient_train` DÉSACTIVÉ (`_ambientEnabled=false`,
+  asset trop « rock » — réactivation en 1 ligne quand un vrai son de
+  roulement existera).
 - `lib/data/anim_metrics.dart` — métriques sprites perso.
 - `lib/constants.dart` — `kGarePositions`/`_stations`, `kWoodSupplyByGare`,
   `kColdBoisDrainPerCard`, seuils.
@@ -491,8 +495,9 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
      positions réelles (`slx()`/`w1x()`).
   3. **Baker les positions par défaut** ✅ FAIT (2026-07-02, captures user) :
      coords figées dans `salonProps`/`wagon1Props` + `applyBakedLayout`.
-  4. Étoffer les cartes des **gares 12-14** (climax — g13 renforcée ✅).
-     Boutique IAP confort-only.
+  4. Cartes gares 12-14 ✅ étoffées (13-15 fillers chacune, vérifié à
+     l'audit 2026-07-06 ; + indice fin secrète `F12_radio_prenom`).
+     Boutique IAP confort-only (reste à brancher).
 
 ### ⚠️ Décisions de design VALIDÉES (user 2026-07-02) — ne pas re-questionner
 - **Timers dans la locomotive** : les horloges (faim/soif, confort, froid,

@@ -592,7 +592,7 @@ class _SideScrollSceneState extends State<SideScrollScene>
   int _doorFrame = 0;
   int _doorAccumMs = 0;
   static int get _doorFrameMs => _lapin ? 62 : 50; // cycle ~1000 ms
-  static const int _doorMaxFrames = 20;
+  static int get _doorMaxFrames => _lapin ? 16 : 20;
   int _sleepFrame = 0;
   int _danceFrame = 0;
   Duration _lastTick = Duration.zero;
@@ -1076,7 +1076,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _heroLyingDown = false;
           _heroTarget = null;
           _activeSpecial = 'use_back';
-          _activeSpecialFrames = 10;
+          // Demi-tour PARTIEL (~42% de l'anim) : 10/24 classique, 7/16 lapin.
+          _activeSpecialFrames = _lapin ? 7 : 10;
           _activeSpecialLoops = false;
           _specialFrame = 0;
           _specialAccumMs = 0;
@@ -1129,7 +1130,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
           _heroLyingDown = false;
           _heroTarget = null;
           _activeSpecial = 'use_back';
-          _activeSpecialFrames = 10;
+          // Demi-tour PARTIEL (~42% de l'anim) : 10/24 classique, 7/16 lapin.
+          _activeSpecialFrames = _lapin ? 7 : 10;
           _activeSpecialLoops = false;
           _specialFrame = 0;
           _specialAccumMs = 0;
