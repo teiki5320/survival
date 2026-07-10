@@ -636,8 +636,12 @@ class _WagonScreenState extends State<WagonScreen>
         final from = _wagon;
         _wagon = _pendingWagon;
         // Vers la DROITE (wagon+1) -> on arrive côté gauche (0.12) ; vers la
-        // GAUCHE (wagon-1) -> on arrive côté droit.
+        // GAUCHE (wagon-1) -> on arrive côté droit. IMPORTANT : synchroniser
+        // _heroX tout de suite — les portes/objets contextuels lisent _heroX,
+        // qui n'est sinon rafraîchi que quand Shen MARCHE (bug : arriver côté
+        // droit et cliquer sans bouger déclenchait la porte GAUCHE).
         _heroSpawnX = _wagon > from ? 0.12 : SideScrollScene.heroXMax;
+        _heroX = _heroSpawnX;
       }
     });
     if (dest == 'loco') _audio.startFire();
@@ -648,6 +652,7 @@ class _WagonScreenState extends State<WagonScreen>
     _curtainSwap(() {
       _inLocomotive = false;
       _heroSpawnX = SideScrollScene.heroXMin;
+      _heroX = _heroSpawnX;
     });
     _audio.stopFire();
   }
@@ -662,6 +667,7 @@ class _WagonScreenState extends State<WagonScreen>
         _inLocomotive = true;
       } else {
         _heroSpawnX = SideScrollScene.heroXMax;
+        _heroX = _heroSpawnX;
       }
     });
     if (_inLocomotive) _audio.startFire();
