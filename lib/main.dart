@@ -383,8 +383,76 @@ class _WagonScreenState extends State<WagonScreen>
     return 'day';
   }
 
+  /// Choix du disque au TOURNE-DISQUE : le programme (jour/nuit/froid)
+  /// reste la référence, mais le joueur peut forcer un morceau.
+  void _openMusicPicker() {
+    final options = <(String, String, IconData)>[
+      ('auto', 'Programme du voyage (jour / nuit / froid)', Icons.autorenew),
+      ('day', 'Lanternes de papier — douceur du jour', Icons.wb_sunny),
+      ('night', 'Static de lune — veillée', Icons.nightlight_round),
+      ('cold', 'Vent du nord — zone froide', Icons.ac_unit),
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF2A1F16),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 16, 20, 6),
+              child: Text(
+                '🎵 Mets un disque',
+                style: TextStyle(
+                  color: Color(0xFFFFD9A0),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            for (final (key, label, ic) in options)
+              ListTile(
+                leading: Icon(ic,
+                    color: GameState.instance.musicChoice == key
+                        ? const Color(0xFFFFD9A0)
+                        : Colors.white54),
+                title: Text(
+                  label,
+                  style: TextStyle(
+                    color: GameState.instance.musicChoice == key
+                        ? const Color(0xFFFFD9A0)
+                        : Colors.white70,
+                    fontWeight: GameState.instance.musicChoice == key
+                        ? FontWeight.w700
+                        : FontWeight.w400,
+                  ),
+                ),
+                trailing: GameState.instance.musicChoice == key
+                    ? const Icon(Icons.check, color: Color(0xFFFFD9A0))
+                    : null,
+                onTap: () {
+                  GameState.instance.setMusicChoice(key);
+                  _refreshMusic();
+                  Navigator.of(ctx).pop();
+                  _heroFloat(key == 'auto'
+                      ? 'Le voyage reprend sa musique 🎵'
+                      : 'Un vieux morceau… 🎵');
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _refreshMusic() {
-    _audio.setMusic(_musicMood());
+    // Le tourne-disque peut forcer un disque ; 'auto' = programme établi.
+    final choice = GameState.instance.musicChoice;
+    _audio.setMusic(choice == 'auto' ? _musicMood() : choice);
   }
 
   // Rideau noir pour masquer les changements de scène ET le passage de porte.
@@ -1531,11 +1599,12 @@ class _WagonScreenState extends State<WagonScreen>
         _audio.playSfx('dog_bark');
       };
     } else if (_atTourneDisque) {
-      // Tourne-disque : lance un morceau -> réconfort (un peu d'espoir).
+      // Tourne-disque : choisir le disque (ou revenir au programme établi
+      // jour/nuit/froid) -> réconfort (un peu d'espoir).
       icon = Icons.album;
       action = () {
         _comfortMoral(9);
-        _heroFloat('Un vieux morceau… 🎵');
+        _openMusicPicker();
       };
     } else if (_atCarillon) {
       // Carillon : un tintement doux -> petit réconfort.

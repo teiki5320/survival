@@ -8,8 +8,7 @@ import '../models/game_state.dart';
 /// change plus la tenue tout seul).
 ///  - Shen : `shenOutfit` (sprites) + bonus de chaleur `outfitWarmth` ;
 ///  - sœur : `sisterOutfit` (0 pyjama / 1 laine), sprites `<anim>_wool_N`.
-/// Seules les tenues avec de VRAIS sprites sont proposées (la robe de lin et
-/// le manteau placeholder ont été retirés — ils n'existaient pas en jeu).
+/// Seules les tenues avec de VRAIS sprites sont proposées.
 class WardrobeScreen extends StatefulWidget {
   const WardrobeScreen({super.key, required this.onClose});
   final VoidCallback onClose;
@@ -30,8 +29,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       figureScale: 1.0, // contenu 0.73 -> corps = 0.73 x figureH
     ),
     // Pyjama lapin rose : jeu complet de sprites (`<anim>_lapin_N.png`).
-    // Bien chaud (kigurumi polaire) -> l'outil anti-froid en attendant le
-    // vrai manteau d'hiver.
+    // Bien chaud (kigurumi polaire) -> LA tenue anti-froid du jeu.
     _Outfit(
       name: 'Pyjama lapin 🐰',
       frontAsset: 'assets/characters/heroine_front_lapin.png',
@@ -45,8 +43,10 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   static const List<_Outfit> _sisterOutfits = [
     _Outfit(
       name: 'Pyjama',
-      frontAsset: 'assets/characters/sister_idle_1.png',
-      figureScale: 1.0, // contenu 0.69 -> corps = 0.69 x figureH
+      // Vue de FACE haute résolution (frame 1 du frisson classique) — cohérent
+      // avec le portrait laine, contrairement au profil sister_idle.
+      frontAsset: 'assets/characters/sister_cold_1.png',
+      figureScale: 0.75, // contenu 0.92 -> corps = 0.69 x figureH
     ),
     _Outfit(
       name: 'Pyjama de laine 🐻',

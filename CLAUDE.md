@@ -257,10 +257,9 @@ Cabine = zone map (17/12/5/-4) + météo (0/-1/-2/-4) + nuit (-3) + poêle ALLUM
 givre fenêtres, **gains de moral bloqués**, drain moral. **AUTO** en jeu
 (`computeAutoCabinTemp`), recalculé sur changement gare/météo/nuit/bois ; bouton
 test manuel seulement en debug. `outfitWarmth` : tenues chaudes — actuellement
-pyjama lapin warmth 6 (le nord devient gérable). Le vrai manteau d'hiver et la
-robe de lin ont été RETIRÉS de l'armoire (2026-07-06, pas de sprites — à
-re-proposer seulement avec de vraies planches). L'ÉCHARPE PEINTE
-(`_ScarfPainter`) a été SUPPRIMÉE (moche, décision user).
+pyjama lapin warmth 6 (le nord devient gérable). ⚠️ Le « manteau d'hiver » est
+ABANDONNÉ (décision user 2026-07-06) : ne plus le proposer. La robe de lin et
+l'ÉCHARPE PEINTE (`_ScarfPainter`) ont aussi été SUPPRIMÉES.
 
 ---
 
@@ -462,9 +461,11 @@ je coupe pile dessus + normalise (bottom-center). Outils : `tools/key_out_*.py`,
   2026-07-01) — c'est le système de rythme en place (tirer 1 carte = 1 crédit,
   recharge +1/5 min temps réel ; cf. section RYTHME). L'ancien ÉLAN a été
   **supprimé** (voir plus bas).
-- Refaire les musiques si besoin.
-- Vraie tenue d'hiver (sprites) — REPORTÉ à la toute fin (décision user).
-  (Poêle interactif ✅ déjà fait ; bac hydro semer/récolter ✅ déjà fait.)
+- Refaire les musiques si besoin. **Tourne-disque** (2026-07-06) : le tap
+  ouvre un CHOIX DE DISQUE (auto/jour/nuit/froid, `GameState.musicChoice`
+  persisté) ; 'auto' = programme établi (`_musicMood`), sinon mood forcé
+  (`_refreshMusic` applique l'override).
+- (Poêle interactif ✅ déjà fait ; bac hydro semer/récolter ✅ déjà fait.)
 
 ### Repris du handoff (session 2026-07-01, ex-ETAT_SESSION.md)
 - **Répartition des objets par wagon** ✅ (décisions user 2026-07-02) :

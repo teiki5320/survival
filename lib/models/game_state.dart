@@ -65,6 +65,7 @@ class GameState extends ChangeNotifier {
         'outfitWarmth': outfitWarmth,
         'sisterOutfit': sisterOutfit,
         'shenOutfit': shenOutfit,
+        'musicChoice': musicChoice,
         'wagon2Stage': wagon2Stage,
         'atelierStage': atelierStage,
         'wagon2LampAx': wagon2LampAx,
@@ -134,6 +135,7 @@ class GameState extends ChangeNotifier {
           ((data['sisterOutfit'] as num?)?.toInt() ?? sisterOutfit).clamp(0, 1);
       shenOutfit =
           ((data['shenOutfit'] as num?)?.toInt() ?? shenOutfit).clamp(0, 1);
+      musicChoice = (data['musicChoice'] as String?) ?? musicChoice;
       wagon2Stage = ((data['wagon2Stage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       atelierStage = ((data['atelierStage'] as num?)?.toInt() ?? 0).clamp(0, 1);
       wagon2LampAx = (data['wagon2LampAx'] as num?)?.toDouble() ?? wagon2LampAx;
@@ -411,8 +413,20 @@ class GameState extends ChangeNotifier {
   // RÉCHAUFFE la cabine (entre dans cabinTemp via le feu, pas ici).
   int outfitWarmth = 0; // bonus tenue (0 = tenue de base)
 
+  // --- Musique : choix du joueur au TOURNE-DISQUE ---
+  /// 'auto' = programme établi (jour/nuit/zone froide) ; sinon un mood forcé
+  /// ('day'/'night'/'cold'). Le programme reste la référence, le tourne-disque
+  /// permet juste de mettre « son » disque.
+  String musicChoice = 'auto';
+
+  void setMusicChoice(String v) {
+    musicChoice = v;
+    notifyListeners();
+    save(checkpoint: true);
+  }
+
   // --- Tenue à SPRITES de SHEN (choisie à l'armoire du cellier) ---
-  /// 0 = tenue de base (chemise ; robe/manteau = bonus chaleur sans sprites),
+  /// 0 = tenue de base (chemise blanche),
   /// 1 = pyjama lapin rose (kigurumi, sprites `<anim>_lapin_N.png`).
   int shenOutfit = 0;
 
@@ -1243,6 +1257,7 @@ class GameState extends ChangeNotifier {
     outfitWarmth = 0;
     sisterOutfit = 0;
     shenOutfit = 0;
+    musicChoice = 'auto';
     seenTips.clear(); // le tuto rejoue
     introCinematicSeen = false; // la cinématique d'ouverture rejoue
     _lampOn = true;
