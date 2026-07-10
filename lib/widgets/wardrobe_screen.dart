@@ -22,11 +22,11 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   static const List<_Outfit> _shenOutfits = [
     _Outfit(
       name: 'Chemise blanche',
-      frontAsset: 'assets/characters/heroine_front.png',
+      // Aperçus RECADRÉS AU PIXEL (pieds = bord bas) -> le bas aligné et
+      // figureScale = hauteur de corps EXACTE, sans marge fantôme.
+      frontAsset: 'assets/objects/preview_shen_chemise.png',
       warmth: 0,
-      // Fraction de contenu de l'asset (h corps / h canvas) : sert à afficher
-      // tous les persos/tenues à la MÊME taille dans l'armoire.
-      figureScale: 1.0, // contenu 0.73 -> corps = 0.73 x figureH
+      figureScale: 1.0,
     ),
     // Pyjama lapin rose : jeu complet de sprites (`<anim>_lapin_N.png`).
     // Bien chaud (kigurumi polaire) -> LA tenue anti-froid du jeu.
@@ -35,7 +35,7 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
       frontAsset: 'assets/characters/heroine_front_lapin.png',
       warmth: 6,
       spriteOutfit: 1,
-      figureScale: 0.73, // portrait plein cadre -> ramené au corps chemise
+      figureScale: 1.0, // recadré serré, comme la chemise
     ),
   ];
 
@@ -43,15 +43,15 @@ class _WardrobeScreenState extends State<WardrobeScreen> {
   static const List<_Outfit> _sisterOutfits = [
     _Outfit(
       name: 'Pyjama',
-      // Vue de FACE haute résolution (frame 1 du frisson classique) — cohérent
-      // avec le portrait laine, contrairement au profil sister_idle.
-      frontAsset: 'assets/characters/sister_cold_1.png',
-      figureScale: 0.75, // contenu 0.92 -> corps = 0.69 x figureH
+      // Vue de FACE haute résolution (recadrage serré du frisson classique).
+      frontAsset: 'assets/objects/preview_sister_pyjama.png',
+      // 0.74 = proportion réaliste d'une enfant de 7 ans face à Shen.
+      figureScale: 0.74,
     ),
     _Outfit(
       name: 'Pyjama de laine 🐻',
       frontAsset: 'assets/characters/sister_front_wool.png',
-      figureScale: 0.69, // portrait plein cadre -> ramené au corps pyjama
+      figureScale: 0.74, // même hauteur que le pyjama (recadrés serrés)
     ),
   ];
 

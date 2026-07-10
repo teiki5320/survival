@@ -3063,7 +3063,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: _SisterCharacter(
         key: const ValueKey('sister'),
         tint: _nightTint,
-        heightFrac: 0.28,
+        // x0.8 au salon (pièce peinte plus petite, comme l'héroïne).
+        heightFrac: widget.isAtelier ? 0.28 : 0.224,
         // Sol du wagon : salon 0.74, atelier 0.785 (comme l'héroïne).
         feetY: widget.isAtelier ? 0.785 : 0.74,
         startX: _sisterX,
@@ -3084,7 +3085,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
   // Sprite DUO (câlin ou lecture) calé au sol sur la position de la sœur.
   // Remplace les deux solos pendant l'anim.
   Widget _buildDuo(double w, double h) {
-    final duoH = h * _duoHeightFrac;
+    final duoH =
+        h * _duoHeightFrac * (widget.isAtelier ? 1.0 : 0.8); // salon peint petit
     final duoW = duoH * _duoAspect;
     // Sol du wagon : salon 0.74, atelier 0.785 (comme l'héroïne).
     final feetY = h * (widget.isAtelier ? 0.785 : 0.74);
@@ -3113,7 +3115,8 @@ class _SideScrollSceneState extends State<SideScrollScene>
 
   // Sprite Shen + husky (caresse/câlin) calé au sol sur la position du chien.
   Widget _buildPetDog(double w, double h) {
-    final ph = h * 0.21; // nettement plus petit
+    final ph =
+        h * 0.21 * (widget.isAtelier ? 1.0 : 0.8); // salon peint petit
     final pw = ph * (423 / 324);
     final feetY = h * 0.74;
     return Positioned(
@@ -3142,7 +3145,10 @@ class _SideScrollSceneState extends State<SideScrollScene>
       child: _DogCharacter(
         key: const ValueKey('dog'),
         tint: _nightTint,
-        heightFrac: widget.dogHeight,
+        // x0.8 au salon (pièce peinte plus petite, comme l'héroïne).
+        heightFrac: (widget.isAtelier || widget.secondWagon)
+            ? widget.dogHeight
+            : widget.dogHeight * 0.8,
         feetY: 0.74,
         startX: _dogX,
         minX: 0.30,
@@ -3295,7 +3301,11 @@ class _SideScrollSceneState extends State<SideScrollScene>
     final m = animMetricsFor(prefix);
     // Cellier plus grand -> on agrandit un peu Shen pour qu'elle ne paraisse
     // pas minuscule dans le volume.
-    final wagonScale = widget.secondWagon ? 1.12 : 1.1;
+    // Le SALON est peint plus petit dans le cadre (intérieur ~360 px de haut
+    // contre ~450 pour l'atelier/cellier) : ses personnages sont réduits
+    // d'autant (x0.8) pour rester à l'échelle de la pièce.
+    final wagonScale =
+        widget.secondWagon ? 1.12 : (widget.isAtelier ? 1.1 : 0.88);
     final heroHeight = h * kHeroBaseHeight * m.scale * wagonScale;
     final heroWidth = heroHeight * m.aspect;
     // Clamp de sécurité : si la tenue vient de changer, l'index courant

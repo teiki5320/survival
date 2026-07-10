@@ -347,6 +347,10 @@ l'atelier, gatés par `aLaRadio` / `souvenir_fenetre` (pas des `asset_*`).
 ### Précisions side-scroll
 - Heroine bounds : `heroXMin = 0.22`, `heroXMax = 0.86`. Spawn retour loco →
   heroXMin, retour map → heroXMax.
+- **ÉCHELLE SALON** (2026-07-06) : le salon est PEINT plus petit (intérieur
+  ~360 px contre ~450 atelier/cellier) → tous les personnages y sont réduits
+  ×0.8 (héroïne wagonScale 0.88, sœur 0.224, chien, duos, petdog). Ne pas
+  « corriger » en croyant à un bug.
 - Sprites Shen : comptes de frames **PAR TENUE** (2026-07-06). Classique =
   jeux D'ORIGINE restaurés (25f ; use_back 24, open_door 20, pickup 25) aux
   cadences d'origine — un ré-échantillonnage 25→16 donnait des pas source
