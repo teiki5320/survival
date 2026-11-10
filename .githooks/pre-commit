@@ -1,0 +1,18 @@
+#!/bin/bash
+# Monte la version de pubspec.yaml dans le MÊME commit si elle est périmée.
+# Voir scripts/garde-version.sh et CLAUDE.md.
+RACINE="$(git rev-parse --show-toplevel)"
+GIT_DIR_REEL="$(git rev-parse --git-dir)"
+# Pas pendant un rebase, un merge ou un cherry-pick : on ne réécrit pas l'historique des autres.
+for f in rebase-merge rebase-apply MERGE_HEAD CHERRY_PICK_HEAD; do
+  [ -e "$GIT_DIR_REEL/$f" ] && exit 0
+done
+[ -x "$RACINE/scripts/garde-version.sh" ] || exit 0
+"$RACINE/scripts/garde-version.sh" --verifier >/dev/null 2>&1 && exit 0
+# pubspec.yaml modifié mais pas ajouté : on ne mélange pas, on s'arrête.
+if ! git diff --quiet -- pubspec.yaml; then
+  echo "garde-version : pubspec.yaml a des modifications non ajoutées ; ajoute-le (git add) puis recommence." >&2
+  exit 1
+fi
+"$RACINE/scripts/garde-version.sh" --corriger || exit 1
+git add pubspec.yaml

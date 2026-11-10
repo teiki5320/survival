@@ -1,0 +1,8 @@
+# Dernière version de Survival APPROUVÉE par Apple ou Google (et son numéro de build).
+# Lue par scripts/garde-version.sh : tant que pubspec.yaml porte cette version
+# (ou une plus ancienne), tout commit la monte tout seul. À mettre à jour dans
+# le même commit que les fiches qui notent une approbation.
+# État au 10 novembre 2026 : aucune version approuvée par Apple ni publiée sur Google Play (0.0.0 = rien d'approuvé) ;
+# à renseigner dès la première approbation, dans le même commit que les fiches.
+version=0.0.0
+build=0

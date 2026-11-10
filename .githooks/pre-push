@@ -1,0 +1,18 @@
+#!/bin/bash
+# Filet de sécurité : refuse la poussée si le dernier commit poussé porte une
+# version déjà approuvée (commit fait sans le hook pre-commit, par exemple).
+RACINE="$(git rev-parse --show-toplevel)"
+[ -x "$RACINE/scripts/garde-version.sh" ] || exit 0
+# Ne contrôle que le commit réellement poussé vers main (pas une suppression).
+while read -r ref_locale sha_locale ref_distante sha_distante; do
+  [ "$ref_distante" = "refs/heads/main" ] || continue
+  [ "$sha_locale" = "0000000000000000000000000000000000000000" ] && continue
+  tmp="$(mktemp -d)"
+  git show "$sha_locale:pubspec.yaml" > "$tmp/pubspec.yaml" 2>/dev/null || { rm -rf "$tmp"; continue; }
+  git show "$sha_locale:version-approuvee.txt" > "$tmp/approuvee.txt" 2>/dev/null || { rm -rf "$tmp"; continue; }
+  GARDE_PUBSPEC="$tmp/pubspec.yaml" GARDE_APPROUVEE="$tmp/approuvee.txt" "$RACINE/scripts/garde-version.sh" --verifier
+  code=$?
+  rm -rf "$tmp"
+  [ "$code" = 0 ] || { echo "Poussée refusée : monte la version (scripts/garde-version.sh --corriger), commit, puis repousse." >&2; exit 1; }
+done
+exit 0
